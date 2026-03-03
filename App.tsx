@@ -1,45 +1,60 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { getDatabase } from './src/db/database';
+import { runMigrations } from './src/db/migrationRunner';
+import { seedIfEmpty } from './src/db/seed';
 
-import { NewAppScreen } from '@react-native/new-app-screen';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
-import {
-  SafeAreaProvider,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+export default function App() {
+  const [ready, setReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-function App() {
-  const isDarkMode = useColorScheme() === 'dark';
+  useEffect(() => {
+  (async () => {
+    try {
+      const db = getDatabase();
+      await runMigrations(db);
+
+      const check = await db.execute(
+        `SELECT name FROM sqlite_master WHERE type='table' AND name='words';`
+      );
+      console.log('[DB] Tables after migration:', JSON.stringify(check.rows));
+
+      await seedIfEmpty(db);
+      setReady(true);
+    } catch (e) {
+      console.error('[DB] Init error:', e);
+      setError(String(e));
+    }
+  })();
+}, []);
+
+  if (error) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.error}>{error}</Text>
+      </View>
+    );
+  }
+
+  if (!ready) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
 
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <AppContent />
-    </SafeAreaProvider>
-  );
-}
-
-function AppContent() {
-  const safeAreaInsets = useSafeAreaInsets();
-
-  return (
-    <View style={styles.container}>
-      <NewAppScreen
-        templateFileName="App.tsx"
-        safeAreaInsets={safeAreaInsets}
-      />
+    <View style={styles.center}>
+      <Text style={styles.title}>FlashCards</Text>
+      <Text style={styles.subtitle}>DB ready ✓</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  title:  { fontSize: 28, fontWeight: '700' },
+  subtitle: { fontSize: 16, color: '#666', marginTop: 8 },
+  error:  { color: 'red', padding: 16 },
 });
-
-export default App;
