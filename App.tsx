@@ -1,32 +1,27 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { getDatabase } from './src/db/database';
 import { runMigrations } from './src/db/migrationRunner';
 import { seedIfEmpty } from './src/db/seed';
+import { CardScreen } from './src/screens/CardScreen';
 
 export default function App() {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-  (async () => {
-    try {
-      const db = getDatabase();
-      await runMigrations(db);
-
-      const check = await db.execute(
-        `SELECT name FROM sqlite_master WHERE type='table' AND name='words';`
-      );
-      console.log('[DB] Tables after migration:', JSON.stringify(check.rows));
-
-      await seedIfEmpty(db);
-      setReady(true);
-    } catch (e) {
-      console.error('[DB] Init error:', e);
-      setError(String(e));
-    }
-  })();
-}, []);
+    (async () => {
+      try {
+        const db = getDatabase();
+        await runMigrations(db);
+        await seedIfEmpty(db);
+        setReady(true);
+      } catch (e) {
+        setError(String(e));
+      }
+    })();
+  }, []);
 
   if (error) {
     return (
@@ -39,22 +34,20 @@ export default function App() {
   if (!ready) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color="#6c63ff" />
       </View>
     );
   }
 
   return (
-    <View style={styles.center}>
-      <Text style={styles.title}>FlashCards</Text>
-      <Text style={styles.subtitle}>DB ready ✓</Text>
-    </View>
+    <GestureHandlerRootView style={styles.root}>
+      <CardScreen />
+    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
+  root:   { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  title:  { fontSize: 28, fontWeight: '700' },
-  subtitle: { fontSize: 16, color: '#666', marginTop: 8 },
   error:  { color: 'red', padding: 16 },
 });
