@@ -5,6 +5,7 @@ import { getDatabase } from './src/db/database';
 import { runMigrations } from './src/db/migrationRunner';
 import { seedIfEmpty } from './src/db/seed';
 import { CardScreen } from './src/screens/CardScreen';
+import { debugPrintAllWords } from './src/db/words';
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -16,6 +17,7 @@ export default function App() {
         const db = getDatabase();
         await runMigrations(db);
         await seedIfEmpty(db);
+        await debugPrintAllWords();
         setReady(true);
       } catch (e) {
         setError(String(e));

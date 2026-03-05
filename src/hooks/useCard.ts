@@ -1,5 +1,6 @@
-import { useState, useCallback } from 'react';
-import { getNextWord, updateWordStatus, Word, WordStatus } from '../db/words';
+import { useState, useCallback, useEffect } from 'react';
+import { wordRepository } from '../repositories/WordRepository';
+import { Word, WordStatus } from '../db/words';
 
 interface UseCardResult {
   word: Word | null;
@@ -13,13 +14,13 @@ export function useCard(): UseCardResult {
   const [word, setWord] = useState<Word | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEmpty, setIsEmpty] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
 
   const loadNext = useCallback(async (excludeId?: number) => {
     setIsLoading(true);
-    const next = await getNextWord(excludeId);
+    const next = await wordRepository.getNext(excludeId);
     if (!next) {
       setIsEmpty(true);
+      setWord(null);
     } else {
       setWord(next);
       setIsEmpty(false);
@@ -27,26 +28,21 @@ export function useCard(): UseCardResult {
     setIsLoading(false);
   }, []);
 
-  const initialize = useCallback(() => {
-    if (!isInitialized) {
-      setIsInitialized(true);
-      loadNext();
-    }
-  }, [isInitialized, loadNext]);
+  useEffect(() => {
+    loadNext();
+  }, [loadNext]);
 
   const onFlip = useCallback(async () => {
-    if (!word || word.status !== 'new') return;
-    await updateWordStatus(word.id, 'repeat');
-    setWord(prev => prev ? { ...prev, status: 'repeat' } : prev);
+    if (!word) return;
+    const updated = await wordRepository.markAsSeen(word);
+    setWord(updated);
   }, [word]);
 
   const onSwipe = useCallback(async (status: WordStatus) => {
     if (!word) return;
-    await updateWordStatus(word.id, status);
+    await wordRepository.applySwipeResult(word, status);
     await loadNext(word.id);
   }, [word, loadNext]);
-
-  useState(() => { initialize(); });
 
   return { word, isLoading, isEmpty, onSwipe, onFlip };
 }

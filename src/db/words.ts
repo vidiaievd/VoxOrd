@@ -49,3 +49,16 @@ export async function updateWordStatus(
     [status, id]
   );
 }
+
+//TODO: debug database seeding and migration logic, ensure that the words table is created and populated correctly.
+export async function debugPrintAllWords(): Promise<void> {
+  const db = getDatabase();
+  const result = await db.execute('SELECT * FROM words ORDER BY id;');
+  const rows = result.rows ?? [];
+  console.log(`[DB] Total words: ${rows.length}`);
+  rows.forEach((row) => {
+    console.log(
+      `[DB] #${row.id} | ${row.word} | ${row.translation} | status: ${row.status}`
+    );
+  });
+}

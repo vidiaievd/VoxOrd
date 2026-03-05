@@ -1,20 +1,13 @@
 import React, { useCallback, useState } from 'react';
-import {
-  StyleSheet,
-  Text,
-  Pressable,
-  Dimensions,
-} from 'react-native';
+import { StyleSheet, Text, Pressable, Dimensions } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
   interpolate,
 } from 'react-native-reanimated';
-import {
-  Gesture,
-  GestureDetector,
-} from 'react-native-gesture-handler';
+import { scheduleOnRN } from 'react-native-worklets';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { Word, WordStatus } from '../../db/words';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -41,16 +34,18 @@ export function FlipCard({ word, onSwipe, onFlip }: FlipCardProps) {
   }, [isFlipped, onFlip, rotation]);
 
   const handleSwipe = useCallback((status: WordStatus) => {
+  'worklet';
   const toX = status === 'learned' ? SCREEN_WIDTH * 1.5 : -SCREEN_WIDTH * 1.5;
   translateX.value = withTiming(toX, { duration: 300 });
   opacity.value = withTiming(0, { duration: 300 }, () => {
-    onSwipe(status);
+    'worklet';
+    scheduleOnRN(onSwipe, status);
     translateX.value = 0;
     opacity.value = 1;
   });
 }, [onSwipe, translateX, opacity]);
 
-  const panGesture = Gesture.Pan()
+const panGesture = Gesture.Pan()
   .onUpdate((e) => {
     translateX.value = e.translationX;
   })
@@ -91,11 +86,21 @@ export function FlipCard({ word, onSwipe, onFlip }: FlipCardProps) {
   }));
 
   const overlayLearnedStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(translateX.value, [0, SWIPE_THRESHOLD], [0, 1], 'clamp'),
+    opacity: interpolate(
+      translateX.value,
+      [0, SWIPE_THRESHOLD],
+      [0, 1],
+      'clamp',
+    ),
   }));
 
   const overlayRepeatStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(translateX.value, [0, -SWIPE_THRESHOLD], [0, 1], 'clamp'),
+    opacity: interpolate(
+      translateX.value,
+      [0, -SWIPE_THRESHOLD],
+      [0, 1],
+      'clamp',
+    ),
   }));
 
   return (
@@ -103,12 +108,16 @@ export function FlipCard({ word, onSwipe, onFlip }: FlipCardProps) {
       <Animated.View style={[styles.cardWrapper, cardStyle]}>
         <Pressable onPress={flip} style={styles.pressable}>
           {/* Overlay learned (green) */}
-          <Animated.View style={[styles.overlay, styles.overlayLearned, overlayLearnedStyle]}>
+          <Animated.View
+            style={[styles.overlay, styles.overlayLearned, overlayLearnedStyle]}
+          >
             <Text style={styles.overlayText}>✓ LEARNED</Text>
           </Animated.View>
 
           {/* Overlay repeat (red) */}
-          <Animated.View style={[styles.overlay, styles.overlayRepeat, overlayRepeatStyle]}>
+          <Animated.View
+            style={[styles.overlay, styles.overlayRepeat, overlayRepeatStyle]}
+          >
             <Text style={styles.overlayText}>↩ REPEAT</Text>
           </Animated.View>
 
