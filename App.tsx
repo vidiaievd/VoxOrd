@@ -4,8 +4,9 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { getDatabase } from './src/db/database';
 import { runMigrations } from './src/db/migrationRunner';
 import { seedIfEmpty } from './src/db/seed';
-import { CardScreen } from './src/screens/CardScreen';
 import { debugPrintAllWords } from './src/db/words';
+import { RootNavigator } from './src/navigation/RootNavigator';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -43,7 +44,9 @@ export default function App() {
 
   return (
     <GestureHandlerRootView style={styles.root}>
-      <CardScreen />
+      <SafeAreaProvider>
+        <RootNavigator />
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }
