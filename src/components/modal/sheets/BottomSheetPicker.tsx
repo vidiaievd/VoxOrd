@@ -8,6 +8,8 @@ import {
   Pressable,
   ScrollView,
 } from 'react-native';
+import { useTheme } from '../../../providers/ThemeProvider';
+import { ColorScheme } from '../../../theme/colors';
 
 export interface PickerOption<T> {
   value: T;
@@ -35,6 +37,9 @@ export function BottomSheetPicker<T>({
   onClose,
   closeLabel = 'Close',
 }: BottomSheetPickerProps<T>) {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
+
   return (
     <Modal
       visible={visible}
@@ -92,90 +97,91 @@ export function BottomSheetPicker<T>({
   );
 }
 
-const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  sheet: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingBottom: 32,
-    maxHeight: '70%',
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    backgroundColor: '#e0e0e0',
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginTop: 12,
-    marginBottom: 8,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1a1a2e',
-    textAlign: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f7',
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f7',
-  },
-  rowLast: {
-    borderBottomWidth: 0,
-  },
-  icon: {
-    fontSize: 26,
-    marginRight: 16,
-    width: 36,
-    textAlign: 'center',
-  },
-  label: {
-    fontSize: 16,
-    color: '#1a1a2e',
-    flex: 1,
-  },
-  labelSelected: {
-    fontWeight: '700',
-    color: '#6c63ff',
-  },
-  badge: {
-    backgroundColor: '#f0f0f7',
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    marginRight: 8,
-  },
-  badgeText: {
-    fontSize: 12,
-    color: '#888',
-    fontWeight: '600',
-  },
-  checkmark: {
-    fontSize: 18,
-    color: '#6c63ff',
-    fontWeight: '700',
-  },
-  cancelBtn: {
-    marginTop: 8,
-    marginHorizontal: 24,
-    paddingVertical: 14,
-    backgroundColor: '#f0f0f7',
-    borderRadius: 14,
-    alignItems: 'center',
-  },
-  cancelText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#888',
-  },
-});
+const makeStyles = (colors: ColorScheme) =>
+  StyleSheet.create({
+    backdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+    },
+    sheet: {
+      backgroundColor: colors.backgroundCard,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      paddingBottom: 32,
+      maxHeight: '70%',
+    },
+    handle: {
+      width: 40,
+      height: 4,
+      backgroundColor: colors.border,
+      borderRadius: 2,
+      alignSelf: 'center',
+      marginTop: 12,
+      marginBottom: 8,
+    },
+    title: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.textPrimary,
+      textAlign: 'center',
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 16,
+      paddingHorizontal: 24,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    rowLast: {
+      borderBottomWidth: 0,
+    },
+    icon: {
+      fontSize: 26,
+      marginRight: 16,
+      width: 36,
+      textAlign: 'center',
+    },
+    label: {
+      fontSize: 16,
+      color: colors.textPrimary,
+      flex: 1,
+    },
+    labelSelected: {
+      fontWeight: '700',
+      color: colors.accent,
+    },
+    badge: {
+      backgroundColor: colors.accentLight,
+      borderRadius: 10,
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      marginRight: 8,
+    },
+    badgeText: {
+      fontSize: 12,
+      color: colors.accent,
+      fontWeight: '600',
+    },
+    checkmark: {
+      fontSize: 18,
+      color: colors.accent,
+      fontWeight: '700',
+    },
+    cancelBtn: {
+      marginTop: 8,
+      marginHorizontal: 24,
+      paddingVertical: 14,
+      backgroundColor: colors.backgroundInput,
+      borderRadius: 14,
+      alignItems: 'center',
+    },
+    cancelText: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.textSecondary,
+    },
+  });

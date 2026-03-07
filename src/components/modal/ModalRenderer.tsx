@@ -1,7 +1,7 @@
 import React from 'react';
-import { ModalConfig } from './types';
-import { BottomSheetPicker } from '../BottomSheetPicker';
+import { ModalConfig } from '../../providers/ModalProvider';
 import { ConfirmSheet } from './sheets/ConfirmSheet';
+import { BottomSheetPicker } from './sheets/BottomSheetPicker';
 
 interface ModalRendererProps {
   config: ModalConfig | null;

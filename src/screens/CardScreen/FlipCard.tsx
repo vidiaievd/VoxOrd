@@ -10,6 +10,8 @@ import { scheduleOnRN } from 'react-native-worklets';
 import { useTranslation } from '../../i18n';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { Word, WordStatus } from '../../db/words';
+import { useTheme } from '../../providers/ThemeProvider';
+import { ColorScheme } from '../../theme/colors';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.3;
@@ -22,6 +24,9 @@ interface FlipCardProps {
 
 export function FlipCard({ word, onSwipe, onFlip }: FlipCardProps) {
   const { t } = useTranslation();
+
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
 
   const [isFlipped, setIsFlipped] = useState(false);
 
@@ -147,78 +152,79 @@ export function FlipCard({ word, onSwipe, onFlip }: FlipCardProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  cardWrapper: {
-    width: SCREEN_WIDTH - 48,
-    height: 280,
-  },
-  pressable: {
-    flex: 1,
-  },
-  card: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 6,
-    padding: 24,
-  },
-  cardBack: {
-    backgroundColor: '#f8f9ff',
-  },
-  label: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 2,
-    color: '#aaa',
-    marginBottom: 16,
-  },
-  word: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#1a1a2e',
-    textAlign: 'center',
-  },
-  hint: {
-    marginTop: 16,
-    fontSize: 13,
-    color: '#ccc',
-  },
-  statusBadge: {
-    marginTop: 12,
-    fontSize: 12,
-    color: '#888',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
-  },
-  overlayLearned: {
-    backgroundColor: 'rgba(52, 199, 89, 0.85)',
-  },
-  overlayRepeat: {
-    backgroundColor: 'rgba(255, 59, 48, 0.85)',
-  },
-  overlayText: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#fff',
-    letterSpacing: 2,
-  },
-});
+const makeStyles = (colors: ColorScheme) =>
+  StyleSheet.create({
+    cardWrapper: {
+      width: SCREEN_WIDTH - 48,
+      height: 280,
+    },
+    pressable: {
+      flex: 1,
+    },
+    card: {
+      position: 'absolute',
+      width: '100%',
+      height: '100%',
+      backgroundColor: colors.backgroundCard,
+      borderRadius: 20,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: colors.cardShadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 1,
+      shadowRadius: 12,
+      elevation: 6,
+      padding: 24,
+    },
+    cardBack: {
+      backgroundColor: colors.backgroundInput,
+    },
+    label: {
+      fontSize: 11,
+      fontWeight: '700',
+      letterSpacing: 2,
+      color: colors.textMuted,
+      marginBottom: 16,
+    },
+    word: {
+      fontSize: 32,
+      fontWeight: '700',
+      color: colors.textPrimary,
+      textAlign: 'center',
+    },
+    hint: {
+      marginTop: 16,
+      fontSize: 13,
+      color: colors.textMuted,
+    },
+    statusBadge: {
+      marginTop: 12,
+      fontSize: 12,
+      color: colors.textMuted,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+    },
+    overlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      borderRadius: 20,
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 10,
+    },
+    overlayLearned: {
+      backgroundColor: 'rgba(52, 199, 89, 0.85)',
+    },
+    overlayRepeat: {
+      backgroundColor: 'rgba(255, 59, 48, 0.85)',
+    },
+    overlayText: {
+      fontSize: 28,
+      fontWeight: '800',
+      color: '#fff',
+      letterSpacing: 2,
+    },
+  });

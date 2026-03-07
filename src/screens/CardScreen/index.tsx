@@ -11,6 +11,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCard } from '../../hooks/useCard';
 import { FlipCard } from './FlipCard';
 import { Deck } from '../../repositories/DeckRepository';
+import { useTheme } from '../../providers/ThemeProvider';
+import { ColorScheme } from '../../theme/colors';
 
 interface CardScreenProps {
   deck: Deck;
@@ -19,6 +21,9 @@ interface CardScreenProps {
 
 export function CardScreen({ deck, onBack }: CardScreenProps) {
   const { t } = useTranslation();
+
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
 
   const { word, isLoading, isEmpty, onSwipe, onFlip } = useCard(deck.id);
 
@@ -98,109 +103,101 @@ export function CardScreen({ deck, onBack }: CardScreenProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f0f0f7',
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 16,
-  },
-  backBtn: {
-    padding: 20,
-  },
-  backText: {
-    fontSize: 16,
-    color: '#6c63ff',
-    fontWeight: '600',
-  },
-  headerCenter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flex: 1,
-    justifyContent: 'center',
-  },
-  headerIcon: {
-    fontSize: 18,
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1a1a2e',
-    flexShrink: 1,
-  },
-  headerStatus: {
-    fontSize: 11,
-    color: '#aaa',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    minWidth: 50,
-    textAlign: 'right',
-  },
-  cardArea: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  hints: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 32,
-    paddingBottom: 32,
-  },
-  hint: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  hintRight: {
-    flexDirection: 'row-reverse',
-  },
-  hintArrow: {
-    fontSize: 16,
-    color: '#ccc',
-  },
-  hintText: {
-    fontSize: 13,
-    color: '#ccc',
-  },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1a1a2e',
-  },
-  emptySubtitle: {
-    fontSize: 15,
-    color: '#888',
-    marginTop: 8,
-    textAlign: 'center',
-    paddingHorizontal: 32,
-  },
-  backToDeckBtn: {
-    marginTop: 32,
-    backgroundColor: '#6c63ff',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  backToDeckText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 15,
-  },
-});
+const makeStyles = (colors: ColorScheme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    center: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      paddingTop: 8,
+      paddingBottom: 16,
+    },
+    backText: {
+      fontSize: 16,
+      color: colors.accent,
+      fontWeight: '600',
+    },
+    headerCenter: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      justifyContent: 'center',
+    },
+    headerIcon: {
+      fontSize: 18,
+      marginRight: 6,
+    },
+    headerTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.textPrimary,
+      flexShrink: 1,
+    },
+    headerStatus: {
+      fontSize: 11,
+      color: colors.textMuted,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      minWidth: 50,
+      textAlign: 'right',
+    },
+    cardArea: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    hints: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingHorizontal: 32,
+      paddingBottom: 32,
+    },
+    hint: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    hintRight: {
+      flexDirection: 'row-reverse',
+    },
+    hintArrow: {
+      fontSize: 16,
+      color: colors.textMuted,
+      marginRight: 4,
+    },
+    hintText: {
+      fontSize: 13,
+      color: colors.textMuted,
+    },
+    emptyIcon: { fontSize: 64, marginBottom: 16 },
+    emptyTitle: { fontSize: 24, fontWeight: '700', color: colors.textPrimary },
+    emptySubtitle: {
+      fontSize: 15,
+      color: colors.textMuted,
+      marginTop: 8,
+      textAlign: 'center',
+      paddingHorizontal: 32,
+    },
+    backToDeckBtn: {
+      marginTop: 32,
+      backgroundColor: colors.accent,
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+      borderRadius: 12,
+    },
+    backToDeckText: {
+      color: colors.textInverted,
+      fontWeight: '600',
+      fontSize: 15,
+    },
+    backBtn: { padding: 20 },
+  });

@@ -8,10 +8,15 @@ import { StatisticsSection } from './sections/StatisticsSection';
 import { SettingsSection } from './components/SettingsSection';
 import { SettingsRow } from './components/SettingsRow';
 import { useTranslation } from '../../i18n';
+import { useTheme } from '../../providers/ThemeProvider';
+import { ColorScheme } from '../../theme/colors';
 
 export function SettingsScreen() {
   const { t } = useTranslation();
-  
+
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -48,22 +53,23 @@ export function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f0f0f7',
-  },
-  header: {
-    paddingHorizontal: 24,
-    paddingTop: 8,
-    paddingBottom: 16,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#1a1a2e',
-  },
-  scroll: {
-    paddingBottom: 32,
-  },
-});
+const makeStyles = (colors: ColorScheme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      paddingHorizontal: 24,
+      paddingTop: 8,
+      paddingBottom: 16,
+    },
+    title: {
+      fontSize: 28,
+      fontWeight: '800',
+      color: colors.textPrimary,
+    },
+    scroll: {
+      paddingBottom: 32,
+    },
+  });

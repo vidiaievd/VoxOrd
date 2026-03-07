@@ -4,9 +4,9 @@ import { SettingsSection } from '../components/SettingsSection';
 import { SettingsRow } from '../components/SettingsRow';
 import { useSettings } from '../../../hooks/useSettings';
 import { LanguageCode } from '../../../db/types';
-import { useModal } from '../../../components/modal';
 import { settingsStore } from '../../../store/settingsStore';
-import { PickerOption } from '../../../components/BottomSheetPicker';
+import { useModal } from '../../../providers/ModalProvider';
+import { PickerOption } from '../../../components/modal/sheets/BottomSheetPicker';
 
 const LANGUAGE_OPTIONS: PickerOption<LanguageCode>[] = [
   { value: 'ru', label: 'Русский',    icon: '🇷🇺' },

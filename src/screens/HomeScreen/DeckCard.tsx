@@ -8,6 +8,8 @@ import {
 } from 'react-native';
 import { useTranslation } from '../../i18n';
 import { Deck } from '../../repositories/DeckRepository';
+import { useTheme } from '../../providers/ThemeProvider';
+import { ColorScheme } from '../../theme/colors';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = (SCREEN_WIDTH - 48) / 2;
@@ -19,6 +21,9 @@ interface DeckCardProps {
 
 export function DeckCard({ deck, onPress }: DeckCardProps) {
   const { t } = useTranslation();
+
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
 
   const progress =
     deck.totalWords > 0 ? deck.learnedWords / deck.totalWords : 0;
@@ -65,72 +70,73 @@ export function DeckCard({ deck, onPress }: DeckCardProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    width: CARD_WIDTH,
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  icon: {
-    fontSize: 44,
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  title: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1a1a2e',
-    textAlign: 'center',
-    marginBottom: 12,
-    minHeight: 36,
-  },
-  counters: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  counter: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  counterValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#6c63ff',
-  },
-  counterLabel: {
-    fontSize: 10,
-    color: '#aaa',
-    marginTop: 2,
-  },
-  repeatColor: {
-    color: '#ff9f43',
-  },
-  learnedColor: {
-    color: '#34c759',
-  },
-  progressBg: {
-    height: 4,
-    backgroundColor: '#f0f0f7',
-    borderRadius: 2,
-    overflow: 'hidden',
-    marginBottom: 4,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#6c63ff',
-    borderRadius: 2,
-  },
-  progressLabel: {
-    fontSize: 10,
-    color: '#aaa',
-    textAlign: 'right',
-  },
-});
+const makeStyles = (colors: ColorScheme) =>
+  StyleSheet.create({
+    card: {
+      width: CARD_WIDTH,
+      backgroundColor: colors.backgroundCard,
+      borderRadius: 20,
+      padding: 16,
+      marginBottom: 16,
+      shadowColor: colors.cardShadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 1,
+      shadowRadius: 8,
+      elevation: 3,
+    },
+    icon: {
+      fontSize: 44,
+      marginBottom: 10,
+      textAlign: 'center',
+    },
+    title: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.textPrimary,
+      textAlign: 'center',
+      marginBottom: 12,
+      minHeight: 36,
+    },
+    counters: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 12,
+    },
+    counter: {
+      alignItems: 'center',
+      flex: 1,
+    },
+    counterValue: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.statusNew,
+    },
+    counterLabel: {
+      fontSize: 10,
+      color: colors.textMuted,
+      marginTop: 2,
+    },
+    repeatColor: {
+      color: colors.statusRepeat,
+    },
+    learnedColor: {
+      color: colors.statusLearned,
+    },
+    progressBg: {
+      height: 4,
+      backgroundColor: colors.border,
+      borderRadius: 2,
+      overflow: 'hidden',
+      marginBottom: 4,
+    },
+    progressFill: {
+      height: '100%',
+      backgroundColor: colors.accent,
+      borderRadius: 2,
+    },
+    progressLabel: {
+      fontSize: 10,
+      color: colors.textMuted,
+      textAlign: 'right',
+    },
+  });

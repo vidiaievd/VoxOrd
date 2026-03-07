@@ -1,5 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useTheme } from '../../../providers/ThemeProvider';
+import { ColorScheme } from '../../../theme/colors';
 
 interface SettingsSectionProps {
   title: string;
@@ -7,6 +9,9 @@ interface SettingsSectionProps {
 }
 
 export function SettingsSection({ title, children }: SettingsSectionProps) {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{title}</Text>
@@ -15,23 +20,24 @@ export function SettingsSection({ title, children }: SettingsSectionProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    marginBottom: 24,
-  },
-  title: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#888',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 8,
-    paddingHorizontal: 16,
-  },
-  content: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    overflow: 'hidden',
-    marginHorizontal: 16,
-  },
-});
+const makeStyles = (colors: ColorScheme) =>
+  StyleSheet.create({
+    container: {
+      marginBottom: 24,
+    },
+    title: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: colors.textMuted,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      marginBottom: 8,
+      paddingHorizontal: 16,
+    },
+    content: {
+      backgroundColor: colors.backgroundCard,
+      borderRadius: 16,
+      overflow: 'hidden',
+      marginHorizontal: 16,
+    },
+  });

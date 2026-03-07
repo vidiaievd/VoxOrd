@@ -1,5 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Switch } from 'react-native';
+import { useTheme } from '../../../providers/ThemeProvider';
+import { ColorScheme } from '../../../theme/colors';
 
 interface BaseProps {
   icon: string;
@@ -29,6 +31,9 @@ type SettingsRowProps = ToggleProps | SelectProps | NavigateProps;
 
 export function SettingsRow(props: SettingsRowProps) {
   const { icon, label, isLast } = props;
+
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
 
   const renderRight = () => {
     switch (props.type) {
@@ -82,56 +87,57 @@ export function SettingsRow(props: SettingsRowProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f7',
-  },
-  rowLast: {
-    borderBottomWidth: 0,
-  },
-  left: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  icon: {
-    fontSize: 20,
-    marginRight: 12,
-  },
-  label: {
-    fontSize: 15,
-    color: '#1a1a2e',
-    fontWeight: '500',
-  },
-  selectRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  selectValue: {
-    fontSize: 14,
-    color: '#888',
-    marginRight: 4,
-  },
-  chevron: {
-    fontSize: 20,
-    color: '#ccc',
-  },
-  badge: {
-    backgroundColor: '#6c63ff',
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    marginRight: 6,
-  },
-  badgeText: {
-    fontSize: 11,
-    color: '#fff',
-    fontWeight: '700',
-  },
-});
+const makeStyles = (colors: ColorScheme) =>
+  StyleSheet.create({
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    rowLast: {
+      borderBottomWidth: 0,
+    },
+    left: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    icon: {
+      fontSize: 20,
+      marginRight: 12,
+    },
+    label: {
+      fontSize: 15,
+      color: colors.textPrimary,
+      fontWeight: '500',
+    },
+    selectRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    selectValue: {
+      fontSize: 14,
+      color: colors.textMuted,
+      marginRight: 4,
+    },
+    chevron: {
+      fontSize: 20,
+      color: colors.textMuted,
+    },
+    badge: {
+      backgroundColor: colors.accentLight,
+      borderRadius: 10,
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      marginRight: 6,
+    },
+    badgeText: {
+      fontSize: 11,
+      color: colors.accent,
+      fontWeight: '700',
+    },
+  });

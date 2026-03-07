@@ -2,10 +2,18 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTranslation } from '../../../i18n';
 import { SettingsSection } from '../components/SettingsSection';
-import { GlobalStats, statsRepository } from '../../../repositories/StatsRepository';
+import {
+  GlobalStats,
+  statsRepository,
+} from '../../../repositories/StatsRepository';
+import { useTheme } from '../../../providers/ThemeProvider';
+import { ColorScheme } from '../../../theme/colors';
 
 export function StatisticsSection() {
   const { t } = useTranslation();
+
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
 
   const [stats, setStats] = useState<GlobalStats>({
     totalWords: 0,
@@ -60,6 +68,8 @@ function StatCard({
   label: string;
   color: string;
 }) {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   return (
     <View style={styles.card}>
       <Text style={[styles.value, { color }]}>{value}</Text>
@@ -68,27 +78,28 @@ function StatCard({
   );
 }
 
-const styles = StyleSheet.create({
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    padding: 12,
-    gap: 8,
-  },
-  card: {
-    width: '47%',
-    backgroundColor: '#f8f8ff',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-  },
-  value: {
-    fontSize: 24,
-    fontWeight: '800',
-  },
-  label: {
-    fontSize: 12,
-    color: '#888',
-    marginTop: 4,
-  },
-});
+const makeStyles = (colors: ColorScheme) =>
+  StyleSheet.create({
+    grid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      padding: 12,
+    },
+    card: {
+      width: '47%',
+      margin: '1.5%',
+      backgroundColor: colors.backgroundInput,
+      borderRadius: 12,
+      padding: 16,
+      alignItems: 'center',
+    },
+    value: {
+      fontSize: 24,
+      fontWeight: '800',
+    },
+    label: {
+      fontSize: 12,
+      color: colors.textMuted,
+      marginTop: 4,
+    },
+  });

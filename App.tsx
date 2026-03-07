@@ -1,14 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { getDatabase } from './src/db/database';
 import { runMigrations } from './src/db/migrationRunner';
 import { seedIfEmpty } from './src/db/seed';
 import { settingsStore } from './src/store/settingsStore';
 import { debugPrintAllWords } from './src/db/words';
 import { RootNavigator } from './src/navigation/RootNavigator';
-import { ModalProvider } from './src/components/modal';
+import { AppProviders } from './src/providers/AppProviders';
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -46,13 +44,9 @@ export default function App() {
   }
 
   return (
-    <GestureHandlerRootView style={styles.root}>
-      <SafeAreaProvider>
-        <ModalProvider>
-          <RootNavigator />
-        </ModalProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+    <AppProviders>
+      <RootNavigator />
+    </AppProviders>
   );
 }
 
