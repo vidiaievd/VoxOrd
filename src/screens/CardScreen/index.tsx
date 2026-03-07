@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
+import { useTranslation } from '../../i18n';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCard } from '../../hooks/useCard';
 import { FlipCard } from './FlipCard';
@@ -17,6 +18,8 @@ interface CardScreenProps {
 }
 
 export function CardScreen({ deck, onBack }: CardScreenProps) {
+  const { t } = useTranslation();
+
   const { word, isLoading, isEmpty, onSwipe, onFlip } = useCard(deck.id);
 
   if (isLoading) {
@@ -33,16 +36,16 @@ export function CardScreen({ deck, onBack }: CardScreenProps) {
     return (
       <SafeAreaView style={styles.container}>
         <TouchableOpacity style={styles.backBtn} onPress={onBack}>
-          <Text style={styles.backText}>← Back</Text>
+          <Text style={styles.backText}>← {t('common.back')}</Text>
         </TouchableOpacity>
         <View style={styles.center}>
           <Text style={styles.emptyIcon}>🎉</Text>
-          <Text style={styles.emptyTitle}>All done!</Text>
+          <Text style={styles.emptyTitle}>{t('card.allDone')}</Text>
           <Text style={styles.emptySubtitle}>
-            No more cards in "{deck.title}"
+            {t('card.allDoneDesc')} "{deck.title}"
           </Text>
           <TouchableOpacity style={styles.backToDeckBtn} onPress={onBack}>
-            <Text style={styles.backToDeckText}>Back to decks</Text>
+            <Text style={styles.backToDeckText}>{t('card.backToDecks')}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -84,10 +87,10 @@ export function CardScreen({ deck, onBack }: CardScreenProps) {
       <View style={styles.hints}>
         <View style={styles.hint}>
           <Text style={styles.hintArrow}>←</Text>
-          <Text style={styles.hintText}>repeat</Text>
+          <Text style={styles.hintText}>{t('card.repeat')}</Text>
         </View>
         <View style={[styles.hint, styles.hintRight]}>
-          <Text style={styles.hintText}>learned</Text>
+          <Text style={styles.hintText}>{t('card.learned')}</Text>
           <Text style={styles.hintArrow}>→</Text>
         </View>
       </View>

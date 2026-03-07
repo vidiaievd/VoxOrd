@@ -8,6 +8,7 @@ import { seedIfEmpty } from './src/db/seed';
 import { settingsStore } from './src/store/settingsStore';
 import { debugPrintAllWords } from './src/db/words';
 import { RootNavigator } from './src/navigation/RootNavigator';
+import { ModalProvider } from './src/components/modal';
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -47,14 +48,16 @@ export default function App() {
   return (
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
-        <RootNavigator />
+        <ModalProvider>
+          <RootNavigator />
+        </ModalProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
-  root:   { flex: 1 },
+  root: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  error:  { color: 'red', padding: 16 },
+  error: { color: 'red', padding: 16 },
 });

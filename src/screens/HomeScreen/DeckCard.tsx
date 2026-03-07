@@ -6,6 +6,7 @@ import {
   View,
   Dimensions,
 } from 'react-native';
+import { useTranslation } from '../../i18n';
 import { Deck } from '../../repositories/DeckRepository';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -17,6 +18,8 @@ interface DeckCardProps {
 }
 
 export function DeckCard({ deck, onPress }: DeckCardProps) {
+  const { t } = useTranslation();
+
   const progress =
     deck.totalWords > 0 ? deck.learnedWords / deck.totalWords : 0;
 
@@ -37,19 +40,19 @@ export function DeckCard({ deck, onPress }: DeckCardProps) {
       <View style={styles.counters}>
         <View style={styles.counter}>
           <Text style={styles.counterValue}>{deck.newWords}</Text>
-          <Text style={styles.counterLabel}>new</Text>
+          <Text style={styles.counterLabel}>{t('deckCard.new')}</Text>
         </View>
         <View style={styles.counter}>
           <Text style={[styles.counterValue, styles.repeatColor]}>
             {deck.repeatWords}
           </Text>
-          <Text style={styles.counterLabel}>repeat</Text>
+          <Text style={styles.counterLabel}>{t('deckCard.repeat')}</Text>
         </View>
         <View style={styles.counter}>
           <Text style={[styles.counterValue, styles.learnedColor]}>
             {deck.learnedWords}
           </Text>
-          <Text style={styles.counterLabel}>done</Text>
+          <Text style={styles.counterLabel}>{t('deckCard.done')}</Text>
         </View>
       </View>
 

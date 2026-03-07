@@ -1,17 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useTranslation } from '../../../i18n';
 import { SettingsSection } from '../components/SettingsSection';
-import { getDatabase } from '../../../db/database';
-
-interface Stats {
-  totalWords: number;
-  learnedWords: number;
-  repeatWords: number;
-  totalDecks: number;
-}
+import { GlobalStats, statsRepository } from '../../../repositories/StatsRepository';
 
 export function StatisticsSection() {
-  const [stats, setStats] = useState<Stats>({
+  const { t } = useTranslation();
+
+  const [stats, setStats] = useState<GlobalStats>({
     totalWords: 0,
     learnedWords: 0,
     repeatWords: 0,
@@ -19,29 +15,7 @@ export function StatisticsSection() {
   });
 
   useEffect(() => {
-    (async () => {
-      const db = getDatabase();
-
-      const wordsResult = await db.execute(`
-        SELECT
-          COUNT(*)                                                AS total,
-          SUM(CASE WHEN status = 'learned' THEN 1 ELSE 0 END)    AS learned,
-          SUM(CASE WHEN status = 'repeat'  THEN 1 ELSE 0 END)    AS repeat
-        FROM word_progress;
-      `);
-
-      const decksResult = await db.execute(
-        `SELECT COUNT(*) AS total FROM decks;`,
-      );
-
-      const row = wordsResult.rows?.[0];
-      setStats({
-        totalWords: (row?.total as number) ?? 0,
-        learnedWords: (row?.learned as number) ?? 0,
-        repeatWords: (row?.repeat as number) ?? 0,
-        totalDecks: (decksResult.rows?.[0]?.total as number) ?? 0,
-      });
-    })();
+    statsRepository.getGlobalStats().then(setStats);
   }, []);
 
   const progress =
@@ -50,12 +24,28 @@ export function StatisticsSection() {
       : 0;
 
   return (
-    <SettingsSection title="Статистика">
+    <SettingsSection title={t('settings.statistics')}>
       <View style={styles.grid}>
-        <StatCard value={stats.totalDecks} label="Наборов" color="#6c63ff" />
-        <StatCard value={stats.totalWords} label="Слов" color="#1a1a2e" />
-        <StatCard value={stats.learnedWords} label="Изучено" color="#34c759" />
-        <StatCard value={`${progress}%`} label="Прогресс" color="#ff9f43" />
+        <StatCard
+          value={stats.totalDecks}
+          label={t('stats.decks')}
+          color="#6c63ff"
+        />
+        <StatCard
+          value={stats.totalWords}
+          label={t('stats.words')}
+          color="#1a1a2e"
+        />
+        <StatCard
+          value={stats.learnedWords}
+          label={t('stats.learned')}
+          color="#34c759"
+        />
+        <StatCard
+          value={`${progress}%`}
+          label={t('stats.progress')}
+          color="#ff9f43"
+        />
       </View>
     </SettingsSection>
   );

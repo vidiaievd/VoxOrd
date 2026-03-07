@@ -7,12 +7,15 @@ import { LearningSection } from './sections/LearningSection';
 import { StatisticsSection } from './sections/StatisticsSection';
 import { SettingsSection } from './components/SettingsSection';
 import { SettingsRow } from './components/SettingsRow';
+import { useTranslation } from '../../i18n';
 
 export function SettingsScreen() {
+  const { t } = useTranslation();
+  
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Настройки</Text>
+        <Text style={styles.title}>{t('settings.title')}</Text>
       </View>
 
       <ScrollView
@@ -24,18 +27,18 @@ export function SettingsScreen() {
         <AppearanceSection />
         <LearningSection />
 
-        <SettingsSection title="О приложении">
+        <SettingsSection title={t('settings.about')}>
           <SettingsRow
             type="navigate"
             icon="ℹ️"
-            label="Версия"
+            label={t('settings.version')}
             badge="1.0.0"
             onPress={() => {}}
           />
           <SettingsRow
             type="navigate"
             icon="💬"
-            label="Обратная связь"
+            label={t('settings.feedback')}
             onPress={() => {}}
             isLast
           />

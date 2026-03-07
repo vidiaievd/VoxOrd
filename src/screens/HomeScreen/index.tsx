@@ -8,6 +8,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from '../../i18n';
 import { deckRepository, Deck } from '../../repositories/DeckRepository';
 import { DeckCard } from './DeckCard';
 
@@ -19,6 +20,8 @@ export function HomeScreen({ onDeckPress }: HomeScreenProps) {
   const [decks, setDecks] = useState<Deck[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const { t } = useTranslation();
 
   const loadDecks = useCallback(async (isRefresh = false) => {
     if (isRefresh) {
@@ -58,13 +61,13 @@ export function HomeScreen({ onDeckPress }: HomeScreenProps) {
       <View style={styles.header}>
         <View>
           <Text style={styles.appName}>VoxOrd</Text>
-          <Text style={styles.subtitle}>Norsk ordbok</Text>
+          <Text style={styles.subtitle}>{t('home.appSubtitle')}</Text>
         </View>
         <View style={styles.totalBadge}>
           <Text style={styles.totalValue}>
             {totalLearned}/{totalWords}
           </Text>
-          <Text style={styles.totalLabel}>learned</Text>
+          <Text style={styles.totalLabel}>{t('home.learned')}</Text>
         </View>
       </View>
 
@@ -84,7 +87,7 @@ export function HomeScreen({ onDeckPress }: HomeScreenProps) {
         }
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>No decks yet</Text>
+            <Text style={styles.emptyText}>{t('deckCard.noDecksYet')}</Text>
           </View>
         }
         renderItem={({ item }) => (

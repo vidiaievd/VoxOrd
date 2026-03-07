@@ -7,6 +7,7 @@ import Animated, {
   interpolate,
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
+import { useTranslation } from '../../i18n';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { Word, WordStatus } from '../../db/words';
 
@@ -20,6 +21,8 @@ interface FlipCardProps {
 }
 
 export function FlipCard({ word, onSwipe, onFlip }: FlipCardProps) {
+  const { t } = useTranslation();
+
   const [isFlipped, setIsFlipped] = useState(false);
 
   const rotation = useSharedValue(0);
@@ -33,31 +36,35 @@ export function FlipCard({ word, onSwipe, onFlip }: FlipCardProps) {
     if (!isFlipped) onFlip();
   }, [isFlipped, onFlip, rotation]);
 
-  const handleSwipe = useCallback((status: WordStatus) => {
-  'worklet';
-  const toX = status === 'learned' ? SCREEN_WIDTH * 1.5 : -SCREEN_WIDTH * 1.5;
-  translateX.value = withTiming(toX, { duration: 300 });
-  opacity.value = withTiming(0, { duration: 300 }, () => {
-    'worklet';
-    scheduleOnRN(onSwipe, status);
-    translateX.value = 0;
-    opacity.value = 1;
-  });
-}, [onSwipe, translateX, opacity]);
+  const handleSwipe = useCallback(
+    (status: WordStatus) => {
+      'worklet';
+      const toX =
+        status === 'learned' ? SCREEN_WIDTH * 1.5 : -SCREEN_WIDTH * 1.5;
+      translateX.value = withTiming(toX, { duration: 300 });
+      opacity.value = withTiming(0, { duration: 300 }, () => {
+        'worklet';
+        scheduleOnRN(onSwipe, status);
+        translateX.value = 0;
+        opacity.value = 1;
+      });
+    },
+    [onSwipe, translateX, opacity],
+  );
 
-const panGesture = Gesture.Pan()
-  .onUpdate((e) => {
-    translateX.value = e.translationX;
-  })
-  .onEnd((e) => {
-    if (e.translationX > SWIPE_THRESHOLD) {
-      handleSwipe('learned');
-    } else if (e.translationX < -SWIPE_THRESHOLD) {
-      handleSwipe('repeat');
-    } else {
-      translateX.value = withTiming(0, { duration: 200 });
-    }
-  });
+  const panGesture = Gesture.Pan()
+    .onUpdate(e => {
+      translateX.value = e.translationX;
+    })
+    .onEnd(e => {
+      if (e.translationX > SWIPE_THRESHOLD) {
+        handleSwipe('learned');
+      } else if (e.translationX < -SWIPE_THRESHOLD) {
+        handleSwipe('repeat');
+      } else {
+        translateX.value = withTiming(0, { duration: 200 });
+      }
+    });
 
   // front side
   const frontStyle = useAnimatedStyle(() => ({
@@ -111,26 +118,26 @@ const panGesture = Gesture.Pan()
           <Animated.View
             style={[styles.overlay, styles.overlayLearned, overlayLearnedStyle]}
           >
-            <Text style={styles.overlayText}>✓ LEARNED</Text>
+            <Text style={styles.overlayText}>✓ {t('card.learned')}</Text>
           </Animated.View>
 
           {/* Overlay repeat (red) */}
           <Animated.View
             style={[styles.overlay, styles.overlayRepeat, overlayRepeatStyle]}
           >
-            <Text style={styles.overlayText}>↩ REPEAT</Text>
+            <Text style={styles.overlayText}>↩ {t('card.repeat')}</Text>
           </Animated.View>
 
           {/* front side */}
           <Animated.View style={[styles.card, frontStyle]}>
-            <Text style={styles.label}>WORD</Text>
+            <Text style={styles.label}>{t('card.word')}</Text>
             <Text style={styles.word}>{word.word}</Text>
-            <Text style={styles.hint}>tap to reveal</Text>
+            <Text style={styles.hint}>{t('card.tapToReveal')}</Text>
           </Animated.View>
 
           {/* back side */}
           <Animated.View style={[styles.card, styles.cardBack, backStyle]}>
-            <Text style={styles.label}>TRANSLATION</Text>
+            <Text style={styles.label}>{t('card.translation')}</Text>
             <Text style={styles.word}>{word.translation}</Text>
             <Text style={styles.statusBadge}>{word.status}</Text>
           </Animated.View>

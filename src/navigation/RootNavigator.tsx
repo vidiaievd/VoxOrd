@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from '../i18n';
 import { HomeScreen } from '../screens/HomeScreen';
 import { CardScreen } from '../screens/CardScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
@@ -13,6 +14,8 @@ type Screen =
   | { name: 'Settings' };
 
 export function RootNavigator() {
+  const { t } = useTranslation();
+
   const [screen, setScreen] = useState<Screen>({ name: 'Home' });
   const [activeTab, setActiveTab] = useState<Tab>('Home');
 
@@ -62,13 +65,13 @@ export function RootNavigator() {
         <SafeAreaView edges={['bottom']} style={styles.tabBar}>
           <TabItem
             icon="🏠"
-            label="Главная"
+            label={t('nav.home')}
             isActive={activeTab === 'Home'}
             onPress={() => handleTabPress('Home')}
           />
           <TabItem
             icon="⚙️"
-            label="Настройки"
+            label={t('nav.settings')}
             isActive={activeTab === 'Settings'}
             onPress={() => handleTabPress('Settings')}
           />
