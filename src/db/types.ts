@@ -87,6 +87,8 @@ export const TABLE = {
   USER_STATS: 'user_stats',
   DAILY_ACTIVITY: 'daily_activity',
   DAILY_GOAL: 'daily_goal',
+  LEARNING_SESSIONS: 'learning_sessions',
+  SESSION_RESULTS:   'session_results',
 } as const;
 
 export type MemoryStage = 0 | 1 | 2 | 3 | 4 | 5;
@@ -121,4 +123,32 @@ export interface WordProgress {
   successCount: number;
   shortTermStrength: number;
   longTermStrength: number;
+}
+
+export type RelationType =
+  | 'synonym'
+  | 'antonym'
+  | 'related'
+  | 'category'
+  | 'example';
+
+export interface LearningSession {
+  id:             number;
+  deckId:         number | null;
+  sessionType:    SessionType;
+  startedAt:      number;
+  finishedAt:     number | null;
+  totalWords:     number;
+  correctAnswers: number;
+  xpEarned:       number;
+}
+
+export interface SessionResult {
+  id:             number;
+  sessionId:      number;
+  wordId:         number;
+  exerciseType:   ExerciseType;
+  isCorrect:      boolean;
+  responseTimeMs: number | null;
+  answeredAt:     number;
 }
