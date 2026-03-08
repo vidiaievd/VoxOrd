@@ -11,6 +11,7 @@ import { useTheme } from '../providers/ThemeProvider';
 import { ColorScheme } from '../theme/colors';
 import { QuizExercise } from '../screens/LearningScreen/exercises/QuizExercise';
 import { SpellingExercise } from '../screens/LearningScreen/exercises/SpellingExercise';
+import { ListeningExercise } from '../screens/LearningScreen/exercises/ListeningExercise';
 
 type Tab = 'Home' | 'Settings';
 
@@ -20,6 +21,7 @@ type Screen =
   | { name: 'Matching'; deckId: number }
   | { name: 'Quiz'; deckId: number }
   | { name: 'Spelling'; deckId: number }
+  | { name: 'Listening'; deckId: number }
   | { name: 'Settings' };
 
 export function RootNavigator() {
@@ -29,7 +31,7 @@ export function RootNavigator() {
 
   // const [screen, setScreen] = useState<Screen>({ name: 'Home' });
   const [screen, setScreen] = useState<Screen>({
-    name: 'Spelling',
+    name: 'Listening',
     deckId: 1,
   });
   const [activeTab, setActiveTab] = useState<Tab>('Home');
@@ -78,6 +80,15 @@ export function RootNavigator() {
           />
         );
 
+      case 'Listening':
+        return (
+          <ListeningExercise
+            deckId={screen.deckId}
+            onBack={navigateBack}
+            onDone={navigateBack}
+          />
+        );
+
       case 'Settings':
         return <SettingsScreen />;
 
@@ -97,7 +108,9 @@ export function RootNavigator() {
                 case 'spelling':
                   navigateTo({ name: 'Spelling', deckId });
                   break;
-                // quiz, spelling, listening — coming in next commits
+                case 'listening':
+                  navigateTo({ name: 'Listening', deckId });
+                  break;
                 default:
                   navigateTo({ name: 'Card', deck: { id: deckId } as Deck });
               }
@@ -111,7 +124,8 @@ export function RootNavigator() {
     screen.name !== 'Card' &&
     screen.name !== 'Matching' &&
     screen.name !== 'Quiz' &&
-    screen.name !== 'Spelling';
+    screen.name !== 'Spelling' &&
+    screen.name !== 'Listening';
 
   return (
     <View style={styles.root}>
