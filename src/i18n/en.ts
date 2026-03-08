@@ -48,6 +48,12 @@ export const en: Translations = {
     activeCount: '{n} active',
     version: 'Version',
     feedback: 'Feedback',
+    sectionLearning: 'Learning',
+    cardModesActive: '{count} active',
+    spellingHint: 'Spelling hint',
+    spellingHintAlways: 'Always show',
+    spellingHintAfterMistake: 'After mistake',
+    spellingHintNever: 'Never',
   },
   stats: {
     decks: 'Decks',

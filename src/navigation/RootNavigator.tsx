@@ -10,6 +10,7 @@ import { Deck } from '../repositories/DeckRepository';
 import { useTheme } from '../providers/ThemeProvider';
 import { ColorScheme } from '../theme/colors';
 import { QuizExercise } from '../screens/LearningScreen/exercises/QuizExercise';
+import { SpellingExercise } from '../screens/LearningScreen/exercises/SpellingExercise';
 
 type Tab = 'Home' | 'Settings';
 
@@ -18,6 +19,7 @@ type Screen =
   | { name: 'Card'; deck: Deck }
   | { name: 'Matching'; deckId: number }
   | { name: 'Quiz'; deckId: number }
+  | { name: 'Spelling'; deckId: number }
   | { name: 'Settings' };
 
 export function RootNavigator() {
@@ -27,7 +29,7 @@ export function RootNavigator() {
 
   // const [screen, setScreen] = useState<Screen>({ name: 'Home' });
   const [screen, setScreen] = useState<Screen>({
-    name: 'Quiz',
+    name: 'Spelling',
     deckId: 1,
   });
   const [activeTab, setActiveTab] = useState<Tab>('Home');
@@ -67,6 +69,15 @@ export function RootNavigator() {
           />
         );
 
+      case 'Spelling':
+        return (
+          <SpellingExercise
+            deckId={screen.deckId}
+            onBack={navigateBack}
+            onDone={navigateBack}
+          />
+        );
+
       case 'Settings':
         return <SettingsScreen />;
 
@@ -83,6 +94,9 @@ export function RootNavigator() {
                 case 'quiz':
                   navigateTo({ name: 'Quiz', deckId });
                   break;
+                case 'spelling':
+                  navigateTo({ name: 'Spelling', deckId });
+                  break;
                 // quiz, spelling, listening — coming in next commits
                 default:
                   navigateTo({ name: 'Card', deck: { id: deckId } as Deck });
@@ -96,7 +110,8 @@ export function RootNavigator() {
   const showTabBar =
     screen.name !== 'Card' &&
     screen.name !== 'Matching' &&
-    screen.name !== 'Quiz';
+    screen.name !== 'Quiz' &&
+    screen.name !== 'Spelling';
 
   return (
     <View style={styles.root}>

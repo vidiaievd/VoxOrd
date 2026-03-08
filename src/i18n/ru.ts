@@ -48,6 +48,12 @@ export const ru: Translations = {
     activeCount: '{n} активно',
     version: 'Версия',
     feedback: 'Обратная связь',
+    sectionLearning: 'Обучение',
+    cardModesActive: '{count} активно',
+    spellingHint: 'Подсказка при написании',
+    spellingHintAlways: 'Всегда показывать',
+    spellingHintAfterMistake: 'После ошибки',
+    spellingHintNever: 'Никогда',
   },
   stats: {
     decks: 'Наборов',

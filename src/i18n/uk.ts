@@ -48,6 +48,12 @@ export const uk: Translations = {
     activeCount: '{n} активно',
     version: 'Версія',
     feedback: "Зворотній зв'язок",
+    sectionLearning: 'Навчання',
+    cardModesActive: '{count} активно',
+    spellingHint: 'Підказка при написанні',
+    spellingHintAlways: 'Завжди показувати',
+    spellingHintAfterMistake: 'Після помилки',
+    spellingHintNever: 'Ніколи',
   },
   stats: {
     decks: 'Наборів',
