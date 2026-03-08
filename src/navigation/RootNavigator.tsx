@@ -1,66 +1,85 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from '../i18n';
 import { HomeScreen } from '../screens/HomeScreen';
 import { CardScreen } from '../screens/CardScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
+import { MatchingExercise } from '../screens/LearningScreen/exercises/MatchingExercise';
 import { Deck } from '../repositories/DeckRepository';
 import { useTheme } from '../providers/ThemeProvider';
 import { ColorScheme } from '../theme/colors';
 
 type Tab = 'Home' | 'Settings';
+
 type Screen =
   | { name: 'Home' }
   | { name: 'Card'; deck: Deck }
+  | { name: 'Matching'; deckId: number }
   | { name: 'Settings' };
 
 export function RootNavigator() {
   const { t } = useTranslation();
-
   const { colors } = useTheme();
   const styles = makeStyles(colors);
 
-  const [screen, setScreen] = useState<Screen>({ name: 'Home' });
+  // const [screen, setScreen] = useState<Screen>({ name: 'Home' });
+  const [screen, setScreen] = useState<Screen>({
+    name: 'Matching',
+    deckId: 1,
+  });
   const [activeTab, setActiveTab] = useState<Tab>('Home');
 
-  const navigateTo = (s: Screen) => setScreen(s);
+  const navigateTo = useCallback((s: Screen) => setScreen(s), []);
 
-  const handleTabPress = (tab: Tab) => {
+  const navigateBack = useCallback(() => {
+    setScreen({ name: 'Home' });
+    setActiveTab('Home');
+  }, []);
+
+  const handleTabPress = useCallback((tab: Tab) => {
     setActiveTab(tab);
-    if (tab === 'Settings') {
-      setScreen({ name: 'Settings' });
-    } else {
-      setScreen({ name: 'Home' });
-    }
-  };
+    setScreen(tab === 'Settings' ? { name: 'Settings' } : { name: 'Home' });
+  }, []);
 
   const renderScreen = () => {
     switch (screen.name) {
       case 'Card':
+        return <CardScreen deck={screen.deck} onBack={navigateBack} />;
+
+      case 'Matching':
         return (
-          <CardScreen
-            deck={screen.deck}
-            onBack={() => {
-              setScreen({ name: 'Home' });
-              setActiveTab('Home');
-            }}
+          <MatchingExercise
+            deckId={screen.deckId}
+            onBack={navigateBack}
+            onDone={navigateBack}
           />
         );
+
       case 'Settings':
         return <SettingsScreen />;
+
       case 'Home':
       default:
         return (
           <HomeScreen
             onDeckPress={deck => navigateTo({ name: 'Card', deck })}
+            onModePress={(mode, deckId) => {
+              switch (mode) {
+                case 'matching':
+                  navigateTo({ name: 'Matching', deckId });
+                  break;
+                // quiz, spelling, listening — coming in next commits
+                default:
+                  navigateTo({ name: 'Card', deck: { id: deckId } as Deck });
+              }
+            }}
           />
         );
     }
   };
 
-  // Hide tab bar on Card screen for more focus
-  const showTabBar = screen.name !== 'Card';
+  const showTabBar = screen.name !== 'Card' && screen.name !== 'Matching';
 
   return (
     <View style={styles.root}>
@@ -98,7 +117,7 @@ function TabItem({
   label: string;
   isActive: boolean;
   onPress: () => void;
-  colors: ColorScheme ;
+  colors: ColorScheme;
 }) {
   const styles = makeStyles(colors);
   return (
