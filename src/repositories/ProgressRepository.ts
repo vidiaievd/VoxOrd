@@ -41,6 +41,7 @@ class ProgressRepository {
     isCorrect: boolean,
   ): Promise<{ xpEarned: number }> {
     const progress = await this.get(wordId, deckId);
+    console.log('[PR] progress found:', !!progress, 'wordId:', wordId, 'deckId:', deckId); // TODO: Remove after testing
     if (!progress) return { xpEarned: 0 };
 
     const result = SpacedRepetition.processAnswer({

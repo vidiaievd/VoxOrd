@@ -9,7 +9,8 @@ import Animated, {
 import { scheduleOnRN } from 'react-native-worklets';
 import { useTranslation } from '../../i18n';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { Word, WordStatus } from '../../db/words';
+import { Word } from '../../db/words';
+import { SwipeDirection } from '../../hooks/useCard';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
 
@@ -18,13 +19,12 @@ const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.3;
 
 interface FlipCardProps {
   word: Word;
-  onSwipe: (status: WordStatus) => void;
+  onSwipe: (direction: SwipeDirection) => void;
   onFlip: () => void;
 }
 
 export function FlipCard({ word, onSwipe, onFlip }: FlipCardProps) {
   const { t } = useTranslation();
-
   const { colors } = useTheme();
   const styles = makeStyles(colors);
 
@@ -42,14 +42,15 @@ export function FlipCard({ word, onSwipe, onFlip }: FlipCardProps) {
   }, [isFlipped, onFlip, rotation]);
 
   const handleSwipe = useCallback(
-    (status: WordStatus) => {
+    (direction: SwipeDirection) => {
       'worklet';
       const toX =
-        status === 'learned' ? SCREEN_WIDTH * 1.5 : -SCREEN_WIDTH * 1.5;
+        direction === 'right' ? SCREEN_WIDTH * 1.5 : -SCREEN_WIDTH * 1.5;
+
       translateX.value = withTiming(toX, { duration: 300 });
       opacity.value = withTiming(0, { duration: 300 }, () => {
         'worklet';
-        scheduleOnRN(onSwipe, status);
+        scheduleOnRN(onSwipe, direction);
         translateX.value = 0;
         opacity.value = 1;
       });
@@ -63,15 +64,14 @@ export function FlipCard({ word, onSwipe, onFlip }: FlipCardProps) {
     })
     .onEnd(e => {
       if (e.translationX > SWIPE_THRESHOLD) {
-        handleSwipe('learned');
+        handleSwipe('right');
       } else if (e.translationX < -SWIPE_THRESHOLD) {
-        handleSwipe('repeat');
+        handleSwipe('left');
       } else {
         translateX.value = withTiming(0, { duration: 200 });
       }
     });
 
-  // front side
   const frontStyle = useAnimatedStyle(() => ({
     transform: [
       { perspective: 1000 },
@@ -81,7 +81,6 @@ export function FlipCard({ word, onSwipe, onFlip }: FlipCardProps) {
     backfaceVisibility: 'hidden',
   }));
 
-  // back side
   const backStyle = useAnimatedStyle(() => ({
     transform: [
       { perspective: 1000 },
@@ -91,13 +90,12 @@ export function FlipCard({ word, onSwipe, onFlip }: FlipCardProps) {
     backfaceVisibility: 'hidden',
   }));
 
-  // swipe style + overlay colors
   const cardStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: translateX.value }],
     opacity: opacity.value,
   }));
 
-  const overlayLearnedStyle = useAnimatedStyle(() => ({
+  const overlayRightStyle = useAnimatedStyle(() => ({
     opacity: interpolate(
       translateX.value,
       [0, SWIPE_THRESHOLD],
@@ -106,7 +104,7 @@ export function FlipCard({ word, onSwipe, onFlip }: FlipCardProps) {
     ),
   }));
 
-  const overlayRepeatStyle = useAnimatedStyle(() => ({
+  const overlayLeftStyle = useAnimatedStyle(() => ({
     opacity: interpolate(
       translateX.value,
       [0, -SWIPE_THRESHOLD],
@@ -119,32 +117,36 @@ export function FlipCard({ word, onSwipe, onFlip }: FlipCardProps) {
     <GestureDetector gesture={panGesture}>
       <Animated.View style={[styles.cardWrapper, cardStyle]}>
         <Pressable onPress={flip} style={styles.pressable}>
-          {/* Overlay learned (green) */}
+          {/* Overlay right → know (green) */}
           <Animated.View
-            style={[styles.overlay, styles.overlayLearned, overlayLearnedStyle]}
+            style={[styles.overlay, styles.overlayRight, overlayRightStyle]}
           >
             <Text style={styles.overlayText}>✓ {t('card.learned')}</Text>
           </Animated.View>
 
-          {/* Overlay repeat (red) */}
+          {/* Overlay left → don't know (red) */}
           <Animated.View
-            style={[styles.overlay, styles.overlayRepeat, overlayRepeatStyle]}
+            style={[styles.overlay, styles.overlayLeft, overlayLeftStyle]}
           >
             <Text style={styles.overlayText}>↩ {t('card.repeat')}</Text>
           </Animated.View>
 
-          {/* front side */}
+          {/* Front side */}
           <Animated.View style={[styles.card, frontStyle]}>
             <Text style={styles.label}>{t('card.word')}</Text>
             <Text style={styles.word}>{word.word}</Text>
             <Text style={styles.hint}>{t('card.tapToReveal')}</Text>
           </Animated.View>
 
-          {/* back side */}
+          {/* Back side */}
           <Animated.View style={[styles.card, styles.cardBack, backStyle]}>
             <Text style={styles.label}>{t('card.translation')}</Text>
             <Text style={styles.word}>{word.translation}</Text>
-            <Text style={styles.statusBadge}>{word.status}</Text>
+            <Text style={styles.stageBadge}>
+              {word.memoryStage !== undefined
+                ? `Stage ${word.memoryStage}`
+                : word.status}
+            </Text>
           </Animated.View>
         </Pressable>
       </Animated.View>
@@ -197,10 +199,11 @@ const makeStyles = (colors: ColorScheme) =>
       fontSize: 13,
       color: colors.textMuted,
     },
-    statusBadge: {
+    stageBadge: {
       marginTop: 12,
       fontSize: 12,
-      color: colors.textMuted,
+      color: colors.accent,
+      fontWeight: '600',
       textTransform: 'uppercase',
       letterSpacing: 1,
     },
@@ -215,10 +218,10 @@ const makeStyles = (colors: ColorScheme) =>
       justifyContent: 'center',
       zIndex: 10,
     },
-    overlayLearned: {
+    overlayRight: {
       backgroundColor: 'rgba(52, 199, 89, 0.85)',
     },
-    overlayRepeat: {
+    overlayLeft: {
       backgroundColor: 'rgba(255, 59, 48, 0.85)',
     },
     overlayText: {

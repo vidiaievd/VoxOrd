@@ -21,9 +21,11 @@ export interface Deck {
   repeatWords: number;
   isFavorite: boolean;
   status: DeckUserStatus;
-  startedAt: number | null;
-  completedAt: number | null;
-}
+  // startedAt: number | null;
+  // completedAt: number | null;
+  languageCode: string; //TODO fix with language groups
+  sortOrder: number;
+ }
 
 class DeckRepository {
   async getAll(): Promise<Deck[]> {
@@ -66,8 +68,10 @@ class DeckRepository {
       repeatWords:  (row.repeatWords  as number) ?? 0,
       isFavorite:   row.isFavorite   === 1,
       status:       row.deckStatus   as DeckUserStatus,
-      startedAt:    row.startedAt    as number | null,
-      completedAt:  row.completedAt  as number | null,
+      // startedAt:    row.startedAt    as number | null,
+      // completedAt:  row.completedAt  as number | null,
+      languageCode: row.languageCode as string,
+      sortOrder:    row.sortOrder    as number,
     }));
   }
 

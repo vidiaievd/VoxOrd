@@ -6,7 +6,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView }         from 'react-native-safe-area-context';
 import { useTheme }             from '../../providers/ThemeProvider';
 import { ColorScheme }          from '../../theme/colors';
 import { HomeHeader }           from './components/HomeHeader';
@@ -17,6 +17,7 @@ import { TopicsSection }        from './components/TopicsSection';
 import { AIPracticeCard }       from './components/AIPracticeCard';
 import { useHomeData }          from '../../hooks/useHomeData';
 import { TrainingMode, Topic }  from './types';
+import { Deck }                 from '../../repositories/DeckRepository';
 
 const TRAINING_MODES: TrainingMode[] = [
   { id: 'flashcard', icon: '🃏', labelKey: 'Flashcards', color: '#6c63ff' },
@@ -25,27 +26,61 @@ const TRAINING_MODES: TrainingMode[] = [
   { id: 'quiz',      icon: '⚡', labelKey: 'Quick Quiz', color: '#ff3b30' },
 ];
 
-export function HomeScreen() {
-  const { colors }              = useTheme();
-  const styles                  = makeStyles(colors);
+interface HomeScreenProps {
+  onDeckPress: (deck: Deck) => void;
+}
+
+export function HomeScreen({ onDeckPress }: HomeScreenProps) {
+  const { colors }                   = useTheme();
+  const styles                       = makeStyles(colors);
   const { data, isLoading, refresh } = useHomeData();
-
-  const handleTrainingMode = useCallback((mode: TrainingMode) => {
-    console.log('[Home] Training mode:', mode.id);
-    // TODO: Learning system navigation
-  }, []);
-
-  const handleTopic = useCallback((topic: Topic) => {
-    console.log('[Home] Topic pressed:', topic.id);
-    // TODO: Navigation for deck by topic.id
-  }, []);
 
   const handleContinue = useCallback(() => {
     if (!data?.continueLearning) return;
-    // find deck by id and pass it up
-    // TODO: pass full Deck object when connecting real navigation
-    console.log('[Home] Continue deck:', data.continueLearning.deckId);
-  }, [data]);
+    // Конструируем минимальный Deck объект из данных HomeRepository
+    const deck: Deck = {
+      id:           data.continueLearning.deckId,
+      title:        data.continueLearning.deckTitle,
+      icon:         data.continueLearning.deckIcon,
+      groupId:      null,
+      languageCode: 'no',
+      level:        null,
+      sortOrder:    0,
+      totalWords:   data.continueLearning.totalWords,
+      learnedWords: Math.round(
+        data.continueLearning.progress * data.continueLearning.totalWords
+      ),
+      newWords:     data.continueLearning.wordsLeft,
+      repeatWords:  0,
+      status:       'in_progress',
+      isFavorite:   false,
+    };
+    onDeckPress(deck);
+  }, [data, onDeckPress]);
+
+  const handleTopic = useCallback((topic: Topic) => {
+    const deck: Deck = {
+      id:           topic.id,
+      title:        topic.title,
+      icon:         topic.icon,
+      groupId:      null,
+      languageCode: 'no',
+      level:        null,
+      sortOrder:    0,
+      totalWords:   topic.words,
+      learnedWords: Math.round(topic.progress * topic.words),
+      newWords:     Math.round((1 - topic.progress) * topic.words),
+      repeatWords:  0,
+      status:       'in_progress',
+      isFavorite:   false,
+    };
+    onDeckPress(deck);
+  }, [onDeckPress]);
+
+  const handleTrainingMode = useCallback((mode: TrainingMode) => {
+    // TODO: выбор режима обучения — следующие коммиты
+    console.log('[Home] Training mode:', mode.id);
+  }, []);
 
   if (isLoading) {
     return (
@@ -55,7 +90,6 @@ export function HomeScreen() {
     );
   }
 
-  // TopicsSection
   const topics: Topic[] = data?.continueLearning
     ? [{
         id:       data.continueLearning.deckId,
