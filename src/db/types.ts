@@ -88,7 +88,10 @@ export const TABLE = {
   DAILY_ACTIVITY: 'daily_activity',
   DAILY_GOAL: 'daily_goal',
   LEARNING_SESSIONS: 'learning_sessions',
-  SESSION_RESULTS:   'session_results',
+  SESSION_RESULTS: 'session_results',
+  WORD_EXAMPLES: 'word_examples',
+  WORD_EXAMPLE_TRANSLATIONS: 'word_example_translations',
+  WORD_RELATIONS: 'word_relations',
 } as const;
 
 export type MemoryStage = 0 | 1 | 2 | 3 | 4 | 5;
@@ -133,22 +136,46 @@ export type RelationType =
   | 'example';
 
 export interface LearningSession {
-  id:             number;
-  deckId:         number | null;
-  sessionType:    SessionType;
-  startedAt:      number;
-  finishedAt:     number | null;
-  totalWords:     number;
+  id: number;
+  deckId: number | null;
+  sessionType: SessionType;
+  startedAt: number;
+  finishedAt: number | null;
+  totalWords: number;
   correctAnswers: number;
-  xpEarned:       number;
+  xpEarned: number;
 }
 
 export interface SessionResult {
-  id:             number;
-  sessionId:      number;
-  wordId:         number;
-  exerciseType:   ExerciseType;
-  isCorrect:      boolean;
+  id: number;
+  sessionId: number;
+  wordId: number;
+  exerciseType: ExerciseType;
+  isCorrect: boolean;
   responseTimeMs: number | null;
-  answeredAt:     number;
+  answeredAt: number;
+}
+
+export interface WordExample {
+  id: number;
+  wordId: number;
+  sentence: string;
+  sentenceLanguage: string;
+  createdAt: number;
+  translations?: WordExampleTranslation[];
+}
+
+export interface WordExampleTranslation {
+  id: number;
+  exampleId: number;
+  languageCode: string;
+  translation: string;
+}
+
+export interface WordRelation {
+  id: number;
+  wordId: number;
+  relatedWordId: number;
+  relationType: RelationType;
+  strength: number;
 }

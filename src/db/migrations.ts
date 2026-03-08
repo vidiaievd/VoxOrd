@@ -212,4 +212,37 @@ export const migrations: Migration[] = [
     `);
     },
   },
+  {
+    version: 5,
+    up: async db => {
+      await db.execute(`
+      CREATE TABLE IF NOT EXISTS word_examples (
+        id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+        wordId              INTEGER NOT NULL REFERENCES words(id) ON DELETE CASCADE,
+        sentence            TEXT    NOT NULL,
+        sentenceLanguage    TEXT    NOT NULL DEFAULT 'no',
+        createdAt           INTEGER NOT NULL
+      );
+    `);
+      await db.execute(`
+      CREATE TABLE IF NOT EXISTS word_example_translations (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        exampleId       INTEGER NOT NULL REFERENCES word_examples(id) ON DELETE CASCADE,
+        languageCode    TEXT    NOT NULL,
+        translation     TEXT    NOT NULL,
+        UNIQUE (exampleId, languageCode)
+      );
+    `);
+      await db.execute(`
+      CREATE TABLE IF NOT EXISTS word_relations (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        wordId        INTEGER NOT NULL REFERENCES words(id) ON DELETE CASCADE,
+        relatedWordId INTEGER NOT NULL REFERENCES words(id) ON DELETE CASCADE,
+        relationType  TEXT    NOT NULL,
+        strength      REAL    NOT NULL DEFAULT 1.0,
+        UNIQUE (wordId, relatedWordId, relationType)
+      );
+    `);
+    },
+  },
 ];
