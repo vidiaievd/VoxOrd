@@ -4,38 +4,79 @@ import {
   Text,
   StyleSheet,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
+import { useTranslation } from '../../i18n';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCard } from '../../hooks/useCard';
 import { FlipCard } from './FlipCard';
+import { Deck } from '../../repositories/DeckRepository';
+import { useTheme } from '../../providers/ThemeProvider';
+import { ColorScheme } from '../../theme/colors';
 
-export function CardScreen() {
-  const { word, isLoading, isEmpty, onSwipe, onFlip } = useCard();
+interface CardScreenProps {
+  deck: Deck;
+  onBack: () => void;
+}
+
+export function CardScreen({ deck, onBack }: CardScreenProps) {
+  const { t } = useTranslation();
+
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
+
+  const { word, isLoading, isEmpty, onSwipe, onFlip } = useCard(deck.id);
 
   if (isLoading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#6c63ff" />
-      </View>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color="#6c63ff" />
+        </View>
+      </SafeAreaView>
     );
   }
 
   if (isEmpty) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.emptyIcon}>🎉</Text>
-        <Text style={styles.emptyTitle}>All done!</Text>
-        <Text style={styles.emptySubtitle}>No more cards to review</Text>
-      </View>
+      <SafeAreaView style={styles.container}>
+        <TouchableOpacity style={styles.backBtn} onPress={onBack}>
+          <Text style={styles.backText}>← {t('common.back')}</Text>
+        </TouchableOpacity>
+        <View style={styles.center}>
+          <Text style={styles.emptyIcon}>🎉</Text>
+          <Text style={styles.emptyTitle}>{t('card.allDone')}</Text>
+          <Text style={styles.emptySubtitle}>
+            {t('card.allDoneDesc')} "{deck.title}"
+          </Text>
+          <TouchableOpacity style={styles.backToDeckBtn} onPress={onBack}>
+            <Text style={styles.backToDeckText}>{t('card.backToDecks')}</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Flash Cards</Text>
+        <TouchableOpacity
+          onPress={onBack}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Text style={styles.backText}>← Back</Text>
+        </TouchableOpacity>
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerIcon}>{deck.icon}</Text>
+          <Text style={styles.headerTitle} numberOfLines={1}>
+            {deck.title}
+          </Text>
+        </View>
         <Text style={styles.headerStatus}>{word?.status}</Text>
       </View>
 
+      {/* Card */}
       <View style={styles.cardArea}>
         {word && (
           <FlipCard
@@ -47,72 +88,116 @@ export function CardScreen() {
         )}
       </View>
 
+      {/* Hints */}
       <View style={styles.hints}>
-        <Text style={styles.hintText}>← repeat</Text>
-        <Text style={styles.hintText}>learned →</Text>
+        <View style={styles.hint}>
+          <Text style={styles.hintArrow}>←</Text>
+          <Text style={styles.hintText}>{t('card.repeat')}</Text>
+        </View>
+        <View style={[styles.hint, styles.hintRight]}>
+          <Text style={styles.hintText}>{t('card.learned')}</Text>
+          <Text style={styles.hintArrow}>→</Text>
+        </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f0f0f7',
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f0f0f7',
-  },
-  header: {
-    paddingTop: 60,
-    paddingHorizontal: 24,
-    paddingBottom: 24,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1a1a2e',
-  },
-  headerStatus: {
-    fontSize: 13,
-    color: '#888',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  cardArea: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  hints: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 40,
-    paddingBottom: 48,
-  },
-  hintText: {
-    fontSize: 13,
-    color: '#bbb',
-    letterSpacing: 0.5,
-  },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1a1a2e',
-  },
-  emptySubtitle: {
-    fontSize: 15,
-    color: '#888',
-    marginTop: 8,
-  },
-});
+const makeStyles = (colors: ColorScheme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    center: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      paddingTop: 8,
+      paddingBottom: 16,
+    },
+    backText: {
+      fontSize: 16,
+      color: colors.accent,
+      fontWeight: '600',
+    },
+    headerCenter: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      justifyContent: 'center',
+    },
+    headerIcon: {
+      fontSize: 18,
+      marginRight: 6,
+    },
+    headerTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: colors.textPrimary,
+      flexShrink: 1,
+    },
+    headerStatus: {
+      fontSize: 11,
+      color: colors.textMuted,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      minWidth: 50,
+      textAlign: 'right',
+    },
+    cardArea: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    hints: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingHorizontal: 32,
+      paddingBottom: 32,
+    },
+    hint: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    hintRight: {
+      flexDirection: 'row-reverse',
+    },
+    hintArrow: {
+      fontSize: 16,
+      color: colors.textMuted,
+      marginRight: 4,
+    },
+    hintText: {
+      fontSize: 13,
+      color: colors.textMuted,
+    },
+    emptyIcon: { fontSize: 64, marginBottom: 16 },
+    emptyTitle: { fontSize: 24, fontWeight: '700', color: colors.textPrimary },
+    emptySubtitle: {
+      fontSize: 15,
+      color: colors.textMuted,
+      marginTop: 8,
+      textAlign: 'center',
+      paddingHorizontal: 32,
+    },
+    backToDeckBtn: {
+      marginTop: 32,
+      backgroundColor: colors.accent,
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+      borderRadius: 12,
+    },
+    backToDeckText: {
+      color: colors.textInverted,
+      fontWeight: '600',
+      fontSize: 15,
+    },
+    backBtn: { padding: 20 },
+  });

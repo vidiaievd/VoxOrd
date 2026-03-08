@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { getDatabase } from './src/db/database';
 import { runMigrations } from './src/db/migrationRunner';
 import { seedIfEmpty } from './src/db/seed';
-import { CardScreen } from './src/screens/CardScreen';
+import { settingsStore } from './src/store/settingsStore';
 import { debugPrintAllWords } from './src/db/words';
+import { RootNavigator } from './src/navigation/RootNavigator';
+import { AppProviders } from './src/providers/AppProviders';
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -17,6 +18,7 @@ export default function App() {
         const db = getDatabase();
         await runMigrations(db);
         await seedIfEmpty(db);
+        await settingsStore.load();
         await debugPrintAllWords();
         setReady(true);
       } catch (e) {
@@ -42,14 +44,14 @@ export default function App() {
   }
 
   return (
-    <GestureHandlerRootView style={styles.root}>
-      <CardScreen />
-    </GestureHandlerRootView>
+    <AppProviders>
+      <RootNavigator />
+    </AppProviders>
   );
 }
 
 const styles = StyleSheet.create({
-  root:   { flex: 1 },
+  root: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  error:  { color: 'red', padding: 16 },
+  error: { color: 'red', padding: 16 },
 });

@@ -10,23 +10,26 @@ interface UseCardResult {
   onFlip: () => Promise<void>;
 }
 
-export function useCard(): UseCardResult {
+export function useCard(deckId: number): UseCardResult {
   const [word, setWord] = useState<Word | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEmpty, setIsEmpty] = useState(false);
 
-  const loadNext = useCallback(async (excludeId?: number) => {
-    setIsLoading(true);
-    const next = await wordRepository.getNext(excludeId);
-    if (!next) {
-      setIsEmpty(true);
-      setWord(null);
-    } else {
-      setWord(next);
-      setIsEmpty(false);
-    }
-    setIsLoading(false);
-  }, []);
+  const loadNext = useCallback(
+    async (excludeId?: number) => {
+      setIsLoading(true);
+      const next = await wordRepository.getNext(deckId, excludeId);
+      if (!next) {
+        setIsEmpty(true);
+        setWord(null);
+      } else {
+        setWord(next);
+        setIsEmpty(false);
+      }
+      setIsLoading(false);
+    },
+    [deckId],
+  );
 
   useEffect(() => {
     loadNext();
@@ -38,11 +41,14 @@ export function useCard(): UseCardResult {
     setWord(updated);
   }, [word]);
 
-  const onSwipe = useCallback(async (status: WordStatus) => {
-    if (!word) return;
-    await wordRepository.applySwipeResult(word, status);
-    await loadNext(word.id);
-  }, [word, loadNext]);
+  const onSwipe = useCallback(
+    async (status: WordStatus) => {
+      if (!word) return;
+      await wordRepository.applySwipeResult(word, status);
+      await loadNext(word.id);
+    },
+    [word, loadNext],
+  );
 
   return { word, isLoading, isEmpty, onSwipe, onFlip };
 }
