@@ -1,4 +1,5 @@
 import { open } from '@op-engineering/op-sqlite';
+import { WordStatus } from './words';
 
 export type DB = ReturnType<typeof open>;
 
@@ -43,47 +44,81 @@ export interface WordForm {
 export type DeckUserStatus = 'new' | 'in_progress' | 'completed';
 
 export interface UserProfile {
-  id:        number;
-  name:      string;
-  avatar:    string;
+  id: number;
+  name: string;
+  avatar: string;
   createdAt: number;
 }
 
 export interface UserStats {
-  id:                number;
-  xp:                number;
-  streak:            number;
-  longestStreak:     number;
-  lastActivityAt:    number | null;
+  id: number;
+  xp: number;
+  streak: number;
+  longestStreak: number;
+  lastActivityAt: number | null;
   totalWordsLearned: number;
-  totalSessions:     number;
+  totalSessions: number;
 }
 
 export interface DailyActivity {
-  id:            number;
-  date:          string; // 'YYYY-MM-DD'
-  wordsStudied:  number;
-  xpEarned:      number;
+  id: number;
+  date: string; // 'YYYY-MM-DD'
+  wordsStudied: number;
+  xpEarned: number;
   sessionsCount: number;
 }
 
 export interface DailyGoal {
-  id:        number;
-  goal:      number;
+  id: number;
+  goal: number;
   updatedAt: number;
 }
 
 export const TABLE = {
-  WORDS:              'words',
-  WORD_FORMS:         'word_forms',
-  TRANSLATIONS:       'translations',
-  DECK_GROUPS:        'deck_groups',
-  DECKS:              'decks',
-  DECK_WORDS:         'deck_words',
-  WORD_PROGRESS:      'word_progress',
+  WORDS: 'words',
+  WORD_FORMS: 'word_forms',
+  TRANSLATIONS: 'translations',
+  DECK_GROUPS: 'deck_groups',
+  DECKS: 'decks',
+  DECK_WORDS: 'deck_words',
+  WORD_PROGRESS: 'word_progress',
   DECK_USER_SETTINGS: 'deck_user_settings',
-  USER_PROFILE:       'user_profile',
-  USER_STATS:         'user_stats',
-  DAILY_ACTIVITY:     'daily_activity',
-  DAILY_GOAL:         'daily_goal',
+  USER_PROFILE: 'user_profile',
+  USER_STATS: 'user_stats',
+  DAILY_ACTIVITY: 'daily_activity',
+  DAILY_GOAL: 'daily_goal',
 } as const;
+
+export type MemoryStage = 0 | 1 | 2 | 3 | 4 | 5;
+/*
+  0 — new
+  1 — seen
+  2 — recognized
+  3 — familiar
+  4 — learned
+  5 — mastered
+*/
+
+export type ExerciseType =
+  | 'flashcard'
+  | 'listening'
+  | 'spelling'
+  | 'context'
+  | 'matching'
+  | 'quiz';
+
+export type SessionType = 'quick' | 'standard' | 'deep' | 'review' | 'test';
+
+export interface WordProgress {
+  id: number;
+  wordId: number;
+  deckId: number;
+  status: WordStatus;
+  memoryStage: MemoryStage;
+  nextReview: number | null;
+  lastReviewed: number | null;
+  reviewCount: number;
+  successCount: number;
+  shortTermStrength: number;
+  longTermStrength: number;
+}

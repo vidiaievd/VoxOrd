@@ -150,4 +150,37 @@ export const migrations: Migration[] = [
       `);
     },
   },
+  {
+  version: 3,
+  up: async (db) => {
+    await db.execute(`
+      ALTER TABLE word_progress
+      ADD COLUMN memoryStage       INTEGER NOT NULL DEFAULT 0;
+    `);
+    await db.execute(`
+      ALTER TABLE word_progress
+      ADD COLUMN nextReview        INTEGER;
+    `);
+    await db.execute(`
+      ALTER TABLE word_progress
+      ADD COLUMN lastReviewed      INTEGER;
+    `);
+    await db.execute(`
+      ALTER TABLE word_progress
+      ADD COLUMN reviewCount       INTEGER NOT NULL DEFAULT 0;
+    `);
+    await db.execute(`
+      ALTER TABLE word_progress
+      ADD COLUMN successCount      INTEGER NOT NULL DEFAULT 0;
+    `);
+    await db.execute(`
+      ALTER TABLE word_progress
+      ADD COLUMN shortTermStrength REAL NOT NULL DEFAULT 0.0;
+    `);
+    await db.execute(`
+      ALTER TABLE word_progress
+      ADD COLUMN longTermStrength  REAL NOT NULL DEFAULT 0.0;
+    `);
+  },
+},
 ];

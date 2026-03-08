@@ -7,6 +7,8 @@ import { settingsStore } from './src/store/settingsStore';
 import { debugPrintAllWords } from './src/db/words';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { AppProviders } from './src/providers/AppProviders';
+import { progressRepository } from './src/repositories/ProgressRepository';
+import { SpacedRepetition } from './src/learning-engine/SpacedRepetition';
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -18,6 +20,25 @@ export default function App() {
         const db = getDatabase();
         await runMigrations(db);
         await seedIfEmpty(db);
+
+        //TODO remove after testing
+        const due = await progressRepository.getDueWords(1, 5);
+        console.log('[Test] Due words:', due.length);
+
+        if (due.length > 0) {
+          const { xpEarned } = await progressRepository.recordAnswer(
+            due[0].wordId,
+            due[0].deckId,
+            true,
+          );
+          console.log('[Test] XP earned:', xpEarned);
+          console.log(
+            '[Test] Stage label:',
+            SpacedRepetition.getStageLabel(due[0].memoryStage),
+          );
+        }
+        //TODO end of testing
+
         await settingsStore.load();
         await debugPrintAllWords();
         setReady(true);
