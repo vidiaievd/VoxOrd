@@ -24,7 +24,7 @@ export interface HomeScreenData {
     done: number;
     goal: number;
   };
-  weekActivity: number[]; // 7 значений wordsStudied пн-вс
+  weekActivity: number[]; // Words studied in the last 7 days
   globalStats: {
     totalWords:   number;
     learnedWords: number;
