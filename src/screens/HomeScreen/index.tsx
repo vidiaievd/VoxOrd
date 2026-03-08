@@ -38,7 +38,6 @@ export function HomeScreen({ onDeckPress, onModePress }: HomeScreenProps) {
 
   const handleContinue = useCallback(() => {
     if (!data?.continueLearning) return;
-    // Construct a minimal Deck object from HomeRepository data
     const deck: Deck = {
       id: data.continueLearning.deckId,
       title: data.continueLearning.deckTitle,
@@ -58,6 +57,32 @@ export function HomeScreen({ onDeckPress, onModePress }: HomeScreenProps) {
     };
     onDeckPress(deck);
   }, [data, onDeckPress]);
+
+  const handleTrainingMode = useCallback(
+    (mode: TrainingMode) => {
+      // Open ModeSelector — it will handle mode routing
+      if (!data?.continueLearning) return;
+      const deck: Deck = {
+        id: data.continueLearning.deckId,
+        title: data.continueLearning.deckTitle,
+        icon: data.continueLearning.deckIcon,
+        groupId: null,
+        languageCode: 'no',
+        level: null,
+        sortOrder: 0,
+        totalWords: data.continueLearning.totalWords,
+        learnedWords: Math.round(
+          data.continueLearning.progress * data.continueLearning.totalWords,
+        ),
+        newWords: data.continueLearning.wordsLeft,
+        repeatWords: 0,
+        status: 'in_progress',
+        isFavorite: false,
+      };
+      onModePress(mode.id, deck.id);
+    },
+    [data, onModePress],
+  );
 
   const handleTopic = useCallback(
     (topic: Topic) => {
@@ -79,15 +104,6 @@ export function HomeScreen({ onDeckPress, onModePress }: HomeScreenProps) {
       onDeckPress(deck);
     },
     [onDeckPress],
-  );
-
-  const handleTrainingMode = useCallback(
-    (mode: TrainingMode) => {
-      const deckId = data?.continueLearning?.deckId;
-      if (!deckId) return;
-      onModePress(mode.id, deckId);
-    },
-    [data, onModePress],
   );
 
   if (isLoading) {

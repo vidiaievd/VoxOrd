@@ -5,18 +5,20 @@ import { useTranslation } from '../i18n';
 import { HomeScreen } from '../screens/HomeScreen';
 import { CardScreen } from '../screens/CardScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
+import { ModeSelector } from '../screens/LearningScreen/ModeSelector';
 import { MatchingExercise } from '../screens/LearningScreen/exercises/MatchingExercise';
-import { Deck } from '../repositories/DeckRepository';
-import { useTheme } from '../providers/ThemeProvider';
-import { ColorScheme } from '../theme/colors';
 import { QuizExercise } from '../screens/LearningScreen/exercises/QuizExercise';
 import { SpellingExercise } from '../screens/LearningScreen/exercises/SpellingExercise';
 import { ListeningExercise } from '../screens/LearningScreen/exercises/ListeningExercise';
+import { Deck } from '../repositories/DeckRepository';
+import { useTheme } from '../providers/ThemeProvider';
+import { ColorScheme } from '../theme/colors';
 
 type Tab = 'Home' | 'Settings';
 
 type Screen =
   | { name: 'Home' }
+  | { name: 'ModeSelector'; deck: Deck }
   | { name: 'Card'; deck: Deck }
   | { name: 'Matching'; deckId: number }
   | { name: 'Quiz'; deckId: number }
@@ -29,11 +31,7 @@ export function RootNavigator() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
 
-  // const [screen, setScreen] = useState<Screen>({ name: 'Home' });
-  const [screen, setScreen] = useState<Screen>({
-    name: 'Listening',
-    deckId: 1,
-  });
+  const [screen, setScreen] = useState<Screen>({ name: 'Home' });
   const [activeTab, setActiveTab] = useState<Tab>('Home');
 
   const navigateTo = useCallback((s: Screen) => setScreen(s), []);
@@ -43,21 +41,69 @@ export function RootNavigator() {
     setActiveTab('Home');
   }, []);
 
+  // Navigate back to ModeSelector if we came from there
+  const navigateBackToSelector = useCallback((deck: Deck) => {
+    setScreen({ name: 'ModeSelector', deck });
+  }, []);
+
   const handleTabPress = useCallback((tab: Tab) => {
     setActiveTab(tab);
     setScreen(tab === 'Settings' ? { name: 'Settings' } : { name: 'Home' });
   }, []);
 
+  const handleModeSelect = useCallback(
+    (modeId: string, deck: Deck) => {
+      switch (modeId) {
+        case 'flashcard':
+          navigateTo({ name: 'Card', deck });
+          break;
+        case 'matching':
+          navigateTo({ name: 'Matching', deckId: deck.id });
+          break;
+        case 'quiz':
+          navigateTo({ name: 'Quiz', deckId: deck.id });
+          break;
+        case 'spelling':
+          navigateTo({ name: 'Spelling', deckId: deck.id });
+          break;
+        case 'listening':
+          navigateTo({ name: 'Listening', deckId: deck.id });
+          break;
+        default:
+          console.warn('[Nav] unknown mode:', modeId);
+      }
+    },
+    [navigateTo],
+  );
+
   const renderScreen = () => {
     switch (screen.name) {
+      case 'ModeSelector':
+        return (
+          <ModeSelector
+            deck={screen.deck}
+            onSelectMode={handleModeSelect}
+            onBack={navigateBack}
+          />
+        );
+
       case 'Card':
-        return <CardScreen deck={screen.deck} onBack={navigateBack} />;
+        return (
+          <CardScreen
+            deck={screen.deck}
+            onBack={() => navigateBackToSelector(screen.deck)}
+          />
+        );
 
       case 'Matching':
         return (
           <MatchingExercise
             deckId={screen.deckId}
-            onBack={navigateBack}
+            onBack={() =>
+              setScreen(prev =>
+                prev.name === 'Matching' ? { name: 'Home' } : prev,
+              )
+            }
             onDone={navigateBack}
           />
         );
@@ -96,24 +142,14 @@ export function RootNavigator() {
       default:
         return (
           <HomeScreen
-            onDeckPress={deck => navigateTo({ name: 'Card', deck })}
-            onModePress={(mode, deckId) => {
-              switch (mode) {
-                case 'matching':
-                  navigateTo({ name: 'Matching', deckId });
-                  break;
-                case 'quiz':
-                  navigateTo({ name: 'Quiz', deckId });
-                  break;
-                case 'spelling':
-                  navigateTo({ name: 'Spelling', deckId });
-                  break;
-                case 'listening':
-                  navigateTo({ name: 'Listening', deckId });
-                  break;
-                default:
-                  navigateTo({ name: 'Card', deck: { id: deckId } as Deck });
-              }
+            onDeckPress={deck => navigateTo({ name: 'ModeSelector', deck })}
+            onModePress={(modeId, deckId) => {
+              // From DailyTraining grid — need a minimal Deck object
+              // Full deck will be loaded in ModeSelector
+              navigateTo({
+                name: 'ModeSelector',
+                deck: { id: deckId } as Deck,
+              });
             }}
           />
         );
@@ -122,6 +158,7 @@ export function RootNavigator() {
 
   const showTabBar =
     screen.name !== 'Card' &&
+    screen.name !== 'ModeSelector' &&
     screen.name !== 'Matching' &&
     screen.name !== 'Quiz' &&
     screen.name !== 'Spelling' &&
