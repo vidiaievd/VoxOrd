@@ -299,6 +299,41 @@ export async function seedIfEmpty(db: DB): Promise<void> {
         [wordId, deckId, 'new']
       );
     }
+
+    // User profile
+  const profileResult = await db.execute(
+    'SELECT COUNT(*) as count FROM user_profile;'
+  );
+  if ((profileResult.rows?.[0]?.count as number) === 0) {
+    await db.execute(
+      `INSERT INTO user_profile (id, name, avatar, createdAt)
+       VALUES (1, 'User', '👤', ?);`,
+      [Date.now()]
+    );
+  }
+
+  // Statistics
+  const statsResult = await db.execute(
+    'SELECT COUNT(*) as count FROM user_stats;'
+  );
+  if ((statsResult.rows?.[0]?.count as number) === 0) {
+    await db.execute(
+      `INSERT INTO user_stats
+         (id, xp, streak, longestStreak, totalWordsLearned, totalSessions)
+       VALUES (1, 0, 0, 0, 0, 0);`
+    );
+  }
+
+  // Daily goal
+  const goalResult = await db.execute(
+    'SELECT COUNT(*) as count FROM daily_goal;'
+  );
+  if ((goalResult.rows?.[0]?.count as number) === 0) {
+    await db.execute(
+      'INSERT INTO daily_goal (id, goal, updatedAt) VALUES (1, 20, ?);',
+      [Date.now()]
+    );
+  }
   }
 
   console.log(`[DB] Seeded ${GROUPS.length} groups, ${DECKS.length} decks, ${WORDS.length} words`);

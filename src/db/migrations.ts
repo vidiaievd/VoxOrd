@@ -103,4 +103,51 @@ export const migrations: Migration[] = [
       `);
     },
   },
+  {
+    version: 2,
+    up: async (db) => {
+      // User profile
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS user_profile (
+          id        INTEGER PRIMARY KEY DEFAULT 1,
+          name      TEXT    NOT NULL DEFAULT 'User',
+          avatar    TEXT    NOT NULL DEFAULT '👤',
+          createdAt INTEGER NOT NULL
+        );
+      `);
+
+      // Daily statistics (for chart)
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS user_stats (
+          id              INTEGER PRIMARY KEY DEFAULT 1,
+          xp              INTEGER NOT NULL DEFAULT 0,
+          streak          INTEGER NOT NULL DEFAULT 0,
+          longestStreak   INTEGER NOT NULL DEFAULT 0,
+          lastActivityAt  INTEGER,
+          totalWordsLearned INTEGER NOT NULL DEFAULT 0,
+          totalSessions   INTEGER NOT NULL DEFAULT 0
+        );
+      `);
+
+      // Daily activity (for chart)
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS daily_activity (
+          id        INTEGER PRIMARY KEY AUTOINCREMENT,
+          date      TEXT    NOT NULL UNIQUE,  -- 'YYYY-MM-DD'
+          wordsStudied INTEGER NOT NULL DEFAULT 0,
+          xpEarned  INTEGER NOT NULL DEFAULT 0,
+          sessionsCount INTEGER NOT NULL DEFAULT 0
+        );
+      `);
+
+      // Daily goal
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS daily_goal (
+          id        INTEGER PRIMARY KEY DEFAULT 1,
+          goal      INTEGER NOT NULL DEFAULT 20,
+          updatedAt INTEGER NOT NULL
+        );
+      `);
+    },
+  },
 ];

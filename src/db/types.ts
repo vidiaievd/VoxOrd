@@ -40,6 +40,39 @@ export interface WordForm {
   form: string;
 }
 
+export type DeckUserStatus = 'new' | 'in_progress' | 'completed';
+
+export interface UserProfile {
+  id:        number;
+  name:      string;
+  avatar:    string;
+  createdAt: number;
+}
+
+export interface UserStats {
+  id:                number;
+  xp:                number;
+  streak:            number;
+  longestStreak:     number;
+  lastActivityAt:    number | null;
+  totalWordsLearned: number;
+  totalSessions:     number;
+}
+
+export interface DailyActivity {
+  id:            number;
+  date:          string; // 'YYYY-MM-DD'
+  wordsStudied:  number;
+  xpEarned:      number;
+  sessionsCount: number;
+}
+
+export interface DailyGoal {
+  id:        number;
+  goal:      number;
+  updatedAt: number;
+}
+
 export const TABLE = {
   WORDS:              'words',
   WORD_FORMS:         'word_forms',
@@ -49,6 +82,8 @@ export const TABLE = {
   DECK_WORDS:         'deck_words',
   WORD_PROGRESS:      'word_progress',
   DECK_USER_SETTINGS: 'deck_user_settings',
+  USER_PROFILE:       'user_profile',
+  USER_STATS:         'user_stats',
+  DAILY_ACTIVITY:     'daily_activity',
+  DAILY_GOAL:         'daily_goal',
 } as const;
-
-export type DeckUserStatus = 'new' | 'in_progress' | 'completed';
