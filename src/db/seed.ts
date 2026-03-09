@@ -607,6 +607,203 @@ export async function seedIfEmpty(db: DB): Promise<void> {
     }
   }
 
+  // Context sentences — mark existing examples + add new ones
+  const contextResult = await db.execute(
+    `SELECT COUNT(*) as count FROM word_examples WHERE isContextSentence = 1;`,
+  );
+  if ((contextResult.rows?.[0]?.count as number) === 0) {
+    const contextExamples: Array<{
+      wordId: number;
+      sentence: string;
+      translations: Array<{ languageCode: string; translation: string }>;
+    }> = [
+      // hus (id: 1)
+      {
+        wordId: 1,
+        sentence: 'De bor i et stort ___ utenfor byen.',
+        translations: [
+          {
+            languageCode: 'ru',
+            translation: 'Они живут в большом ___ за городом.',
+          },
+          {
+            languageCode: 'uk',
+            translation: 'Вони живуть у великому ___ за містом.',
+          },
+          {
+            languageCode: 'en',
+            translation: 'They live in a big ___ outside the city.',
+          },
+        ],
+      },
+      // bil (id: 2)
+      {
+        wordId: 2,
+        sentence: 'Han kjører ___ til jobben hver dag.',
+        translations: [
+          {
+            languageCode: 'ru',
+            translation: 'Он едет на ___ на работу каждый день.',
+          },
+          {
+            languageCode: 'uk',
+            translation: 'Він їде на ___ на роботу щодня.',
+          },
+          {
+            languageCode: 'en',
+            translation: 'He drives a ___ to work every day.',
+          },
+        ],
+      },
+      // mat (id: 3)
+      {
+        wordId: 3,
+        sentence: 'Jeg er sulten, kan du lage ___?',
+        translations: [
+          {
+            languageCode: 'ru',
+            translation: 'Я голоден, ты можешь приготовить ___?',
+          },
+          {
+            languageCode: 'uk',
+            translation: 'Я голодний, ти можеш приготувати ___?',
+          },
+          { languageCode: 'en', translation: 'I am hungry, can you make ___?' },
+        ],
+      },
+      // vann (id: 4)
+      {
+        wordId: 4,
+        sentence: 'Kan jeg få et glass ___?',
+        translations: [
+          { languageCode: 'ru', translation: 'Можно мне стакан ___?' },
+          { languageCode: 'uk', translation: 'Можна мені склянку ___?' },
+          { languageCode: 'en', translation: 'Can I have a glass of ___?' },
+        ],
+      },
+      // å være (id: 5)
+      {
+        wordId: 5,
+        sentence: 'Det er godt å ___ hjemme igjen.',
+        translations: [
+          { languageCode: 'ru', translation: 'Хорошо ___ снова дома.' },
+          { languageCode: 'uk', translation: 'Добре ___ знову вдома.' },
+          { languageCode: 'en', translation: 'It is good to ___ home again.' },
+        ],
+      },
+      // å ha (id: 6)
+      {
+        wordId: 6,
+        sentence: 'Jeg vil gjerne ___ en kopp kaffe.',
+        translations: [
+          { languageCode: 'ru', translation: 'Я хотел бы ___ чашку кофе.' },
+          { languageCode: 'uk', translation: 'Я хотів би ___ чашку кави.' },
+          {
+            languageCode: 'en',
+            translation: 'I would like to ___ a cup of coffee.',
+          },
+        ],
+      },
+      // å gjøre (id: 7)
+      {
+        wordId: 7,
+        sentence: 'Hva skal vi ___ i helgen?',
+        translations: [
+          { languageCode: 'ru', translation: 'Что мы будем ___ на выходных?' },
+          { languageCode: 'uk', translation: 'Що ми будемо ___ на вихідних?' },
+          {
+            languageCode: 'en',
+            translation: 'What shall we ___ this weekend?',
+          },
+        ],
+      },
+      // datamaskin (id: 8)
+      {
+        wordId: 8,
+        sentence: 'Jeg bruker ___ til å jobbe hjemmefra.',
+        translations: [
+          {
+            languageCode: 'ru',
+            translation: 'Я использую ___ для работы из дома.',
+          },
+          {
+            languageCode: 'uk',
+            translation: 'Я використовую ___ для роботи з дому.',
+          },
+          { languageCode: 'en', translation: 'I use a ___ to work from home.' },
+        ],
+      },
+      // nettside (id: 9)
+      {
+        wordId: 9,
+        sentence: 'Selskapet har en fin ___.',
+        translations: [
+          { languageCode: 'ru', translation: 'У компании красивый ___.' },
+          { languageCode: 'uk', translation: 'У компанії гарний ___.' },
+          { languageCode: 'en', translation: 'The company has a nice ___.' },
+        ],
+      },
+      // brød (id: 10)
+      {
+        wordId: 10,
+        sentence: 'Kan du kjøpe ___ på veien hjem?',
+        translations: [
+          {
+            languageCode: 'ru',
+            translation: 'Можешь купить ___ по дороге домой?',
+          },
+          {
+            languageCode: 'uk',
+            translation: 'Можеш купити ___ дорогою додому?',
+          },
+          {
+            languageCode: 'en',
+            translation: 'Can you buy ___ on the way home?',
+          },
+        ],
+      },
+      // fisk (id: 11)
+      {
+        wordId: 11,
+        sentence: 'Vi spiser ___ til middag hver fredag.',
+        translations: [
+          {
+            languageCode: 'ru',
+            translation: 'Мы едим ___ на ужин каждую пятницу.',
+          },
+          {
+            languageCode: 'uk',
+            translation: "Ми їмо ___ на вечерю кожну п'ятницю.",
+          },
+          {
+            languageCode: 'en',
+            translation: 'We eat ___ for dinner every Friday.',
+          },
+        ],
+      },
+    ];
+    for (const ex of contextExamples) {
+      await db.execute(
+        `INSERT INTO word_examples
+         (wordId, sentence, sentenceLanguage, isContextSentence, createdAt)
+       VALUES (?, ?, 'no', 1, ?);`,
+        [ex.wordId, ex.sentence, Date.now()],
+      );
+
+      const exResult = await db.execute('SELECT last_insert_rowid() as id;');
+      const exampleId = exResult.rows?.[0]?.id as number;
+
+      for (const t of ex.translations) {
+        await db.execute(
+          `INSERT INTO word_example_translations
+           (exampleId, languageCode, translation)
+         VALUES (?, ?, ?);`,
+          [exampleId, t.languageCode, t.translation],
+        );
+      }
+    }
+  }
+
   console.log(
     `[DB] Seeded ${GROUPS.length} groups, ${DECKS.length} decks, ${WORDS.length} words`,
   );

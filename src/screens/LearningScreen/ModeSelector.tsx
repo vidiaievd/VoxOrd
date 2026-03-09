@@ -67,7 +67,7 @@ const LEARNING_MODES: LearningMode[] = [
     title: 'Context',
     description: 'Complete sentences',
     color: '#af52de',
-    available: false, // coming soon
+    available: true,
   },
 ];
 

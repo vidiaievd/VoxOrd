@@ -245,4 +245,15 @@ export const migrations: Migration[] = [
     `);
     },
   },
+  {
+    version: 6,
+    up: async db => {
+      // Add context_sentence column to word_examples
+      // for sentences specifically designed for gap-fill exercises
+      await db.execute(`
+      ALTER TABLE word_examples
+      ADD COLUMN isContextSentence INTEGER NOT NULL DEFAULT 0;
+    `);
+    },
+  },
 ];

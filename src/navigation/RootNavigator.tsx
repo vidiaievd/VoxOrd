@@ -14,6 +14,7 @@ import { Deck } from '../repositories/DeckRepository';
 import { useTheme } from '../providers/ThemeProvider';
 import { ColorScheme } from '../theme/colors';
 import { SessionResultsScreen } from '../screens/LearningScreen/SessionResultsScreen';
+import { ContextExercise } from '../screens/LearningScreen/exercises/ContextExercise';
 
 type Tab = 'Home' | 'Settings';
 
@@ -25,6 +26,7 @@ type Screen =
   | { name: 'Quiz'; deckId: number }
   | { name: 'Spelling'; deckId: number }
   | { name: 'Listening'; deckId: number }
+  | { name: 'Context'; deckId: number }
   | { name: 'SessionResults'; sessionId: number; deckId: number }
   | { name: 'Settings' };
 
@@ -77,6 +79,9 @@ export function RootNavigator() {
           break;
         case 'listening':
           navigateTo({ name: 'Listening', deckId: deck.id });
+          break;
+        case 'context':
+          navigateTo({ name: 'Context', deckId: deck.id });
           break;
         default:
           console.warn('[Nav] unknown mode:', modeId);
@@ -132,12 +137,21 @@ export function RootNavigator() {
             deckId={screen.deckId}
             onBack={navigateBack}
             onSessionDone={sid => navigateToResults(sid, screen.deckId)}
-          />
+          /> 
         );
 
       case 'Listening':
         return (
           <ListeningExercise
+            deckId={screen.deckId}
+            onBack={navigateBack}
+            onSessionDone={sid => navigateToResults(sid, screen.deckId)}
+          />
+        );
+
+      case 'Context':
+        return (
+          <ContextExercise
             deckId={screen.deckId}
             onBack={navigateBack}
             onSessionDone={sid => navigateToResults(sid, screen.deckId)}
