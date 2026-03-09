@@ -16,6 +16,7 @@ export interface QuizState {
   currentIndex: number;
   selectedOption: string | null;
   isAnswered: boolean;
+  isCorrect: boolean;
   correctCount: number;
   isComplete: boolean;
 }
@@ -91,6 +92,7 @@ export function useQuiz(deckId: number): UseQuizResult {
     isAnswered: false,
     correctCount: 0,
     isComplete: false,
+    isCorrect: false,
   });
 
   useEffect(() => {
@@ -119,6 +121,7 @@ export function useQuiz(deckId: number): UseQuizResult {
 
         const question = prev.questions[prev.currentIndex];
         const isCorrect = option === question.correctAnswer;
+        console.log('[[  isCorrect  ]] ', isCorrect)
 
         // Record answer async — fire and forget
         progressRepository.recordAnswer(question.wordId, deckId, isCorrect);
@@ -136,6 +139,7 @@ export function useQuiz(deckId: number): UseQuizResult {
           ...prev,
           selectedOption: option,
           isAnswered: true,
+          isCorrect,
           correctCount: isCorrect ? prev.correctCount + 1 : prev.correctCount,
         };
       });
@@ -162,6 +166,7 @@ export function useQuiz(deckId: number): UseQuizResult {
         selectedOption: null,
         isAnswered: false,
         isComplete,
+        isCorrect: false,
       };
     });
   }, [sessionId]);

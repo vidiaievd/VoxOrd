@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../../providers/ThemeProvider';
 import { ColorScheme } from '../../../theme/colors';
 import { useSpelling } from '../../../hooks/useSpelling';
+import { useAutoAdvance } from '../../../hooks/useAutoAdvance';
 
 interface SpellingExerciseProps {
   deckId: number;
@@ -31,6 +32,7 @@ export function SpellingExercise({
   const { state, isLoading, sessionId, setInput, submit, skip, next } =
     useSpelling(deckId);
   const inputRef = useRef<TextInput>(null);
+  useAutoAdvance(state.isAnswered, state.isCorrect, next);
 
   // Auto-focus on each new question
   useEffect(() => {
@@ -89,7 +91,10 @@ export function SpellingExercise({
               queue
             </Text>
           )}
-          <TouchableOpacity style={styles.doneBtn} onPress={() => onSessionDone(sessionId ?? 0)}>
+          <TouchableOpacity
+            style={styles.doneBtn}
+            onPress={() => onSessionDone(sessionId ?? 0)}
+          >
             <Text style={styles.doneBtnText}>Continue</Text>
           </TouchableOpacity>
         </View>
@@ -187,6 +192,9 @@ export function SpellingExercise({
               {state.isAnswered && state.isCorrect && (
                 <View style={styles.feedbackCorrect}>
                   <Text style={styles.feedbackCorrectText}>✓ Correct!</Text>
+                  <Text style={styles.feedbackCorrectSub}>
+                    Next word in 0.8s...
+                  </Text>
                 </View>
               )}
             </>
@@ -217,7 +225,7 @@ export function SpellingExercise({
               </TouchableOpacity>
             )}
 
-            {(state.isAnswered || state.isSkipped) && (
+            {(state.isCorrect === false || state.isSkipped) && (
               <TouchableOpacity style={styles.nextBtn} onPress={next}>
                 <Text style={styles.nextBtnText}>
                   {state.currentIndex + 1 >= state.questions.length
@@ -437,6 +445,12 @@ const makeStyles = (colors: ColorScheme) =>
       fontSize: 16,
       fontWeight: '700',
       color: '#fff',
+    },
+    feedbackCorrectSub: {
+      fontSize: 12,
+      color: colors.success,
+      marginTop: 4,
+      opacity: 0.7,
     },
     emptyText: {
       fontSize: 16,

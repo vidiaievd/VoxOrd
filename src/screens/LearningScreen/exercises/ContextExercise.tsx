@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../../providers/ThemeProvider';
 import { ColorScheme } from '../../../theme/colors';
 import { useContext } from '../../../hooks/useContext';
+import { useAutoAdvance } from '../../../hooks/useAutoAdvance';
 
 interface ContextExerciseProps {
   deckId: number;
@@ -35,6 +36,7 @@ export function ContextExercise({
   const styles = makeStyles(colors);
   const { state, isLoading, sessionId, selectOption, next } =
     useContext(deckId);
+  useAutoAdvance(state.isAnswered, state.isCorrect, next);
 
   if (isLoading) {
     return (
@@ -189,7 +191,7 @@ export function ContextExercise({
         </View>
 
         {/* Next button */}
-        {state.isAnswered && (
+        {state.isAnswered && state.isCorrect === false && (
           <TouchableOpacity style={styles.nextBtn} onPress={next}>
             <Text style={styles.nextBtnText}>
               {state.currentIndex + 1 >= state.questions.length

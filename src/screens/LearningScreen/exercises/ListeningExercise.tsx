@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../../providers/ThemeProvider';
 import { ColorScheme } from '../../../theme/colors';
 import { useListening } from '../../../hooks/useListening';
+import { useAutoAdvance } from '../../../hooks/useAutoAdvance';
 
 interface ListeningExerciseProps {
   deckId: number;
@@ -26,6 +27,7 @@ export function ListeningExercise({
   const styles = makeStyles(colors);
   const { state, isLoading, sessionId, speak, selectOption, next, installTts } =
     useListening(deckId);
+  useAutoAdvance(state.isAnswered, state.isCorrect, next);
 
   // TTS engine not installed
   if (state.ttsStatus === 'no_engine') {
@@ -116,7 +118,10 @@ export function ListeningExercise({
             {correct} / {total}
           </Text>
           <Text style={styles.resultAccuracy}>{accuracy}% accuracy</Text>
-          <TouchableOpacity style={styles.primaryBtn} onPress={() => onSessionDone(sessionId ?? 0)}>
+          <TouchableOpacity
+            style={styles.primaryBtn}
+            onPress={() => onSessionDone(sessionId ?? 0)}
+          >
             <Text style={styles.primaryBtnText}>Continue</Text>
           </TouchableOpacity>
         </View>
@@ -213,7 +218,7 @@ export function ListeningExercise({
       </View>
 
       {/* Next button */}
-      {state.isAnswered && (
+      {state.isAnswered && state.isCorrect === false && (
         <View style={styles.nextContainer}>
           <TouchableOpacity style={styles.primaryBtn} onPress={next}>
             <Text style={styles.primaryBtnText}>

@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../../providers/ThemeProvider';
 import { ColorScheme } from '../../../theme/colors';
 import { useQuiz } from '../../../hooks/useQuiz';
+import { useAutoAdvance } from '../../../hooks/useAutoAdvance';
 
 interface QuizExerciseProps {
   deckId: number;
@@ -17,10 +18,15 @@ interface QuizExerciseProps {
   onSessionDone: (sessionId: number) => void;
 }
 
-export function QuizExercise({ deckId, onBack, onSessionDone }: QuizExerciseProps) {
+export function QuizExercise({
+  deckId,
+  onBack,
+  onSessionDone,
+}: QuizExerciseProps) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const { state, isLoading, sessionId, selectOption, next } = useQuiz(deckId);
+  useAutoAdvance(state.isAnswered, state.isCorrect, next);
 
   if (isLoading) {
     return (
@@ -67,7 +73,10 @@ export function QuizExercise({ deckId, onBack, onSessionDone }: QuizExerciseProp
             {correct} / {total}
           </Text>
           <Text style={styles.resultAccuracy}>{accuracy}% accuracy</Text>
-          <TouchableOpacity style={styles.doneBtn} onPress={() => onSessionDone(sessionId ?? 0)}>
+          <TouchableOpacity
+            style={styles.doneBtn}
+            onPress={() => onSessionDone(sessionId ?? 0)}
+          >
             <Text style={styles.doneBtnText}>Continue</Text>
           </TouchableOpacity>
         </View>
@@ -140,7 +149,7 @@ export function QuizExercise({ deckId, onBack, onSessionDone }: QuizExerciseProp
       </View>
 
       {/* Next button — visible after answer */}
-      {state.isAnswered && (
+      {state.isAnswered && state.isCorrect === false && (
         <View style={styles.nextContainer}>
           <TouchableOpacity style={styles.nextBtn} onPress={next}>
             <Text style={styles.nextBtnText}>
