@@ -14,13 +14,13 @@ import { useQuiz } from '../../../hooks/useQuiz';
 interface QuizExerciseProps {
   deckId: number;
   onBack: () => void;
-  onDone: () => void;
+  onSessionDone: (sessionId: number) => void;
 }
 
-export function QuizExercise({ deckId, onBack, onDone }: QuizExerciseProps) {
+export function QuizExercise({ deckId, onBack, onSessionDone }: QuizExerciseProps) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const { state, isLoading, selectOption, next } = useQuiz(deckId);
+  const { state, isLoading, sessionId, selectOption, next } = useQuiz(deckId);
 
   if (isLoading) {
     return (
@@ -67,7 +67,7 @@ export function QuizExercise({ deckId, onBack, onDone }: QuizExerciseProps) {
             {correct} / {total}
           </Text>
           <Text style={styles.resultAccuracy}>{accuracy}% accuracy</Text>
-          <TouchableOpacity style={styles.doneBtn} onPress={onDone}>
+          <TouchableOpacity style={styles.doneBtn} onPress={() => onSessionDone(sessionId ?? 0)}>
             <Text style={styles.doneBtnText}>Continue</Text>
           </TouchableOpacity>
         </View>

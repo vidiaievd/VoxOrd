@@ -23,6 +23,7 @@ export interface QuizState {
 export interface UseQuizResult {
   state: QuizState;
   isLoading: boolean;
+  sessionId: number | null;
   selectOption: (option: string) => void;
   next: () => void;
 }
@@ -165,5 +166,5 @@ export function useQuiz(deckId: number): UseQuizResult {
     });
   }, [sessionId]);
 
-  return { state, isLoading, selectOption, next };
+  return { state, isLoading, sessionId, selectOption, next };
 }

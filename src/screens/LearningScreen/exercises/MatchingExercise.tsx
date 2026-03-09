@@ -15,17 +15,17 @@ import { useMatching } from '../../../hooks/useMatching';
 interface MatchingExerciseProps {
   deckId: number;
   onBack: () => void;
-  onDone: () => void;
+  onSessionDone: (sessionId: number) => void;
 }
 
 export function MatchingExercise({
   deckId,
   onBack,
-  onDone,
+  onSessionDone,
 }: MatchingExerciseProps) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const { state, isLoading, selectWord, selectTrans } = useMatching(deckId);
+  const { state, isLoading, sessionId, selectWord, selectTrans } = useMatching(deckId);
 
   // Shuffle translations independently from words
   const shuffledTrans = useMemo(
@@ -55,7 +55,7 @@ export function MatchingExercise({
           <Text style={styles.resultSub}>
             {state.matched.size} / {state.pairs.length} correct — {accuracy}%
           </Text>
-          <TouchableOpacity style={styles.doneBtn} onPress={onDone}>
+          <TouchableOpacity style={styles.doneBtn} onPress={() => onSessionDone(sessionId ?? 0)}>
             <Text style={styles.doneBtnText}>Continue</Text>
           </TouchableOpacity>
         </View>

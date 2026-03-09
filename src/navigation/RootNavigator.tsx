@@ -13,6 +13,7 @@ import { ListeningExercise } from '../screens/LearningScreen/exercises/Listening
 import { Deck } from '../repositories/DeckRepository';
 import { useTheme } from '../providers/ThemeProvider';
 import { ColorScheme } from '../theme/colors';
+import { SessionResultsScreen } from '../screens/LearningScreen/SessionResultsScreen';
 
 type Tab = 'Home' | 'Settings';
 
@@ -24,6 +25,7 @@ type Screen =
   | { name: 'Quiz'; deckId: number }
   | { name: 'Spelling'; deckId: number }
   | { name: 'Listening'; deckId: number }
+  | { name: 'SessionResults'; sessionId: number; deckId: number }
   | { name: 'Settings' };
 
 export function RootNavigator() {
@@ -35,6 +37,13 @@ export function RootNavigator() {
   const [activeTab, setActiveTab] = useState<Tab>('Home');
 
   const navigateTo = useCallback((s: Screen) => setScreen(s), []);
+
+  const navigateToResults = useCallback(
+    (sessionId: number, deckId: number) => {
+      navigateTo({ name: 'SessionResults', sessionId, deckId });
+    },
+    [navigateTo],
+  );
 
   const navigateBack = useCallback(() => {
     setScreen({ name: 'Home' });
@@ -104,7 +113,7 @@ export function RootNavigator() {
                 prev.name === 'Matching' ? { name: 'Home' } : prev,
               )
             }
-            onDone={navigateBack}
+            onSessionDone={sid => navigateToResults(sid, screen.deckId)}
           />
         );
 
@@ -113,7 +122,7 @@ export function RootNavigator() {
           <QuizExercise
             deckId={screen.deckId}
             onBack={navigateBack}
-            onDone={navigateBack}
+            onSessionDone={sid => navigateToResults(sid, screen.deckId)}
           />
         );
 
@@ -122,7 +131,7 @@ export function RootNavigator() {
           <SpellingExercise
             deckId={screen.deckId}
             onBack={navigateBack}
-            onDone={navigateBack}
+            onSessionDone={sid => navigateToResults(sid, screen.deckId)}
           />
         );
 
@@ -131,7 +140,23 @@ export function RootNavigator() {
           <ListeningExercise
             deckId={screen.deckId}
             onBack={navigateBack}
-            onDone={navigateBack}
+            onSessionDone={sid => navigateToResults(sid, screen.deckId)}
+          />
+        );
+
+      case 'SessionResults':
+        return (
+          <SessionResultsScreen
+            sessionId={screen.sessionId}
+            onContinue={navigateBack}
+            onRepeat={() => {
+              // Go back to ModeSelector for the same deck
+              // We need a minimal deck — ModeSelector will show full info
+              navigateTo({
+                name: 'ModeSelector',
+                deck: { id: screen.deckId } as Deck,
+              });
+            }}
           />
         );
 
@@ -162,6 +187,7 @@ export function RootNavigator() {
     screen.name !== 'Matching' &&
     screen.name !== 'Quiz' &&
     screen.name !== 'Spelling' &&
+    screen.name !== 'SessionResults' &&
     screen.name !== 'Listening';
 
   return (

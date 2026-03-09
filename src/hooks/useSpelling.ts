@@ -30,6 +30,7 @@ export interface SpellingState {
 export interface UseSpellingResult {
   state: SpellingState;
   isLoading: boolean;
+  sessionId: number | null;
   setInput: (value: string) => void;
   submit: () => void;
   skip: () => void;
@@ -268,5 +269,5 @@ export function useSpelling(deckId: number): UseSpellingResult {
     });
   }, [sessionId]);
 
-  return { state, isLoading, setInput, submit, skip, next };
+  return { state, isLoading, sessionId, setInput, submit, skip, next };
 }

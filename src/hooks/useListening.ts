@@ -33,6 +33,7 @@ export interface UseListeningResult {
   selectOption: (option: string) => void;
   next: () => void;
   installTts: () => void;
+  sessionId: number | null;
 }
 
 const QUESTION_COUNT = 7;
@@ -244,5 +245,5 @@ export function useListening(deckId: number): UseListeningResult {
     });
   }, [sessionId]);
 
-  return { state, isLoading, speak, selectOption, next, installTts };
+  return { state, isLoading, sessionId, speak, selectOption, next, installTts };
 }

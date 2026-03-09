@@ -18,17 +18,17 @@ import { useSpelling } from '../../../hooks/useSpelling';
 interface SpellingExerciseProps {
   deckId: number;
   onBack: () => void;
-  onDone: () => void;
+  onSessionDone: (sessionId: number) => void;
 }
 
 export function SpellingExercise({
   deckId,
   onBack,
-  onDone,
+  onSessionDone,
 }: SpellingExerciseProps) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const { state, isLoading, setInput, submit, skip, next } =
+  const { state, isLoading, sessionId, setInput, submit, skip, next } =
     useSpelling(deckId);
   const inputRef = useRef<TextInput>(null);
 
@@ -89,7 +89,7 @@ export function SpellingExercise({
               queue
             </Text>
           )}
-          <TouchableOpacity style={styles.doneBtn} onPress={onDone}>
+          <TouchableOpacity style={styles.doneBtn} onPress={() => onSessionDone(sessionId ?? 0)}>
             <Text style={styles.doneBtnText}>Continue</Text>
           </TouchableOpacity>
         </View>

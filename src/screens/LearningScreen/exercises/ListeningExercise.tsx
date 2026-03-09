@@ -14,17 +14,17 @@ import { useListening } from '../../../hooks/useListening';
 interface ListeningExerciseProps {
   deckId: number;
   onBack: () => void;
-  onDone: () => void;
+  onSessionDone: (sessionId: number) => void;
 }
 
 export function ListeningExercise({
   deckId,
   onBack,
-  onDone,
+  onSessionDone,
 }: ListeningExerciseProps) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const { state, isLoading, speak, selectOption, next, installTts } =
+  const { state, isLoading, sessionId, speak, selectOption, next, installTts } =
     useListening(deckId);
 
   // TTS engine not installed
@@ -116,7 +116,7 @@ export function ListeningExercise({
             {correct} / {total}
           </Text>
           <Text style={styles.resultAccuracy}>{accuracy}% accuracy</Text>
-          <TouchableOpacity style={styles.primaryBtn} onPress={onDone}>
+          <TouchableOpacity style={styles.primaryBtn} onPress={() => onSessionDone(sessionId ?? 0)}>
             <Text style={styles.primaryBtnText}>Continue</Text>
           </TouchableOpacity>
         </View>
