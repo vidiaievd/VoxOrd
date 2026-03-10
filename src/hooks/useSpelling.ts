@@ -21,7 +21,7 @@ export interface SpellingState {
   isSkipped: boolean;
   correctCount: number;
   skippedCount: number;
-  mistakeCount: number; // mistakes on current question
+  mistakeCount: number;
   showHint: boolean;
   showSkip: boolean;
   isComplete: boolean;
@@ -40,8 +40,6 @@ export interface UseSpellingResult {
 const QUESTION_COUNT = 7;
 const MISTAKES_BEFORE_HINT = 2;
 const MISTAKES_BEFORE_SKIP = 3;
-
-// Penalty multiplier applied to spaced repetition after skip
 const SKIP_PENALTY_MISTAKES = 3;
 
 function buildHint(word: string): string {
@@ -69,8 +67,17 @@ function resolveInitialHint(): boolean {
 async function loadQuestions(
   deckId: number,
   uiLang: string = 'ru',
+  overrideWordIds?: number[],
 ): Promise<SpellingQuestion[]> {
   const db = getDatabase();
+
+  const wordFilter =
+    overrideWordIds && overrideWordIds.length > 0
+      ? `AND w.id IN (${overrideWordIds.join(',')})`
+      : '';
+
+  const limit = overrideWordIds?.length ?? QUESTION_COUNT;
+
   const result = await db.execute(
     `SELECT
        w.id     AS wordId,
@@ -79,9 +86,10 @@ async function loadQuestions(
      FROM ${TABLE.WORDS}        w
      JOIN ${TABLE.DECK_WORDS}   dw ON dw.wordId = w.id AND dw.deckId = ?
      JOIN ${TABLE.TRANSLATIONS} t  ON t.wordId  = w.id AND t.languageCode = ?
+     ${wordFilter}
      ORDER BY RANDOM()
      LIMIT ?;`,
-    [deckId, uiLang, QUESTION_COUNT],
+    [deckId, uiLang, limit],
   );
 
   return (result.rows ?? []).map(row => ({
@@ -92,9 +100,14 @@ async function loadQuestions(
   }));
 }
 
-export function useSpelling(deckId: number): UseSpellingResult {
+export function useSpelling(
+  deckId: number,
+  overrideWordIds?: number[],
+  onWeakIds?: (weakIds: number[], correct: number) => void,
+): UseSpellingResult {
   const [isLoading, setIsLoading] = useState(true);
   const [sessionId, setSessionId] = useState<number | null>(null);
+  const weakIdsRef = useRef<Set<number>>(new Set());
   const [state, setState] = useState<SpellingState>({
     questions: [],
     currentIndex: 0,
@@ -118,7 +131,7 @@ export function useSpelling(deckId: number): UseSpellingResult {
       setIsLoading(true);
       const [sid, questions] = await Promise.all([
         sessionRepository.create('quick', deckId),
-        loadQuestions(deckId),
+        loadQuestions(deckId, 'ru', overrideWordIds),
       ]);
       if (!cancelled) {
         setSessionId(sid);
@@ -134,7 +147,7 @@ export function useSpelling(deckId: number): UseSpellingResult {
     return () => {
       cancelled = true;
     };
-  }, [deckId]);
+  }, [deckId, overrideWordIds]);
 
   const setInput = useCallback((value: string) => {
     setState(prev => {
@@ -165,10 +178,8 @@ export function useSpelling(deckId: number): UseSpellingResult {
         (spellingHintMode === 'after_mistake' &&
           newMistakeCount >= MISTAKES_BEFORE_HINT);
 
-      // Show skip button after N mistakes
       const showSkip = newMistakeCount >= MISTAKES_BEFORE_SKIP;
 
-      // Fire and forget
       progressRepository.recordAnswer(question.wordId, deckId, isCorrect);
       if (sessionId) {
         sessionRepository.recordResult({
@@ -178,6 +189,10 @@ export function useSpelling(deckId: number): UseSpellingResult {
           isCorrect,
           responseTimeMs,
         });
+      }
+
+      if (!isCorrect) {
+        weakIdsRef.current.add(question.wordId);
       }
 
       if (isCorrect) {
@@ -192,7 +207,6 @@ export function useSpelling(deckId: number): UseSpellingResult {
         };
       }
 
-      // Wrong — clear input, stay on question
       return {
         ...prev,
         input: '',
@@ -210,8 +224,6 @@ export function useSpelling(deckId: number): UseSpellingResult {
 
       const question = prev.questions[prev.currentIndex];
 
-      // Apply skip penalty — record multiple wrong answers to push
-      // the word back to an earlier memory stage
       for (let i = 0; i < SKIP_PENALTY_MISTAKES; i++) {
         progressRepository.recordAnswer(question.wordId, deckId, false);
       }
@@ -225,12 +237,15 @@ export function useSpelling(deckId: number): UseSpellingResult {
         });
       }
 
+      // Skipped = weak word
+      weakIdsRef.current.add(question.wordId);
+
       return {
         ...prev,
         input: '',
         isSkipped: true,
         skippedCount: prev.skippedCount + 1,
-        showHint: true, // always show hint after skip
+        showHint: true,
       };
     });
   }, [deckId, sessionId]);
@@ -246,6 +261,8 @@ export function useSpelling(deckId: number): UseSpellingResult {
           correctAnswers: prev.correctCount,
           sessionType: 'quick',
         });
+        // Report weak words to deep session orchestrator
+        onWeakIds?.(Array.from(weakIdsRef.current), prev.correctCount);
       }
 
       shownAtRef.current = Date.now();
@@ -267,7 +284,7 @@ export function useSpelling(deckId: number): UseSpellingResult {
         isComplete,
       };
     });
-  }, [sessionId]);
+  }, [sessionId, onWeakIds]);
 
   return { state, isLoading, sessionId, setInput, submit, skip, next };
 }

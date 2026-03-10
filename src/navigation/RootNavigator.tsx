@@ -15,6 +15,7 @@ import { useTheme } from '../providers/ThemeProvider';
 import { ColorScheme } from '../theme/colors';
 import { SessionResultsScreen } from '../screens/LearningScreen/SessionResultsScreen';
 import { ContextExercise } from '../screens/LearningScreen/exercises/ContextExercise';
+import { DeepSessionScreen } from '../screens/LearningScreen/DeepSessionScreen';
 
 type Tab = 'Home' | 'Settings';
 
@@ -27,6 +28,7 @@ type Screen =
   | { name: 'Spelling'; deckId: number }
   | { name: 'Listening'; deckId: number }
   | { name: 'Context'; deckId: number }
+  | { name: 'DeepSession'; deck: Deck }
   | { name: 'SessionResults'; sessionId: number; deckId: number }
   | { name: 'Settings' };
 
@@ -83,6 +85,9 @@ export function RootNavigator() {
         case 'context':
           navigateTo({ name: 'Context', deckId: deck.id });
           break;
+        case 'deep':
+          navigateTo({ name: 'DeepSession', deck });
+          break;
         default:
           console.warn('[Nav] unknown mode:', modeId);
       }
@@ -137,7 +142,7 @@ export function RootNavigator() {
             deckId={screen.deckId}
             onBack={navigateBack}
             onSessionDone={sid => navigateToResults(sid, screen.deckId)}
-          /> 
+          />
         );
 
       case 'Listening':
@@ -155,6 +160,15 @@ export function RootNavigator() {
             deckId={screen.deckId}
             onBack={navigateBack}
             onSessionDone={sid => navigateToResults(sid, screen.deckId)}
+          />
+        );
+
+      case 'DeepSession':
+        return (
+          <DeepSessionScreen
+            deck={screen.deck}
+            onBack={navigateBack}
+            onSessionDone={sid => navigateToResults(sid, screen.deck.id)}
           />
         );
 
@@ -202,6 +216,7 @@ export function RootNavigator() {
     screen.name !== 'Quiz' &&
     screen.name !== 'Spelling' &&
     screen.name !== 'SessionResults' &&
+    screen.name !== 'DeepSession' &&
     screen.name !== 'Listening';
 
   return (

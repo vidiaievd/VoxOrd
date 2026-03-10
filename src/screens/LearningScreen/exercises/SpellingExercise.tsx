@@ -17,20 +17,24 @@ import { useSpelling } from '../../../hooks/useSpelling';
 import { useAutoAdvance } from '../../../hooks/useAutoAdvance';
 
 interface SpellingExerciseProps {
-  deckId: number;
-  onBack: () => void;
-  onSessionDone: (sessionId: number) => void;
+  deckId:           number;
+  overrideWordIds?: number[];
+  onBack:           () => void;
+  onSessionDone:    (sessionId: number) => void;
+  onWeakIds?:       (weakIds: number[], correct: number) => void;
 }
 
 export function SpellingExercise({
   deckId,
+  overrideWordIds,
   onBack,
   onSessionDone,
+  onWeakIds,
 }: SpellingExerciseProps) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const { state, isLoading, sessionId, setInput, submit, skip, next } =
-    useSpelling(deckId);
+    useSpelling(deckId, overrideWordIds, onWeakIds);
   const inputRef = useRef<TextInput>(null);
   useAutoAdvance(state.isAnswered, state.isCorrect, next);
 

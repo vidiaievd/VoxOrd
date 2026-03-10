@@ -13,19 +13,27 @@ import { useQuiz } from '../../../hooks/useQuiz';
 import { useAutoAdvance } from '../../../hooks/useAutoAdvance';
 
 interface QuizExerciseProps {
-  deckId: number;
-  onBack: () => void;
-  onSessionDone: (sessionId: number) => void;
+  deckId:           number;
+  overrideWordIds?: number[];
+  onBack:           () => void;
+  onSessionDone:    (sessionId: number) => void;
+  onWeakIds?:       (weakIds: number[], correct: number) => void;
 }
 
 export function QuizExercise({
   deckId,
+  overrideWordIds,
   onBack,
   onSessionDone,
+  onWeakIds,
 }: QuizExerciseProps) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const { state, isLoading, sessionId, selectOption, next } = useQuiz(deckId);
+  const { state, isLoading, sessionId, selectOption, next } = useQuiz(
+    deckId,
+    overrideWordIds,
+    onWeakIds,
+  );
   useAutoAdvance(state.isAnswered, state.isCorrect, next);
 
   if (isLoading) {
@@ -51,12 +59,11 @@ export function QuizExercise({
     );
   }
 
-  // Results screen
   if (state.isComplete) {
-    const total = state.questions.length;
-    const correct = state.correctCount;
+    const total    = state.questions.length;
+    const correct  = state.correctCount;
     const accuracy = Math.round((correct / total) * 100);
-    const emoji = accuracy >= 80 ? '🎉' : accuracy >= 50 ? '👍' : '💪';
+    const emoji    = accuracy >= 80 ? '🎉' : accuracy >= 50 ? '👍' : '💪';
 
     return (
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -69,9 +76,7 @@ export function QuizExercise({
               ? 'Good job!'
               : 'Keep going!'}
           </Text>
-          <Text style={styles.resultScore}>
-            {correct} / {total}
-          </Text>
+          <Text style={styles.resultScore}>{correct} / {total}</Text>
           <Text style={styles.resultAccuracy}>{accuracy}% accuracy</Text>
           <TouchableOpacity
             style={styles.doneBtn}
@@ -103,7 +108,6 @@ export function QuizExercise({
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.headerBack}>
           <Text style={styles.headerBackText}>←</Text>
@@ -114,18 +118,15 @@ export function QuizExercise({
         </Text>
       </View>
 
-      {/* Progress bar */}
       <View style={styles.progressBg}>
         <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
       </View>
 
-      {/* Question */}
       <View style={styles.questionContainer}>
         <Text style={styles.questionLabel}>What does this mean?</Text>
         <Text style={styles.questionWord}>{question.word}</Text>
       </View>
 
-      {/* Options */}
       <View style={styles.options}>
         {question.options.map(option => (
           <TouchableOpacity
@@ -148,7 +149,6 @@ export function QuizExercise({
         ))}
       </View>
 
-      {/* Next button — visible after answer */}
       {state.isAnswered && state.isCorrect === false && (
         <View style={styles.nextContainer}>
           <TouchableOpacity style={styles.nextBtn} onPress={next}>

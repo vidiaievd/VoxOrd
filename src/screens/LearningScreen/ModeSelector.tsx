@@ -106,6 +106,22 @@ export function ModeSelector({
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
+        <TouchableOpacity
+          style={styles.deepBtn}
+          onPress={() => onSelectMode('deep', deck)}
+          activeOpacity={0.8}
+        >
+          <View style={styles.deepBtnLeft}>
+            <Text style={styles.deepBtnIcon}>🧠</Text>
+            <View>
+              <Text style={styles.deepBtnTitle}>Deep Session</Text>
+              <Text style={styles.deepBtnSub}>
+                Flashcard → Quiz → Spelling · adapts to your mistakes
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.deepBtnArrow}>→</Text>
+        </TouchableOpacity>
         <Text style={styles.sectionTitle}>Learning modes</Text>
 
         {LEARNING_MODES.map(mode => (
@@ -308,4 +324,43 @@ const makeStyles = (colors: ColorScheme) =>
       height: 36,
       backgroundColor: colors.border,
     },
+    deepBtn: {
+  flexDirection:     'row',
+  alignItems:        'center',
+  justifyContent:    'space-between',
+  backgroundColor:   colors.accent,
+  borderRadius:      18,
+  padding:           18,
+  marginBottom:      20,
+  shadowColor:       colors.accent,
+  shadowOffset:      { width: 0, height: 4 },
+  shadowOpacity:     0.3,
+  shadowRadius:      12,
+  elevation:         4,
+},
+deepBtnLeft: {
+  flexDirection: 'row',
+  alignItems:    'center',
+  flex:          1,
+},
+deepBtnIcon: {
+  fontSize:    28,
+  marginRight: 12,
+},
+deepBtnTitle: {
+  fontSize:     16,
+  fontWeight:   '800',
+  color:        '#fff',
+  marginBottom:  2,
+},
+deepBtnSub: {
+  fontSize: 12,
+  color:    'rgba(255,255,255,0.75)',
+},
+deepBtnArrow: {
+  fontSize:   20,
+  fontWeight: '700',
+  color:      '#fff',
+  marginLeft:  8,
+},
   });

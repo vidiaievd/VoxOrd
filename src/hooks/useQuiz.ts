@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { getDatabase } from '../db/database';
 import { TABLE } from '../db/types';
 import { progressRepository } from '../repositories/ProgressRepository';
@@ -35,8 +35,14 @@ const OPTIONS_COUNT = 4;
 async function loadQuestions(
   deckId: number,
   uiLang: string = 'ru',
+  overrideWordIds?: number[],
 ): Promise<QuizQuestion[]> {
   const db = getDatabase();
+
+  const wordFilter =
+    overrideWordIds && overrideWordIds.length > 0
+      ? `AND w.id IN (${overrideWordIds.join(',')})`
+      : '';
 
   // Load all available translations for this deck as option pool
   const poolResult = await db.execute(
@@ -47,6 +53,7 @@ async function loadQuestions(
      FROM ${TABLE.WORDS}        w
      JOIN ${TABLE.DECK_WORDS}   dw ON dw.wordId = w.id AND dw.deckId = ?
      JOIN ${TABLE.TRANSLATIONS} t  ON t.wordId  = w.id AND t.languageCode = ?
+     ${wordFilter}
      ORDER BY RANDOM();`,
     [deckId, uiLang],
   );
@@ -82,7 +89,12 @@ async function loadQuestions(
   });
 }
 
-export function useQuiz(deckId: number): UseQuizResult {
+export function useQuiz(
+  deckId: number,
+  overrideWordIds?: number[],
+  onWeakIds?: (weakIds: number[], correct: number) => void,
+): UseQuizResult {
+  const weakIdsRef = useRef(new Set<number>());
   const [isLoading, setIsLoading] = useState(true);
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [state, setState] = useState<QuizState>({
@@ -101,7 +113,7 @@ export function useQuiz(deckId: number): UseQuizResult {
       setIsLoading(true);
       const [sid, questions] = await Promise.all([
         sessionRepository.create('quick', deckId),
-        loadQuestions(deckId),
+        loadQuestions(deckId, 'ru', overrideWordIds),
       ]);
       if (!cancelled) {
         setSessionId(sid);
@@ -112,7 +124,7 @@ export function useQuiz(deckId: number): UseQuizResult {
     return () => {
       cancelled = true;
     };
-  }, [deckId]);
+  }, [deckId, overrideWordIds]);
 
   const selectOption = useCallback(
     (option: string) => {
@@ -121,7 +133,6 @@ export function useQuiz(deckId: number): UseQuizResult {
 
         const question = prev.questions[prev.currentIndex];
         const isCorrect = option === question.correctAnswer;
-        console.log('[[  isCorrect  ]] ', isCorrect)
 
         // Record answer async — fire and forget
         progressRepository.recordAnswer(question.wordId, deckId, isCorrect);
@@ -133,6 +144,10 @@ export function useQuiz(deckId: number): UseQuizResult {
             isCorrect,
             responseTimeMs: null,
           });
+        }
+
+        if (!isCorrect) {
+          weakIdsRef.current.add(question.wordId);
         }
 
         return {
@@ -158,6 +173,8 @@ export function useQuiz(deckId: number): UseQuizResult {
           correctAnswers: prev.correctCount,
           sessionType: 'quick',
         });
+        // Report weak words to deep session orchestrator
+        onWeakIds?.(Array.from(weakIdsRef.current), prev.correctCount);
       }
 
       return {
@@ -169,7 +186,7 @@ export function useQuiz(deckId: number): UseQuizResult {
         isCorrect: false,
       };
     });
-  }, [sessionId]);
+  }, [onWeakIds, sessionId]);
 
   return { state, isLoading, sessionId, selectOption, next };
 }
