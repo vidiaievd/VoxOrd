@@ -1,8 +1,8 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { getDatabase } from '../db/database';
-import { TABLE } from '../db/types';
 import { progressRepository } from '../repositories/ProgressRepository';
 import { sessionRepository } from '../repositories/SessionRepository';
+import { spellingRepository } from '../repositories/SpellingRepository';
+import { wordModeStrengthRepository } from '../repositories/WordModeStrengthRepository';
 import { settingsStore, SpellingHintMode } from '../store/settingsStore';
 
 export interface SpellingQuestion {
@@ -25,6 +25,7 @@ export interface SpellingState {
   showHint: boolean;
   showSkip: boolean;
   isComplete: boolean;
+  totalWords: number;
 }
 
 export interface UseSpellingResult {
@@ -37,21 +38,9 @@ export interface UseSpellingResult {
   next: () => void;
 }
 
-const QUESTION_COUNT = 7;
 const MISTAKES_BEFORE_HINT = 2;
 const MISTAKES_BEFORE_SKIP = 3;
 const SKIP_PENALTY_MISTAKES = 3;
-
-function buildHint(word: string): string {
-  return word
-    .split('')
-    .map((char, index) => {
-      if (index === 0) return char;
-      if (char === ' ') return ' ';
-      return '_';
-    })
-    .join('');
-}
 
 function normalizeAnswer(value: string): string {
   return value.trim().toLowerCase();
@@ -64,50 +53,17 @@ function resolveInitialHint(): boolean {
   return spellingHintMode === 'always';
 }
 
-async function loadQuestions(
-  deckId: number,
-  uiLang: string = 'ru',
-  overrideWordIds?: number[],
-): Promise<SpellingQuestion[]> {
-  const db = getDatabase();
-
-  const wordFilter =
-    overrideWordIds && overrideWordIds.length > 0
-      ? `AND w.id IN (${overrideWordIds.join(',')})`
-      : '';
-
-  const limit = overrideWordIds?.length ?? QUESTION_COUNT;
-
-  const result = await db.execute(
-    `SELECT
-       w.id     AS wordId,
-       w.word,
-       t.translation
-     FROM ${TABLE.WORDS}        w
-     JOIN ${TABLE.DECK_WORDS}   dw ON dw.wordId = w.id AND dw.deckId = ?
-     JOIN ${TABLE.TRANSLATIONS} t  ON t.wordId  = w.id AND t.languageCode = ?
-     ${wordFilter}
-     ORDER BY RANDOM()
-     LIMIT ?;`,
-    [deckId, uiLang, limit],
-  );
-
-  return (result.rows ?? []).map(row => ({
-    wordId: row.wordId as number,
-    word: row.word as string,
-    translation: row.translation as string,
-    hint: buildHint(row.word as string),
-  }));
-}
-
 export function useSpelling(
   deckId: number,
   overrideWordIds?: number[],
-  onWeakIds?: (weakIds: number[], correct: number) => void,
+  onComplete?: (correctCount: number) => void,
 ): UseSpellingResult {
   const [isLoading, setIsLoading] = useState(true);
   const [sessionId, setSessionId] = useState<number | null>(null);
-  const weakIdsRef = useRef<Set<number>>(new Set());
+  // Mutable queue — wrong answers get appended to end, no re-render on mutation
+  const queueRef = useRef<SpellingQuestion[]>([]);
+  const shownAtRef = useRef<number>(Date.now());
+
   const [state, setState] = useState<SpellingState>({
     questions: [],
     currentIndex: 0,
@@ -121,9 +77,8 @@ export function useSpelling(
     showHint: resolveInitialHint(),
     showSkip: false,
     isComplete: false,
+    totalWords: 0,
   });
-
-  const shownAtRef = useRef<number>(Date.now());
 
   useEffect(() => {
     let cancelled = false;
@@ -131,13 +86,15 @@ export function useSpelling(
       setIsLoading(true);
       const [sid, questions] = await Promise.all([
         sessionRepository.create('quick', deckId),
-        loadQuestions(deckId, 'ru', overrideWordIds),
+        spellingRepository.getQuestionsForDeck(deckId, 'ru', overrideWordIds),
       ]);
       if (!cancelled) {
+        queueRef.current = [...questions];
         setSessionId(sid);
         setState(prev => ({
           ...prev,
           questions,
+          totalWords: questions.length,
           showHint: resolveInitialHint(),
         }));
         shownAtRef.current = Date.now();
@@ -147,7 +104,8 @@ export function useSpelling(
     return () => {
       cancelled = true;
     };
-  }, [deckId, overrideWordIds]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deckId, JSON.stringify(overrideWordIds)]);
 
   const setInput = useCallback((value: string) => {
     setState(prev => {
@@ -181,6 +139,13 @@ export function useSpelling(
       const showSkip = newMistakeCount >= MISTAKES_BEFORE_SKIP;
 
       progressRepository.recordAnswer(question.wordId, deckId, isCorrect);
+      wordModeStrengthRepository.recordAnswer(
+        question.wordId,
+        deckId,
+        'spelling',
+        isCorrect,
+      );
+
       if (sessionId) {
         sessionRepository.recordResult({
           sessionId,
@@ -191,8 +156,9 @@ export function useSpelling(
         });
       }
 
+      // If wrong — push to end of queue for retry
       if (!isCorrect) {
-        weakIdsRef.current.add(question.wordId);
+        queueRef.current.push(question);
       }
 
       if (isCorrect) {
@@ -226,6 +192,12 @@ export function useSpelling(
 
       for (let i = 0; i < SKIP_PENALTY_MISTAKES; i++) {
         progressRepository.recordAnswer(question.wordId, deckId, false);
+        wordModeStrengthRepository.recordAnswer(
+          question.wordId,
+          deckId,
+          'spelling',
+          false,
+        );
       }
       if (sessionId) {
         sessionRepository.recordResult({
@@ -236,9 +208,6 @@ export function useSpelling(
           responseTimeMs: Date.now() - shownAtRef.current,
         });
       }
-
-      // Skipped = weak word
-      weakIdsRef.current.add(question.wordId);
 
       return {
         ...prev,
@@ -251,18 +220,22 @@ export function useSpelling(
   }, [deckId, sessionId]);
 
   const next = useCallback(() => {
+    let shouldComplete = false;
+    let finalCorrectCount = 0;
+
     setState(prev => {
       const nextIndex = prev.currentIndex + 1;
-      const isComplete = nextIndex >= prev.questions.length;
+      const nextQuestion = queueRef.current[nextIndex];
+      const isComplete = !nextQuestion;
 
       if (isComplete && sessionId) {
         sessionRepository.finish(sessionId, {
-          totalWords: prev.questions.length,
+          totalWords: prev.totalWords,
           correctAnswers: prev.correctCount,
           sessionType: 'quick',
         });
-        // Report weak words to deep session orchestrator
-        onWeakIds?.(Array.from(weakIdsRef.current), prev.correctCount);
+        shouldComplete = true;
+        finalCorrectCount = prev.correctCount;
       }
 
       shownAtRef.current = Date.now();
@@ -273,6 +246,7 @@ export function useSpelling(
 
       return {
         ...prev,
+        questions: isComplete ? prev.questions : queueRef.current,
         currentIndex: nextIndex,
         input: '',
         isAnswered: false,
@@ -284,7 +258,12 @@ export function useSpelling(
         isComplete,
       };
     });
-  }, [sessionId, onWeakIds]);
+
+    // Call onComplete outside setState to avoid side effect in reducer
+    if (shouldComplete) {
+      onComplete?.(finalCorrectCount);
+    }
+  }, [sessionId, onComplete]);
 
   return { state, isLoading, sessionId, setInput, submit, skip, next };
 }

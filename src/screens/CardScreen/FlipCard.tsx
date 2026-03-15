@@ -21,9 +21,15 @@ interface FlipCardProps {
   word: Word;
   onSwipe: (direction: SwipeDirection) => void;
   onFlip: () => void;
+  requireFlip?: boolean; // if true — swipe blocked until card is flipped
 }
 
-export function FlipCard({ word, onSwipe, onFlip }: FlipCardProps) {
+export function FlipCard({
+  word,
+  onSwipe,
+  onFlip,
+  requireFlip,
+}: FlipCardProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
@@ -60,9 +66,12 @@ export function FlipCard({ word, onSwipe, onFlip }: FlipCardProps) {
 
   const panGesture = Gesture.Pan()
     .onUpdate(e => {
+      // Block drag if flip is required and card not yet flipped
+      if (requireFlip && !isFlipped) return;
       translateX.value = e.translationX;
     })
     .onEnd(e => {
+      if (requireFlip && !isFlipped) return;
       if (e.translationX > SWIPE_THRESHOLD) {
         handleSwipe('right');
       } else if (e.translationX < -SWIPE_THRESHOLD) {
@@ -135,7 +144,14 @@ export function FlipCard({ word, onSwipe, onFlip }: FlipCardProps) {
           <Animated.View style={[styles.card, frontStyle]}>
             <Text style={styles.label}>{t('card.word')}</Text>
             <Text style={styles.word}>{word.word}</Text>
-            <Text style={styles.hint}>{t('card.tapToReveal')}</Text>
+            <Text style={styles.hint}>
+              {requireFlip && !isFlipped
+                ? '👆 ' + t('card.tapToReveal')
+                : t('card.tapToReveal')}
+            </Text>
+            {requireFlip && !isFlipped && (
+              <Text style={styles.swipeBlockedHint}>{t('card.flipFirst')}</Text>
+            )}
           </Animated.View>
 
           {/* Back side */}
@@ -229,5 +245,12 @@ const makeStyles = (colors: ColorScheme) =>
       fontWeight: '800',
       color: '#fff',
       letterSpacing: 2,
+    },
+    swipeBlockedHint: {
+      marginTop: 8,
+      fontSize: 12,
+      color: colors.accent,
+      fontWeight: '600',
+      opacity: 0.8,
     },
   });

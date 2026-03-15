@@ -13,11 +13,11 @@ import { useQuiz } from '../../../hooks/useQuiz';
 import { useAutoAdvance } from '../../../hooks/useAutoAdvance';
 
 interface QuizExerciseProps {
-  deckId:           number;
+  deckId: number;
   overrideWordIds?: number[];
-  onBack:           () => void;
-  onSessionDone:    (sessionId: number) => void;
-  onWeakIds?:       (weakIds: number[], correct: number) => void;
+  onBack: () => void;
+  onSessionDone: (sessionId: number) => void;
+  onComplete?: (correctCount: number) => void;
 }
 
 export function QuizExercise({
@@ -25,14 +25,14 @@ export function QuizExercise({
   overrideWordIds,
   onBack,
   onSessionDone,
-  onWeakIds,
+  onComplete,
 }: QuizExerciseProps) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const { state, isLoading, sessionId, selectOption, next } = useQuiz(
     deckId,
     overrideWordIds,
-    onWeakIds,
+    onComplete,
   );
   useAutoAdvance(state.isAnswered, state.isCorrect, next);
 
@@ -59,11 +59,20 @@ export function QuizExercise({
     );
   }
 
+  // Results screen
+  if (state.isComplete && onComplete) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color={colors.accent} />
+      </View>
+    );
+  }
+
   if (state.isComplete) {
-    const total    = state.questions.length;
-    const correct  = state.correctCount;
+    const total = state.questions.length;
+    const correct = state.correctCount;
     const accuracy = Math.round((correct / total) * 100);
-    const emoji    = accuracy >= 80 ? '🎉' : accuracy >= 50 ? '👍' : '💪';
+    const emoji = accuracy >= 80 ? '🎉' : accuracy >= 50 ? '👍' : '💪';
 
     return (
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -76,7 +85,9 @@ export function QuizExercise({
               ? 'Good job!'
               : 'Keep going!'}
           </Text>
-          <Text style={styles.resultScore}>{correct} / {total}</Text>
+          <Text style={styles.resultScore}>
+            {correct} / {total}
+          </Text>
           <Text style={styles.resultAccuracy}>{accuracy}% accuracy</Text>
           <TouchableOpacity
             style={styles.doneBtn}
@@ -90,7 +101,10 @@ export function QuizExercise({
   }
 
   const question = state.questions[state.currentIndex];
-  const progress = (state.currentIndex + 1) / state.questions.length;
+  const progress =
+    state.questions.length > 0
+      ? state.correctCount / state.questions.length
+      : 0;
 
   const getOptionStyle = (option: string) => {
     if (!state.isAnswered) return styles.option;
@@ -108,25 +122,29 @@ export function QuizExercise({
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.headerBack}>
           <Text style={styles.headerBackText}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Quick Quiz</Text>
         <Text style={styles.headerCount}>
-          {state.currentIndex + 1}/{state.questions.length}
+          {state.correctCount}/{state.totalWords}
         </Text>
       </View>
 
+      {/* Progress bar */}
       <View style={styles.progressBg}>
         <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
       </View>
 
+      {/* Question */}
       <View style={styles.questionContainer}>
         <Text style={styles.questionLabel}>What does this mean?</Text>
         <Text style={styles.questionWord}>{question.word}</Text>
       </View>
 
+      {/* Options */}
       <View style={styles.options}>
         {question.options.map(option => (
           <TouchableOpacity
@@ -149,6 +167,7 @@ export function QuizExercise({
         ))}
       </View>
 
+      {/* Next button — visible after answer */}
       {state.isAnswered && state.isCorrect === false && (
         <View style={styles.nextContainer}>
           <TouchableOpacity style={styles.nextBtn} onPress={next}>

@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
 import { Deck } from '../../repositories/DeckRepository';
+import { useDeepSessionCooldown } from '../../hooks/useDeepSessionCooldown';
 
 export interface LearningMode {
   id: string;
@@ -84,6 +85,7 @@ export function ModeSelector({
 }: ModeSelectorProps) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const cooldown = useDeepSessionCooldown(deck.id);
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -107,21 +109,53 @@ export function ModeSelector({
         showsVerticalScrollIndicator={false}
       >
         <TouchableOpacity
-          style={styles.deepBtn}
-          onPress={() => onSelectMode('deep', deck)}
-          activeOpacity={0.8}
+          style={[
+            styles.deepBtn,
+            cooldown.isOnCooldown && styles.deepBtnDisabled,
+          ]}
+          onPress={() => !cooldown.isOnCooldown && onSelectMode('deep', deck)}
+          activeOpacity={cooldown.isOnCooldown ? 1 : 0.8}
         >
           <View style={styles.deepBtnLeft}>
             <Text style={styles.deepBtnIcon}>🧠</Text>
             <View>
               <Text style={styles.deepBtnTitle}>Deep Session</Text>
-              <Text style={styles.deepBtnSub}>
-                Flashcard → Quiz → Spelling · adapts to your mistakes
+              {cooldown.isOnCooldown ? (
+                <Text style={styles.deepBtnSub}>
+                  Available in {cooldown.remainingLabel}
+                </Text>
+              ) : (
+                <Text style={styles.deepBtnSub}>
+                  Flashcard → Listening → Quiz → Spelling
+                </Text>
+              )}
+            </View>
+          </View>
+          {cooldown.isOnCooldown ? (
+            <Text style={styles.deepBtnCooldown}>⏳</Text>
+          ) : (
+            <Text style={styles.deepBtnArrow}>→</Text>
+          )}
+        </TouchableOpacity>
+
+        {/* Self Assessment */}
+        <TouchableOpacity
+          style={styles.assessmentBtn}
+          onPress={() => onSelectMode('assessment', deck)}
+          activeOpacity={0.8}
+        >
+          <View style={styles.assessmentBtnLeft}>
+            <Text style={styles.assessmentBtnIcon}>🎴</Text>
+            <View>
+              <Text style={styles.assessmentBtnTitle}>Self Assessment</Text>
+              <Text style={styles.assessmentBtnSub}>
+                Rate your knowledge · swipe to mark known/unknown
               </Text>
             </View>
           </View>
-          <Text style={styles.deepBtnArrow}>→</Text>
+          <Text style={styles.assessmentBtnArrow}>→</Text>
         </TouchableOpacity>
+
         <Text style={styles.sectionTitle}>Learning modes</Text>
 
         {LEARNING_MODES.map(mode => (
@@ -325,42 +359,94 @@ const makeStyles = (colors: ColorScheme) =>
       backgroundColor: colors.border,
     },
     deepBtn: {
-  flexDirection:     'row',
-  alignItems:        'center',
-  justifyContent:    'space-between',
-  backgroundColor:   colors.accent,
-  borderRadius:      18,
-  padding:           18,
-  marginBottom:      20,
-  shadowColor:       colors.accent,
-  shadowOffset:      { width: 0, height: 4 },
-  shadowOpacity:     0.3,
-  shadowRadius:      12,
-  elevation:         4,
-},
-deepBtnLeft: {
-  flexDirection: 'row',
-  alignItems:    'center',
-  flex:          1,
-},
-deepBtnIcon: {
-  fontSize:    28,
-  marginRight: 12,
-},
-deepBtnTitle: {
-  fontSize:     16,
-  fontWeight:   '800',
-  color:        '#fff',
-  marginBottom:  2,
-},
-deepBtnSub: {
-  fontSize: 12,
-  color:    'rgba(255,255,255,0.75)',
-},
-deepBtnArrow: {
-  fontSize:   20,
-  fontWeight: '700',
-  color:      '#fff',
-  marginLeft:  8,
-},
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: colors.accent,
+      borderRadius: 18,
+      padding: 18,
+      marginBottom: 20,
+      shadowColor: colors.accent,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 12,
+      elevation: 4,
+    },
+    deepBtnLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    deepBtnIcon: {
+      fontSize: 28,
+      marginRight: 12,
+    },
+    deepBtnTitle: {
+      fontSize: 16,
+      fontWeight: '800',
+      color: '#fff',
+      marginBottom: 2,
+    },
+    deepBtnSub: {
+      fontSize: 12,
+      color: 'rgba(255,255,255,0.75)',
+    },
+    deepBtnArrow: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: '#fff',
+      marginLeft: 8,
+    },
+    assessmentBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: colors.backgroundCard,
+      borderRadius: 18,
+      padding: 18,
+      marginBottom: 20,
+      borderWidth: 2,
+      borderColor: colors.accent,
+      shadowColor: colors.cardShadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 1,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+    assessmentBtnLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    assessmentBtnIcon: {
+      fontSize: 28,
+      marginRight: 12,
+    },
+    assessmentBtnTitle: {
+      fontSize: 16,
+      fontWeight: '800',
+      color: colors.textPrimary,
+      marginBottom: 2,
+    },
+    assessmentBtnSub: {
+      fontSize: 12,
+      color: colors.textMuted,
+    },
+    assessmentBtnArrow: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: colors.accent,
+      marginLeft: 8,
+    },
+    deepBtnDisabled: {
+      backgroundColor: colors.backgroundCard,
+      borderWidth: 2,
+      borderColor: colors.border,
+      shadowOpacity: 0,
+      elevation: 0,
+    },
+    deepBtnCooldown: {
+      fontSize: 20,
+      marginLeft: 8,
+    },
   });

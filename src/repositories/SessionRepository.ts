@@ -1,10 +1,5 @@
 import { getDatabase } from '../db/database';
-import {
-  TABLE,
-  LearningSession,
-  SessionType,
-  ExerciseType,
-} from '../db/types';
+import { TABLE, LearningSession, SessionType, ExerciseType } from '../db/types';
 import { SessionEngine } from '../learning-engine/SessionEngine';
 
 export interface SessionSummary {
@@ -72,7 +67,6 @@ class SessionRepository {
     return xpEarned;
   }
 
-  // ─── Запись результата упражнения ────────────────────
   // ─── Write exercise result ────────────────────
 
   async recordResult(params: {
@@ -187,6 +181,20 @@ class SessionRepository {
     }
 
     return streak;
+  }
+
+  // Get last completed deep session for a deck
+  async getLastDeepSession(deckId: number): Promise<number | null> {
+    const db = getDatabase();
+    const result = await db.execute(
+      `SELECT finishedAt
+     FROM ${TABLE.LEARNING_SESSIONS}
+     WHERE deckId = ? AND sessionType = 'deep' AND finishedAt IS NOT NULL
+     ORDER BY finishedAt DESC
+     LIMIT 1;`,
+      [deckId],
+    );
+    return (result.rows?.[0]?.finishedAt as number) ?? null;
   }
 
   private toSession(row: Record<string, unknown>): LearningSession {

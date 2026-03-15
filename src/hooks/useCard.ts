@@ -7,6 +7,7 @@ import { activityRepository } from '../repositories/ActivityRepository';
 import { DeepSessionWord } from './useDeepSession';
 
 export type SwipeDirection = 'left' | 'right';
+export type FlashcardMode = 'assessment' | 'review';
 
 export interface UseCardResult {
   word: Word | null;
@@ -21,35 +22,36 @@ export interface UseCardResult {
 // Convert DeepSessionWord to Word shape for FlipCard compatibility
 function toWord(dsw: DeepSessionWord): Word {
   return {
-    id:           dsw.wordId,
-    word:         dsw.word,
-    translation:  dsw.translation,
-    status:       'new',
+    id: dsw.wordId,
+    word: dsw.word,
+    translation: dsw.translation,
+    status: 'new',
     partOfSpeech: null,
-    gender:       null,
-    level:        null,
-    ordbokenUrl:  null,
-    imageUrl:     null,
-    forms:        [],
+    gender: null,
+    level: null,
+    ordbokenUrl: null,
+    imageUrl: null,
+    forms: [],
   } as unknown as Word;
 }
 
 export function useCard(
-  deckId:         number,
+  deckId: number,
+  mode: FlashcardMode = 'assessment',
   overrideWords?: DeepSessionWord[],
-  onDeepDone?:    (weakIds: number[], correctCount: number) => void,
+  onDeepDone?: (weakIds: number[], correctCount: number) => void,
 ): UseCardResult {
-  const [word,      setWord]      = useState<Word | null>(null);
+  const [word, setWord] = useState<Word | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isEmpty,   setIsEmpty]   = useState(false);
+  const [isEmpty, setIsEmpty] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
   const [sessionId, setSessionId] = useState<number | null>(null);
 
-  const totalRef   = useRef(0);
+  const totalRef = useRef(0);
   const correctRef = useRef(0);
   const shownAtRef = useRef<number>(Date.now());
   const weakIdsRef = useRef<Set<number>>(new Set());
-  const queueRef   = useRef<DeepSessionWord[]>([]);
+  const queueRef = useRef<DeepSessionWord[]>([]);
   const isDeepMode = !!overrideWords;
 
   useEffect(() => {
@@ -58,8 +60,15 @@ export function useCard(
     (async () => {
       setIsLoading(true);
 
-      const sessionType = isDeepMode ? 'deep' : 'quick';
-      const sid = await sessionRepository.create(sessionType, deckId);
+      // In review mode — no session needed
+      const sid =
+        mode === 'assessment'
+          ? await sessionRepository.create(
+              isDeepMode ? 'deep' : 'quick',
+              deckId,
+            )
+          : null;
+
       if (!cancelled) setSessionId(sid);
 
       if (isDeepMode && overrideWords) {
@@ -90,20 +99,28 @@ export function useCard(
       }
     })();
 
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deckId]);
 
-  const finishSession = useCallback(async (sid: number) => {
-    const xp = await sessionRepository.finish(sid, {
-      totalWords:     totalRef.current,
-      correctAnswers: correctRef.current,
-      sessionType:    isDeepMode ? 'deep' : 'quick',
-    });
-    await userRepository.addXP(xp);
-    await activityRepository.recordWords(totalRef.current, xp);
-    await userRepository.recordActivity();
-  }, [isDeepMode]);
+  const finishSession = useCallback(
+    async (sid: number) => {
+      // In review mode — no session to finish
+      if (mode !== 'assessment') return;
+
+      const xp = await sessionRepository.finish(sid, {
+        totalWords: totalRef.current,
+        correctAnswers: correctRef.current,
+        sessionType: isDeepMode ? 'deep' : 'quick',
+      });
+      await userRepository.addXP(xp);
+      await activityRepository.recordWords(totalRef.current, xp);
+      await userRepository.recordActivity();
+    },
+    [mode, isDeepMode],
+  );
 
   const loadNext = useCallback(
     async (currentWordId: number) => {
@@ -112,11 +129,7 @@ export function useCard(
         if (!next) {
           setIsEmpty(true);
           if (sessionId) await finishSession(sessionId);
-          // Report to deep session orchestrator
-          onDeepDone?.(
-            Array.from(weakIdsRef.current),
-            correctRef.current,
-          );
+          onDeepDone?.(Array.from(weakIdsRef.current), correctRef.current);
         } else {
           setWord(toWord(next));
           setIsFlipped(false);
@@ -139,37 +152,49 @@ export function useCard(
 
   const onSwipe = useCallback(
     async (direction: SwipeDirection) => {
-      if (!word || !sessionId) return;
+      if (!word) return;
 
-      const isCorrect      = direction === 'right';
+      const isCorrect = direction === 'right';
       const responseTimeMs = Date.now() - shownAtRef.current;
 
-      const { xpEarned } = await progressRepository.recordAnswer(
-        word.id,
-        deckId,
-        isCorrect,
-      );
+      if (mode === 'assessment') {
+        // assessment mode — record progress and session results
+        const { xpEarned } = await progressRepository.recordAnswer(
+          word.id,
+          deckId,
+          isCorrect,
+        );
 
-      await sessionRepository.recordResult({
-        sessionId,
-        wordId:       word.id,
-        exerciseType: 'flashcard',
-        isCorrect,
-        responseTimeMs,
-      });
+        if (sessionId) {
+          await sessionRepository.recordResult({
+            sessionId,
+            wordId: word.id,
+            exerciseType: 'flashcard',
+            isCorrect,
+            responseTimeMs,
+          });
+        }
 
-      totalRef.current += 1;
-      if (isCorrect) {
-        correctRef.current += 1;
-        if (xpEarned > 0) await userRepository.addXP(xpEarned);
+        totalRef.current += 1;
+        if (isCorrect) {
+          correctRef.current += 1;
+          if (xpEarned > 0) await userRepository.addXP(xpEarned);
+        } else {
+          weakIdsRef.current.add(word.id);
+        }
       } else {
-        // Track for deep session weak words
-        weakIdsRef.current.add(word.id);
+        // review mode — only track locally, no DB writes
+        totalRef.current += 1;
+        if (isCorrect) {
+          correctRef.current += 1;
+        } else {
+          weakIdsRef.current.add(word.id);
+        }
       }
 
       await loadNext(word.id);
     },
-    [word, deckId, sessionId, loadNext],
+    [word, deckId, sessionId, mode, loadNext],
   );
 
   const onFlip = useCallback(() => {

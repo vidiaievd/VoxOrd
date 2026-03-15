@@ -1,9 +1,9 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import Tts from 'react-native-tts';
-import { getDatabase } from '../db/database';
-import { TABLE } from '../db/types';
 import { progressRepository } from '../repositories/ProgressRepository';
 import { sessionRepository } from '../repositories/SessionRepository';
+import { wordModeStrengthRepository } from '../repositories/WordModeStrengthRepository';
+import { listeningRepository } from '../repositories/ListeningRepository';
 
 export interface ListeningQuestion {
   wordId: number;
@@ -24,6 +24,7 @@ export interface ListeningState {
   isComplete: boolean;
   isSpeaking: boolean;
   ttsStatus: TtsStatus;
+  totalWords: number;
 }
 
 export interface UseListeningResult {
@@ -36,62 +37,17 @@ export interface UseListeningResult {
   sessionId: number | null;
 }
 
-const QUESTION_COUNT = 7;
-const OPTIONS_COUNT = 4;
 const SPEECH_LANG = 'no-NO';
 const SPEECH_RATE = 0.5;
 
-async function loadQuestions(
+export function useListening(
   deckId: number,
-  uiLang: string = 'ru',
-): Promise<ListeningQuestion[]> {
-  const db = getDatabase();
-
-  const poolResult = await db.execute(
-    `SELECT DISTINCT
-       w.id     AS wordId,
-       w.word,
-       t.translation
-     FROM ${TABLE.WORDS}        w
-     JOIN ${TABLE.DECK_WORDS}   dw ON dw.wordId = w.id AND dw.deckId = ?
-     JOIN ${TABLE.TRANSLATIONS} t  ON t.wordId  = w.id AND t.languageCode = ?
-     ORDER BY RANDOM();`,
-    [deckId, uiLang],
-  );
-
-  const pool = (poolResult.rows ?? []).map(row => ({
-    wordId: row.wordId as number,
-    word: row.word as string,
-    translation: row.translation as string,
-  }));
-
-  if (pool.length < OPTIONS_COUNT) return [];
-
-  const questionWords = pool.slice(0, QUESTION_COUNT);
-
-  return questionWords.map(target => {
-    const distractors = pool
-      .filter(p => p.wordId !== target.wordId)
-      .sort(() => Math.random() - 0.5)
-      .slice(0, OPTIONS_COUNT - 1)
-      .map(p => p.translation);
-
-    const options = [target.translation, ...distractors].sort(
-      () => Math.random() - 0.5,
-    );
-
-    return {
-      wordId: target.wordId,
-      word: target.word,
-      correctAnswer: target.translation,
-      options,
-    };
-  });
-}
-
-export function useListening(deckId: number): UseListeningResult {
+  overrideWordIds?: number[],
+  onComplete?: (correctCount: number) => void,
+): UseListeningResult {
   const [isLoading, setIsLoading] = useState(true);
   const [sessionId, setSessionId] = useState<number | null>(null);
+  const queueRef = useRef<ListeningQuestion[]>([]);
   const [state, setState] = useState<ListeningState>({
     questions: [],
     currentIndex: 0,
@@ -102,14 +58,14 @@ export function useListening(deckId: number): UseListeningResult {
     isComplete: false,
     isSpeaking: false,
     ttsStatus: 'initializing',
+    totalWords: 0,
   });
 
-  // Init TTS engine — must wait for getInitStatus before speaking
+  // TTS init — unchanged
   useEffect(() => {
     Tts.getInitStatus().then(
       () => {
         Tts.setDefaultLanguage(SPEECH_LANG).catch(() => {
-          // no-NO may not be installed — continue with system default
           console.warn('[TTS] no-NO not available, using system default');
         });
         Tts.setDefaultRate(SPEECH_RATE);
@@ -124,7 +80,6 @@ export function useListening(deckId: number): UseListeningResult {
       },
     );
 
-    // Event listeners — react-native-tts uses removeEventListener (no .remove())
     const onStart = () => setState(prev => ({ ...prev, isSpeaking: true }));
     const onFinish = () => setState(prev => ({ ...prev, isSpeaking: false }));
     const onCancel = () => setState(prev => ({ ...prev, isSpeaking: false }));
@@ -148,20 +103,26 @@ export function useListening(deckId: number): UseListeningResult {
       setIsLoading(true);
       const [sid, questions] = await Promise.all([
         sessionRepository.create('quick', deckId),
-        loadQuestions(deckId),
+        listeningRepository.getQuestionsForDeck(deckId, 'ru', overrideWordIds),
       ]);
       if (!cancelled) {
+        queueRef.current = [...questions];
         setSessionId(sid);
-        setState(prev => ({ ...prev, questions }));
+        setState(prev => ({
+          ...prev,
+          questions,
+          totalWords: questions.length,
+        }));
         setIsLoading(false);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [deckId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deckId, JSON.stringify(overrideWordIds)]);
 
-  // Auto-play when question changes AND tts is ready
+  // Auto-play when question changes AND tts is ready — unchanged
   useEffect(() => {
     if (
       !isLoading &&
@@ -198,6 +159,12 @@ export function useListening(deckId: number): UseListeningResult {
         const isCorrect = option === question.correctAnswer;
 
         progressRepository.recordAnswer(question.wordId, deckId, isCorrect);
+        wordModeStrengthRepository.recordAnswer(
+          question.wordId,
+          deckId,
+          'listening',
+          isCorrect,
+        );
         if (sessionId) {
           sessionRepository.recordResult({
             sessionId,
@@ -206,6 +173,11 @@ export function useListening(deckId: number): UseListeningResult {
             isCorrect,
             responseTimeMs: null,
           });
+        }
+
+        // If wrong — push to end of queue for retry
+        if (!isCorrect) {
+          queueRef.current.push(question);
         }
 
         return {
@@ -221,21 +193,28 @@ export function useListening(deckId: number): UseListeningResult {
   );
 
   const next = useCallback(() => {
+    let shouldComplete = false;
+    let finalCorrectCount = 0;
+
     Tts.stop();
     setState(prev => {
       const nextIndex = prev.currentIndex + 1;
-      const isComplete = nextIndex >= prev.questions.length;
+      const nextQuestion = queueRef.current[nextIndex];
+      const isComplete = !nextQuestion;
 
       if (isComplete && sessionId) {
         sessionRepository.finish(sessionId, {
-          totalWords: prev.questions.length,
+          totalWords: prev.totalWords,
           correctAnswers: prev.correctCount,
           sessionType: 'quick',
         });
+        shouldComplete = true;
+        finalCorrectCount = prev.correctCount;
       }
 
       return {
         ...prev,
+        questions: isComplete ? prev.questions : queueRef.current,
         currentIndex: nextIndex,
         selectedOption: null,
         isAnswered: false,
@@ -243,7 +222,11 @@ export function useListening(deckId: number): UseListeningResult {
         isComplete,
       };
     });
-  }, [sessionId]);
+
+    if (shouldComplete) {
+      onComplete?.(finalCorrectCount);
+    }
+  }, [sessionId, onComplete]);
 
   return { state, isLoading, sessionId, speak, selectOption, next, installTts };
 }

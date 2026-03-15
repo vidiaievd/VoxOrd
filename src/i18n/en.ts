@@ -25,6 +25,7 @@ export const en: Translations = {
     backToDecks: 'Back to decks',
     repeat: 'repeat',
     learned: 'learned',
+    flipFirst: 'Flip card before swiping',
   },
   settings: {
     title: 'Settings',

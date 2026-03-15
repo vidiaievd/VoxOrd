@@ -92,6 +92,7 @@ export const TABLE = {
   WORD_EXAMPLES: 'word_examples',
   WORD_EXAMPLE_TRANSLATIONS: 'word_example_translations',
   WORD_RELATIONS: 'word_relations',
+  WORD_MODE_STRENGTH: 'word_mode_strength',
 } as const;
 
 export type MemoryStage = 0 | 1 | 2 | 3 | 4 | 5;

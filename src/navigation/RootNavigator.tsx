@@ -22,7 +22,7 @@ type Tab = 'Home' | 'Settings';
 type Screen =
   | { name: 'Home' }
   | { name: 'ModeSelector'; deck: Deck }
-  | { name: 'Card'; deck: Deck }
+  | { name: 'Card'; deck: Deck; mode?: 'assessment' }
   | { name: 'Matching'; deckId: number }
   | { name: 'Quiz'; deckId: number }
   | { name: 'Spelling'; deckId: number }
@@ -70,6 +70,9 @@ export function RootNavigator() {
         case 'flashcard':
           navigateTo({ name: 'Card', deck });
           break;
+        case 'assessment':
+          navigateTo({ name: 'Card', deck, mode: 'assessment' });
+          break;
         case 'matching':
           navigateTo({ name: 'Matching', deckId: deck.id });
           break;
@@ -110,6 +113,7 @@ export function RootNavigator() {
         return (
           <CardScreen
             deck={screen.deck}
+            mode={screen.mode ?? 'assessment'}
             onBack={() => navigateBackToSelector(screen.deck)}
           />
         );

@@ -11,6 +11,7 @@
     "emulator:stop": "adb kill-server && pkill -f emulator && pkill -f react-native && pkill -f metro",
     "emulator:start": "adb start-server && emulator -avd rn_pixel -no-snapshot -no-audio -gpu host -memory 4096 -cores 4",
     "emulator:restart": "npm run emulator:stop && npm run emulator:start",
+    "db:reset": "adb shell pm clear com.voxord",
     "test": "jest"
   },
   "dependencies": {

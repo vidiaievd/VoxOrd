@@ -14,19 +14,23 @@ import { useAutoAdvance } from '../../../hooks/useAutoAdvance';
 
 interface ListeningExerciseProps {
   deckId: number;
+  overrideWordIds?: number[];
   onBack: () => void;
   onSessionDone: (sessionId: number) => void;
+  onComplete?: (correctCount: number) => void;
 }
 
 export function ListeningExercise({
   deckId,
+  overrideWordIds,
   onBack,
   onSessionDone,
+  onComplete,
 }: ListeningExerciseProps) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const { state, isLoading, sessionId, speak, selectOption, next, installTts } =
-    useListening(deckId);
+    useListening(deckId, overrideWordIds, onComplete);
   useAutoAdvance(state.isAnswered, state.isCorrect, next);
 
   // TTS engine not installed
@@ -97,6 +101,13 @@ export function ListeningExercise({
   }
 
   // Results screen
+  if (state.isComplete && onComplete) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color={colors.accent} />
+      </View>
+    );
+  }
   if (state.isComplete) {
     const total = state.questions.length;
     const correct = state.correctCount;
@@ -130,7 +141,8 @@ export function ListeningExercise({
   }
 
   const question = state.questions[state.currentIndex];
-  const progress = (state.currentIndex + 1) / state.questions.length;
+  const progress =
+    state.totalWords > 0 ? state.correctCount / state.totalWords : 0;
 
   const getOptionStyle = (option: string) => {
     if (!state.isAnswered) return styles.option;
@@ -155,7 +167,7 @@ export function ListeningExercise({
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Listening</Text>
         <Text style={styles.headerCount}>
-          {state.currentIndex + 1}/{state.questions.length}
+          {state.correctCount}/{state.totalWords}
         </Text>
       </View>
 
@@ -222,7 +234,7 @@ export function ListeningExercise({
         <View style={styles.nextContainer}>
           <TouchableOpacity style={styles.primaryBtn} onPress={next}>
             <Text style={styles.primaryBtnText}>
-              {state.currentIndex + 1 >= state.questions.length
+              {state.currentIndex + 1 >= state.questions.length && !onComplete
                 ? 'See results'
                 : 'Next →'}
             </Text>

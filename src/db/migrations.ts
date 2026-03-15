@@ -256,4 +256,30 @@ export const migrations: Migration[] = [
     `);
     },
   },
+  {
+    version: 7,
+    up: async db => {
+      await db.execute(`
+      CREATE TABLE IF NOT EXISTS word_mode_strength (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        wordId       INTEGER NOT NULL REFERENCES words(id),
+        deckId       INTEGER NOT NULL REFERENCES decks(id),
+        exerciseType TEXT    NOT NULL,
+        strength     REAL    NOT NULL DEFAULT 0.0,
+        errorCount   INTEGER NOT NULL DEFAULT 0,
+        reviewCount  INTEGER NOT NULL DEFAULT 0,
+        lastReviewed INTEGER,
+        UNIQUE(wordId, deckId, exerciseType)
+      );
+    `);
+      await db.execute(`
+      CREATE INDEX IF NOT EXISTS idx_wms_word_deck
+        ON word_mode_strength(wordId, deckId);
+    `);
+      await db.execute(`
+      CREATE INDEX IF NOT EXISTS idx_wms_strength
+        ON word_mode_strength(deckId, exerciseType, strength);
+    `);
+    },
+  },
 ];

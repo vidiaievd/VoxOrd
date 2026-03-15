@@ -1,14 +1,14 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { getDatabase } from '../db/database';
-import { TABLE } from '../db/types';
 import { progressRepository } from '../repositories/ProgressRepository';
 import { sessionRepository } from '../repositories/SessionRepository';
+import { wordModeStrengthRepository } from '../repositories/WordModeStrengthRepository';
+import { quizRepository } from '../repositories/QuizRepository';
 
 export interface QuizQuestion {
   wordId: number;
   word: string;
   correctAnswer: string;
-  options: string[]; // 4 options, shuffled
+  options: string[];
 }
 
 export interface QuizState {
@@ -19,6 +19,7 @@ export interface QuizState {
   isCorrect: boolean;
   correctCount: number;
   isComplete: boolean;
+  totalWords: number;
 }
 
 export interface UseQuizResult {
@@ -29,82 +30,24 @@ export interface UseQuizResult {
   next: () => void;
 }
 
-const QUESTION_COUNT = 7;
-const OPTIONS_COUNT = 4;
-
-async function loadQuestions(
-  deckId: number,
-  uiLang: string = 'ru',
-  overrideWordIds?: number[],
-): Promise<QuizQuestion[]> {
-  const db = getDatabase();
-
-  const wordFilter =
-    overrideWordIds && overrideWordIds.length > 0
-      ? `AND w.id IN (${overrideWordIds.join(',')})`
-      : '';
-
-  // Load all available translations for this deck as option pool
-  const poolResult = await db.execute(
-    `SELECT DISTINCT
-       w.id     AS wordId,
-       w.word,
-       t.translation
-     FROM ${TABLE.WORDS}        w
-     JOIN ${TABLE.DECK_WORDS}   dw ON dw.wordId = w.id AND dw.deckId = ?
-     JOIN ${TABLE.TRANSLATIONS} t  ON t.wordId  = w.id AND t.languageCode = ?
-     ${wordFilter}
-     ORDER BY RANDOM();`,
-    [deckId, uiLang],
-  );
-
-  const pool = (poolResult.rows ?? []).map(row => ({
-    wordId: row.wordId as number,
-    word: row.word as string,
-    translation: row.translation as string,
-  }));
-
-  if (pool.length < OPTIONS_COUNT) return [];
-
-  // Pick question words (up to QUESTION_COUNT)
-  const questionWords = pool.slice(0, QUESTION_COUNT);
-
-  return questionWords.map(target => {
-    const distractors = pool
-      .filter(p => p.wordId !== target.wordId)
-      .sort(() => Math.random() - 0.5)
-      .slice(0, OPTIONS_COUNT - 1)
-      .map(p => p.translation);
-
-    const options = [target.translation, ...distractors].sort(
-      () => Math.random() - 0.5,
-    );
-
-    return {
-      wordId: target.wordId,
-      word: target.word,
-      correctAnswer: target.translation,
-      options,
-    };
-  });
-}
-
 export function useQuiz(
   deckId: number,
   overrideWordIds?: number[],
-  onWeakIds?: (weakIds: number[], correct: number) => void,
+  onComplete?: (correctCount: number) => void,
 ): UseQuizResult {
-  const weakIdsRef = useRef(new Set<number>());
   const [isLoading, setIsLoading] = useState(true);
   const [sessionId, setSessionId] = useState<number | null>(null);
+  // Mutable queue — wrong answers get appended to end, no re-render on mutation
+  const queueRef = useRef<QuizQuestion[]>([]);
   const [state, setState] = useState<QuizState>({
     questions: [],
     currentIndex: 0,
     selectedOption: null,
     isAnswered: false,
+    isCorrect: false,
     correctCount: 0,
     isComplete: false,
-    isCorrect: false,
+    totalWords: 0,
   });
 
   useEffect(() => {
@@ -113,18 +56,24 @@ export function useQuiz(
       setIsLoading(true);
       const [sid, questions] = await Promise.all([
         sessionRepository.create('quick', deckId),
-        loadQuestions(deckId, 'ru', overrideWordIds),
+        quizRepository.getQuestionsForDeck(deckId, 'ru', overrideWordIds),
       ]);
       if (!cancelled) {
+        queueRef.current = [...questions];
         setSessionId(sid);
-        setState(prev => ({ ...prev, questions }));
+        setState(prev => ({
+          ...prev,
+          questions,
+          totalWords: questions.length,
+        }));
         setIsLoading(false);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [deckId, overrideWordIds]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deckId, JSON.stringify(overrideWordIds)]);
 
   const selectOption = useCallback(
     (option: string) => {
@@ -134,8 +83,14 @@ export function useQuiz(
         const question = prev.questions[prev.currentIndex];
         const isCorrect = option === question.correctAnswer;
 
-        // Record answer async — fire and forget
         progressRepository.recordAnswer(question.wordId, deckId, isCorrect);
+        wordModeStrengthRepository.recordAnswer(
+          question.wordId,
+          deckId,
+          'quiz',
+          isCorrect,
+        );
+
         if (sessionId) {
           sessionRepository.recordResult({
             sessionId,
@@ -146,8 +101,9 @@ export function useQuiz(
           });
         }
 
+        // If wrong — push to end of queue for retry
         if (!isCorrect) {
-          weakIdsRef.current.add(question.wordId);
+          queueRef.current.push(question);
         }
 
         return {
@@ -163,30 +119,42 @@ export function useQuiz(
   );
 
   const next = useCallback(() => {
+    let shouldComplete = false;
+    let finalCorrectCount = 0;
+
     setState(prev => {
       const nextIndex = prev.currentIndex + 1;
-      const isComplete = nextIndex >= prev.questions.length;
+      const nextQuestion = queueRef.current[nextIndex];
+      const isComplete = !nextQuestion;
 
       if (isComplete && sessionId) {
         sessionRepository.finish(sessionId, {
-          totalWords: prev.questions.length,
+          totalWords: prev.totalWords,
           correctAnswers: prev.correctCount,
           sessionType: 'quick',
         });
-        // Report weak words to deep session orchestrator
-        onWeakIds?.(Array.from(weakIdsRef.current), prev.correctCount);
+
+        // Flag for calling onComplete outside setState
+        shouldComplete = true;
+        finalCorrectCount = prev.correctCount;
       }
 
       return {
         ...prev,
+        questions: isComplete ? prev.questions : queueRef.current,
         currentIndex: nextIndex,
         selectedOption: null,
         isAnswered: false,
-        isComplete,
         isCorrect: false,
+        isComplete,
       };
     });
-  }, [onWeakIds, sessionId]);
+
+    // Call onComplete outside setState to avoid side effect in reducer
+    if (shouldComplete) {
+      onComplete?.(finalCorrectCount);
+    }
+  }, [sessionId, onComplete]);
 
   return { state, isLoading, sessionId, selectOption, next };
 }

@@ -26,6 +26,7 @@ export interface Translations {
     backToDecks: string;
     repeat: string;
     learned: string;
+    flipFirst: string;
   };
 
   settings: {

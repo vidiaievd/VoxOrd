@@ -17,11 +17,11 @@ import { useSpelling } from '../../../hooks/useSpelling';
 import { useAutoAdvance } from '../../../hooks/useAutoAdvance';
 
 interface SpellingExerciseProps {
-  deckId:           number;
+  deckId: number;
   overrideWordIds?: number[];
-  onBack:           () => void;
-  onSessionDone:    (sessionId: number) => void;
-  onWeakIds?:       (weakIds: number[], correct: number) => void;
+  onBack: () => void;
+  onSessionDone: (sessionId: number) => void;
+  onComplete?: (correctCount: number) => void;
 }
 
 export function SpellingExercise({
@@ -29,12 +29,12 @@ export function SpellingExercise({
   overrideWordIds,
   onBack,
   onSessionDone,
-  onWeakIds,
+  onComplete,
 }: SpellingExerciseProps) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const { state, isLoading, sessionId, setInput, submit, skip, next } =
-    useSpelling(deckId, overrideWordIds, onWeakIds);
+    useSpelling(deckId, overrideWordIds, onComplete);
   const inputRef = useRef<TextInput>(null);
   useAutoAdvance(state.isAnswered, state.isCorrect, next);
 
@@ -67,6 +67,15 @@ export function SpellingExercise({
   }
 
   // Results screen
+  if (state.isComplete && onComplete) {
+    console.log('[[completed block]]');
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color={colors.accent} />
+      </View>
+    );
+  }
+
   if (state.isComplete) {
     const total = state.questions.length;
     const correct = state.correctCount;
@@ -107,7 +116,10 @@ export function SpellingExercise({
   }
 
   const question = state.questions[state.currentIndex];
-  const progress = (state.currentIndex + 1) / state.questions.length;
+  const progress =
+    state.questions.length > 0
+      ? state.correctCount / state.questions.length
+      : 0;
   const inputColor = state.isSkipped
     ? colors.textMuted
     : !state.isAnswered && state.isCorrect === null
@@ -129,7 +141,7 @@ export function SpellingExercise({
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Spelling</Text>
           <Text style={styles.headerCount}>
-            {state.currentIndex + 1}/{state.questions.length}
+            {state.correctCount}/{state.totalWords}
           </Text>
         </View>
 

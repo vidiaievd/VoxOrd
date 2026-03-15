@@ -25,6 +25,7 @@ export const uk: Translations = {
     backToDecks: 'До наборів',
     repeat: 'повтор',
     learned: 'вивчено',
+    flipFirst: 'Переверніть картку перед свайпом',
   },
   settings: {
     title: 'Налаштування',
