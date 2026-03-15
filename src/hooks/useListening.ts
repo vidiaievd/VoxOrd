@@ -89,9 +89,6 @@ export function useListening(
     Tts.addEventListener('tts-cancel', onCancel);
 
     return () => {
-      Tts.removeEventListener('tts-start', onStart);
-      Tts.removeEventListener('tts-finish', onFinish);
-      Tts.removeEventListener('tts-cancel', onCancel);
       Tts.stop();
     };
   }, []);
