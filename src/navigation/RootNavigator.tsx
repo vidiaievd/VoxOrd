@@ -1,66 +1,227 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from '../i18n';
 import { HomeScreen } from '../screens/HomeScreen';
 import { CardScreen } from '../screens/CardScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
+import { ModeSelector } from '../screens/LearningScreen/ModeSelector';
+import { MatchingExercise } from '../screens/LearningScreen/exercises/MatchingExercise';
+import { QuizExercise } from '../screens/LearningScreen/exercises/QuizExercise';
+import { SpellingExercise } from '../screens/LearningScreen/exercises/SpellingExercise';
+import { ListeningExercise } from '../screens/LearningScreen/exercises/ListeningExercise';
 import { Deck } from '../repositories/DeckRepository';
 import { useTheme } from '../providers/ThemeProvider';
 import { ColorScheme } from '../theme/colors';
+import { SessionResultsScreen } from '../screens/LearningScreen/SessionResultsScreen';
+import { ContextExercise } from '../screens/LearningScreen/exercises/ContextExercise';
+import { DeepSessionScreen } from '../screens/LearningScreen/DeepSessionScreen';
 
 type Tab = 'Home' | 'Settings';
+
 type Screen =
   | { name: 'Home' }
-  | { name: 'Card'; deck: Deck }
+  | { name: 'ModeSelector'; deck: Deck }
+  | { name: 'Card'; deck: Deck; mode?: 'assessment' }
+  | { name: 'Matching'; deckId: number }
+  | { name: 'Quiz'; deckId: number }
+  | { name: 'Spelling'; deckId: number }
+  | { name: 'Listening'; deckId: number }
+  | { name: 'Context'; deckId: number }
+  | { name: 'DeepSession'; deck: Deck }
+  | { name: 'SessionResults'; sessionId: number; deckId: number }
   | { name: 'Settings' };
 
 export function RootNavigator() {
   const { t } = useTranslation();
-
   const { colors } = useTheme();
   const styles = makeStyles(colors);
 
   const [screen, setScreen] = useState<Screen>({ name: 'Home' });
   const [activeTab, setActiveTab] = useState<Tab>('Home');
 
-  const navigateTo = (s: Screen) => setScreen(s);
+  const navigateTo = useCallback((s: Screen) => setScreen(s), []);
 
-  const handleTabPress = (tab: Tab) => {
+  const navigateToResults = useCallback(
+    (sessionId: number, deckId: number) => {
+      navigateTo({ name: 'SessionResults', sessionId, deckId });
+    },
+    [navigateTo],
+  );
+
+  const navigateBack = useCallback(() => {
+    setScreen({ name: 'Home' });
+    setActiveTab('Home');
+  }, []);
+
+  // Navigate back to ModeSelector if we came from there
+  const navigateBackToSelector = useCallback((deck: Deck) => {
+    setScreen({ name: 'ModeSelector', deck });
+  }, []);
+
+  const handleTabPress = useCallback((tab: Tab) => {
     setActiveTab(tab);
-    if (tab === 'Settings') {
-      setScreen({ name: 'Settings' });
-    } else {
-      setScreen({ name: 'Home' });
-    }
-  };
+    setScreen(tab === 'Settings' ? { name: 'Settings' } : { name: 'Home' });
+  }, []);
+
+  const handleModeSelect = useCallback(
+    (modeId: string, deck: Deck) => {
+      switch (modeId) {
+        case 'flashcard':
+          navigateTo({ name: 'Card', deck });
+          break;
+        case 'assessment':
+          navigateTo({ name: 'Card', deck, mode: 'assessment' });
+          break;
+        case 'matching':
+          navigateTo({ name: 'Matching', deckId: deck.id });
+          break;
+        case 'quiz':
+          navigateTo({ name: 'Quiz', deckId: deck.id });
+          break;
+        case 'spelling':
+          navigateTo({ name: 'Spelling', deckId: deck.id });
+          break;
+        case 'listening':
+          navigateTo({ name: 'Listening', deckId: deck.id });
+          break;
+        case 'context':
+          navigateTo({ name: 'Context', deckId: deck.id });
+          break;
+        case 'deep':
+          navigateTo({ name: 'DeepSession', deck });
+          break;
+        default:
+          console.warn('[Nav] unknown mode:', modeId);
+      }
+    },
+    [navigateTo],
+  );
 
   const renderScreen = () => {
     switch (screen.name) {
+      case 'ModeSelector':
+        return (
+          <ModeSelector
+            deck={screen.deck}
+            onSelectMode={handleModeSelect}
+            onBack={navigateBack}
+          />
+        );
+
       case 'Card':
         return (
           <CardScreen
             deck={screen.deck}
-            onBack={() => {
-              setScreen({ name: 'Home' });
-              setActiveTab('Home');
+            mode={screen.mode ?? 'assessment'}
+            onBack={() => navigateBackToSelector(screen.deck)}
+          />
+        );
+
+      case 'Matching':
+        return (
+          <MatchingExercise
+            deckId={screen.deckId}
+            onBack={() =>
+              setScreen(prev =>
+                prev.name === 'Matching' ? { name: 'Home' } : prev,
+              )
+            }
+            onSessionDone={sid => navigateToResults(sid, screen.deckId)}
+          />
+        );
+
+      case 'Quiz':
+        return (
+          <QuizExercise
+            deckId={screen.deckId}
+            onBack={navigateBack}
+            onSessionDone={sid => navigateToResults(sid, screen.deckId)}
+          />
+        );
+
+      case 'Spelling':
+        return (
+          <SpellingExercise
+            deckId={screen.deckId}
+            onBack={navigateBack}
+            onSessionDone={sid => navigateToResults(sid, screen.deckId)}
+          />
+        );
+
+      case 'Listening':
+        return (
+          <ListeningExercise
+            deckId={screen.deckId}
+            onBack={navigateBack}
+            onSessionDone={sid => navigateToResults(sid, screen.deckId)}
+          />
+        );
+
+      case 'Context':
+        return (
+          <ContextExercise
+            deckId={screen.deckId}
+            onBack={navigateBack}
+            onSessionDone={sid => navigateToResults(sid, screen.deckId)}
+          />
+        );
+
+      case 'DeepSession':
+        return (
+          <DeepSessionScreen
+            deck={screen.deck}
+            onBack={navigateBack}
+            onSessionDone={sid => navigateToResults(sid, screen.deck.id)}
+          />
+        );
+
+      case 'SessionResults':
+        return (
+          <SessionResultsScreen
+            sessionId={screen.sessionId}
+            onContinue={navigateBack}
+            onRepeat={() => {
+              // Go back to ModeSelector for the same deck
+              // We need a minimal deck — ModeSelector will show full info
+              navigateTo({
+                name: 'ModeSelector',
+                deck: { id: screen.deckId } as Deck,
+              });
             }}
           />
         );
+
       case 'Settings':
         return <SettingsScreen />;
+
       case 'Home':
       default:
         return (
           <HomeScreen
-            onDeckPress={deck => navigateTo({ name: 'Card', deck })}
+            onDeckPress={deck => navigateTo({ name: 'ModeSelector', deck })}
+            onModePress={(modeId, deckId) => {
+              // From DailyTraining grid — need a minimal Deck object
+              // Full deck will be loaded in ModeSelector
+              navigateTo({
+                name: 'ModeSelector',
+                deck: { id: deckId } as Deck,
+              });
+            }}
           />
         );
     }
   };
 
-  // Hide tab bar on Card screen for more focus
-  const showTabBar = screen.name !== 'Card';
+  const showTabBar =
+    screen.name !== 'Card' &&
+    screen.name !== 'ModeSelector' &&
+    screen.name !== 'Matching' &&
+    screen.name !== 'Quiz' &&
+    screen.name !== 'Spelling' &&
+    screen.name !== 'SessionResults' &&
+    screen.name !== 'DeepSession' &&
+    screen.name !== 'Listening';
 
   return (
     <View style={styles.root}>
@@ -98,7 +259,7 @@ function TabItem({
   label: string;
   isActive: boolean;
   onPress: () => void;
-  colors: ColorScheme ;
+  colors: ColorScheme;
 }) {
   const styles = makeStyles(colors);
   return (

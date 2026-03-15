@@ -8,7 +8,7 @@ export interface Migration {
 export const migrations: Migration[] = [
   {
     version: 1,
-    up: async (db) => {
+    up: async db => {
       // Deck groups (categories)
       await db.execute(`
         CREATE TABLE IF NOT EXISTS deck_groups (
@@ -105,7 +105,7 @@ export const migrations: Migration[] = [
   },
   {
     version: 2,
-    up: async (db) => {
+    up: async db => {
       // User profile
       await db.execute(`
         CREATE TABLE IF NOT EXISTS user_profile (
@@ -148,6 +148,138 @@ export const migrations: Migration[] = [
           updatedAt INTEGER NOT NULL
         );
       `);
+    },
+  },
+  {
+    version: 3,
+    up: async db => {
+      await db.execute(`
+      ALTER TABLE word_progress
+      ADD COLUMN memoryStage       INTEGER NOT NULL DEFAULT 0;
+    `);
+      await db.execute(`
+      ALTER TABLE word_progress
+      ADD COLUMN nextReview        INTEGER;
+    `);
+      await db.execute(`
+      ALTER TABLE word_progress
+      ADD COLUMN lastReviewed      INTEGER;
+    `);
+      await db.execute(`
+      ALTER TABLE word_progress
+      ADD COLUMN reviewCount       INTEGER NOT NULL DEFAULT 0;
+    `);
+      await db.execute(`
+      ALTER TABLE word_progress
+      ADD COLUMN successCount      INTEGER NOT NULL DEFAULT 0;
+    `);
+      await db.execute(`
+      ALTER TABLE word_progress
+      ADD COLUMN shortTermStrength REAL NOT NULL DEFAULT 0.0;
+    `);
+      await db.execute(`
+      ALTER TABLE word_progress
+      ADD COLUMN longTermStrength  REAL NOT NULL DEFAULT 0.0;
+    `);
+    },
+  },
+  {
+    version: 4,
+    up: async db => {
+      await db.execute(`
+      CREATE TABLE IF NOT EXISTS learning_sessions (
+        id             INTEGER PRIMARY KEY AUTOINCREMENT,
+        deckId         INTEGER REFERENCES decks(id) ON DELETE SET NULL,
+        sessionType    TEXT    NOT NULL,
+        startedAt      INTEGER NOT NULL,
+        finishedAt     INTEGER,
+        totalWords     INTEGER NOT NULL DEFAULT 0,
+        correctAnswers INTEGER NOT NULL DEFAULT 0,
+        xpEarned       INTEGER NOT NULL DEFAULT 0
+      );
+    `);
+
+      await db.execute(`
+      CREATE TABLE IF NOT EXISTS session_results (
+        id             INTEGER PRIMARY KEY AUTOINCREMENT,
+        sessionId      INTEGER NOT NULL REFERENCES learning_sessions(id) ON DELETE CASCADE,
+        wordId         INTEGER NOT NULL REFERENCES words(id) ON DELETE CASCADE,
+        exerciseType   TEXT    NOT NULL,
+        isCorrect      INTEGER NOT NULL DEFAULT 0,
+        responseTimeMs INTEGER,
+        answeredAt     INTEGER NOT NULL
+      );
+    `);
+    },
+  },
+  {
+    version: 5,
+    up: async db => {
+      await db.execute(`
+      CREATE TABLE IF NOT EXISTS word_examples (
+        id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+        wordId              INTEGER NOT NULL REFERENCES words(id) ON DELETE CASCADE,
+        sentence            TEXT    NOT NULL,
+        sentenceLanguage    TEXT    NOT NULL DEFAULT 'no',
+        createdAt           INTEGER NOT NULL
+      );
+    `);
+      await db.execute(`
+      CREATE TABLE IF NOT EXISTS word_example_translations (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        exampleId       INTEGER NOT NULL REFERENCES word_examples(id) ON DELETE CASCADE,
+        languageCode    TEXT    NOT NULL,
+        translation     TEXT    NOT NULL,
+        UNIQUE (exampleId, languageCode)
+      );
+    `);
+      await db.execute(`
+      CREATE TABLE IF NOT EXISTS word_relations (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        wordId        INTEGER NOT NULL REFERENCES words(id) ON DELETE CASCADE,
+        relatedWordId INTEGER NOT NULL REFERENCES words(id) ON DELETE CASCADE,
+        relationType  TEXT    NOT NULL,
+        strength      REAL    NOT NULL DEFAULT 1.0,
+        UNIQUE (wordId, relatedWordId, relationType)
+      );
+    `);
+    },
+  },
+  {
+    version: 6,
+    up: async db => {
+      // Add context_sentence column to word_examples
+      // for sentences specifically designed for gap-fill exercises
+      await db.execute(`
+      ALTER TABLE word_examples
+      ADD COLUMN isContextSentence INTEGER NOT NULL DEFAULT 0;
+    `);
+    },
+  },
+  {
+    version: 7,
+    up: async db => {
+      await db.execute(`
+      CREATE TABLE IF NOT EXISTS word_mode_strength (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        wordId       INTEGER NOT NULL REFERENCES words(id),
+        deckId       INTEGER NOT NULL REFERENCES decks(id),
+        exerciseType TEXT    NOT NULL,
+        strength     REAL    NOT NULL DEFAULT 0.0,
+        errorCount   INTEGER NOT NULL DEFAULT 0,
+        reviewCount  INTEGER NOT NULL DEFAULT 0,
+        lastReviewed INTEGER,
+        UNIQUE(wordId, deckId, exerciseType)
+      );
+    `);
+      await db.execute(`
+      CREATE INDEX IF NOT EXISTS idx_wms_word_deck
+        ON word_mode_strength(wordId, deckId);
+    `);
+      await db.execute(`
+      CREATE INDEX IF NOT EXISTS idx_wms_strength
+        ON word_mode_strength(deckId, exerciseType, strength);
+    `);
     },
   },
 ];

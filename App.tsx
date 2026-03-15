@@ -7,6 +7,7 @@ import { settingsStore } from './src/store/settingsStore';
 import { debugPrintAllWords } from './src/db/words';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { AppProviders } from './src/providers/AppProviders';
+import { wordExampleRepository } from './src/repositories/WordExampleRepository';
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -18,6 +19,20 @@ export default function App() {
         const db = getDatabase();
         await runMigrations(db);
         await seedIfEmpty(db);
+
+        //TODO: testing block, remove later
+        const examples = await wordExampleRepository.getForWord(1, 'ru');
+        console.log('[Test] ru:', examples[0]?.translation);
+
+        const examplesUk = await wordExampleRepository.getForWord(1, 'uk');
+        console.log('[Test] uk:', examplesUk[0]?.translation);
+
+        const examplesEn = await wordExampleRepository.getForWord(1, 'en');
+        console.log('[Test] en:', examplesEn[0]?.translation);
+
+        const translations = await wordExampleRepository.getTranslations(1);
+        console.log('[Test] all translations:', translations.length);
+        //TODO: end of testing block, remove later
         await settingsStore.load();
         await debugPrintAllWords();
         setReady(true);

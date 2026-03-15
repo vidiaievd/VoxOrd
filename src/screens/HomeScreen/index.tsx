@@ -7,45 +7,104 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useTheme }             from '../../providers/ThemeProvider';
-import { ColorScheme }          from '../../theme/colors';
-import { HomeHeader }           from './components/HomeHeader';
+import { useTheme } from '../../providers/ThemeProvider';
+import { ColorScheme } from '../../theme/colors';
+import { HomeHeader } from './components/HomeHeader';
 import { ContinueLearningCard } from './components/ContinueLearningCard';
 import { DailyTrainingSection } from './components/DailyTrainingSection';
-import { ProgressSection }      from './components/ProgressSection';
-import { TopicsSection }        from './components/TopicsSection';
-import { AIPracticeCard }       from './components/AIPracticeCard';
-import { useHomeData }          from '../../hooks/useHomeData';
-import { TrainingMode, Topic }  from './types';
+import { ProgressSection } from './components/ProgressSection';
+import { TopicsSection } from './components/TopicsSection';
+import { AIPracticeCard } from './components/AIPracticeCard';
+import { useHomeData } from '../../hooks/useHomeData';
+import { TrainingMode, Topic } from './types';
+import { Deck } from '../../repositories/DeckRepository';
 
 const TRAINING_MODES: TrainingMode[] = [
   { id: 'flashcard', icon: '🃏', labelKey: 'Flashcards', color: '#6c63ff' },
-  { id: 'listening', icon: '🎧', labelKey: 'Listening',  color: '#ff9f43' },
-  { id: 'spelling',  icon: '✍️', labelKey: 'Spelling',   color: '#34c759' },
-  { id: 'quiz',      icon: '⚡', labelKey: 'Quick Quiz', color: '#ff3b30' },
+  { id: 'listening', icon: '🎧', labelKey: 'Listening', color: '#ff9f43' },
+  { id: 'spelling', icon: '✍️', labelKey: 'Spelling', color: '#34c759' },
+  { id: 'quiz', icon: '⚡', labelKey: 'Quick Quiz', color: '#ff3b30' },
 ];
 
-export function HomeScreen() {
-  const { colors }              = useTheme();
-  const styles                  = makeStyles(colors);
+interface HomeScreenProps {
+  onDeckPress: (deck: Deck) => void;
+  onModePress: (mode: string, deckId: number) => void;
+}
+
+export function HomeScreen({ onDeckPress, onModePress }: HomeScreenProps) {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
   const { data, isLoading, refresh } = useHomeData();
-
-  const handleTrainingMode = useCallback((mode: TrainingMode) => {
-    console.log('[Home] Training mode:', mode.id);
-    // TODO: Learning system navigation
-  }, []);
-
-  const handleTopic = useCallback((topic: Topic) => {
-    console.log('[Home] Topic pressed:', topic.id);
-    // TODO: Navigation for deck by topic.id
-  }, []);
 
   const handleContinue = useCallback(() => {
     if (!data?.continueLearning) return;
-    // find deck by id and pass it up
-    // TODO: pass full Deck object when connecting real navigation
-    console.log('[Home] Continue deck:', data.continueLearning.deckId);
-  }, [data]);
+    const deck: Deck = {
+      id: data.continueLearning.deckId,
+      title: data.continueLearning.deckTitle,
+      icon: data.continueLearning.deckIcon,
+      groupId: null,
+      languageCode: 'no',
+      level: null,
+      sortOrder: 0,
+      totalWords: data.continueLearning.totalWords,
+      learnedWords: Math.round(
+        data.continueLearning.progress * data.continueLearning.totalWords,
+      ),
+      newWords: data.continueLearning.wordsLeft,
+      repeatWords: 0,
+      status: 'in_progress',
+      isFavorite: false,
+    };
+    onDeckPress(deck);
+  }, [data, onDeckPress]);
+
+  const handleTrainingMode = useCallback(
+    (mode: TrainingMode) => {
+      // Open ModeSelector — it will handle mode routing
+      if (!data?.continueLearning) return;
+      const deck: Deck = {
+        id: data.continueLearning.deckId,
+        title: data.continueLearning.deckTitle,
+        icon: data.continueLearning.deckIcon,
+        groupId: null,
+        languageCode: 'no',
+        level: null,
+        sortOrder: 0,
+        totalWords: data.continueLearning.totalWords,
+        learnedWords: Math.round(
+          data.continueLearning.progress * data.continueLearning.totalWords,
+        ),
+        newWords: data.continueLearning.wordsLeft,
+        repeatWords: 0,
+        status: 'in_progress',
+        isFavorite: false,
+      };
+      onModePress(mode.id, deck.id);
+    },
+    [data, onModePress],
+  );
+
+  const handleTopic = useCallback(
+    (topic: Topic) => {
+      const deck: Deck = {
+        id: topic.id,
+        title: topic.title,
+        icon: topic.icon,
+        groupId: null,
+        languageCode: 'no',
+        level: null,
+        sortOrder: 0,
+        totalWords: topic.words,
+        learnedWords: Math.round(topic.progress * topic.words),
+        newWords: Math.round((1 - topic.progress) * topic.words),
+        repeatWords: 0,
+        status: 'in_progress',
+        isFavorite: false,
+      };
+      onDeckPress(deck);
+    },
+    [onDeckPress],
+  );
 
   if (isLoading) {
     return (
@@ -55,15 +114,16 @@ export function HomeScreen() {
     );
   }
 
-  // TopicsSection
   const topics: Topic[] = data?.continueLearning
-    ? [{
-        id:       data.continueLearning.deckId,
-        title:    data.continueLearning.deckTitle,
-        icon:     data.continueLearning.deckIcon,
-        words:    data.continueLearning.totalWords,
-        progress: data.continueLearning.progress,
-      }]
+    ? [
+        {
+          id: data.continueLearning.deckId,
+          title: data.continueLearning.deckTitle,
+          icon: data.continueLearning.deckIcon,
+          words: data.continueLearning.totalWords,
+          progress: data.continueLearning.progress,
+        },
+      ]
     : [];
 
   return (
@@ -80,10 +140,10 @@ export function HomeScreen() {
         }
       >
         <HomeHeader
-          name={data?.profile.name   ?? 'User'}
+          name={data?.profile.name ?? 'User'}
           avatar={data?.profile.avatar ?? '👤'}
-          streak={data?.stats.streak   ?? 0}
-          xp={data?.stats.xp           ?? 0}
+          streak={data?.stats.streak ?? 0}
+          xp={data?.stats.xp ?? 0}
           onAvatarPress={() => {}}
         />
 
@@ -108,17 +168,13 @@ export function HomeScreen() {
         <ProgressSection
           title="Din fremgang"
           wordsLearned={data?.globalStats.learnedWords ?? 0}
-          dailyDone={data?.dailyProgress.done          ?? 0}
-          dailyGoal={data?.dailyProgress.goal          ?? 20}
-          weekActivity={data?.weekActivity             ?? Array(7).fill(0)}
+          dailyDone={data?.dailyProgress.done ?? 0}
+          dailyGoal={data?.dailyProgress.goal ?? 20}
+          weekActivity={data?.weekActivity ?? Array(7).fill(0)}
         />
 
         {topics.length > 0 && (
-          <TopicsSection
-            title="Emner"
-            topics={topics}
-            onPress={handleTopic}
-          />
+          <TopicsSection title="Emner" topics={topics} onPress={handleTopic} />
         )}
 
         <AIPracticeCard
@@ -134,21 +190,22 @@ export function HomeScreen() {
   );
 }
 
-const makeStyles = (colors: ColorScheme) => StyleSheet.create({
-  container: {
-    flex:            1,
-    backgroundColor: colors.background,
-  },
-  loader: {
-    flex:            1,
-    justifyContent:  'center',
-    alignItems:      'center',
-    backgroundColor: colors.background,
-  },
-  scroll: {
-    paddingBottom: 16,
-  },
-  bottomPadding: {
-    height: 16,
-  },
-});
+const makeStyles = (colors: ColorScheme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    loader: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.background,
+    },
+    scroll: {
+      paddingBottom: 16,
+    },
+    bottomPadding: {
+      height: 16,
+    },
+  });

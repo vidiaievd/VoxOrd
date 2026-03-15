@@ -8,24 +8,38 @@ import {
 } from 'react-native';
 import { useTranslation } from '../../i18n';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useCard } from '../../hooks/useCard';
+import { FlashcardMode, useCard } from '../../hooks/useCard';
 import { FlipCard } from './FlipCard';
 import { Deck } from '../../repositories/DeckRepository';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
+import { DeepSessionWord } from '../../hooks/useDeepSession';
 
 interface CardScreenProps {
   deck: Deck;
+  mode?: FlashcardMode;
+  overrideWords?: DeepSessionWord[];
   onBack: () => void;
+  onDeepDone?: (weakIds: number[], correctCount: number) => void;
 }
 
-export function CardScreen({ deck, onBack }: CardScreenProps) {
+export function CardScreen({
+  deck,
+  mode = 'assessment',
+  overrideWords,
+  onBack,
+  onDeepDone,
+}: CardScreenProps) {
   const { t } = useTranslation();
-
   const { colors } = useTheme();
   const styles = makeStyles(colors);
 
-  const { word, isLoading, isEmpty, onSwipe, onFlip } = useCard(deck.id);
+  const { word, isLoading, isEmpty, onSwipe, onFlip } = useCard(
+    deck.id,
+    mode,
+    overrideWords,
+    onDeepDone,
+  );
 
   if (isLoading) {
     return (
@@ -84,6 +98,7 @@ export function CardScreen({ deck, onBack }: CardScreenProps) {
             word={word}
             onSwipe={onSwipe}
             onFlip={onFlip}
+            requireFlip={mode === 'review'}
           />
         )}
       </View>

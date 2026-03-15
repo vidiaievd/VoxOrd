@@ -26,6 +26,7 @@ export interface Translations {
     backToDecks: string;
     repeat: string;
     learned: string;
+    flipFirst: string;
   };
 
   settings: {
@@ -50,6 +51,12 @@ export interface Translations {
     activeCount: string;
     version: string;
     feedback: string;
+    sectionLearning: string;
+    cardModesActive: string; 
+    spellingHint: string;
+    spellingHintAlways: string;
+    spellingHintAfterMistake: string;
+    spellingHintNever: string;
   };
 
   stats: {

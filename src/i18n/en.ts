@@ -25,6 +25,7 @@ export const en: Translations = {
     backToDecks: 'Back to decks',
     repeat: 'repeat',
     learned: 'learned',
+    flipFirst: 'Flip card before swiping',
   },
   settings: {
     title: 'Settings',
@@ -48,6 +49,12 @@ export const en: Translations = {
     activeCount: '{n} active',
     version: 'Version',
     feedback: 'Feedback',
+    sectionLearning: 'Learning',
+    cardModesActive: '{count} active',
+    spellingHint: 'Spelling hint',
+    spellingHintAlways: 'Always show',
+    spellingHintAfterMistake: 'After mistake',
+    spellingHintNever: 'Never',
   },
   stats: {
     decks: 'Decks',

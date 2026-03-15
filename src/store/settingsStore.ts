@@ -3,6 +3,7 @@ import { LanguageCode } from '../db/types';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 export type CardMode = 'flip' | 'pronunciation' | 'writing' | 'test';
+export type SpellingHintMode = 'always' | 'after_mistake' | 'never';
 
 export interface AppSettings {
   uiLanguage: LanguageCode;
@@ -12,6 +13,7 @@ export interface AppSettings {
   cardsPerSession: number;
   showWordForms: boolean;
   showOrdbokenLink: boolean;
+  spellingHintMode: SpellingHintMode;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -22,6 +24,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   cardsPerSession: 20,
   showWordForms: true,
   showOrdbokenLink: true,
+  spellingHintMode: 'after_mistake',
 };
 
 const storage = createAsyncStorage('voxord_settings');
