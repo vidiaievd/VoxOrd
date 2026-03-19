@@ -36,13 +36,22 @@ export interface UsePronunciationResult {
   stopRecord: () => void;
   next: () => void;
   retry: () => void;
-  onComplete?: (correctCount: number) => void;
   skip: () => void;
 }
 
 const SPEECH_LANG = 'no-NO';
 const SPEECH_RATE = 0.45;
-const PASS_THRESHOLD = 60; // overall score >= 60 counts as correct
+const PASS_THRESHOLD = 60;
+
+const IGNORED_ASR_ERRORS = [
+  'no-match',
+  'speech-timeout',
+  'unknown',
+  'client',
+  'error_no_match',
+  'error_speech_timeout',
+  'error_client',
+];
 
 export function usePronunciation(
   deckId: number,
@@ -68,6 +77,7 @@ export function usePronunciation(
   const asrRef = useRef(createASRService('free'));
   const scorerRef = useRef(createPronunciationScorer('free'));
   const itemsRef = useRef<PronunciationItem[]>([]);
+  const indexRef = useRef(0); // sync ref — avoids stale closure in startRecord/skip
 
   // TTS init
   useEffect(() => {
@@ -79,7 +89,6 @@ export function usePronunciation(
       },
       () => setState(prev => ({ ...prev, ttsReady: false })),
     );
-
     return () => {
       Tts.stop();
     };
@@ -97,12 +106,15 @@ export function usePronunciation(
       );
       if (!cancelled) {
         itemsRef.current = items;
-        setState(prev => ({
-          ...prev,
-          items,
-          totalItems: items.length,
-        }));
+        indexRef.current = 0;
+        setState(prev => ({ ...prev, items, totalItems: items.length }));
         setIsLoading(false);
+        console.log(
+          '[Pronunciation] loaded:',
+          items.length,
+          'items | mode:',
+          mode,
+        );
       }
     })();
     return () => {
@@ -115,23 +127,63 @@ export function usePronunciation(
     const asr = asrRef.current;
 
     asr.onStart = () => {
+      console.log('[Pronunciation] asr.onStart → listening');
       setState(prev => ({ ...prev, recordingState: 'listening', error: null }));
     };
 
     asr.onPartial = transcript => {
+      console.log('[Pronunciation] asr.onPartial:', transcript);
       setState(prev => ({ ...prev, transcript }));
     };
 
     asr.onResult = result => {
-      setState(prev => {
-        const item = prev.items[prev.currentIndex];
-        if (!item) return prev;
+      console.log(
+        '[Pronunciation] asr.onResult',
+        '| transcript:',
+        result.transcript,
+        '| confidence:',
+        result.confidence,
+      );
 
-        const score = scorerRef.current.score(result.transcript, item.text);
+      setState(prev => {
+        const currentItem = prev.items[prev.currentIndex];
+        if (!currentItem) {
+          console.warn(
+            '[Pronunciation] onResult — no item at index',
+            prev.currentIndex,
+          );
+          return prev;
+        }
+
+        // Strip punctuation from reference — ASR never returns punctuation
+        const reference = normalizeForSpeech(currentItem.text)
+          .replace(/[.,!?]/g, '')
+          .trim();
+
+        console.log(
+          '[Pronunciation] scoring',
+          '| transcript:',
+          result.transcript,
+          '| reference:',
+          reference,
+        );
+
+        const score = scorerRef.current.score(result.transcript, reference);
         const isCorrect = score.overall >= PASS_THRESHOLD;
 
+        console.log(
+          '[Pronunciation] score:',
+          score.overall,
+          '| accuracy:',
+          score.accuracy,
+          '| fluency:',
+          score.fluency,
+          '| isCorrect:',
+          isCorrect,
+        );
+
         pronunciationRepository.recordResult({
-          wordId: item.type === 'word' ? item.referenceId : null,
+          wordId: currentItem.type === 'word' ? currentItem.referenceId : null,
           deckId,
           score: score.overall,
           isCorrect,
@@ -148,11 +200,19 @@ export function usePronunciation(
     };
 
     asr.onError = error => {
-      // Ignore no-match — user just didn't say anything
-      if (error.message === 'no-match' || error.message === 'speech-timeout') {
+      console.log(
+        '[Pronunciation] asr.onError | message:',
+        error.message,
+        '| code:',
+        error.code,
+      );
+
+      if (IGNORED_ASR_ERRORS.includes(error.message.toLowerCase())) {
+        console.log('[Pronunciation] error ignored → reset to idle');
         setState(prev => ({ ...prev, recordingState: 'idle', error: null }));
         return;
       }
+
       setState(prev => ({
         ...prev,
         recordingState: 'idle',
@@ -161,6 +221,7 @@ export function usePronunciation(
     };
 
     asr.onEnd = () => {
+      console.log('[Pronunciation] asr.onEnd');
       setState(prev =>
         prev.recordingState === 'listening'
           ? { ...prev, recordingState: 'processing' }
@@ -174,74 +235,54 @@ export function usePronunciation(
   }, [deckId]);
 
   const speak = useCallback(() => {
-  setState(prev => {
-    const item = prev.items[prev.currentIndex];
-    if (!item || !prev.ttsReady) return prev;
-    Tts.stop();
-    setTimeout(() => Tts.speak(normalizeForSpeech(item.text)), 100);
-    return { ...prev, isSpeaking: true };
-  });
-}, []);
-
-  const skip = useCallback(() => {
-    // Record as incorrect
-    const item = itemsRef.current[state.currentIndex];
-    if (item?.type === 'word') {
-      pronunciationRepository.recordResult({
-        wordId: item.referenceId,
-        deckId,
-        score: 0,
-        isCorrect: false,
-      });
-    }
-    // Move to next without changing correctCount
     setState(prev => {
-      const nextIndex = prev.currentIndex + 1;
-      if (nextIndex >= prev.items.length) {
-        setTimeout(() => onComplete?.(prev.correctCount), 0);
-        return { ...prev, isComplete: true, recordingState: 'idle' };
-      }
-      return {
-        ...prev,
-        currentIndex: nextIndex,
-        recordingState: 'idle',
-        transcript: null,
-        score: null,
-        error: null,
-      };
+      const item = prev.items[prev.currentIndex];
+      if (!item || !prev.ttsReady) return prev;
+      const text = normalizeForSpeech(item.text);
+      console.log('[Pronunciation] speak:', text);
+      Tts.stop();
+      setTimeout(() => Tts.speak(text), 100);
+      return { ...prev, isSpeaking: true };
     });
-  }, [deckId, onComplete, state.currentIndex]);
+  }, []);
 
   const startRecord = useCallback(async () => {
     const asr = asrRef.current;
     const hasPermission = await asr.hasPermission();
     if (!hasPermission) {
+      console.warn('[Pronunciation] startRecord — no permission');
       setState(prev => ({ ...prev, error: 'not-allowed' }));
       return;
     }
 
     Tts.stop();
 
-    setState(prev => {
-      return {
-        ...prev,
-        transcript: null,
-        score: null,
-        recordingState: 'listening',
-        error: null,
-      };
-    });
+    // Use indexRef to avoid stale closure
+    const item = itemsRef.current[indexRef.current];
+    const contextualStrings = item ? [normalizeForSpeech(item.text)] : [];
 
-    // Pass current word as contextual hint for better accuracy
-    const item = itemsRef.current[state.currentIndex];
-    asr.start({
-  lang:              'nb-NO',
-  contextualStrings: item ? [normalizeForSpeech(item.text)] : [],
-  interimResults:    true,
-});
-  }, [state.currentIndex]);
+    console.log(
+      '[Pronunciation] startRecord | index:',
+      indexRef.current,
+      '| item:',
+      item?.text ?? 'n/a',
+      '| contextualStrings:',
+      contextualStrings,
+    );
+
+    setState(prev => ({
+      ...prev,
+      transcript: null,
+      score: null,
+      recordingState: 'listening',
+      error: null,
+    }));
+
+    asr.start({ lang: 'nb-NO', contextualStrings, interimResults: true });
+  }, []); // no deps — reads live values via refs
 
   const stopRecord = useCallback(() => {
+    console.log('[Pronunciation] stopRecord');
     asrRef.current.stop();
     setState(prev => ({ ...prev, recordingState: 'processing' }));
   }, []);
@@ -249,15 +290,16 @@ export function usePronunciation(
   const next = useCallback(() => {
     setState(prev => {
       const nextIndex = prev.currentIndex + 1;
+      console.log(
+        '[Pronunciation] next → index:',
+        nextIndex,
+        '| total:',
+        prev.items.length,
+      );
+
       if (nextIndex >= prev.items.length) {
-        let shouldComplete = false;
         const finalCorrect = prev.correctCount;
-
-        setTimeout(() => {
-          if (shouldComplete) onComplete?.(finalCorrect);
-        }, 0);
-        shouldComplete = true;
-
+        setTimeout(() => onComplete?.(finalCorrect), 0);
         return {
           ...prev,
           isComplete: true,
@@ -267,6 +309,7 @@ export function usePronunciation(
         };
       }
 
+      indexRef.current = nextIndex;
       return {
         ...prev,
         currentIndex: nextIndex,
@@ -279,6 +322,7 @@ export function usePronunciation(
   }, [onComplete]);
 
   const retry = useCallback(() => {
+    console.log('[Pronunciation] retry');
     setState(prev => ({
       ...prev,
       recordingState: 'idle',
@@ -288,5 +332,45 @@ export function usePronunciation(
     }));
   }, []);
 
-  return { state, isLoading, speak, startRecord, stopRecord, next, retry, skip };
+  const skip = useCallback(() => {
+    const item = itemsRef.current[indexRef.current];
+    console.log('[Pronunciation] skip | item:', item?.text ?? 'n/a');
+
+    if (item?.type === 'word') {
+      pronunciationRepository.recordResult({
+        wordId: item.referenceId,
+        deckId,
+        score: 0,
+        isCorrect: false,
+      });
+    }
+
+    setState(prev => {
+      const nextIndex = prev.currentIndex + 1;
+      if (nextIndex >= prev.items.length) {
+        setTimeout(() => onComplete?.(prev.correctCount), 0);
+        return { ...prev, isComplete: true, recordingState: 'idle' };
+      }
+      indexRef.current = nextIndex;
+      return {
+        ...prev,
+        currentIndex: nextIndex,
+        recordingState: 'idle',
+        transcript: null,
+        score: null,
+        error: null,
+      };
+    });
+  }, [deckId, onComplete]);
+
+  return {
+    state,
+    isLoading,
+    speak,
+    startRecord,
+    stopRecord,
+    next,
+    retry,
+    skip,
+  };
 }

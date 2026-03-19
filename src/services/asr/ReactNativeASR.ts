@@ -34,11 +34,29 @@ export class ReactNativeASR implements ASRService {
     this.subscriptions.forEach(s => s.remove());
     this.subscriptions = [];
 
+    console.log(
+      '[ASR] start → lang:',
+      options.lang,
+      'contextualStrings:',
+      options.contextualStrings,
+    );
+
     this.subscriptions.push(
       emitter.addListener('SpeechRecognition.start', () => {
+        console.log('[ASR] ← SpeechRecognition.start (ready for speech)');
         this.onStart?.();
       }),
+
       emitter.addListener('SpeechRecognition.result', e => {
+        console.log(
+          '[ASR] ← SpeechRecognition.result',
+          '| isFinal:',
+          e.isFinal,
+          '| transcript:',
+          e.transcript,
+          '| confidence:',
+          e.confidence,
+        );
         if (e.isFinal) {
           this.onResult?.({
             transcript: e.transcript,
@@ -48,10 +66,20 @@ export class ReactNativeASR implements ASRService {
           this.onPartial?.(e.transcript);
         }
       }),
+
       emitter.addListener('SpeechRecognition.error', e => {
+        console.log(
+          '[ASR] ← SpeechRecognition.error',
+          '| message:',
+          e.message,
+          '| code:',
+          e.code,
+        );
         this.onError?.({ code: String(e.code), message: e.message });
       }),
+
       emitter.addListener('SpeechRecognition.end', () => {
+        console.log('[ASR] ← SpeechRecognition.end');
         this.onEnd?.();
       }),
     );
@@ -60,10 +88,12 @@ export class ReactNativeASR implements ASRService {
   }
 
   stop(): void {
+    console.log('[ASR] stop called');
     SpeechRecognition.stop();
   }
 
   destroy(): void {
+    console.log('[ASR] destroy called');
     this.stop();
     this.subscriptions.forEach(s => s.remove());
     this.subscriptions = [];
