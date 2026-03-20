@@ -63,6 +63,14 @@ const LEARNING_MODES: LearningMode[] = [
     available: true,
   },
   {
+    id: 'pronunciation',
+    icon: '🎤',
+    title: 'Pronunciation',
+    description: 'Practice speaking words and phrases',
+    color: '#ff6b35',
+    available: true,
+  },
+  {
     id: 'context',
     icon: '📝',
     title: 'Context',

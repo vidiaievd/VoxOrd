@@ -16,6 +16,7 @@ import { ColorScheme } from '../theme/colors';
 import { SessionResultsScreen } from '../screens/LearningScreen/SessionResultsScreen';
 import { ContextExercise } from '../screens/LearningScreen/exercises/ContextExercise';
 import { DeepSessionScreen } from '../screens/LearningScreen/DeepSessionScreen';
+import { PronunciationExercise } from '../screens/LearningScreen/exercises/pronunciation/PronunciationExercise';
 
 type Tab = 'Home' | 'Settings';
 
@@ -27,6 +28,7 @@ type Screen =
   | { name: 'Quiz'; deckId: number }
   | { name: 'Spelling'; deckId: number }
   | { name: 'Listening'; deckId: number }
+  | { name: 'Pronunciation'; deckId: number }
   | { name: 'Context'; deckId: number }
   | { name: 'DeepSession'; deck: Deck }
   | { name: 'SessionResults'; sessionId: number; deckId: number }
@@ -84,6 +86,9 @@ export function RootNavigator() {
           break;
         case 'listening':
           navigateTo({ name: 'Listening', deckId: deck.id });
+          break;
+        case 'pronunciation':
+          navigateTo({ name: 'Pronunciation', deckId: deck.id });
           break;
         case 'context':
           navigateTo({ name: 'Context', deckId: deck.id });
@@ -158,6 +163,15 @@ export function RootNavigator() {
           />
         );
 
+      case 'Pronunciation':
+        return (
+          <PronunciationExercise
+            deckId={screen.deckId}
+            onBack={navigateBack}
+            onSessionDone={sid => navigateToResults(sid, screen.deckId)}
+          />
+        );
+
       case 'Context':
         return (
           <ContextExercise
@@ -221,6 +235,7 @@ export function RootNavigator() {
     screen.name !== 'Spelling' &&
     screen.name !== 'SessionResults' &&
     screen.name !== 'DeepSession' &&
+    screen.name !== 'Pronunciation' &&
     screen.name !== 'Listening';
 
   return (
