@@ -2,6 +2,7 @@ export interface Translations {
   nav: {
     home: string;
     settings: string;
+    courses: string;
   };
 
   home: {
@@ -57,6 +58,26 @@ export interface Translations {
     spellingHintAlways: string;
     spellingHintAfterMistake: string;
     spellingHintNever: string;
+    account: string;
+    signedInAs: string;
+    signOut: string;
+    signOutConfirmTitle: string;
+    signOutConfirmMessage: string;
+    developer: string;
+    apiBaseUrl: string;
+    apiBaseUrlSave: string;
+    apiBaseUrlSaved: string;
+  };
+
+  courses: {
+    title: string;
+    loginEmail: string;
+    loginPassword: string;
+    loginSubmit: string;
+    loginSubmitting: string;
+    loginMfaNotSupported: string;
+    noCoursesYet: string;
+    noCoursesYetDesc: string;
   };
 
   stats: {

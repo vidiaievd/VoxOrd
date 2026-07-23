@@ -4,6 +4,7 @@ export const uk: Translations = {
   nav: {
     home: 'Головна',
     settings: 'Налаштування',
+    courses: 'Курси',
   },
   home: {
     appSubtitle: 'Norsk ordbok',
@@ -55,6 +56,25 @@ export const uk: Translations = {
     spellingHintAlways: 'Завжди показувати',
     spellingHintAfterMistake: 'Після помилки',
     spellingHintNever: 'Ніколи',
+    account: 'Обліковий запис',
+    signedInAs: 'Ви увійшли як',
+    signOut: 'Вийти',
+    signOutConfirmTitle: 'Вийти з облікового запису?',
+    signOutConfirmMessage: 'Для доступу до курсів потрібно буде увійти знову.',
+    developer: 'Розробнику',
+    apiBaseUrl: 'Адреса API',
+    apiBaseUrlSave: 'Зберегти',
+    apiBaseUrlSaved: 'Збережено',
+  },
+  courses: {
+    title: 'Курси',
+    loginEmail: 'Email',
+    loginPassword: 'Пароль',
+    loginSubmit: 'Увійти',
+    loginSubmitting: 'Вхід…',
+    loginMfaNotSupported: 'На цьому обліковому записі увімкнено двофакторну автентифікацію — вона поки не підтримується в застосунку. Увійдіть через веб-версію.',
+    noCoursesYet: 'Поки немає курсів',
+    noCoursesYetDesc: 'Курси, на які ви запишетесь, з’являться тут.',
   },
   stats: {
     decks: 'Наборів',

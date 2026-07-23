@@ -224,18 +224,38 @@ Original spec for reference:
   restore flow, logout clears Keychain.
 - Android cleartext config for `10.0.2.2` (see Architecture decisions).
 
-### Step 1.4 — Login screen + Courses tab shell
-- Add a third bottom tab **Courses** in `RootNavigator.tsx` (`Tab` union +
-  tab bar). Extend the `Screen` union with `{ name: 'Courses' }` and
-  `{ name: 'CourseLogin' }`.
-- `src/screens/CoursesScreen/`: if signedOut → login form (email/password,
-  error display, loading state; MFA users are out of scope — show a clear
-  "MFA not supported yet" error if the login response demands an MFA
-  challenge). If signedIn → placeholder list (Phase 2 fills it).
-- Settings additions: signed-in account row + logout; developer section with
-  editable API base URL (persisted in settings).
-- **User test checkpoint:** login against local docker platform succeeds,
-  token survives app restart, logout works, word learning untouched.
+### Step 1.4 — Login screen + Courses tab shell — CODE DONE, needs your on-device test (2026-07-19)
+Implemented: third bottom tab **Courses** in `RootNavigator.tsx` (`Tab` union
+extended to `Home | Courses | Settings`, `SCREEN_FOR_TAB` map replaces the old
+Settings-only ternary). `src/screens/CoursesScreen/index.tsx` switches on
+`useAuth().status`: `restoring` → spinner, `signedOut` → `LoginForm`,
+`signedIn` → "no courses yet" placeholder (Phase 2 fills this). `LoginForm`
+handles the plain-text error case, `MfaNotSupportedError` (distinct message,
+per Risk 2 — 2FA accounts must log in on web), and generic `ApiError`.
+
+Settings additions: `AccountSection` (only renders when signed in — email row
++ sign-out, reusing the existing `confirm` modal type) and `DeveloperSection`
+(inline base-URL editor persisted via `apiSettingsStore`; no modal reused
+here since `ModalProvider` only supports `picker`/`confirm`, not free text —
+adding a third modal type would touch shared `ModalRenderer` for one field,
+out of scope for this step).
+
+All new i18n keys added to `en`/`ru`/`uk` (`nav.courses`, a new `courses`
+namespace, and `settings.account*` / `settings.developer*` / `settings.apiBaseUrl*`).
+
+Verified statically: `tsc --noEmit` clean (only the pre-existing
+`WordRepository.ts` error remains, untouched), full Jest suite still
+45/45 green. A native Android build could NOT be verified from this
+environment — `./gradlew assembleDebug` failed with `npx` not resolving
+inside Gradle's subprocess, which is a sandboxing artifact of the harness,
+not a code issue (the same shell resolves `npx`/`node` fine). This is exactly
+the **user test checkpoint** below — please run it for real before Phase 2.
+
+**User test checkpoint (please run):** login against the local docker
+platform succeeds, token survives app restart, logout works, word learning
+untouched. Also confirm: entering a bad password shows a readable error, and
+if you have an MFA-enabled test account, confirm it shows the
+"MFA not supported" message rather than crashing.
 
 ---
 

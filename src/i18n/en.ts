@@ -4,6 +4,7 @@ export const en: Translations = {
   nav: {
     home: 'Home',
     settings: 'Settings',
+    courses: 'Courses',
   },
   home: {
     appSubtitle: 'Norsk ordbok',
@@ -55,6 +56,25 @@ export const en: Translations = {
     spellingHintAlways: 'Always show',
     spellingHintAfterMistake: 'After mistake',
     spellingHintNever: 'Never',
+    account: 'Account',
+    signedInAs: 'Signed in as',
+    signOut: 'Sign out',
+    signOutConfirmTitle: 'Sign out?',
+    signOutConfirmMessage: 'You will need to log in again to access your courses.',
+    developer: 'Developer',
+    apiBaseUrl: 'API base URL',
+    apiBaseUrlSave: 'Save',
+    apiBaseUrlSaved: 'Saved',
+  },
+  courses: {
+    title: 'Courses',
+    loginEmail: 'Email',
+    loginPassword: 'Password',
+    loginSubmit: 'Log in',
+    loginSubmitting: 'Logging in…',
+    loginMfaNotSupported: 'This account has two-factor authentication enabled, which is not yet supported on mobile. Please log in on the web instead.',
+    noCoursesYet: 'No courses yet',
+    noCoursesYetDesc: 'Courses you enroll in will show up here.',
   },
   stats: {
     decks: 'Decks',

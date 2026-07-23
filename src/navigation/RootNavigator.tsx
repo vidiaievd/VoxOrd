@@ -17,8 +17,9 @@ import { SessionResultsScreen } from '../screens/LearningScreen/SessionResultsSc
 import { ContextExercise } from '../screens/LearningScreen/exercises/ContextExercise';
 import { DeepSessionScreen } from '../screens/LearningScreen/DeepSessionScreen';
 import { PronunciationExercise } from '../screens/LearningScreen/exercises/pronunciation/PronunciationExercise';
+import { CoursesScreen } from '../screens/CoursesScreen';
 
-type Tab = 'Home' | 'Settings';
+type Tab = 'Home' | 'Courses' | 'Settings';
 
 type Screen =
   | { name: 'Home' }
@@ -32,7 +33,14 @@ type Screen =
   | { name: 'Context'; deckId: number }
   | { name: 'DeepSession'; deck: Deck }
   | { name: 'SessionResults'; sessionId: number; deckId: number }
+  | { name: 'Courses' }
   | { name: 'Settings' };
+
+const SCREEN_FOR_TAB: Record<Tab, Screen> = {
+  Home: { name: 'Home' },
+  Courses: { name: 'Courses' },
+  Settings: { name: 'Settings' },
+};
 
 export function RootNavigator() {
   const { t } = useTranslation();
@@ -63,7 +71,7 @@ export function RootNavigator() {
 
   const handleTabPress = useCallback((tab: Tab) => {
     setActiveTab(tab);
-    setScreen(tab === 'Settings' ? { name: 'Settings' } : { name: 'Home' });
+    setScreen(SCREEN_FOR_TAB[tab]);
   }, []);
 
   const handleModeSelect = useCallback(
@@ -206,6 +214,9 @@ export function RootNavigator() {
           />
         );
 
+      case 'Courses':
+        return <CoursesScreen />;
+
       case 'Settings':
         return <SettingsScreen />;
 
@@ -248,6 +259,13 @@ export function RootNavigator() {
             label={t('nav.home')}
             isActive={activeTab === 'Home'}
             onPress={() => handleTabPress('Home')}
+            colors={colors}
+          />
+          <TabItem
+            icon="🎓"
+            label={t('nav.courses')}
+            isActive={activeTab === 'Courses'}
+            onPress={() => handleTabPress('Courses')}
             colors={colors}
           />
           <TabItem

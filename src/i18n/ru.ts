@@ -4,6 +4,7 @@ export const ru: Translations = {
   nav: {
     home: 'Главная',
     settings: 'Настройки',
+    courses: 'Курсы',
   },
   home: {
     appSubtitle: 'Norsk ordbok',
@@ -55,6 +56,25 @@ export const ru: Translations = {
     spellingHintAlways: 'Всегда показывать',
     spellingHintAfterMistake: 'После ошибки',
     spellingHintNever: 'Никогда',
+    account: 'Аккаунт',
+    signedInAs: 'Вы вошли как',
+    signOut: 'Выйти',
+    signOutConfirmTitle: 'Выйти из аккаунта?',
+    signOutConfirmMessage: 'Для доступа к курсам понадобится войти заново.',
+    developer: 'Разработчику',
+    apiBaseUrl: 'Адрес API',
+    apiBaseUrlSave: 'Сохранить',
+    apiBaseUrlSaved: 'Сохранено',
+  },
+  courses: {
+    title: 'Курсы',
+    loginEmail: 'Email',
+    loginPassword: 'Пароль',
+    loginSubmit: 'Войти',
+    loginSubmitting: 'Вход…',
+    loginMfaNotSupported: 'На этом аккаунте включена двухфакторная аутентификация — она пока не поддерживается в приложении. Войдите через веб-версию.',
+    noCoursesYet: 'Пока нет курсов',
+    noCoursesYetDesc: 'Курсы, на которые вы запишетесь, появятся здесь.',
   },
   stats: {
     decks: 'Наборов',
