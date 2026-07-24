@@ -58,6 +58,31 @@ This plan is written to be implemented step by step by an AI coding assistant
 
 ---
 
+## Model guidance
+
+Most steps are well-constrained enough for Sonnet: the ground rules above
+(mandatory endpoint verification, no touching `db/`/`learning-engine/`/
+`repositories/`, stop-and-confirm checkpoints) remove exactly the kind of
+open-ended judgment calls where a weaker model tends to go wrong. Switch to
+**Opus** for the steps below, where the plan cannot hand over a fully
+pre-verified answer and the step sets the shape later steps inherit:
+
+- **Step 4.1** (runner skeleton) — the abstraction all 8 exercise templates
+  build on; a mistake here means rework across steps 4.2–4.6.
+- **Phase 5** (vocabulary → local deck import) — the only place course code
+  writes into the local SQLite word database (with a migration). Mistakes
+  here risk the user's real word-learning data, not just course state.
+- **Phase 6** (nginx gateway fix + mastery/can-do enrichment) — touches the
+  `ssz-platform` infrastructure repo (`nginx.dev.conf` and friends), which
+  also serves the web app; changes there have blast radius beyond VoxOrd.
+
+Everything else (1.1–1.4 already done, Phase 2, Phase 3, steps 4.2–4.6, most
+of 6, Phase 7) is in Sonnet's range. Re-set the model explicitly before
+starting one of the three items above, and it's fine to drop back to Sonnet
+for the step right after.
+
+---
+
 ## Architecture decisions (already made — do not re-litigate)
 
 - **Mobile talks to the nginx API Gateway directly** (`/api/v1/...`), NOT to
@@ -320,7 +345,7 @@ Reference: `ssz-platform-web/src/features/student/exercises/runner/`.
 Validation is **server-side** via the exercise-engine attempts endpoint —
 the mobile app never contains answer-checking logic for platform exercises.
 
-### Step 4.1 — Runner skeleton + attempt flow
+### Step 4.1 — Runner skeleton + attempt flow — ⚠️ switch to Opus (see Model guidance)
 - `src/api/exercises.ts`: `getExerciseDisplay(id)`, `submitAttempt(...)`
   (find exact contract in exercise-engine `attempts` controller + how the web
   runner calls it).
@@ -364,7 +389,7 @@ the mobile app never contains answer-checking logic for platform exercises.
 
 ---
 
-## Phase 5 — Vocabulary lists in courses (read-only)
+## Phase 5 — Vocabulary lists in courses (read-only) — ⚠️ switch to Opus (see Model guidance)
 
 - Render a vocabulary-list item from a unit: word list with translations and
   usage examples (content-service data, web reference in student feature).
@@ -382,7 +407,7 @@ the mobile app never contains answer-checking logic for platform exercises.
 
 ---
 
-## Phase 6 — Course-home enrichment & resilience
+## Phase 6 — Course-home enrichment & resilience — ⚠️ switch to Opus (see Model guidance)
 
 - Add the blocks skipped in 2.2: mastery, can-do progress, SRS-due counters
   (display only).
