@@ -8,8 +8,8 @@ import type { UnitContentsItem } from '../../api/types';
 interface ContentItemRowProps {
   item: UnitContentsItem;
   /**
-   * Only lessons are tappable so far (Phase 3 built the reader). Vocabulary
-   * lists, grammar rules, and exercises stay inert until Phase 4/5.
+   * Lessons (Phase 3 reader) and exercises (Phase 4 runner) are tappable.
+   * Vocabulary lists and grammar rules stay inert until Phase 5/6.
    */
   onPress?: () => void;
 }

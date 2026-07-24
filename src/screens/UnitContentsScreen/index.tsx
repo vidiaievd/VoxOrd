@@ -20,6 +20,11 @@ interface UnitContentsScreenProps {
   unitId: string;
   onBack: () => void;
   onLessonPress: (lessonId: string) => void;
+  /**
+   * Launch the exercise runner over the unit's exercises as a set, starting
+   * at the tapped one. `exerciseIds` are content ids in display order.
+   */
+  onExercisePress: (exerciseIds: string[], startIndex: number) => void;
 }
 
 interface Section {
@@ -28,7 +33,12 @@ interface Section {
   data: UnitContentsItem[];
 }
 
-export function UnitContentsScreen({ unitId, onBack, onLessonPress }: UnitContentsScreenProps) {
+export function UnitContentsScreen({
+  unitId,
+  onBack,
+  onLessonPress,
+  onExercisePress,
+}: UnitContentsScreenProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
@@ -43,6 +53,23 @@ export function UnitContentsScreen({ unitId, onBack, onLessonPress }: UnitConten
       ]
     : [];
   const isEmpty = sections.every((s) => s.data.length === 0);
+
+  // The unit's exercises in display order, treated as one runnable set.
+  const exerciseIds = sections
+    .flatMap((s) => s.data)
+    .filter((i) => i.contentType === 'exercise')
+    .map((i) => i.contentId);
+
+  const handleItemPress = (item: UnitContentsItem): (() => void) | undefined => {
+    if (item.contentType === 'lesson') {
+      return () => onLessonPress(item.contentId);
+    }
+    if (item.contentType === 'exercise') {
+      const startIndex = exerciseIds.indexOf(item.contentId);
+      return () => onExercisePress(exerciseIds, Math.max(0, startIndex));
+    }
+    return undefined;
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -82,12 +109,7 @@ export function UnitContentsScreen({ unitId, onBack, onLessonPress }: UnitConten
           sections={sections}
           keyExtractor={(item: UnitContentsItem) => item.id}
           renderItem={({ item }) => (
-            <ContentItemRow
-              item={item}
-              onPress={
-                item.contentType === 'lesson' ? () => onLessonPress(item.contentId) : undefined
-              }
-            />
+            <ContentItemRow item={item} onPress={handleItemPress(item)} />
           )}
           renderSectionHeader={({ section }) =>
             section.title ? (

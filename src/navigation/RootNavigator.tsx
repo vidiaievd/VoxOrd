@@ -21,6 +21,7 @@ import { CoursesScreen } from '../screens/CoursesScreen';
 import { CourseHomeScreen } from '../screens/CourseHomeScreen';
 import { UnitContentsScreen } from '../screens/UnitContentsScreen';
 import { LessonReaderScreen } from '../screens/LessonReaderScreen';
+import { ExerciseRunnerScreen } from '../screens/ExerciseRunner';
 
 type Tab = 'Home' | 'Courses' | 'Settings';
 
@@ -40,6 +41,13 @@ type Screen =
   | { name: 'CourseHome'; courseId: string }
   | { name: 'UnitContents'; unitId: string; courseId: string }
   | { name: 'LessonReader'; lessonId: string; unitId: string; courseId: string }
+  | {
+      name: 'ExerciseRunner';
+      exerciseIds: string[];
+      startIndex: number;
+      unitId: string;
+      courseId: string;
+    }
   | { name: 'Settings' };
 
 const SCREEN_FOR_TAB: Record<Tab, Screen> = {
@@ -251,8 +259,34 @@ export function RootNavigator() {
                 courseId: screen.courseId,
               })
             }
+            onExercisePress={(exerciseIds, startIndex) =>
+              navigateTo({
+                name: 'ExerciseRunner',
+                exerciseIds,
+                startIndex,
+                unitId: screen.unitId,
+                courseId: screen.courseId,
+              })
+            }
           />
         );
+
+      case 'ExerciseRunner': {
+        const backToUnit = () =>
+          setScreen({
+            name: 'UnitContents',
+            unitId: screen.unitId,
+            courseId: screen.courseId,
+          });
+        return (
+          <ExerciseRunnerScreen
+            exerciseIds={screen.exerciseIds}
+            startIndex={screen.startIndex}
+            onBack={backToUnit}
+            onComplete={backToUnit}
+          />
+        );
+      }
 
       case 'LessonReader':
         return (
@@ -298,7 +332,8 @@ export function RootNavigator() {
     screen.name !== 'Listening' &&
     screen.name !== 'CourseHome' &&
     screen.name !== 'UnitContents' &&
-    screen.name !== 'LessonReader';
+    screen.name !== 'LessonReader' &&
+    screen.name !== 'ExerciseRunner';
 
   return (
     <View style={styles.root}>

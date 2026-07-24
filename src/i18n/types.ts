@@ -112,6 +112,23 @@ export interface Translations {
     markAsRead: string;
   };
 
+  exerciseRunner: {
+    loadError: string;
+    progress: string; // '{current} / {total}'
+    check: string;
+    continue: string;
+    finish: string;
+    correct: string;
+    incorrect: string;
+    submittedForReview: string;
+    expectedAnswer: string;
+    setComplete: string;
+    setCompleteDesc: string;
+    done: string;
+    unsupportedTemplate: string;
+    unsupportedTemplateDesc: string; // '{template}'
+  };
+
   stats: {
     decks: string;
     words: string;
