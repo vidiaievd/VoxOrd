@@ -85,6 +85,18 @@ export const uk: Translations = {
     statusActive: 'Доступний',
     statusLocked: 'Закрито',
   },
+  unitContents: {
+    title: 'Юніт',
+    loadError: 'Не вдалося завантажити юніт',
+    noItems: 'У цьому юніті поки немає матеріалів',
+    otherItems: 'Інше',
+    untitled: 'Без назви',
+    duration: '{minutes} хв',
+    statusCompleted: 'Пройдено',
+    statusInProgress: 'У процесі',
+    statusAvailable: 'Доступно',
+    statusLocked: 'Закрито',
+  },
   stats: {
     decks: 'Наборів',
     words: 'Слів',

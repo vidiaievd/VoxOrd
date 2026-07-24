@@ -90,6 +90,19 @@ export interface Translations {
     statusLocked: string;
   };
 
+  unitContents: {
+    title: string;
+    loadError: string;
+    noItems: string;
+    otherItems: string;
+    untitled: string;
+    duration: string; // '{minutes} min'
+    statusCompleted: string;
+    statusInProgress: string;
+    statusAvailable: string;
+    statusLocked: string;
+  };
+
   stats: {
     decks: string;
     words: string;

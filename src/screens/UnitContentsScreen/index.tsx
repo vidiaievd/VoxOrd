@@ -4,7 +4,7 @@ import {
   Text,
   StyleSheet,
   ActivityIndicator,
-  FlatList,
+  SectionList,
   RefreshControl,
   TouchableOpacity,
 } from 'react-native';
@@ -12,21 +12,36 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
-import { useCourseHome } from '../../hooks/useCourseHome';
-import { UnitRow } from './UnitRow';
-import type { UnitSummary } from '../../api/types';
+import { useUnitContents } from '../../hooks/useUnitContents';
+import { ContentItemRow } from './ContentItemRow';
+import type { UnitContentsItem } from '../../api/types';
 
-interface CourseHomeScreenProps {
-  courseId: string;
+interface UnitContentsScreenProps {
+  unitId: string;
   onBack: () => void;
-  onUnitPress: (unitId: string) => void;
 }
 
-export function CourseHomeScreen({ courseId, onBack, onUnitPress }: CourseHomeScreenProps) {
+interface Section {
+  key: string;
+  title: string;
+  data: UnitContentsItem[];
+}
+
+export function UnitContentsScreen({ unitId, onBack }: UnitContentsScreenProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const { status, data, error, refreshing, refresh } = useCourseHome(courseId);
+  const { status, data, error, refreshing, refresh } = useUnitContents(unitId);
+
+  const sections: Section[] = data
+    ? [
+        ...data.sections.map((s) => ({ key: s.id, title: s.title, data: s.items })),
+        ...(data.ungroupedItems.length > 0
+          ? [{ key: 'ungrouped', title: t('unitContents.otherItems'), data: data.ungroupedItems }]
+          : []),
+      ]
+    : [];
+  const isEmpty = sections.every((s) => s.data.length === 0);
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -34,17 +49,9 @@ export function CourseHomeScreen({ courseId, onBack, onUnitPress }: CourseHomeSc
         <TouchableOpacity onPress={onBack} style={styles.backBtn}>
           <Text style={styles.backText}>←</Text>
         </TouchableOpacity>
-        <View style={styles.headerInfo}>
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            {data?.courseInfo.title ?? t('courses.title')}
-          </Text>
-          {data && (
-            <Text style={styles.headerSub}>
-              {data.courseInfo.cefrLevel} · {data.courseInfo.targetLanguage.toUpperCase()} ·{' '}
-              {Math.round(data.progress.percentComplete)}%
-            </Text>
-          )}
-        </View>
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          {data?.moduleTitle ?? t('unitContents.title')}
+        </Text>
       </View>
 
       {status === 'loading' && (
@@ -55,7 +62,7 @@ export function CourseHomeScreen({ courseId, onBack, onUnitPress }: CourseHomeSc
 
       {status === 'error' && (
         <View style={styles.centerFill}>
-          <Text style={styles.emptyTitle}>{t('courseHome.loadError')}</Text>
+          <Text style={styles.emptyTitle}>{t('unitContents.loadError')}</Text>
           <Text style={styles.emptyDesc}>{error?.message}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={refresh}>
             <Text style={styles.retryButtonText}>{t('courses.retry')}</Text>
@@ -63,21 +70,27 @@ export function CourseHomeScreen({ courseId, onBack, onUnitPress }: CourseHomeSc
         </View>
       )}
 
-      {status === 'loaded' && data && data.units.length === 0 && (
+      {status === 'loaded' && isEmpty && (
         <View style={styles.centerFill}>
-          <Text style={styles.emptyTitle}>{t('courseHome.noUnits')}</Text>
+          <Text style={styles.emptyTitle}>{t('unitContents.noItems')}</Text>
         </View>
       )}
 
-      {status === 'loaded' && data && data.units.length > 0 && (
-        <FlatList
-          data={data.units}
-          keyExtractor={(unit: UnitSummary) => unit.id}
-          renderItem={({ item }) => <UnitRow unit={item} onPress={() => onUnitPress(item.id)} />}
+      {status === 'loaded' && !isEmpty && (
+        <SectionList
+          sections={sections}
+          keyExtractor={(item: UnitContentsItem) => item.id}
+          renderItem={({ item }) => <ContentItemRow item={item} />}
+          renderSectionHeader={({ section }) =>
+            section.title ? (
+              <Text style={styles.sectionTitle}>{section.title}</Text>
+            ) : null
+          }
           contentContainerStyle={styles.list}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />
           }
+          stickySectionHeadersEnabled={false}
         />
       )}
     </SafeAreaView>
@@ -106,18 +119,11 @@ const makeStyles = (colors: ColorScheme) =>
       fontSize: 22,
       color: colors.textPrimary,
     },
-    headerInfo: {
-      flex: 1,
-    },
     headerTitle: {
+      flex: 1,
       fontSize: 17,
       fontWeight: '700',
       color: colors.textPrimary,
-    },
-    headerSub: {
-      fontSize: 13,
-      color: colors.textMuted,
-      marginTop: 2,
     },
     centerFill: {
       flex: 1,
@@ -151,8 +157,18 @@ const makeStyles = (colors: ColorScheme) =>
       fontWeight: '700',
       color: colors.textInverted,
     },
+    sectionTitle: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colors.textMuted,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      marginHorizontal: 16,
+      marginTop: 12,
+      marginBottom: 6,
+    },
     list: {
-      paddingTop: 12,
+      paddingTop: 8,
       paddingBottom: 24,
     },
   });

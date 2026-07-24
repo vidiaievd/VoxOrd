@@ -85,6 +85,18 @@ export const ru: Translations = {
     statusActive: 'Доступен',
     statusLocked: 'Закрыт',
   },
+  unitContents: {
+    title: 'Юнит',
+    loadError: 'Не удалось загрузить юнит',
+    noItems: 'В этом юните пока нет материалов',
+    otherItems: 'Другое',
+    untitled: 'Без названия',
+    duration: '{minutes} мин',
+    statusCompleted: 'Пройдено',
+    statusInProgress: 'В процессе',
+    statusAvailable: 'Доступно',
+    statusLocked: 'Закрыто',
+  },
   stats: {
     decks: 'Наборов',
     words: 'Слов',

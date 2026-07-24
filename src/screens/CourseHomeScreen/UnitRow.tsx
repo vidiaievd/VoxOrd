@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { ColorScheme } from '../../theme/colors';
 import { useTheme } from '../../providers/ThemeProvider';
 import { useTranslation } from '../../i18n';
@@ -7,12 +7,14 @@ import type { UnitSummary } from '../../api/types';
 
 interface UnitRowProps {
   unit: UnitSummary;
+  onPress: () => void;
 }
 
-export function UnitRow({ unit }: UnitRowProps) {
+export function UnitRow({ unit, onPress }: UnitRowProps) {
   const { colors } = useTheme();
   const { t } = useTranslation();
   const styles = makeStyles(colors);
+  const locked = unit.status === 'locked';
 
   const badge = {
     done: { label: t('courseHome.statusDone'), color: colors.success },
@@ -21,7 +23,12 @@ export function UnitRow({ unit }: UnitRowProps) {
   }[unit.status];
 
   return (
-    <View style={[styles.row, unit.status === 'locked' && styles.rowLocked]}>
+    <TouchableOpacity
+      style={[styles.row, locked && styles.rowLocked]}
+      onPress={onPress}
+      disabled={locked}
+      activeOpacity={0.85}
+    >
       <View style={styles.info}>
         <Text style={styles.title} numberOfLines={2}>
           {unit.title}
@@ -33,7 +40,7 @@ export function UnitRow({ unit }: UnitRowProps) {
       <View style={[styles.badge, { backgroundColor: `${badge.color}22` }]}>
         <Text style={[styles.badgeText, { color: badge.color }]}>{badge.label}</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 

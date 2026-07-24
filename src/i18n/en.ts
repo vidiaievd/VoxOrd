@@ -85,6 +85,18 @@ export const en: Translations = {
     statusActive: 'Active',
     statusLocked: 'Locked',
   },
+  unitContents: {
+    title: 'Unit',
+    loadError: "Couldn't load this unit",
+    noItems: 'This unit has no items yet',
+    otherItems: 'Other',
+    untitled: 'Untitled',
+    duration: '{minutes} min',
+    statusCompleted: 'Completed',
+    statusInProgress: 'In progress',
+    statusAvailable: 'Available',
+    statusLocked: 'Locked',
+  },
   stats: {
     decks: 'Decks',
     words: 'Words',
