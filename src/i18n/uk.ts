@@ -120,6 +120,9 @@ export const uk: Translations = {
     done: 'Готово',
     unsupportedTemplate: 'Поки недоступно',
     unsupportedTemplateDesc: 'Цей тип вправи ({template}) поки не підтримується в застосунку.',
+    translateToTargetLabel: 'Перекладіть на {language}',
+    translateFromTargetLabel: 'Перекладіть з {language}',
+    translatePlaceholder: 'Введіть переклад…',
   },
   stats: {
     decks: 'Наборів',

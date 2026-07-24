@@ -8,6 +8,8 @@ import type { SubmitAttemptResponse } from '../../api/exercises';
 import type { RunnerPhase } from './runnerMachine';
 import { MultipleChoiceBody } from './MultipleChoiceBody';
 import { FillInBlankBody } from './FillInBlankBody';
+import { TranslateBody } from './TranslateBody';
+import { MatchPairsBody } from './MatchPairsBody';
 
 /**
  * Contract every per-template body implements (Phase 4.2+). A body is a
@@ -74,7 +76,13 @@ export function ExerciseBody(props: ExerciseBodyProps) {
       return <MultipleChoiceBody {...props} />;
     case 'fill_in_blank':
       return <FillInBlankBody {...props} />;
-    // ...remaining templates land in steps 4.3–4.5.
+    case 'translate_to_target':
+    case 'translate_from_target':
+      return <TranslateBody {...props} />;
+    case 'match_pairs':
+      return <MatchPairsBody {...props} />;
+    // ...remaining templates (short_answer, sentence_schema, writing_task)
+    // land in steps 4.4–4.5.
     default:
       return <UnsupportedTemplateBody {...props} />;
   }

@@ -120,6 +120,9 @@ export const en: Translations = {
     done: 'Done',
     unsupportedTemplate: 'Not available yet',
     unsupportedTemplateDesc: 'This exercise type ({template}) is not supported on mobile yet.',
+    translateToTargetLabel: 'Translate into {language}',
+    translateFromTargetLabel: 'Translate from {language}',
+    translatePlaceholder: 'Type your translation…',
   },
   stats: {
     decks: 'Decks',

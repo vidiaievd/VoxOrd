@@ -120,6 +120,9 @@ export const ru: Translations = {
     done: 'Готово',
     unsupportedTemplate: 'Пока недоступно',
     unsupportedTemplateDesc: 'Этот тип упражнения ({template}) пока не поддерживается в приложении.',
+    translateToTargetLabel: 'Переведите на {language}',
+    translateFromTargetLabel: 'Переведите с {language}',
+    translatePlaceholder: 'Введите перевод…',
   },
   stats: {
     decks: 'Наборов',

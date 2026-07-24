@@ -127,6 +127,9 @@ export interface Translations {
     done: string;
     unsupportedTemplate: string;
     unsupportedTemplateDesc: string; // '{template}'
+    translateToTargetLabel: string; // '{language}'
+    translateFromTargetLabel: string; // '{language}'
+    translatePlaceholder: string;
   };
 
   stats: {
