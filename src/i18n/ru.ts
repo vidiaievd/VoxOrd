@@ -97,6 +97,12 @@ export const ru: Translations = {
     statusAvailable: 'Доступно',
     statusLocked: 'Закрыто',
   },
+  lessonReader: {
+    title: 'Урок',
+    loadError: 'Не удалось загрузить урок',
+    noContent: 'В этом уроке пока нет текста',
+    unsupportedKind: 'Этот тип урока пока не поддерживается в приложении',
+  },
   stats: {
     decks: 'Наборов',
     words: 'Слов',

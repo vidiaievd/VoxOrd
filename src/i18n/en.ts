@@ -97,6 +97,12 @@ export const en: Translations = {
     statusAvailable: 'Available',
     statusLocked: 'Locked',
   },
+  lessonReader: {
+    title: 'Lesson',
+    loadError: "Couldn't load this lesson",
+    noContent: 'This lesson has no text yet',
+    unsupportedKind: 'This lesson type is not supported on mobile yet',
+  },
   stats: {
     decks: 'Decks',
     words: 'Words',

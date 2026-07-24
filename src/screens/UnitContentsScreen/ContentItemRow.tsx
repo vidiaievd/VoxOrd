@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { ColorScheme } from '../../theme/colors';
 import { useTheme } from '../../providers/ThemeProvider';
 import { useTranslation } from '../../i18n';
@@ -7,6 +7,11 @@ import type { UnitContentsItem } from '../../api/types';
 
 interface ContentItemRowProps {
   item: UnitContentsItem;
+  /**
+   * Only lessons are tappable so far (Phase 3 built the reader). Vocabulary
+   * lists, grammar rules, and exercises stay inert until Phase 4/5.
+   */
+  onPress?: () => void;
 }
 
 const ICON_BY_CONTENT_TYPE: Record<string, string> = {
@@ -16,12 +21,11 @@ const ICON_BY_CONTENT_TYPE: Record<string, string> = {
   exercise: '✏️',
 };
 
-// Not tappable yet — the lesson reader (Phase 3) and exercise runner
-// (Phase 4) don't exist yet.
-export function ContentItemRow({ item }: ContentItemRowProps) {
+export function ContentItemRow({ item, onPress }: ContentItemRowProps) {
   const { colors } = useTheme();
   const { t } = useTranslation();
   const styles = makeStyles(colors);
+  const locked = item.status === 'locked';
 
   const badge = {
     completed: { label: t('unitContents.statusCompleted'), color: colors.success },
@@ -32,8 +36,8 @@ export function ContentItemRow({ item }: ContentItemRowProps) {
 
   const icon = ICON_BY_CONTENT_TYPE[item.contentType] ?? '📄';
 
-  return (
-    <View style={[styles.row, item.status === 'locked' && styles.rowLocked]}>
+  const content = (
+    <>
       <Text style={styles.icon}>{icon}</Text>
       <View style={styles.info}>
         <Text style={styles.title} numberOfLines={2}>
@@ -48,8 +52,18 @@ export function ContentItemRow({ item }: ContentItemRowProps) {
       <View style={[styles.badge, { backgroundColor: `${badge.color}22` }]}>
         <Text style={[styles.badgeText, { color: badge.color }]}>{badge.label}</Text>
       </View>
-    </View>
+    </>
   );
+
+  if (onPress && !locked) {
+    return (
+      <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.85}>
+        {content}
+      </TouchableOpacity>
+    );
+  }
+
+  return <View style={[styles.row, locked && styles.rowLocked]}>{content}</View>;
 }
 
 const makeStyles = (colors: ColorScheme) =>

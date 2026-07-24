@@ -103,6 +103,13 @@ export interface Translations {
     statusLocked: string;
   };
 
+  lessonReader: {
+    title: string;
+    loadError: string;
+    noContent: string;
+    unsupportedKind: string;
+  };
+
   stats: {
     decks: string;
     words: string;

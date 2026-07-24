@@ -97,6 +97,12 @@ export const uk: Translations = {
     statusAvailable: 'Доступно',
     statusLocked: 'Закрито',
   },
+  lessonReader: {
+    title: 'Урок',
+    loadError: 'Не вдалося завантажити урок',
+    noContent: 'У цьому уроці поки немає тексту',
+    unsupportedKind: 'Цей тип уроку поки не підтримується в застосунку',
+  },
   stats: {
     decks: 'Наборів',
     words: 'Слів',

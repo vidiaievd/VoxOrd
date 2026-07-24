@@ -20,6 +20,7 @@ import { PronunciationExercise } from '../screens/LearningScreen/exercises/pronu
 import { CoursesScreen } from '../screens/CoursesScreen';
 import { CourseHomeScreen } from '../screens/CourseHomeScreen';
 import { UnitContentsScreen } from '../screens/UnitContentsScreen';
+import { LessonReaderScreen } from '../screens/LessonReaderScreen';
 
 type Tab = 'Home' | 'Courses' | 'Settings';
 
@@ -38,6 +39,7 @@ type Screen =
   | { name: 'Courses' }
   | { name: 'CourseHome'; courseId: string }
   | { name: 'UnitContents'; unitId: string; courseId: string }
+  | { name: 'LessonReader'; lessonId: string; unitId: string; courseId: string }
   | { name: 'Settings' };
 
 const SCREEN_FOR_TAB: Record<Tab, Screen> = {
@@ -241,6 +243,25 @@ export function RootNavigator() {
           <UnitContentsScreen
             unitId={screen.unitId}
             onBack={() => setScreen({ name: 'CourseHome', courseId: screen.courseId })}
+            onLessonPress={lessonId =>
+              navigateTo({
+                name: 'LessonReader',
+                lessonId,
+                unitId: screen.unitId,
+                courseId: screen.courseId,
+              })
+            }
+          />
+        );
+
+      case 'LessonReader':
+        return (
+          <LessonReaderScreen
+            lessonId={screen.lessonId}
+            courseId={screen.courseId}
+            onBack={() =>
+              setScreen({ name: 'UnitContents', unitId: screen.unitId, courseId: screen.courseId })
+            }
           />
         );
 
@@ -276,7 +297,8 @@ export function RootNavigator() {
     screen.name !== 'Pronunciation' &&
     screen.name !== 'Listening' &&
     screen.name !== 'CourseHome' &&
-    screen.name !== 'UnitContents';
+    screen.name !== 'UnitContents' &&
+    screen.name !== 'LessonReader';
 
   return (
     <View style={styles.root}>

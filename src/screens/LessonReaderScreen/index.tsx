@@ -4,45 +4,26 @@ import {
   Text,
   StyleSheet,
   ActivityIndicator,
-  SectionList,
-  RefreshControl,
+  ScrollView,
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
-import { useUnitContents } from '../../hooks/useUnitContents';
-import { ContentItemRow } from './ContentItemRow';
-import type { UnitContentsItem } from '../../api/types';
+import { useLessonReader } from '../../hooks/useLessonReader';
 
-interface UnitContentsScreenProps {
-  unitId: string;
+interface LessonReaderScreenProps {
+  lessonId: string;
+  courseId: string;
   onBack: () => void;
-  onLessonPress: (lessonId: string) => void;
 }
 
-interface Section {
-  key: string;
-  title: string;
-  data: UnitContentsItem[];
-}
-
-export function UnitContentsScreen({ unitId, onBack, onLessonPress }: UnitContentsScreenProps) {
+export function LessonReaderScreen({ lessonId, courseId, onBack }: LessonReaderScreenProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const { status, data, error, refreshing, refresh } = useUnitContents(unitId);
-
-  const sections: Section[] = data
-    ? [
-        ...data.sections.map((s) => ({ key: s.id, title: s.title, data: s.items })),
-        ...(data.ungroupedItems.length > 0
-          ? [{ key: 'ungrouped', title: t('unitContents.otherItems'), data: data.ungroupedItems }]
-          : []),
-      ]
-    : [];
-  const isEmpty = sections.every((s) => s.data.length === 0);
+  const { status, data, error, refresh } = useLessonReader(lessonId, courseId);
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -51,7 +32,7 @@ export function UnitContentsScreen({ unitId, onBack, onLessonPress }: UnitConten
           <Text style={styles.backText}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
-          {data?.moduleTitle ?? t('unitContents.title')}
+          {data?.displayTitle ?? data?.title ?? t('lessonReader.title')}
         </Text>
       </View>
 
@@ -63,7 +44,7 @@ export function UnitContentsScreen({ unitId, onBack, onLessonPress }: UnitConten
 
       {status === 'error' && (
         <View style={styles.centerFill}>
-          <Text style={styles.emptyTitle}>{t('unitContents.loadError')}</Text>
+          <Text style={styles.emptyTitle}>{t('lessonReader.loadError')}</Text>
           <Text style={styles.emptyDesc}>{error?.message}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={refresh}>
             <Text style={styles.retryButtonText}>{t('courses.retry')}</Text>
@@ -71,35 +52,23 @@ export function UnitContentsScreen({ unitId, onBack, onLessonPress }: UnitConten
         </View>
       )}
 
-      {status === 'loaded' && isEmpty && (
+      {status === 'loaded' && data && data.kind !== 'text' && (
         <View style={styles.centerFill}>
-          <Text style={styles.emptyTitle}>{t('unitContents.noItems')}</Text>
+          <Text style={styles.emptyTitle}>{t('lessonReader.unsupportedKind')}</Text>
         </View>
       )}
 
-      {status === 'loaded' && !isEmpty && (
-        <SectionList
-          sections={sections}
-          keyExtractor={(item: UnitContentsItem) => item.id}
-          renderItem={({ item }) => (
-            <ContentItemRow
-              item={item}
-              onPress={
-                item.contentType === 'lesson' ? () => onLessonPress(item.contentId) : undefined
-              }
-            />
+      {status === 'loaded' && data && data.kind === 'text' && (
+        <ScrollView contentContainerStyle={styles.scroll}>
+          {(data.paragraphs ?? []).map((paragraph, i) => (
+            <View key={i} style={styles.paragraphBlock}>
+              <Text style={styles.paragraphTarget}>{paragraph.target}</Text>
+            </View>
+          ))}
+          {(data.paragraphs ?? []).length === 0 && (
+            <Text style={styles.emptyDesc}>{t('lessonReader.noContent')}</Text>
           )}
-          renderSectionHeader={({ section }) =>
-            section.title ? (
-              <Text style={styles.sectionTitle}>{section.title}</Text>
-            ) : null
-          }
-          contentContainerStyle={styles.list}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />
-          }
-          stickySectionHeadersEnabled={false}
-        />
+        </ScrollView>
       )}
     </SafeAreaView>
   );
@@ -165,18 +134,15 @@ const makeStyles = (colors: ColorScheme) =>
       fontWeight: '700',
       color: colors.textInverted,
     },
-    sectionTitle: {
-      fontSize: 13,
-      fontWeight: '700',
-      color: colors.textMuted,
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
-      marginHorizontal: 16,
-      marginTop: 12,
-      marginBottom: 6,
+    scroll: {
+      padding: 20,
     },
-    list: {
-      paddingTop: 8,
-      paddingBottom: 24,
+    paragraphBlock: {
+      marginBottom: 16,
+    },
+    paragraphTarget: {
+      fontSize: 17,
+      lineHeight: 26,
+      color: colors.textPrimary,
     },
   });
