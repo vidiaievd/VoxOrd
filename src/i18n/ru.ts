@@ -103,6 +103,7 @@ export const ru: Translations = {
     noContent: 'В этом уроке пока нет текста',
     unsupportedKind: 'Этот тип урока пока не поддерживается в приложении',
     noTranslation: 'Перевод недоступен',
+    markAsRead: 'Отметить прочитанным',
   },
   stats: {
     decks: 'Наборов',

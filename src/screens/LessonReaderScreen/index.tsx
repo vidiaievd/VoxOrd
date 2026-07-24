@@ -12,6 +12,7 @@ import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
 import { useLessonReader } from '../../hooks/useLessonReader';
+import { useMarkLessonRead } from '../../hooks/useMarkLessonRead';
 import { buildGlossaryIndex } from '../../utils/tokenizeGlossary';
 import { ParagraphView } from './ParagraphView';
 
@@ -26,10 +27,16 @@ export function LessonReaderScreen({ lessonId, courseId, onBack }: LessonReaderS
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const { status, data, error, refresh } = useLessonReader(lessonId, courseId);
+  const { status: markStatus, error: markError, markAsRead } = useMarkLessonRead(lessonId);
   const glossaryIndex = useMemo(
     () => buildGlossaryIndex(data?.glossary ?? []),
     [data?.glossary],
   );
+
+  const handleMarkAsRead = async () => {
+    const ok = await markAsRead();
+    if (ok) onBack();
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -65,14 +72,32 @@ export function LessonReaderScreen({ lessonId, courseId, onBack }: LessonReaderS
       )}
 
       {status === 'loaded' && data && data.kind === 'text' && (
-        <ScrollView contentContainerStyle={styles.scroll}>
-          {(data.paragraphs ?? []).map((paragraph, i) => (
-            <ParagraphView key={i} paragraph={paragraph} glossaryIndex={glossaryIndex} />
-          ))}
-          {(data.paragraphs ?? []).length === 0 && (
-            <Text style={styles.emptyDesc}>{t('lessonReader.noContent')}</Text>
-          )}
-        </ScrollView>
+        <>
+          <ScrollView contentContainerStyle={styles.scroll}>
+            {(data.paragraphs ?? []).map((paragraph, i) => (
+              <ParagraphView key={i} paragraph={paragraph} glossaryIndex={glossaryIndex} />
+            ))}
+            {(data.paragraphs ?? []).length === 0 && (
+              <Text style={styles.emptyDesc}>{t('lessonReader.noContent')}</Text>
+            )}
+          </ScrollView>
+          <View style={styles.footer}>
+            {markStatus === 'error' && (
+              <Text style={styles.footerError}>{markError?.message}</Text>
+            )}
+            <TouchableOpacity
+              style={styles.markReadBtn}
+              onPress={handleMarkAsRead}
+              disabled={markStatus === 'submitting'}
+            >
+              {markStatus === 'submitting' ? (
+                <ActivityIndicator size="small" color={colors.textInverted} />
+              ) : (
+                <Text style={styles.markReadText}>{t('lessonReader.markAsRead')}</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </>
       )}
     </SafeAreaView>
   );
@@ -140,5 +165,29 @@ const makeStyles = (colors: ColorScheme) =>
     },
     scroll: {
       padding: 20,
+    },
+    footer: {
+      paddingHorizontal: 20,
+      paddingTop: 12,
+      paddingBottom: 20,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+    footerError: {
+      fontSize: 13,
+      color: colors.danger,
+      textAlign: 'center',
+      marginBottom: 8,
+    },
+    markReadBtn: {
+      backgroundColor: colors.accent,
+      borderRadius: 14,
+      paddingVertical: 14,
+      alignItems: 'center',
+    },
+    markReadText: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: colors.textInverted,
     },
   });

@@ -109,6 +109,7 @@ export interface Translations {
     noContent: string;
     unsupportedKind: string;
     noTranslation: string;
+    markAsRead: string;
   };
 
   stats: {
