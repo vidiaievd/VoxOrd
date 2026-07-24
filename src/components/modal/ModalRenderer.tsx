@@ -2,6 +2,7 @@ import React from 'react';
 import { ModalConfig } from '../../providers/ModalProvider';
 import { ConfirmSheet } from './sheets/ConfirmSheet';
 import { BottomSheetPicker } from './sheets/BottomSheetPicker';
+import { GlossarySheet } from './sheets/GlossarySheet';
 
 interface ModalRendererProps {
   config: ModalConfig | null;
@@ -43,6 +44,9 @@ export function ModalRenderer({ config, onClose }: ModalRendererProps) {
           onClose={onClose}
         />
       );
+
+    case 'glossary':
+      return <GlossarySheet visible entry={config.entry} onClose={onClose} />;
 
     default:
       return null;

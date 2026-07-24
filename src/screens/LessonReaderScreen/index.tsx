@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,8 @@ import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
 import { useLessonReader } from '../../hooks/useLessonReader';
+import { buildGlossaryIndex } from '../../utils/tokenizeGlossary';
+import { ParagraphView } from './ParagraphView';
 
 interface LessonReaderScreenProps {
   lessonId: string;
@@ -24,6 +26,10 @@ export function LessonReaderScreen({ lessonId, courseId, onBack }: LessonReaderS
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const { status, data, error, refresh } = useLessonReader(lessonId, courseId);
+  const glossaryIndex = useMemo(
+    () => buildGlossaryIndex(data?.glossary ?? []),
+    [data?.glossary],
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -61,9 +67,7 @@ export function LessonReaderScreen({ lessonId, courseId, onBack }: LessonReaderS
       {status === 'loaded' && data && data.kind === 'text' && (
         <ScrollView contentContainerStyle={styles.scroll}>
           {(data.paragraphs ?? []).map((paragraph, i) => (
-            <View key={i} style={styles.paragraphBlock}>
-              <Text style={styles.paragraphTarget}>{paragraph.target}</Text>
-            </View>
+            <ParagraphView key={i} paragraph={paragraph} glossaryIndex={glossaryIndex} />
           ))}
           {(data.paragraphs ?? []).length === 0 && (
             <Text style={styles.emptyDesc}>{t('lessonReader.noContent')}</Text>
@@ -136,13 +140,5 @@ const makeStyles = (colors: ColorScheme) =>
     },
     scroll: {
       padding: 20,
-    },
-    paragraphBlock: {
-      marginBottom: 16,
-    },
-    paragraphTarget: {
-      fontSize: 17,
-      lineHeight: 26,
-      color: colors.textPrimary,
     },
   });

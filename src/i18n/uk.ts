@@ -102,6 +102,7 @@ export const uk: Translations = {
     loadError: 'Не вдалося завантажити урок',
     noContent: 'У цьому уроці поки немає тексту',
     unsupportedKind: 'Цей тип уроку поки не підтримується в застосунку',
+    noTranslation: 'Переклад недоступний',
   },
   stats: {
     decks: 'Наборів',

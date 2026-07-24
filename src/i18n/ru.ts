@@ -102,6 +102,7 @@ export const ru: Translations = {
     loadError: 'Не удалось загрузить урок',
     noContent: 'В этом уроке пока нет текста',
     unsupportedKind: 'Этот тип урока пока не поддерживается в приложении',
+    noTranslation: 'Перевод недоступен',
   },
   stats: {
     decks: 'Наборов',

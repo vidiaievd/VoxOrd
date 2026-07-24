@@ -108,6 +108,7 @@ export interface Translations {
     loadError: string;
     noContent: string;
     unsupportedKind: string;
+    noTranslation: string;
   };
 
   stats: {

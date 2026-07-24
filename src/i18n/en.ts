@@ -102,6 +102,7 @@ export const en: Translations = {
     loadError: "Couldn't load this lesson",
     noContent: 'This lesson has no text yet',
     unsupportedKind: 'This lesson type is not supported on mobile yet',
+    noTranslation: 'No translation available',
   },
   stats: {
     decks: 'Decks',

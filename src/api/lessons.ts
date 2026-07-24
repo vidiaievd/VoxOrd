@@ -17,15 +17,35 @@ export interface LessonReaderQuery {
  *
  * The web app instead composes `variants/best` + `variants/:id/paragraphs`
  * (2 calls) because its reader also needs the variant id for glossary marks
- * fetched separately; mobile uses the leaner single-call endpoint since
- * Step 3.1 has no glossary yet (Step 3.2 adds it — reconsider then if the
- * variant id turns out to be needed for that call too).
+ * fetched separately; mobile uses the leaner single-call endpoint — `/reader`
+ * already returns a fully-resolved `glossary` array (word + translation +
+ * part of speech inline, no vocabulary-item id lookup needed), confirmed
+ * against `get-lesson-reader-content.handler.ts`'s `resolveGlossary`. There is
+ * no offset/span data anywhere in the backend for a glossary mark — matching
+ * a mark to a word occurrence in `paragraph.target` has to be done
+ * client-side by lemma text (see `src/utils/tokenizeGlossary.ts`), same
+ * limitation the web reader has (inflected forms aren't recognized unless
+ * they equal the stored lemma).
  *
  * Only the fields TEXT-kind lessons use are modeled for now (title,
- * bodyMarkdown, paragraphs). Video/audio/live fields exist on the wire
- * (`cues`, `transcript`, `listeningStages`, `live`) but are out of scope
+ * bodyMarkdown, paragraphs, glossary). Video/audio/live fields exist on the
+ * wire (`cues`, `transcript`, `listeningStages`, `live`) but are out of scope
  * until Phase 7.
  */
+export interface ReaderGlossaryTranslation {
+  language: string;
+  text: string;
+  definition: string | null;
+}
+
+export interface ReaderGlossaryEntry {
+  /** Vocabulary item id, not the underlying glossary-mark id. */
+  id: string;
+  word: string;
+  partOfSpeech: string | null;
+  translation: ReaderGlossaryTranslation | null;
+}
+
 export interface LessonReaderContent {
   lessonId: string;
   kind: LessonKind;
@@ -33,6 +53,7 @@ export interface LessonReaderContent {
   displayTitle: string | null;
   bodyMarkdown: string | null;
   paragraphs: LessonParagraph[] | null;
+  glossary: ReaderGlossaryEntry[];
 }
 
 export async function getLessonReaderContent(
