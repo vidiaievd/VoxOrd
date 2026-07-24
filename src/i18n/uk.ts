@@ -78,6 +78,13 @@ export const uk: Translations = {
     loadError: 'Не вдалося завантажити курси',
     retry: 'Повторити',
   },
+  courseHome: {
+    loadError: 'Не вдалося завантажити курс',
+    noUnits: 'У цьому курсі поки немає юнітів',
+    statusDone: 'Пройдено',
+    statusActive: 'Доступний',
+    statusLocked: 'Закрито',
+  },
   stats: {
     decks: 'Наборів',
     words: 'Слів',

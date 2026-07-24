@@ -18,6 +18,7 @@ import { ContextExercise } from '../screens/LearningScreen/exercises/ContextExer
 import { DeepSessionScreen } from '../screens/LearningScreen/DeepSessionScreen';
 import { PronunciationExercise } from '../screens/LearningScreen/exercises/pronunciation/PronunciationExercise';
 import { CoursesScreen } from '../screens/CoursesScreen';
+import { CourseHomeScreen } from '../screens/CourseHomeScreen';
 
 type Tab = 'Home' | 'Courses' | 'Settings';
 
@@ -34,6 +35,7 @@ type Screen =
   | { name: 'DeepSession'; deck: Deck }
   | { name: 'SessionResults'; sessionId: number; deckId: number }
   | { name: 'Courses' }
+  | { name: 'CourseHome'; courseId: string }
   | { name: 'Settings' };
 
 const SCREEN_FOR_TAB: Record<Tab, Screen> = {
@@ -215,7 +217,19 @@ export function RootNavigator() {
         );
 
       case 'Courses':
-        return <CoursesScreen />;
+        return (
+          <CoursesScreen
+            onCoursePress={courseId => navigateTo({ name: 'CourseHome', courseId })}
+          />
+        );
+
+      case 'CourseHome':
+        return (
+          <CourseHomeScreen
+            courseId={screen.courseId}
+            onBack={() => setScreen({ name: 'Courses' })}
+          />
+        );
 
       case 'Settings':
         return <SettingsScreen />;
@@ -247,7 +261,8 @@ export function RootNavigator() {
     screen.name !== 'SessionResults' &&
     screen.name !== 'DeepSession' &&
     screen.name !== 'Pronunciation' &&
-    screen.name !== 'Listening';
+    screen.name !== 'Listening' &&
+    screen.name !== 'CourseHome';
 
   return (
     <View style={styles.root}>

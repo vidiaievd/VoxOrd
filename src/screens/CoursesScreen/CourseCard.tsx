@@ -1,22 +1,21 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { ColorScheme } from '../../theme/colors';
 import { useTheme } from '../../providers/ThemeProvider';
 import { CourseListItem } from '../../api/courses';
 
 interface CourseCardProps {
   item: CourseListItem;
+  onPress: () => void;
 }
 
-// Not tappable yet — opening a course (Step 2.2) needs a CourseHome screen
-// that doesn't exist yet.
-export function CourseCard({ item }: CourseCardProps) {
+export function CourseCard({ item, onPress }: CourseCardProps) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const { container } = item;
 
   return (
-    <View style={styles.card}>
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
       <View style={styles.topRow}>
         <Text style={styles.title} numberOfLines={2}>
           {container.title}
@@ -31,7 +30,7 @@ export function CourseCard({ item }: CourseCardProps) {
         </Text>
       ) : null}
       <Text style={styles.language}>{container.targetLanguage.toUpperCase()}</Text>
-    </View>
+    </TouchableOpacity>
   );
 }
 

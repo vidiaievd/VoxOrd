@@ -82,6 +82,14 @@ export interface Translations {
     retry: string;
   };
 
+  courseHome: {
+    loadError: string;
+    noUnits: string;
+    statusDone: string;
+    statusActive: string;
+    statusLocked: string;
+  };
+
   stats: {
     decks: string;
     words: string;

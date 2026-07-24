@@ -78,6 +78,13 @@ export const en: Translations = {
     loadError: "Couldn't load courses",
     retry: 'Retry',
   },
+  courseHome: {
+    loadError: "Couldn't load this course",
+    noUnits: 'This course has no units yet',
+    statusDone: 'Done',
+    statusActive: 'Active',
+    statusLocked: 'Locked',
+  },
   stats: {
     decks: 'Decks',
     words: 'Words',

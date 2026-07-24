@@ -78,6 +78,13 @@ export const ru: Translations = {
     loadError: 'Не удалось загрузить курсы',
     retry: 'Повторить',
   },
+  courseHome: {
+    loadError: 'Не удалось загрузить курс',
+    noUnits: 'В этом курсе пока нет юнитов',
+    statusDone: 'Пройден',
+    statusActive: 'Доступен',
+    statusLocked: 'Закрыт',
+  },
   stats: {
     decks: 'Наборов',
     words: 'Слов',

@@ -10,7 +10,11 @@ import { LoginForm } from './LoginForm';
 import { CourseCard } from './CourseCard';
 import { CourseListItem } from '../../api/courses';
 
-export function CoursesScreen() {
+interface CoursesScreenProps {
+  onCoursePress: (courseId: string) => void;
+}
+
+export function CoursesScreen({ onCoursePress }: CoursesScreenProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
@@ -68,7 +72,9 @@ export function CoursesScreen() {
         <FlatList
           data={courses}
           keyExtractor={(item: CourseListItem) => item.enrollment.id}
-          renderItem={({ item }) => <CourseCard item={item} />}
+          renderItem={({ item }) => (
+            <CourseCard item={item} onPress={() => onCoursePress(item.container.id)} />
+          )}
           contentContainerStyle={styles.list}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />
