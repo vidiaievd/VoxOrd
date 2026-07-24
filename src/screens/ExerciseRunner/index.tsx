@@ -94,9 +94,14 @@ export function ExerciseRunnerScreen({
           <>
             <ScrollView contentContainerStyle={styles.scroll}>
               <ExerciseBody
+                // Force a remount per item (mirrors the web reader's
+                // key={contentId}) so a body's local input state (selection,
+                // typed text) never leaks from one exercise to the next.
+                key={state.display.id}
                 display={state.display}
                 phase={state.phase}
                 disabled={state.phase !== 'answering'}
+                verdict={state.verdict}
                 onAnswerChange={setAnswer}
               />
             </ScrollView>

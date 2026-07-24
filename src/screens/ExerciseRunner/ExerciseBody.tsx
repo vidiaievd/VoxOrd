@@ -4,7 +4,10 @@ import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
 import type { ExerciseDisplay } from '../../api/types';
+import type { SubmitAttemptResponse } from '../../api/exercises';
 import type { RunnerPhase } from './runnerMachine';
+import { MultipleChoiceBody } from './MultipleChoiceBody';
+import { FillInBlankBody } from './FillInBlankBody';
 
 /**
  * Contract every per-template body implements (Phase 4.2+). A body is a
@@ -20,6 +23,12 @@ export interface ExerciseBodyProps {
   display: ExerciseDisplay;
   phase: RunnerPhase;
   disabled: boolean;
+  /**
+   * The server's verdict once one exists (feedback phase onward), so a body
+   * can highlight correctness inline (e.g. which option/blank was right) the
+   * way QuizExercise/SpellingExercise do. Null while answering/checking.
+   */
+  verdict: SubmitAttemptResponse | null;
   /**
    * @param answer opaque, template-specific payload sent verbatim as
    *   `submittedAnswer`.
@@ -61,8 +70,11 @@ function UnsupportedTemplateBody({ display, onAnswerChange }: ExerciseBodyProps)
  */
 export function ExerciseBody(props: ExerciseBodyProps) {
   switch (props.display.templateCode) {
-    // case 'multiple_choice': return <MultipleChoiceBody {...props} />; // Step 4.2
-    // ...remaining templates land in steps 4.2–4.5.
+    case 'multiple_choice':
+      return <MultipleChoiceBody {...props} />;
+    case 'fill_in_blank':
+      return <FillInBlankBody {...props} />;
+    // ...remaining templates land in steps 4.3–4.5.
     default:
       return <UnsupportedTemplateBody {...props} />;
   }
