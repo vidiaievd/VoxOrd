@@ -75,6 +75,8 @@ export const en: Translations = {
     loginMfaNotSupported: 'This account has two-factor authentication enabled, which is not yet supported on mobile. Please log in on the web instead.',
     noCoursesYet: 'No courses yet',
     noCoursesYetDesc: 'Courses you enroll in will show up here.',
+    loadError: "Couldn't load courses",
+    retry: 'Retry',
   },
   stats: {
     decks: 'Decks',

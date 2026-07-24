@@ -75,11 +75,17 @@ pre-verified answer and the step sets the shape later steps inherit:
 - **Phase 6** (nginx gateway fix + mastery/can-do enrichment) — touches the
   `ssz-platform` infrastructure repo (`nginx.dev.conf` and friends), which
   also serves the web app; changes there have blast radius beyond VoxOrd.
+- **Phase 9** (SRS engine wrapper + FSRS parity, then retire the 6-stage engine
+  and migrate personal words to FSRS) — the wrapper's frozen profile and
+  `profileId` contract must match the server exactly (a mistake quietly desyncs
+  weights), and the phase overrides ground rule #1 and migrates real user data:
+  the highest-blast-radius work in the plan.
 
-Everything else (1.1–1.4 already done, Phase 2, Phase 3, steps 4.2–4.6, most
-of 6, Phase 7) is in Sonnet's range. Re-set the model explicitly before
-starting one of the three items above, and it's fine to drop back to Sonnet
-for the step right after.
+Everything else (1.1–1.4 already done, Phase 2, Phase 3, steps 4.2–4.6, most of
+6, **Phase 8 in full** — course words are a thin client mirroring the web
+contract, no client FSRS — and Phase 7) is in Sonnet's range. Re-set the model
+explicitly before starting an Opus item above, and it's fine to drop back to
+Sonnet for the step right after.
 
 ---
 
@@ -105,16 +111,91 @@ for the step right after.
   cleartext HTTP to the dev gateway requires
   `android:usesCleartextTraffic="true"` or a network security config
   allowing `10.0.2.2` — add this in Phase 1.
-- **Two SRS systems coexist and do not talk to each other** in this
-  iteration. Local word SRS (6-stage) stays; platform FSRS cards are only
-  reviewed through platform endpoints if the user opts in later (Phase 8,
-  optional). Do not attempt to merge or sync them.
+- **Unified word-weight model — FSRS everywhere, authority by word origin**
+  (revised 2026-07-24, supersedes the earlier "two SRS systems never talk"
+  decision). The server is already a per-word FSRS engine
+  (`SrsContentType.VOCABULARY_WORD`, `ts-fsrs`), so word/grammar-rule weight is
+  made consistent across web and mobile instead of kept separate:
+  - **Course words** (materialized from a platform vocabulary list) →
+    **server FSRS is the single source of truth**. Both the web trainer and the
+    mobile course trainer review the *same* server card via
+    `POST /api/v1/srs/cards/:id/review`. Mobile keeps a local replica for
+    offline display and an offline review queue that replays on reconnect; the
+    stored weight always reconciles to the server's returned card.
+  - **Personal words** (the user's own VoxOrd decks, no platform counterpart) →
+    scheduled locally, offline, source of truth on device — but using the *same
+    FSRS engine and card shape* as the server (see Phase 9), so they are
+    sync-ready later.
+  - The self-written 6-stage `SpacedRepetition` is retired in favor of FSRS.
+    `word_mode_strength` survives as a **local-only** exercise-mode picker,
+    decoupled from the authoritative FSRS weight.
+  - Never reconcile a 6-stage weight with an FSRS card for the same word: the
+    engine is chosen once, by origin.
+  - Grammar rules have no per-rule SRS card server-side; their "weight" is the
+    server `mastery` signal (`GET /api/v1/mastery/grammar-rules/:id`) derived
+    from exercise attempts, consistent on both platforms by construction.
+- **SRS engine behind an anti-corruption wrapper — libraries upgrade
+  independently per platform** (see the dedicated section below). Call sites
+  depend on an `SrsEngine` port, never on `ts-fsrs` directly; a frozen parameter
+  profile (explicit `w`, `requestRetention`, `maximumInterval`) removes
+  default-weight drift within an FSRS generation; each stored card carries a
+  `profileId` so a generation change is explicit and migratable, never a silent
+  divergence.
 - **No new heavy libraries.** `fetch` is built into React Native — no axios.
   No state-management library — follow the existing store pattern. The only
   planned new dependencies:
   - `react-native-keychain` (secure refresh-token storage) — Phase 1.
+  - `ts-fsrs` pinned to the **exact** version the server runs (currently
+    `5.4.0`) — the SRS engine, Phases 8–9. Pure TS, zero deps, Hermes-safe
+    (verified: no Node-only APIs in `dist`). Pin exact, not `^`, and keep in
+    lockstep with learning-service.
   - An audio player lib (e.g. `react-native-sound` or
     `react-native-track-player`) — Phase 7 only, decided then with the user.
+
+---
+
+## SRS engine abstraction & FSRS parity (engine parity: mobile ↔ server)
+
+Goal: identical word weight wherever it is *computed*, while letting each side
+upgrade its FSRS library on its own schedule. Only two places run `ts-fsrs` —
+**mobile** (personal offline words) and the **server** (learning-service) — so
+the wrapper and parity concern them. The **web is a pure thin client with no
+`ts-fsrs`**: it only displays server-computed `predicted` labels and posts a
+rating, so it needs no wrapper and no changes for this design. A thin wrapper
+does the decoupling; it does NOT pretend two different FSRS *generations* are
+numerically identical — it makes any such change explicit and safe.
+
+Same three files, mirrored in VoxOrd (`src/srs/`) and the server-side FSRS
+config in learning-service:
+
+- `engine.port.ts` — the stable contract. A domain `SrsCard`
+  (`state, stability, difficulty, dueAt, reps, lapses, elapsedDays,
+  scheduledDays, learningSteps, lastReviewedAt, profileId`), a `Rating`
+  (`AGAIN|HARD|GOOD|EASY`), and `SrsEngine`
+  (`introduce`, `review`, `retrievability`, `predict`). No `ts-fsrs` type leaks
+  through this boundary.
+- `profiles.ts` — the frozen parameter set(s), e.g.
+  `SSZ_FSRS_V1 = { generation: 'fsrs-5', w: [...19 explicit weights...],
+  requestRetention: 0.9, maximumInterval: 365, enableShortTerm: true }`. Shared
+  verbatim with the server (mirror learning-service's FSRS config); explicit
+  `w`, never the library default.
+- `fsrs-adapter.ts` — `FsrsAdapter implements SrsEngine`, constructed from a
+  profile, the ONLY file importing `ts-fsrs`.
+
+Rules:
+- What the wrapper fixes: API/signature changes (fully), default-weight drift
+  within one generation (via explicit `w`). What it does NOT fix: a generation
+  change (FSRS-5 → 6, different formula / `w` length) — that is a new
+  `profileId` and a migration, not a silent swap.
+- Course (`VOCABULARY_WORD`) cards are server-authoritative: the client sends a
+  review *event* (`cardId, rating, reviewedAt`), the server recomputes and
+  returns the card, the client overwrites its replica. So the client's library
+  version never determines stored truth for shared cards.
+- Every persisted card stores `profileId`. A mismatch on read is a signal to
+  recompute/migrate, not to trust the number blindly.
+- Mobile ships the same `ts-fsrs` *exact* version as the server until there is a
+  deliberate reason to diverge; the wrapper exists so that divergence, when it
+  comes, is a one-file change plus a profile bump, not a refactor.
 
 ---
 
@@ -413,9 +494,26 @@ the mobile app never contains answer-checking logic for platform exercises.
   (display only).
 - Lightweight response caching (in-memory + AsyncStorage snapshot) for course
   list / course home so reopening is instant; refetch in background
-  (stale-while-revalidate). No write queueing — mutations remain online-only.
+  (stale-while-revalidate). **Course content is offline-readable** from this
+  cache (lessons, vocab, exercise display — near-immutable, cache aggressively
+  by `contentId + version`).
+- **No write queueing — course mutations remain online-only, with ONE
+  deliberate exception: the SRS review queue (Phase 8).** Lesson/exercise
+  progress stays online-only; SRS reviews are the single mutation where offline
+  capability has real learning value and is safe (queued *events* replayed to
+  the server, which stays authoritative — never a client-computed weight).
 - Global "offline" banner on course screens when requests fail with network
   errors; word tabs unaffected.
+- **Contract recap:** offline-first for personal words; online-first but
+  offline-tolerant (read-cache + review queue) for courses.
+
+### Offline access — future level 2 (not v1)
+The caching above is a *passive* cache ("opens if you were recently there"). A
+later enhancement is an explicit **"Download for offline"** toggle per
+unit/course (Spotify/Netflix-style pinning): pre-fetch all lesson/vocab/exercise
+payloads so the unit is *guaranteed* available offline. It layers on the same
+cache + review queue; add it once the passive path is proven. Not required for
+the first offline iteration.
 
 ## Phase 7 — Media (audio first)
 
@@ -427,14 +525,81 @@ the mobile app never contains answer-checking logic for platform exercises.
 - Video (`LessonVideoCue`, `LessonVideoQuestion`) is explicitly **out of
   scope** for this plan; note it as a follow-up.
 
-## Phase 8 (optional, discuss before starting) — Platform SRS review on mobile
+## Phase 8 — Course word/grammar trainer on mobile (thin client, server-authoritative) — Sonnet
 
-- Read-only first: show due-card counts from `GET /api/v1/srs/...`.
-- Then a review session screen driving platform FSRS cards through the review
-  endpoint (`.../cards/:id/review`), fully server-authoritative.
-- Keep it a separate tab section from local word SRS; never mix queues.
+Turns the platform's existing per-word FSRS into a mobile trainer. The engine
+already exists server-side AND the web trainer (`ssz-platform-web`
+`/student/srs`) is already built as a **thin client** — audited 2026-07-24: the
+web client runs NO `ts-fsrs`, it renders a presentation-shape `SrsCard`
+(`{id, front, back, predicted: {'1'..'4': {label}}}`) and posts a rating. Mobile
+mirrors that contract 1:1, so **no client-side FSRS engine is needed for course
+words** — the wrapper is a Phase 9 concern, not a prerequisite here.
+
+### Step 8.1 — Due list + review session (course words) — Sonnet
+- `src/api/srs.ts`: `getDue()`,
+  `reviewCard(id, {rating, latencyMs, idempotencyKey})`, `getStats()`. Mirror
+  the web BFF contract: `ReviewRating = 1|2|3|4` (AGAIN/HARD/GOOD/EASY),
+  `ReviewRequest = {rating, latencyMs, idempotencyKey}`, and the `SrsCard`
+  presentation shape — copy the types from
+  `ssz-platform-web/src/features/learning/types.ts`. Server owns the weight; the
+  client never computes FSRS for course words.
+- Review screen with the four rating buttons showing the server's `predicted`
+  interval labels, driving `VOCABULARY_WORD` cards via
+  `POST /api/v1/srs/cards/:id/review`. Reuse `QuizExercise`/`MatchingExercise`
+  visual language, not their logic.
+- **Offline review queue** (the deliberate, narrow exception to Phase 6's "no
+  write queueing"): enqueue `{cardId, rating, latencyMs, reviewedAt,
+  idempotencyKey}`, replay on reconnect (single-flight; the server's existing
+  `idempotencyKey` makes replay safe), overwrite the local replica with the
+  server's returned card. Reads (due list, card content) come from the
+  offline-readable content cache. Keep this queue separate from any
+  personal-word state.
+
+### Step 8.2 — Grammar (mastery display only) — Sonnet
+- No grammar *trainer* exists yet — audited 2026-07-24: the web only shows a
+  grammar **mastery %** (skill-index tiles over `/api/v1/mastery/course/:id`),
+  and there is no per-rule SRS card server-side (`SrsContentType` is only
+  `EXERCISE` / `VOCABULARY_WORD`). So mobile mirrors that: surface the mastery
+  signal (`GET /api/v1/mastery/grammar-rules/:id`, needs the gateway blocks from
+  Phase 6), driven by ordinary course exercises. A real per-rule grammar drill
+  is separate future product work on **both** web and mobile — out of scope
+  here.
+- **User test checkpoint:** review a course word on mobile → same due date and
+  state on web; review one on web → reflected on mobile after refresh.
 
 ---
+
+## Phase 9 (heavy — discuss & separate branch) — Retire the 6-stage engine, FSRS for personal words — ⚠️ Opus
+
+⚠️ This phase deliberately **overrides ground rule #1** (do not modify
+`src/db/`, `src/learning-engine/`, `src/repositories/`). It rewrites the local
+word engine and **migrates real user learning data**. Do it on its own branch,
+with a reversible migration and the full Jest suite green before and after.
+
+- **Build the SRS engine wrapper** (`src/srs/`: `engine.port.ts`,
+  `profiles.ts`, `fsrs-adapter.ts`) per the "SRS engine abstraction & FSRS
+  parity" section — this is where `ts-fsrs` first enters the app (course words
+  in Phase 8 need no client FSRS). Mirror the server's frozen profile exactly;
+  unit-test with **golden vectors captured from the server** (a fixed
+  (card, rating, reviewedAt) triple must reproduce the server's card).
+- Replace `SpacedRepetition` (6-stage) with the `FsrsAdapter` for personal
+  (non-course) words, so on-device scheduling uses the same engine and card
+  shape as the server.
+- Migrate `word_progress`: add FSRS columns (`state, stability, difficulty,
+  dueAt, reps, lapses, elapsedDays, scheduledDays, learningSteps,
+  lastReviewedAt, profileId`); seed them from the existing `memoryStage` /
+  strength as a best-effort one-time conversion (document the mapping — it is
+  lossy and one-directional). Keep the old columns until the new path is proven,
+  then drop them in a later migration.
+- Decide the answer→rating input: either map the existing binary
+  correct/incorrect to `AGAIN`/`GOOD` (lossy, no UX change) or add Anki-style
+  `AGAIN/HARD/GOOD/EASY` buttons (better FSRS signal, UX change). Confirm with
+  the user at this step.
+- `word_mode_strength` stays as the local-only exercise-mode picker, untouched.
+- Personal words remain offline-first: no server sync in this phase; the payoff
+  is one engine to maintain and future sync-readiness, not immediate sync.
+- **User test checkpoint:** existing decks keep working; scheduling behaves
+  sensibly for words mid-progress; the migration is reversible.
 
 ## Risks / open questions (track while implementing)
 

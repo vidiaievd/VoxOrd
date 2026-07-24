@@ -78,6 +78,8 @@ export interface Translations {
     loginMfaNotSupported: string;
     noCoursesYet: string;
     noCoursesYetDesc: string;
+    loadError: string;
+    retry: string;
   };
 
   stats: {
