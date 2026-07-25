@@ -232,22 +232,48 @@ sets `app.setGlobalPrefix('api/v1')` so controller `@Controller()` paths map
 | Vocabulary lists | `GET /api/v1/vocabulary-lists`, `GET /api/v1/vocabulary-lists/:listId/items` | content-service |
 | SRS due / review (Phase 8) | `GET /api/v1/srs/...` — check `srs.controller.ts` for exact sub-paths | learning-service |
 
-### ⚠️ Gateway gap found — must be fixed before Phase 6/8 need them
+### Gateway gap — FIXED (2026-07-25, ssz-platform commit `1eea7fa`)
 
-`nginx.dev.conf` (and `nginx.conf`) do **not** proxy these existing
-controllers — calls to them will 404 at the gateway even though the service
-implements them:
+Re-verified against actual source (not this table) via Explore agent before
+touching anything, per the ground rule below. Corrected facts vs. the
+original table above:
 
-- `learning-service`: `@Controller('mastery')` (course/grammar-rule mastery)
-  and `@Controller('can-do/progress')`
-- `content-service`: `@Controller('can-do/descriptors')` and
-  `@Controller('content-relations')` (`ContentRelationController`)
+- `learning-service`: `GET /api/v1/mastery/course/:containerId` (course
+  mastery, the one Phase 6 uses), `GET /api/v1/mastery/grammar-rules/:id`,
+  `GET /api/v1/mastery/content?sourceType=&sourceId=`; `GET/PATCH
+  /api/v1/can-do/progress` — **these were already routed correctly**, the
+  original gap note about `can-do/progress` was wrong.
+- `content-service`: `GET /api/v1/can-do/descriptors[/by-module/:moduleId]`
+  and `GET/POST/DELETE /api/v1/content-relations` — **these were the real
+  gap**: `/api/v1/can-do/descriptors` was silently swallowed by the generic
+  `/api/v1/can-do` block (misrouted to learning-service → 404), and
+  `content-relations` had no block at all.
+- SRS due: `GET /api/v1/srs/due?limit=` returns a bounded **sample**, not a
+  total; `GET /api/v1/srs/stats/me` → `dueNowCount` is the real total due
+  count. Already routed correctly. `ReviewCardDto.contentType` is
+  `'EXERCISE' | 'VOCABULARY_WORD'` (present, contrary to a stale comment
+  found in the web BFF claiming it was dropped).
 
-None of these are needed until **Phase 6** (mastery/can-do enrichment). When
-that phase starts, first add the missing `location` blocks to
-`infrastructure/nginx/nginx.dev.conf` (and prod/us configs, coordinate with
-the user) — this is a platform-repo change, flag it explicitly rather than
-routing around it client-side.
+Fix: added specific `location /api/v1/can-do/descriptors` and `location
+/api/v1/content-relations` blocks (→ content-service) to
+`infrastructure/nginx/nginx.dev.conf` and `nginx.conf`, ahead of the generic
+`/api/v1/can-do` block (nginx picks the longest-prefix match regardless of
+declaration order). **`nginx.prod.conf`/`nginx.us.conf` were NOT touched** —
+user decided (2026-07-25) they're a separate, already-broader staleness
+problem (missing `/srs`, `/mastery`, `/can-do` entirely) not specific to
+Phase 6; revisit separately if mobile ever targets those environments.
+
+Also found and fixed two pre-existing bugs in
+`ssz-platform-web/src/app/api/learning/course-home/[courseId]/route.ts`
+(user approved fixing immediately, commit `a1dc329`): SRS due-count used
+`cards.length` (capped at the default limit) instead of `/srs/stats/me`'s
+`dueNowCount`, and `srsExerciseDue` was hardcoded to `0` instead of reading
+the real `contentType`. Mobile's Phase 6 client must use `/srs/stats/me` for
+the due count, not replicate the old web pattern. Also deleted a dead,
+never-wired-up `/api/learning/can-do` web BFF route that called a
+non-existent upstream path — no working reference implementation for
+hydrated can-do (progress + descriptor text) exists anywhere yet; mobile
+will be the first to build it in Phase 6 below.
 
 If any other needed aggregate has no single gateway endpoint, compose it
 client-side in `src/api/` the way the corresponding web BFF route composes
@@ -527,7 +553,7 @@ the mobile app never contains answer-checking logic for platform exercises.
   tap to expand forms/examples/notes), not web-style flip cards — the list is
   read alongside the lesson text.
 
-### Step 5.1 — Read-only vocabulary list screen — CODE DONE, needs on-device test (2026-07-25)
+### Step 5.1 — Read-only vocabulary list screen — DONE, on-device test passed (2026-07-25)
 `src/api/vocabulary.ts` (reader DTO types + `getVocabularyListReader` + pure
 `parseGrammaticalForms` / `humanizeFormKey` / `formatTranslation`),
 `src/api/vocabulary.test.ts` (17 tests), `src/hooks/useVocabularyList.ts`,
@@ -535,13 +561,33 @@ the mobile app never contains answer-checking logic for platform exercises.
 member `VocabularyList`, `UnitContentsScreen.onVocabularyPress`, i18n keys in
 `en`/`ru`/`uk`. `tsc --noEmit` and Jest at baseline (162 tests green).
 
-### Step 5.2 — "Save to VoxOrd deck" — CODE DONE, needs on-device test (2026-07-25)
+### Step 5.2 — "Save to VoxOrd deck" — DONE, on-device test passed (2026-07-25)
 Files: migration **v8** in `src/db/migrations.ts` (the only edit to a
 ground-rule-#1 directory), `src/repositories/vocabularyImportMapping.ts` (+ 23
 tests), `src/repositories/VocabularyImportRepository.ts`,
 `src/hooks/useVocabularyImport.ts`, footer action in `VocabularyListScreen`,
 `getVocabularyList` in `src/api/vocabulary.ts`, i18n keys. `tsc --noEmit` and
 Jest at baseline (185 tests green).
+
+**Post-device-test fixes (commits `b677b7b`, `626f4c2`, `5a2c176`):**
+- Migration **v9** (repair): devices that ran an intermediate build during
+  this step recorded v8 in `schema_migrations` while its body was still
+  empty — a recorded version never re-runs, so those installs permanently
+  missed the three linkage columns. v9 repeats v8's DDL verbatim,
+  idempotent, to reach them.
+- `unitContents.ts` now normalizes learning-service's UPPERCASE
+  `contentType` wire values to lowercase at the API boundary — the app's UI
+  layer expects content-service's lowercase convention.
+- Home screen was only ever surfacing a single deck via the continue-CTA;
+  added a "My decks" section (`DeckGroupsSection`) showing every
+  `deck_group` including "Courses", so imported lists are actually visible
+  after import — this was needed for the on-device test checklist itself.
+- Added `scripts/start-dev-env.sh` (backend containers → adb reverse →
+  Metro) to make repeat device testing less manual.
+
+**Phase 5 on-device test — PASSED (2026-07-25, confirmed by user):** import,
+"Courses" group on Home, training from the imported deck, re-import without
+resetting progress, old decks untouched.
 
 Migration v8 adds three nullable linkage columns — `decks.platformListId`,
 `words.platformItemId`, `deck_groups.systemKey` — each with a *partial* unique
