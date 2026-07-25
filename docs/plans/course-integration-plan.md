@@ -771,13 +771,89 @@ the first offline iteration.
 
 ## Phase 7 — Media (audio first)
 
-- Decide the audio library with the user (`react-native-track-player` vs
-  simpler). Streaming lesson audio from media-service URLs (check how the web
-  reader obtains signed/proxied media URLs).
-- Listening stages of lessons (model `LessonListeningStage`) — staged
-  listening UI per web reader.
-- Video (`LessonVideoCue`, `LessonVideoQuestion`) is explicitly **out of
-  scope** for this plan; note it as a follow-up.
+### Research findings (2026-07-25, verified against content-service/media-service source)
+
+- **Media asset URLs are just-in-time, not cacheable.** `GET /media/assets/:id`
+  (media-service `AssetsController`) returns `{id, mimeType, url, ...}` — `url`
+  is a stable direct URL for public assets, or a **pre-signed MinIO URL with a
+  1h TTL** for private ones. No CDN/signed-cookie mechanism exists (confirmed
+  MinIO backend). Gateway: single `location /api/v1/media` prefix block
+  (nginx.dev.conf), no separate byte-streaming route — once the presigned URL
+  is returned, the actual audio bytes are fetched directly from MinIO,
+  bypassing the gateway. No auth header is needed to play the URL itself
+  (the signature is in the query string), only to call `/media/assets/:id`.
+- **AUDIO-kind lesson content does NOT use a `[audio:id]` markdown token** —
+  that token only exists in the raw `LessonContentVariant.bodyMarkdown` the
+  web authoring UI edits (and which the web *reader*'s `listening-lesson-page.tsx`
+  happens to parse, via a different endpoint than mobile uses). For the
+  `/lessons/:id/reader` endpoint mobile already calls,
+  `get-lesson-reader-content.handler.ts` resolves an AUDIO-kind lesson's
+  narration media id directly into `mediaIds` (from `lesson_variant_media_ref`
+  rows) and its script into `transcript` — no client-side token parsing
+  needed. `listeningStages: {position, stageType, exercise}[]` carries the
+  gap-fill/comprehension exercises, `stageType` being an open string
+  (`gap_fill` / `comprehension` seen in practice).
+
+### Decisions taken with the user (2026-07-25)
+
+- **Audio library: `react-native-sound` ^0.13.0`, not `react-native-track-player`** —
+  narration/listening-stage playback is foreground-only in this MVP (no
+  lock-screen/background controls needed), so the heavier library's
+  playback-service registration and notification setup would be pure
+  overhead. Installed by the user; VoxOrd commit `3af6635`.
+- **Gap-fill/comprehension stages reuse the existing per-item exercise runner**
+  (`useExerciseRunner` + the already-built `fill_in_blank`/`multiple_choice`
+  bodies from Phase 4), one exercise at a time with server-side grading —
+  **not** the web reader's UX (fill every blank, "Check answers" once for the
+  whole stage, graded client-side against a fetched answer key). VoxOrd never
+  grades client-side (see `src/api/exercises.ts`'s architecture note), and
+  this reuse needed zero new grading logic. Confirmed acceptable scope
+  reduction: no bespoke batch-checkable UI to build.
+
+### Step 7.1 — Media asset API + AUDIO reader fields — DONE (2026-07-25, VoxOrd `8190ec4`)
+`src/api/media.ts` (`getMediaAsset`), and `LessonReaderContent` (src/api/lessons.ts)
+extended with `mediaIds`, `transcript`, `listeningStages` (+ `ListeningStage`/
+`ListeningStageExercise` types).
+
+### Step 7.2 — Install `react-native-sound` — DONE (2026-07-25, VoxOrd `3af6635`)
+
+### Step 7.3 — AUDIO-kind lesson screen — DONE (2026-07-25, VoxOrd `9b787d7`)
+Pure logic first (commit `9e16574`): `groupListeningStages` (splits
+`listeningStages` into ordered gap-fill/comprehension exercise id lists,
+dropping exercise-less stages) and `nextAudioLessonStage` (listen → gapfill →
+comprehension → done, skipping empty stages) — both unit-tested
+(`src/screens/LessonReaderScreen/listening/listeningStages.ts`).
+
+Then the screen: `src/hooks/useAudioPlayer.ts` (wraps `react-native-sound`,
+resolves the playback URL just-in-time per the 1h-TTL finding above, one
+`Sound` instance per `mediaId`) and
+`src/screens/LessonReaderScreen/{AudioLessonView.tsx,listening/*}` — `ListenStage`
+(narration, no transcript shown), `ExerciseStage` (shared by gapfill/
+comprehension, wraps `useExerciseRunner`), `DoneStage` (reuses
+`useMarkLessonRead`, already generic across lesson kinds — no new completion
+logic needed, so there was no separate "step 4" to do), `StageTracker` (shows
+only stages that exist). `LessonReaderScreen` now dispatches to
+`AudioLessonView` for `kind === 'audio'`; video/live remain unsupported.
+New `audioLesson` i18n namespace (en/ru/uk).
+
+`tsc --noEmit` and Jest confirmed at baseline (215 green — 206 + 9 new
+`listeningStages` tests — only the environmental `App.test.tsx` suite
+failing). No component/hook tests for the new screen or the audio player
+hook, per the established convention (manual on-device testing only); the
+hook also wraps a native module, which isn't practical to unit-test here.
+
+**User test checkpoint (not yet run):** open an AUDIO-kind lesson (a seeded
+course needs one — confirm one exists or seed a small test lesson first),
+play the narration, complete a gap-fill exercise and a comprehension
+exercise (verify Check hits the server and posts progress, matching Phase 4
+behavior), reach the done screen, confirm lesson completion is visible on
+web afterward. **Native module — needs a rebuild, not just a Metro reload**
+(`cd android && ./gradlew ...` / a fresh `npx react-native run-android`; iOS
+would need `pod install` first, not applicable on this Android-only dev
+setup so far).
+
+Video (`LessonVideoCue`, `LessonVideoQuestion`) remains explicitly **out of
+scope** for this plan; note it as a follow-up.
 
 ## Phase 8 — Course word/grammar trainer on mobile (thin client, server-authoritative) — Sonnet
 
