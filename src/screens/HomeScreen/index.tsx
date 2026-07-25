@@ -14,6 +14,7 @@ import { ContinueLearningCard } from './components/ContinueLearningCard';
 import { DailyTrainingSection } from './components/DailyTrainingSection';
 import { ProgressSection } from './components/ProgressSection';
 import { TopicsSection } from './components/TopicsSection';
+import { DeckGroupsSection } from './components/DeckGroupsSection';
 import { AIPracticeCard } from './components/AIPracticeCard';
 import { useHomeData } from '../../hooks/useHomeData';
 import { TrainingMode, Topic } from './types';
@@ -176,6 +177,11 @@ export function HomeScreen({ onDeckPress, onModePress }: HomeScreenProps) {
         {topics.length > 0 && (
           <TopicsSection title="Emner" topics={topics} onPress={handleTopic} />
         )}
+
+        <DeckGroupsSection
+          groups={data?.deckGroups ?? []}
+          onDeckPress={onDeckPress}
+        />
 
         <AIPracticeCard
           title="AI Practice"

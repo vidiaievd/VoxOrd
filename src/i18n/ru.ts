@@ -10,6 +10,8 @@ export const ru: Translations = {
     appSubtitle: 'Norsk ordbok',
     learned: 'изучено',
     wordCount: '{learned}/{total} изучено',
+    myDecks: 'Мои наборы',
+    deckWords: '{count} слов',
   },
   deckCard: {
     new: 'новых',

@@ -1,6 +1,7 @@
 import { userRepository }     from './UserRepository';
 import { activityRepository } from './ActivityRepository';
 import { deckRepository }     from './DeckRepository';
+import type { DeckGroup }     from './DeckRepository';
 import { statsRepository }    from './StatsRepository';
 
 export interface HomeScreenData {
@@ -29,6 +30,8 @@ export interface HomeScreenData {
     totalWords:   number;
     learnedWords: number;
   };
+  /** All deck groups with their decks — the "my decks" section. */
+  deckGroups: DeckGroup[];
 }
 
 class HomeRepository {
@@ -48,6 +51,10 @@ class HomeRepository {
       deckRepository.getAll(),
       statsRepository.getGlobalStats(),
     ]);
+
+    // Reuses the decks already loaded above — `getAllGrouped()` would
+    // otherwise re-run the same aggregate query.
+    const deckGroups = await deckRepository.getAllGrouped(decks);
 
     // Find the last active deck for CTA on home screen
     const activeDeck = decks.find((d) => d.status === 'in_progress')
@@ -83,6 +90,7 @@ class HomeRepository {
         totalWords:   globalStats.totalWords,
         learnedWords: globalStats.learnedWords,
       },
+      deckGroups,
     };
   }
 }

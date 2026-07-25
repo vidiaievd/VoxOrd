@@ -9,6 +9,8 @@ export interface Translations {
     appSubtitle: string;
     learned: string;
     wordCount: string; // '{learned}/{total} learned'
+    myDecks: string;
+    deckWords: string; // '{count} words'
   };
 
   deckCard: {
