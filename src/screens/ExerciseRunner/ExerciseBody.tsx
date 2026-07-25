@@ -12,6 +12,7 @@ import { TranslateBody } from './TranslateBody';
 import { MatchPairsBody } from './MatchPairsBody';
 import { SentenceSchemaBody } from './SentenceSchemaBody';
 import { ShortAnswerBody } from './ShortAnswerBody';
+import { WritingTaskBody } from './WritingTaskBody';
 
 /**
  * Contract every per-template body implements (Phase 4.2+). A body is a
@@ -69,8 +70,8 @@ function UnsupportedTemplateBody({ display, onAnswerChange }: ExerciseBodyProps)
 /**
  * Dispatches to the body component for a template. Steps 4.2–4.5 add cases
  * here (multiple_choice, fill_in_blank, translate_*, match_pairs,
- * short_answer, sentence_schema, writing_task); everything else falls through
- * to the placeholder.
+ * sentence_schema, short_answer, writing_task); everything else falls
+ * through to the placeholder.
  */
 export function ExerciseBody(props: ExerciseBodyProps) {
   switch (props.display.templateCode) {
@@ -87,7 +88,8 @@ export function ExerciseBody(props: ExerciseBodyProps) {
       return <SentenceSchemaBody {...props} />;
     case 'short_answer':
       return <ShortAnswerBody {...props} />;
-    // writing_task lands in step 4.5.
+    case 'writing_task':
+      return <WritingTaskBody {...props} />;
     default:
       return <UnsupportedTemplateBody {...props} />;
   }

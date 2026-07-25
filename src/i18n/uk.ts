@@ -126,6 +126,8 @@ export const uk: Translations = {
     sentenceSchemaHint: 'Торкніться слова, потім поля, щоб розмістити його там',
     shortAnswerPlaceholder: 'Введіть відповідь…',
     modelAnswer: 'Зразок відповіді',
+    writingTaskPlaceholder: 'Напишіть текст…',
+    writingTaskWordCount: '{count} слів (мін {min} — макс {max})',
   },
   stats: {
     decks: 'Наборів',

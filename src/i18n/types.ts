@@ -133,6 +133,8 @@ export interface Translations {
     sentenceSchemaHint: string;
     shortAnswerPlaceholder: string;
     modelAnswer: string;
+    writingTaskPlaceholder: string;
+    writingTaskWordCount: string; // '{count}', '{min}', '{max}'
   };
 
   stats: {

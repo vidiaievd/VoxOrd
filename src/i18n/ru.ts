@@ -126,6 +126,8 @@ export const ru: Translations = {
     sentenceSchemaHint: 'Нажмите на слово, затем на поле, чтобы поместить его туда',
     shortAnswerPlaceholder: 'Введите ответ…',
     modelAnswer: 'Образец ответа',
+    writingTaskPlaceholder: 'Напишите текст…',
+    writingTaskWordCount: '{count} слов (мин {min} — макс {max})',
   },
   stats: {
     decks: 'Наборов',

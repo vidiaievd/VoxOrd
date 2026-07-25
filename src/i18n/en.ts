@@ -126,6 +126,8 @@ export const en: Translations = {
     sentenceSchemaHint: 'Tap a word, then tap a field to place it',
     shortAnswerPlaceholder: 'Type your answer…',
     modelAnswer: 'Model answer',
+    writingTaskPlaceholder: 'Write your text…',
+    writingTaskWordCount: '{count} words (min {min} — max {max})',
   },
   stats: {
     decks: 'Decks',
