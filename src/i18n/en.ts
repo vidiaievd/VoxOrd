@@ -123,6 +123,7 @@ export const en: Translations = {
     translateToTargetLabel: 'Translate into {language}',
     translateFromTargetLabel: 'Translate from {language}',
     translatePlaceholder: 'Type your translation…',
+    sentenceSchemaHint: 'Tap a word, then tap a field to place it',
   },
   stats: {
     decks: 'Decks',

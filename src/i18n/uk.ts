@@ -123,6 +123,7 @@ export const uk: Translations = {
     translateToTargetLabel: 'Перекладіть на {language}',
     translateFromTargetLabel: 'Перекладіть з {language}',
     translatePlaceholder: 'Введіть переклад…',
+    sentenceSchemaHint: 'Торкніться слова, потім поля, щоб розмістити його там',
   },
   stats: {
     decks: 'Наборів',

@@ -130,6 +130,7 @@ export interface Translations {
     translateToTargetLabel: string; // '{language}'
     translateFromTargetLabel: string; // '{language}'
     translatePlaceholder: string;
+    sentenceSchemaHint: string;
   };
 
   stats: {
