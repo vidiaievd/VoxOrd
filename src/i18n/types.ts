@@ -90,6 +90,14 @@ export interface Translations {
     statusDone: string;
     statusActive: string;
     statusLocked: string;
+    mastery: string;
+    skillVocabulary: string;
+    skillGrammar: string;
+    skillReading: string;
+    skillListening: string;
+    skillSpeaking: string;
+    skillWriting: string;
+    reviewsDue: string; // '{count} reviews due'
   };
 
   unitContents: {

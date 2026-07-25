@@ -271,8 +271,6 @@ export interface ProgressRecord {
 export interface SkillMastery {
   skill: string;
   masteryPercent: number;
-  successCount: number;
-  attemptCount: number;
 }
 
 export interface CourseMastery {

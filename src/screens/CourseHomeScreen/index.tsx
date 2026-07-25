@@ -14,6 +14,7 @@ import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
 import { useCourseHome } from '../../hooks/useCourseHome';
 import { UnitRow } from './UnitRow';
+import { CourseStatsSection } from './CourseStatsSection';
 import type { UnitSummary } from '../../api/types';
 
 interface CourseHomeScreenProps {
@@ -74,6 +75,9 @@ export function CourseHomeScreen({ courseId, onBack, onUnitPress }: CourseHomeSc
           data={data.units}
           keyExtractor={(unit: UnitSummary) => unit.id}
           renderItem={({ item }) => <UnitRow unit={item} onPress={() => onUnitPress(item.id)} />}
+          ListHeaderComponent={
+            <CourseStatsSection mastery={data.mastery} srsDueCount={data.srsDueCount} />
+          }
           contentContainerStyle={styles.list}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />
