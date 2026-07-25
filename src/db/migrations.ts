@@ -314,6 +314,38 @@ export const migrations: Migration[] = [
     `);
     },
   },
+  {
+    version: 9,
+    up: async db => {
+      // Repair migration — intentionally repeats v8's DDL verbatim.
+      //
+      // Devices that launched an intermediate build during Step 5.2 recorded
+      // v8 in schema_migrations while its body was still empty, so none of the
+      // three linkage columns exist there. A recorded version never re-runs,
+      // which left those installs permanently broken ("no such column:
+      // systemKey" on the first vocabulary import). Repeating the DDL under a
+      // new version is the only way to reach them.
+      //
+      // Every statement is idempotent, so this is a no-op on installs where v8
+      // applied correctly.
+      await addColumnIfMissing(db, 'decks', 'platformListId', 'TEXT');
+      await addColumnIfMissing(db, 'words', 'platformItemId', 'TEXT');
+      await addColumnIfMissing(db, 'deck_groups', 'systemKey', 'TEXT');
+
+      await db.execute(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_decks_platform_list
+        ON decks(platformListId) WHERE platformListId IS NOT NULL;
+    `);
+      await db.execute(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_words_platform_item
+        ON words(platformItemId) WHERE platformItemId IS NOT NULL;
+    `);
+      await db.execute(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_deck_groups_system_key
+        ON deck_groups(systemKey) WHERE systemKey IS NOT NULL;
+    `);
+    },
+  },
 ];
 
 async function addColumnIfMissing(

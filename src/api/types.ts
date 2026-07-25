@@ -299,9 +299,21 @@ export interface CanDoResponse {
 
 export type UnitContentsItemStatus = 'locked' | 'available' | 'in_progress' | 'completed';
 
+/**
+ * Normalized (lowercase) content type used across the app's UI layer.
+ * The wire value from learning-service is UPPERCASE — see
+ * `normalizeContentType` in `unitContents.ts`, which converts at the boundary.
+ */
+export type UnitContentsItemType =
+  | 'container'
+  | 'lesson'
+  | 'vocabulary_list'
+  | 'grammar_rule'
+  | 'exercise';
+
 export interface UnitContentsItem {
   id: string;
-  contentType: string;
+  contentType: UnitContentsItemType;
   contentId: string;
   title: string | null;
   lessonKind: string | null;
