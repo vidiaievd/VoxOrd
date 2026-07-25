@@ -124,6 +124,8 @@ export const ru: Translations = {
     translateFromTargetLabel: 'Переведите с {language}',
     translatePlaceholder: 'Введите перевод…',
     sentenceSchemaHint: 'Нажмите на слово, затем на поле, чтобы поместить его туда',
+    shortAnswerPlaceholder: 'Введите ответ…',
+    modelAnswer: 'Образец ответа',
   },
   stats: {
     decks: 'Наборов',

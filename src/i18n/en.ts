@@ -124,6 +124,8 @@ export const en: Translations = {
     translateFromTargetLabel: 'Translate from {language}',
     translatePlaceholder: 'Type your translation…',
     sentenceSchemaHint: 'Tap a word, then tap a field to place it',
+    shortAnswerPlaceholder: 'Type your answer…',
+    modelAnswer: 'Model answer',
   },
   stats: {
     decks: 'Decks',

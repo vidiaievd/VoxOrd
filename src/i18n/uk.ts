@@ -124,6 +124,8 @@ export const uk: Translations = {
     translateFromTargetLabel: 'Перекладіть з {language}',
     translatePlaceholder: 'Введіть переклад…',
     sentenceSchemaHint: 'Торкніться слова, потім поля, щоб розмістити його там',
+    shortAnswerPlaceholder: 'Введіть відповідь…',
+    modelAnswer: 'Зразок відповіді',
   },
   stats: {
     decks: 'Наборів',

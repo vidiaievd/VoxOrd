@@ -11,6 +11,7 @@ import { FillInBlankBody } from './FillInBlankBody';
 import { TranslateBody } from './TranslateBody';
 import { MatchPairsBody } from './MatchPairsBody';
 import { SentenceSchemaBody } from './SentenceSchemaBody';
+import { ShortAnswerBody } from './ShortAnswerBody';
 
 /**
  * Contract every per-template body implements (Phase 4.2+). A body is a
@@ -84,13 +85,8 @@ export function ExerciseBody(props: ExerciseBodyProps) {
       return <MatchPairsBody {...props} />;
     case 'sentence_schema':
       return <SentenceSchemaBody {...props} />;
-    // short_answer is blocked on a confirmed platform bug (content-service's
-    // seeded answerSchema for this template requires `reference_answer`,
-    // which describes the AUTHOR's expected-answer shape — the same schema
-    // object exercise-engine-service uses to validate the STUDENT's
-    // submittedAnswer, which the ShortAnswerValidator expects as `{ text }`.
-    // A real submission fails AJV before the validator ever runs. Needs a
-    // platform-repo fix (see project notes), not a client-side workaround.
+    case 'short_answer':
+      return <ShortAnswerBody {...props} />;
     // writing_task lands in step 4.5.
     default:
       return <UnsupportedTemplateBody {...props} />;

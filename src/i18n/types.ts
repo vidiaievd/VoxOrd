@@ -131,6 +131,8 @@ export interface Translations {
     translateFromTargetLabel: string; // '{language}'
     translatePlaceholder: string;
     sentenceSchemaHint: string;
+    shortAnswerPlaceholder: string;
+    modelAnswer: string;
   };
 
   stats: {
