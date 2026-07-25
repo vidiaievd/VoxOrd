@@ -5,6 +5,13 @@ import {
   submitAttempt,
 } from '../api/exercises';
 import { buildExerciseCompletionRequest, upsertProgress } from '../api/progress';
+import type { ExerciseDisplay } from '../api/types';
+import {
+  getMemoryCache,
+  readCacheSnapshot,
+  setMemoryCache,
+  writeCacheSnapshot,
+} from '../lib/swrCache';
 import {
   currentExerciseId,
   initRunnerState,
@@ -73,10 +80,17 @@ export function useExerciseRunner(
   }, []);
 
   // Load the current item's display whenever we enter the 'loading' phase.
+  // Phase 6 open item: display content is near-immutable, so a cached copy
+  // (memory, then the AsyncStorage snapshot) is an acceptable fallback for
+  // offline reading — but unlike course home/lesson reader this does NOT
+  // paint the cache first, since Check/submit still needs the network
+  // regardless, so there's no benefit to showing cached content ahead of a
+  // fast successful fetch.
   useEffect(() => {
     if (state.phase !== 'loading') return;
     const exerciseId = currentExerciseId(state);
     if (!exerciseId) return;
+    const cacheKey = `exercise-display:${exerciseId}:${uiLanguage}`;
 
     let cancelled = false;
     (async () => {
@@ -84,9 +98,19 @@ export function useExerciseRunner(
         const display = await getExerciseDisplay(exerciseId, uiLanguage);
         if (cancelled || !mounted.current) return;
         answeringStartedAtRef.current = Date.now();
+        setMemoryCache(cacheKey, display);
+        void writeCacheSnapshot(cacheKey, display);
         dispatch({ type: 'LOAD_SUCCESS', display });
       } catch (e) {
         if (cancelled || !mounted.current) return;
+        const cached =
+          getMemoryCache<ExerciseDisplay>(cacheKey) ?? (await readCacheSnapshot<ExerciseDisplay>(cacheKey));
+        if (cancelled || !mounted.current) return;
+        if (cached) {
+          answeringStartedAtRef.current = Date.now();
+          dispatch({ type: 'LOAD_SUCCESS', display: cached });
+          return;
+        }
         dispatch({ type: 'LOAD_FAILURE', message: errorMessage(e) });
       }
     })();
