@@ -711,6 +711,24 @@ scoped out of 6.2, see the open item below.
 `CoursesScreen` when a background refresh fails with a network error while
 `stale` cached data is still on screen. Word/deck tabs untouched.
 
+**On-device test — PASSED (2026-07-25, user-confirmed).** Mastery bars +
+reviews-due visible on Course Home; leaving and reopening Course Home /
+Courses list is instant; toggling Wi-Fi off then reopening Course Home shows
+the cached units/mastery plus the offline banner. Also confirmed: opening
+actual lesson **text** while offline still fails — expected, that screen has
+no cache yet (see the open item right below; not a bug in 6.1–6.3's scope).
+
+**Wireless-adb gotcha found during this test, not an app bug:** `adb
+reverse` tunnels (`tcp:80`, `tcp:8081`) die whenever the Wi-Fi transport
+drops and do **not** come back automatically when Wi-Fi reconnects — the
+device reappears in `adb devices` but `adb reverse --list` comes back
+empty, so the app can't reach the gateway even though Wi-Fi is back, and it
+looks identical to a real backend outage. Fix each time: re-run `adb
+reverse tcp:80 tcp:80 && adb reverse tcp:8081 tcp:8081` (or just re-run
+`scripts/start-dev-env.sh`, which now does this automatically — see its
+2026-07-25 Wi-Fi-reconnect update) after every Wi-Fi off/on cycle during
+device testing.
+
 ### Open item — course-content offline cache (lesson/vocab/exercise, by contentId+version)
 Not yet built. `src/api/lessons.ts` (`getLessonReaderContent`),
 `src/api/vocabulary.ts` (`getVocabularyListReader`, `getVocabularyList` —
