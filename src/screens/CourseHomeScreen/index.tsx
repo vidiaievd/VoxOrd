@@ -15,6 +15,8 @@ import { ColorScheme } from '../../theme/colors';
 import { useCourseHome } from '../../hooks/useCourseHome';
 import { UnitRow } from './UnitRow';
 import { CourseStatsSection } from './CourseStatsSection';
+import { OfflineBanner } from '../../components/OfflineBanner';
+import { isNetworkError } from '../../api/isNetworkError';
 import type { UnitSummary } from '../../api/types';
 
 interface CourseHomeScreenProps {
@@ -27,7 +29,7 @@ export function CourseHomeScreen({ courseId, onBack, onUnitPress }: CourseHomeSc
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const { status, data, error, refreshing, refresh } = useCourseHome(courseId);
+  const { status, data, error, refreshing, stale, refresh } = useCourseHome(courseId);
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -47,6 +49,8 @@ export function CourseHomeScreen({ courseId, onBack, onUnitPress }: CourseHomeSc
           )}
         </View>
       </View>
+
+      {stale && isNetworkError(error) && <OfflineBanner />}
 
       {status === 'loading' && (
         <View style={styles.centerFill}>

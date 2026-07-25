@@ -205,5 +205,6 @@ export interface Translations {
     cancel: string;
     save: string;
     close: string;
+    offline: string;
   };
 }

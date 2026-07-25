@@ -196,5 +196,6 @@ export const ru: Translations = {
     cancel: 'Отмена',
     save: 'Сохранить',
     close: 'Закрыть',
+    offline: 'Нет соединения — показаны сохранённые данные',
   },
 };

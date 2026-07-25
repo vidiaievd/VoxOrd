@@ -196,5 +196,6 @@ export const en: Translations = {
     cancel: 'Cancel',
     save: 'Save',
     close: 'Close',
+    offline: "You're offline — showing saved data",
   },
 };

@@ -196,5 +196,6 @@ export const uk: Translations = {
     cancel: 'Скасувати',
     save: 'Зберегти',
     close: 'Закрити',
+    offline: "Немає з'єднання — показано збережені дані",
   },
 };
