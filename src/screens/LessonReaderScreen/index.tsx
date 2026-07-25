@@ -15,6 +15,7 @@ import { useLessonReader } from '../../hooks/useLessonReader';
 import { useMarkLessonRead } from '../../hooks/useMarkLessonRead';
 import { buildGlossaryIndex } from '../../utils/tokenizeGlossary';
 import { ParagraphView } from './ParagraphView';
+import { AudioLessonView } from './AudioLessonView';
 
 interface LessonReaderScreenProps {
   lessonId: string;
@@ -65,10 +66,14 @@ export function LessonReaderScreen({ lessonId, courseId, onBack }: LessonReaderS
         </View>
       )}
 
-      {status === 'loaded' && data && data.kind !== 'text' && (
+      {status === 'loaded' && data && data.kind !== 'text' && data.kind !== 'audio' && (
         <View style={styles.centerFill}>
           <Text style={styles.emptyTitle}>{t('lessonReader.unsupportedKind')}</Text>
         </View>
+      )}
+
+      {status === 'loaded' && data && data.kind === 'audio' && (
+        <AudioLessonView lessonId={lessonId} data={data} onFinished={onBack} />
       )}
 
       {status === 'loaded' && data && data.kind === 'text' && (

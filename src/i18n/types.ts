@@ -193,6 +193,23 @@ export interface Translations {
     resultsNeedsReview: string;
   };
 
+  audioLesson: {
+    stageListen: string;
+    stageGapFill: string;
+    stageComprehension: string;
+    listenHeading: string;
+    listenBody: string;
+    listenCta: string;
+    playError: string;
+    gapFillHeading: string;
+    gapFillBody: string;
+    comprehensionHeading: string;
+    comprehensionBody: string;
+    doneTitle: string;
+    doneBody: string;
+    doneCta: string;
+  };
+
   stats: {
     decks: string;
     words: string;
