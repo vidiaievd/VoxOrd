@@ -1,5 +1,7 @@
 import { apiClient } from './client';
 
+const VOCABULARY_LIST_PATH = (listId: string) => `/api/v1/vocabulary-lists/${listId}`;
+
 const VOCABULARY_LIST_READER_PATH = (listId: string) =>
   `/api/v1/vocabulary-lists/${listId}/reader`;
 
@@ -74,6 +76,26 @@ export interface VocabularyListReaderContent {
   id: string;
   title: string;
   items: VocabularyItemDisplay[];
+}
+
+/**
+ * `GET /vocabulary-lists/:listId` — list metadata. The reader endpoint returns
+ * only `{id, title, items}`, so the language and CEFR level a local deck needs
+ * come from here. Only the fields VoxOrd uses are modeled; ownership,
+ * visibility and media fields exist on the wire and are ignored.
+ */
+export interface VocabularyListSummary {
+  id: string;
+  slug: string | null;
+  title: string;
+  description: string | null;
+  targetLanguage: string;
+  difficultyLevel: string;
+  createdAt: string;
+}
+
+export async function getVocabularyList(listId: string): Promise<VocabularyListSummary> {
+  return apiClient.get<VocabularyListSummary>(VOCABULARY_LIST_PATH(listId));
 }
 
 export interface VocabularyReaderQuery {

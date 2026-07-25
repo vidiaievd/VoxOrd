@@ -133,6 +133,16 @@ export interface Translations {
     posParticle: string;
     posPhrase: string;
     posOther: string;
+    saveToDeck: string;
+    updateDeck: string;
+    updateDeckTitle: string;
+    updateDeckMessage: string;
+    updateDeckConfirm: string;
+    importDone: string; // '{imported} added, {updated} updated'
+    importRemoved: string; // '{removed} removed'
+    importSkipped: string; // '{skipped} without translation'
+    importError: string;
+    coursesGroup: string;
   };
 
   exerciseRunner: {

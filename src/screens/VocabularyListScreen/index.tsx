@@ -13,8 +13,10 @@ import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
 import { useVocabularyList } from '../../hooks/useVocabularyList';
+import { useVocabularyImport } from '../../hooks/useVocabularyImport';
+import { useModal } from '../../providers/ModalProvider';
 import { VocabularyItemRow } from './VocabularyItemRow';
-import type { VocabularyItemDisplay } from '../../api/vocabulary';
+import type { VocabularyItemDisplay, VocabularyListReaderContent } from '../../api/vocabulary';
 
 interface VocabularyListScreenProps {
   listId: string;
@@ -27,12 +29,37 @@ export function VocabularyListScreen({ listId, onBack }: VocabularyListScreenPro
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const { status, data, error, refreshing, refresh } = useVocabularyList(listId);
+  const importer = useVocabularyImport(listId);
+  const { show, hide } = useModal();
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // Accordion: at most one item open at a time, so a long list stays scannable.
   const toggle = useCallback((itemId: string) => {
     setExpandedId((current) => (current === itemId ? null : itemId));
   }, []);
+
+  const handleImport = useCallback(
+    (reader: VocabularyListReaderContent) => {
+      // A re-import re-syncs the deck to the list, which can also drop words the
+      // authors removed upstream — worth confirming, unlike a first import.
+      if (importer.alreadyImported) {
+        show({
+          type: 'confirm',
+          title: t('vocabulary.updateDeckTitle'),
+          message: t('vocabulary.updateDeckMessage'),
+          confirmLabel: t('vocabulary.updateDeckConfirm'),
+          cancelLabel: t('common.cancel'),
+          onConfirm: () => {
+            hide();
+            void importer.run(reader, t('vocabulary.coursesGroup'));
+          },
+        });
+        return;
+      }
+      void importer.run(reader, t('vocabulary.coursesGroup'));
+    },
+    [importer, show, hide, t],
+  );
 
   const items = data?.items ?? [];
 
@@ -88,6 +115,45 @@ export function VocabularyListScreen({ listId, onBack }: VocabularyListScreenPro
             <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />
           }
         />
+      )}
+
+      {status === 'loaded' && items.length > 0 && data !== null && (
+        <View style={styles.footer}>
+          {importer.status === 'done' && importer.result !== null && (
+            <Text style={styles.footerNote}>
+              {t('vocabulary.importDone', {
+                imported: importer.result.imported,
+                updated: importer.result.updated,
+              })}
+              {importer.result.removed > 0 &&
+                ` · ${t('vocabulary.importRemoved', { removed: importer.result.removed })}`}
+              {importer.result.skippedNoTranslation > 0 &&
+                ` · ${t('vocabulary.importSkipped', {
+                  skipped: importer.result.skippedNoTranslation,
+                })}`}
+            </Text>
+          )}
+          {importer.status === 'error' && (
+            <Text style={styles.footerError}>
+              {t('vocabulary.importError')}
+              {importer.error ? ` ${importer.error.message}` : ''}
+            </Text>
+          )}
+          <TouchableOpacity
+            style={[styles.saveButton, importer.status === 'running' && styles.saveButtonBusy]}
+            onPress={() => handleImport(data)}
+            disabled={importer.status === 'running'}
+            activeOpacity={0.85}
+          >
+            {importer.status === 'running' ? (
+              <ActivityIndicator color={colors.textInverted} />
+            ) : (
+              <Text style={styles.saveButtonText}>
+                {importer.alreadyImported ? t('vocabulary.updateDeck') : t('vocabulary.saveToDeck')}
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
       )}
     </SafeAreaView>
   );
@@ -162,5 +228,41 @@ const makeStyles = (colors: ColorScheme) =>
     list: {
       paddingTop: 12,
       paddingBottom: 24,
+    },
+    footer: {
+      paddingHorizontal: 16,
+      paddingTop: 10,
+      paddingBottom: 12,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      backgroundColor: colors.background,
+    },
+    footerNote: {
+      fontSize: 12,
+      color: colors.textMuted,
+      marginBottom: 8,
+      textAlign: 'center',
+    },
+    footerError: {
+      fontSize: 12,
+      color: colors.danger,
+      marginBottom: 8,
+      textAlign: 'center',
+    },
+    saveButton: {
+      minHeight: 46,
+      borderRadius: 14,
+      backgroundColor: colors.accent,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 16,
+    },
+    saveButtonBusy: {
+      opacity: 0.7,
+    },
+    saveButtonText: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: colors.textInverted,
     },
   });

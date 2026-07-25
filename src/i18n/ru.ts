@@ -126,6 +126,17 @@ export const ru: Translations = {
     posParticle: 'частица',
     posPhrase: 'фраза',
     posOther: 'прочее',
+    saveToDeck: 'Сохранить в колоду VoxOrd',
+    updateDeck: 'Обновить колоду VoxOrd',
+    updateDeckTitle: 'Обновить колоду?',
+    updateDeckMessage:
+      'Колода будет пересобрана по этому списку. Слова, удалённые из курса, исчезнут и из колоды; прогресс по остальным словам сохранится.',
+    updateDeckConfirm: 'Обновить',
+    importDone: 'Добавлено: {imported}, обновлено: {updated}',
+    importRemoved: 'удалено: {removed}',
+    importSkipped: 'без перевода: {skipped}',
+    importError: 'Не удалось сохранить колоду.',
+    coursesGroup: 'Курсы',
   },
   exerciseRunner: {
     loadError: 'Не удалось загрузить упражнение',

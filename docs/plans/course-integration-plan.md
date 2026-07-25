@@ -535,7 +535,48 @@ the mobile app never contains answer-checking logic for platform exercises.
 member `VocabularyList`, `UnitContentsScreen.onVocabularyPress`, i18n keys in
 `en`/`ru`/`uk`. `tsc --noEmit` and Jest at baseline (162 tests green).
 
-### Step 5.2 — "Save to VoxOrd deck" (import into the local DB)
+### Step 5.2 — "Save to VoxOrd deck" — CODE DONE, needs on-device test (2026-07-25)
+Files: migration **v8** in `src/db/migrations.ts` (the only edit to a
+ground-rule-#1 directory), `src/repositories/vocabularyImportMapping.ts` (+ 23
+tests), `src/repositories/VocabularyImportRepository.ts`,
+`src/hooks/useVocabularyImport.ts`, footer action in `VocabularyListScreen`,
+`getVocabularyList` in `src/api/vocabulary.ts`, i18n keys. `tsc --noEmit` and
+Jest at baseline (185 tests green).
+
+Migration v8 adds three nullable linkage columns — `decks.platformListId`,
+`words.platformItemId`, `deck_groups.systemKey` — each with a *partial* unique
+index (`WHERE ... IS NOT NULL`) so existing rows stay unconstrained. The
+migration runner wraps nothing in a transaction and SQLite rejects a duplicate
+`ADD COLUMN`, so v8 checks `PRAGMA table_info` before each add and is safe to
+re-run after a partial failure.
+
+Import semantics, as built:
+- A NULL platform id marks a personal row; the importer never reads, updates or
+  deletes one. Course words always get their own row even when a personal word
+  has the same lemma.
+- Re-import is a re-sync: existing words are updated in place, words dropped
+  upstream are unlinked and their (course-owned) row deleted, guarded by
+  `platformItemId IS NOT NULL` on the final DELETE. Learning state
+  (`word_progress`, `word_mode_strength`) is never reset on update. The user
+  confirms a re-import; a first import runs straight away.
+- `PRAGMA foreign_keys` is off in this app, so ON DELETE CASCADE never fires —
+  every child row is deleted explicitly.
+- Items with no translation in any language are skipped and counted, not
+  imported: `getNextWord` inner-joins `translations`, so such a row would be
+  invisible dead weight. When the server falls back to another language, two
+  translation rows are written (requested + actual) so the word stays reachable
+  from the UI language while the data stays honest.
+- Platform `PartOfSpeech` (12 values) maps onto the local 5; anything without a
+  local equivalent becomes `phrase`. Known inflection keys are normalized
+  (`present_tense` → `present`), unknown ones kept verbatim.
+- Imported decks land in a `deck_groups` row with `systemKey = 'courses'`,
+  created on first import and sorted after every existing group.
+
+Not fixed (pre-existing, out of scope): `DeckRepository.getAll()` maps
+`row.languageCode` but its SELECT never lists `d.languageCode`, so
+`Deck.languageCode` is `undefined` for every deck, imported or seeded.
+
+Original spec for reference:
 - Add a **"Save to VoxOrd deck"** action: import the vocabulary list into a
   local deck (this is the ONLY place course code writes into the local DB).
   - New migration in `src/db/migrations.ts` only if a linkage column is

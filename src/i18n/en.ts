@@ -126,6 +126,17 @@ export const en: Translations = {
     posParticle: 'particle',
     posPhrase: 'phrase',
     posOther: 'other',
+    saveToDeck: 'Save to VoxOrd deck',
+    updateDeck: 'Update VoxOrd deck',
+    updateDeckTitle: 'Update the deck?',
+    updateDeckMessage:
+      'The deck will be re-synced with this list. Words removed from the course will also be removed from the deck; your progress on the remaining words is kept.',
+    updateDeckConfirm: 'Update',
+    importDone: '{imported} added, {updated} updated',
+    importRemoved: '{removed} removed',
+    importSkipped: '{skipped} without translation',
+    importError: "Couldn't save the deck.",
+    coursesGroup: 'Courses',
   },
   exerciseRunner: {
     loadError: "Couldn't load this exercise",
