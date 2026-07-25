@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ActivityIndicator,
-  SectionList,
+  FlatList,
   RefreshControl,
   TouchableOpacity,
 } from 'react-native';
@@ -12,70 +12,29 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
-import { useUnitContents } from '../../hooks/useUnitContents';
-import { ContentItemRow } from './ContentItemRow';
-import type { UnitContentsItem } from '../../api/types';
+import { useVocabularyList } from '../../hooks/useVocabularyList';
+import { VocabularyItemRow } from './VocabularyItemRow';
+import type { VocabularyItemDisplay } from '../../api/vocabulary';
 
-interface UnitContentsScreenProps {
-  unitId: string;
+interface VocabularyListScreenProps {
+  listId: string;
   onBack: () => void;
-  onLessonPress: (lessonId: string) => void;
-  /**
-   * Launch the exercise runner over the unit's exercises as a set, starting
-   * at the tapped one. `exerciseIds` are content ids in display order.
-   */
-  onExercisePress: (exerciseIds: string[], startIndex: number) => void;
-  /** Opens the read-only vocabulary list reader (Phase 5). */
-  onVocabularyPress: (listId: string) => void;
 }
 
-interface Section {
-  key: string;
-  title: string;
-  data: UnitContentsItem[];
-}
-
-export function UnitContentsScreen({
-  unitId,
-  onBack,
-  onLessonPress,
-  onExercisePress,
-  onVocabularyPress,
-}: UnitContentsScreenProps) {
+/** Read-only view of a course vocabulary list (Phase 5.1). */
+export function VocabularyListScreen({ listId, onBack }: VocabularyListScreenProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const { status, data, error, refreshing, refresh } = useUnitContents(unitId);
+  const { status, data, error, refreshing, refresh } = useVocabularyList(listId);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const sections: Section[] = data
-    ? [
-        ...data.sections.map((s) => ({ key: s.id, title: s.title, data: s.items })),
-        ...(data.ungroupedItems.length > 0
-          ? [{ key: 'ungrouped', title: t('unitContents.otherItems'), data: data.ungroupedItems }]
-          : []),
-      ]
-    : [];
-  const isEmpty = sections.every((s) => s.data.length === 0);
+  // Accordion: at most one item open at a time, so a long list stays scannable.
+  const toggle = useCallback((itemId: string) => {
+    setExpandedId((current) => (current === itemId ? null : itemId));
+  }, []);
 
-  // The unit's exercises in display order, treated as one runnable set.
-  const exerciseIds = sections
-    .flatMap((s) => s.data)
-    .filter((i) => i.contentType === 'exercise')
-    .map((i) => i.contentId);
-
-  const handleItemPress = (item: UnitContentsItem): (() => void) | undefined => {
-    if (item.contentType === 'lesson') {
-      return () => onLessonPress(item.contentId);
-    }
-    if (item.contentType === 'exercise') {
-      const startIndex = exerciseIds.indexOf(item.contentId);
-      return () => onExercisePress(exerciseIds, Math.max(0, startIndex));
-    }
-    if (item.contentType === 'vocabulary_list') {
-      return () => onVocabularyPress(item.contentId);
-    }
-    return undefined;
-  };
+  const items = data?.items ?? [];
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -84,7 +43,7 @@ export function UnitContentsScreen({
           <Text style={styles.backText}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
-          {data?.moduleTitle ?? t('unitContents.title')}
+          {data?.title ?? t('vocabulary.title')}
         </Text>
       </View>
 
@@ -96,7 +55,7 @@ export function UnitContentsScreen({
 
       {status === 'error' && (
         <View style={styles.centerFill}>
-          <Text style={styles.emptyTitle}>{t('unitContents.loadError')}</Text>
+          <Text style={styles.emptyTitle}>{t('vocabulary.loadError')}</Text>
           <Text style={styles.emptyDesc}>{error?.message}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={refresh}>
             <Text style={styles.retryButtonText}>{t('courses.retry')}</Text>
@@ -104,29 +63,30 @@ export function UnitContentsScreen({
         </View>
       )}
 
-      {status === 'loaded' && isEmpty && (
+      {status === 'loaded' && items.length === 0 && (
         <View style={styles.centerFill}>
-          <Text style={styles.emptyTitle}>{t('unitContents.noItems')}</Text>
+          <Text style={styles.emptyTitle}>{t('vocabulary.noItems')}</Text>
         </View>
       )}
 
-      {status === 'loaded' && !isEmpty && (
-        <SectionList
-          sections={sections}
-          keyExtractor={(item: UnitContentsItem) => item.id}
+      {status === 'loaded' && items.length > 0 && (
+        <FlatList
+          data={items}
+          keyExtractor={(item: VocabularyItemDisplay) => item.itemId}
           renderItem={({ item }) => (
-            <ContentItemRow item={item} onPress={handleItemPress(item)} />
+            <VocabularyItemRow
+              item={item}
+              expanded={expandedId === item.itemId}
+              onToggle={() => toggle(item.itemId)}
+            />
           )}
-          renderSectionHeader={({ section }) =>
-            section.title ? (
-              <Text style={styles.sectionTitle}>{section.title}</Text>
-            ) : null
+          ListHeaderComponent={
+            <Text style={styles.count}>{t('vocabulary.wordCount', { count: items.length })}</Text>
           }
           contentContainerStyle={styles.list}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />
           }
-          stickySectionHeadersEnabled={false}
         />
       )}
     </SafeAreaView>
@@ -193,18 +153,14 @@ const makeStyles = (colors: ColorScheme) =>
       fontWeight: '700',
       color: colors.textInverted,
     },
-    sectionTitle: {
+    count: {
       fontSize: 13,
-      fontWeight: '700',
       color: colors.textMuted,
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
       marginHorizontal: 16,
-      marginTop: 12,
-      marginBottom: 6,
+      marginBottom: 8,
     },
     list: {
-      paddingTop: 8,
+      paddingTop: 12,
       paddingBottom: 24,
     },
   });

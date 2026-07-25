@@ -472,16 +472,84 @@ the mobile app never contains answer-checking logic for platform exercises.
 
 ## Phase 5 — Vocabulary lists in courses (read-only) — ⚠️ switch to Opus (see Model guidance)
 
-- Render a vocabulary-list item from a unit: word list with translations and
-  usage examples (content-service data, web reference in student feature).
+### Research findings (2026-07-25, verified against content-service source)
+
+- **Use `GET /api/v1/vocabulary-lists/:listId/reader`**, not the web's item
+  path. `vocabulary-list.controller.ts` exposes a `:listId/reader` route
+  returning `{id, title, items: VocabularyItemDisplayResponseDto[]}` with each
+  item's translation (language fallback applied server-side) and examples
+  resolved in one call. The web BFF
+  (`app/api/content/vocabulary-lists/[listId]/items/route.ts`) instead fetches
+  paginated summaries and fans out one authoring-detail request per item, on the
+  (incorrect) premise that no batch endpoint exists. Mobile takes the single
+  call. The summary endpoint carries no translations at all.
+- **No gateway gap here.** `nginx.dev.conf` has `location
+  /api/v1/vocabulary-lists → content-service:3003`; the prefix match covers
+  `:listId`, `/items`, `/reader` alike.
+- **Unit-contents `contentType` for vocabulary is the lowercase wire value
+  `vocabulary_list`** (`ContainerItemType.VOCABULARY_LIST = 'vocabulary_list'`
+  in content-service's `item-type.vo.ts`) — the enum *key* is uppercase, the
+  value on the wire is not.
+- **Seeded data reality** (ny-i-norge-a2, norsk-b1): only `word`, `position`,
+  `partOfSpeech`, `grammaticalProperties` and a single `primaryTranslation` are
+  populated. `ipaTranscription`, `pronunciationAudioMediaId`, `register`,
+  `notes` are always null; `usageExamples` and `alternativeTranslations` are
+  always empty. Screens must degrade gracefully, not assume rich items.
+- **Known platform bug — deferred to Phase 8, do not route around it.**
+  learning-service's `content-client.ts` (axios `baseURL`
+  `<content>/api/v1/internal`) calls `getVocabularyListItems` →
+  `/internal/vocabulary-lists/:id/items` and `getVocabularyListAutoAddToSrs` →
+  `/internal/vocabulary-lists/:id`, but content-service's `InternalController`
+  only registers `internal/vocabulary-items/:id`. Both 404. Used by
+  `BulkIntroduceFromVocabularyListHandler` (seeding SRS cards from a list) and
+  auto-add-to-SRS — i.e. exactly what Phase 8 stands on. Phase 5 is unaffected
+  (it calls the public content-service route directly). Fix it at the start of
+  Phase 8, in the platform repo.
+- **Known web/data mismatch (not fixed, mobile works around it).** The web BFF's
+  `map-vocabulary-item.ts` parses `grammaticalProperties` only as
+  `{ forms: [[label, value], ...] }` and silently drops everything else; the
+  seeds write a flat scalar object (`{verb_class, present_tense, past_tense,
+  perfect_tense}`). Result: the web card's "Alle former" drawer is always empty
+  for seeded courses. VoxOrd's `parseGrammaticalForms` accepts both shapes, so
+  the authored data is actually visible on mobile. Aligning the web is separate
+  platform work.
+
+### Decisions taken with the user (2026-07-25)
+
+- **Word identity:** the importer never reads or mutates pre-existing local
+  `words`/`translations` rows. Course words always get their own row, keyed by a
+  new `words.platform_item_id`; idempotency covers course words only. A personal
+  word with the same lemma is left completely alone. Duplicate lemmas across
+  decks are acceptable — `word_progress` is already per `(wordId, deckId)`.
+- **Deck placement:** imported lists land in a dedicated `deck_groups` row
+  ("Courses"), created on first import.
+- **UI:** scrollable reference list (word + POS + translation always visible,
+  tap to expand forms/examples/notes), not web-style flip cards — the list is
+  read alongside the lesson text.
+
+### Step 5.1 — Read-only vocabulary list screen — CODE DONE, needs on-device test (2026-07-25)
+`src/api/vocabulary.ts` (reader DTO types + `getVocabularyListReader` + pure
+`parseGrammaticalForms` / `humanizeFormKey` / `formatTranslation`),
+`src/api/vocabulary.test.ts` (17 tests), `src/hooks/useVocabularyList.ts`,
+`src/screens/VocabularyListScreen/{index,VocabularyItemRow}.tsx`, `Screen` union
+member `VocabularyList`, `UnitContentsScreen.onVocabularyPress`, i18n keys in
+`en`/`ru`/`uk`. `tsc --noEmit` and Jest at baseline (162 tests green).
+
+### Step 5.2 — "Save to VoxOrd deck" (import into the local DB)
 - Add a **"Save to VoxOrd deck"** action: import the vocabulary list into a
   local deck (this is the ONLY place course code writes into the local DB).
   - New migration in `src/db/migrations.ts` only if a linkage column is
     needed (e.g. `decks.platform_list_id` for idempotent re-import).
   - Reuse existing `DeckRepository` / `WordRepository` APIs; map platform
     vocabulary items → local word rows (language codes, part of speech,
-    examples). Unmappable fields are dropped, not forced.
+    examples). Unmappable fields are dropped, not forced. Note: neither
+    repository has any create/insert method today — deck and word creation lives
+    only in `src/db/seed.ts`, so 5.2 adds the first ones.
   - Idempotent: re-importing the same list updates instead of duplicating.
+  - Every new `deck_words` link MUST get a matching `word_progress` row
+    (`status: 'new'`), the way `seed.ts` does — `ProgressRepository.get()` and
+    `recordAnswer()` do plain lookups with no LEFT JOIN and silently no-op when
+    the row is missing, which would make imported words unlearnable.
 - After import, the words are ordinary VoxOrd words: local SRS, all existing
   exercise modes work with zero changes.
 - **User test checkpoint:** import a list, learn it offline.

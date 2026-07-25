@@ -112,6 +112,29 @@ export interface Translations {
     markAsRead: string;
   };
 
+  vocabulary: {
+    title: string;
+    loadError: string;
+    noItems: string;
+    noTranslation: string;
+    wordCount: string; // '{count} words'
+    forms: string;
+    examples: string;
+    register: string; // 'Register: {register}'
+    posNoun: string;
+    posVerb: string;
+    posAdjective: string;
+    posAdverb: string;
+    posPronoun: string;
+    posPreposition: string;
+    posConjunction: string;
+    posInterjection: string;
+    posNumeral: string;
+    posParticle: string;
+    posPhrase: string;
+    posOther: string;
+  };
+
   exerciseRunner: {
     loadError: string;
     progress: string; // '{current} / {total}'
