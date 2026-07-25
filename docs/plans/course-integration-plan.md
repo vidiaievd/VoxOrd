@@ -645,6 +645,12 @@ Original spec for reference:
 
 ## Phase 6 — Course-home enrichment & resilience — ⚠️ switch to Opus (see Model guidance)
 
+**Model note:** user decided (2026-07-25) to stay on Sonnet for the whole
+phase, including the nginx gateway fix — the facts were fully pre-verified by
+an Explore agent before any edit, which was judged to remove the risk the
+Opus recommendation was guarding against. Actual steps 6.1–6.3 also matched
+the plan's own "most of 6 is Sonnet range" note.
+
 - Add the blocks skipped in 2.2: mastery, can-do progress, SRS-due counters
   (display only).
 - Lightweight response caching (in-memory + AsyncStorage snapshot) for course
@@ -661,6 +667,60 @@ Original spec for reference:
   errors; word tabs unaffected.
 - **Contract recap:** offline-first for personal words; online-first but
   offline-tolerant (read-cache + review queue) for courses.
+
+### Step 6.1 — Mastery + SRS-due on course home — DONE (2026-07-25, VoxOrd `7cc211f`)
+`src/api/mastery.ts` (`GET /mastery/course/:id`, 0..1 fractions → 0..100
+percents per skill) and `src/api/srs.ts` (`GET /srs/stats/me`, minimal —
+just what Step 6.1 needs; the full due-review session is Phase 8's
+`src/api/srs.ts` extension). Wired into `getCourseHome()`, both non-fatal on
+failure (matches the existing `items` fetch pattern) so a stat block failing
+doesn't block the rest of the screen. New `CourseStatsSection` renders
+mastery bars + reviews-due count as the course-home list header.
+
+Can-do progress stays a stub — **found via Explore agent that the platform
+has zero `content_relation` rows linking can-do descriptors to
+courses/modules anywhere** (the join mechanism exists in
+`CanDoEvaluatorService`/`prisma-can-do-progress.repository.ts` but nothing
+populates it), so it would render empty regardless of client work. User
+decided (2026-07-25) to skip it rather than build against non-existent data;
+revisit once the platform seeds that linkage.
+
+`srsDueCount` is the user's global due count — confirmed `/srs/stats/me` has
+no `courseId` filter, same limitation the web BFF has (its `/srs/due` call
+is unfiltered too) — labeled as a general "reviews due" stat in the UI copy,
+not scoped to the course being viewed.
+
+### Step 6.2 — Stale-while-revalidate cache for course list/home — DONE (2026-07-25, VoxOrd `ef11a23`)
+`src/lib/swrCache.ts` (in-memory `Map` + `AsyncStorage` snapshot via
+`createAsyncStorage('voxord_swr_cache')`) and `src/hooks/useSwrResource.ts`
+(generic hook: renders memory cache, then persisted snapshot on cold start,
+instantly, while always kicking a background fetch; a late snapshot never
+clobbers fresher network data; a failed refresh keeps the cached value on
+screen instead of wiping it). `useMyCourses`/`useCourseHome` now go through
+it — same public shape plus a new `stale` flag. Course-list cache is keyed
+per `user.id` so switching accounts on one device can't leak a stranger's
+cached courses.
+
+**Content caching (lesson reader, vocabulary reader, exercise display —
+"near-immutable, cache by contentId+version") is NOT done** — deliberately
+scoped out of 6.2, see the open item below.
+
+### Step 6.3 — Offline banner — DONE (2026-07-25, VoxOrd `ddb627b`)
+`src/api/isNetworkError.ts` (`ApiError.code === 'NETWORK_ERROR' | 'TIMEOUT'`)
++ `src/components/OfflineBanner.tsx`, shown on `CourseHomeScreen`/
+`CoursesScreen` when a background refresh fails with a network error while
+`stale` cached data is still on screen. Word/deck tabs untouched.
+
+### Open item — course-content offline cache (lesson/vocab/exercise, by contentId+version)
+Not yet built. `src/api/lessons.ts` (`getLessonReaderContent`),
+`src/api/vocabulary.ts` (`getVocabularyListReader`, `getVocabularyList` —
+Phase 5), and the exercise-display fetch (Phase 4) would each go through
+`useSwrResource` the same way, keyed by `contentId` (+ version once the
+content payload exposes one — check whether the reader response carries a
+version field before keying on it). Lower urgency than 6.1–6.3: these
+screens already work online, this only adds resilience/offline reading.
+Confirm scope with the user before starting (touches 3+ more screens'
+hooks).
 
 ### Offline access — future level 2 (not v1)
 The caching above is a *passive* cache ("opens if you were recently there"). A
