@@ -729,16 +729,37 @@ reverse tcp:80 tcp:80 && adb reverse tcp:8081 tcp:8081` (or just re-run
 2026-07-25 Wi-Fi-reconnect update) after every Wi-Fi off/on cycle during
 device testing.
 
-### Open item — course-content offline cache (lesson/vocab/exercise, by contentId+version)
-Not yet built. `src/api/lessons.ts` (`getLessonReaderContent`),
-`src/api/vocabulary.ts` (`getVocabularyListReader`, `getVocabularyList` —
-Phase 5), and the exercise-display fetch (Phase 4) would each go through
-`useSwrResource` the same way, keyed by `contentId` (+ version once the
-content payload exposes one — check whether the reader response carries a
-version field before keying on it). Lower urgency than 6.1–6.3: these
-screens already work online, this only adds resilience/offline reading.
-Confirm scope with the user before starting (touches 3+ more screens'
-hooks).
+### Open item — course-content offline cache — DONE (2026-07-25, VoxOrd `95d1a4f`)
+Checked against content-service source first (Explore agent): neither
+`LessonReaderContentResponseDto` nor `VocabularyListReaderContentResponseDto`
+carries any version/updatedAt/revision field (their underlying Prisma models
+do, but it isn't surfaced) — only the exercise "display" DTO has `updatedAt`.
+Since the existing SWR cache (course list/home) never used a TTL anyway —
+it always revalidates in the background and only serves the cache as an
+instant-paint/offline fallback — a version field wouldn't change behavior
+here, so keys are `contentId` + whatever request params affect the response
+shape (language, level), with no version suffix, matching the course-home
+precedent exactly.
+
+- `useLessonReader` / `useVocabularyList` now go through `useSwrResource`
+  (same pattern as `useMyCourses`/`useCourseHome`), keyed
+  `lesson-reader:${lessonId}:${courseId}:${uiLanguage}` and
+  `vocab-reader:${listId}:${uiLanguage}`.
+- Exercise display (`useExerciseRunner`'s load effect) does NOT use
+  `useSwrResource` — Check/submit still needs the network regardless of
+  cache, so there's no value in painting cached content ahead of a fast
+  successful fetch. Instead, only a *failed* fetch now falls back to a
+  cached copy (memory, then the `swrCache` AsyncStorage snapshot, keyed
+  `exercise-display:${exerciseId}:${uiLanguage}`) before giving up to
+  `loadError`, so an already-visited exercise stays readable offline. The
+  pure `runnerMachine` reducer is untouched.
+- No new Jest tests (hooks only, no new pure logic — matches the
+  established "screens/hooks are manually tested" convention). `tsc --noEmit`
+  and Jest confirmed at baseline (206 green, only the environmental
+  `App.test.tsx` suite failing) after the change.
+- **User test checkpoint (not yet run):** open a lesson/vocab list/exercise
+  once online, then reopen with Wi-Fi off — content should still render
+  (exercise Check still requires network, expected).
 
 ### Offline access — future level 2 (not v1)
 The caching above is a *passive* cache ("opens if you were recently there"). A
