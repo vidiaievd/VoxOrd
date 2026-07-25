@@ -104,9 +104,10 @@ describe('answer + check transitions', () => {
     s = runnerReducer(s, { type: 'CHECK_START' });
     expect(s.phase).toBe('checking');
 
-    s = runnerReducer(s, { type: 'CHECK_SUCCESS', verdict: verdict(true) });
+    s = runnerReducer(s, { type: 'CHECK_SUCCESS', verdict: verdict(true), timeSpentSeconds: 5 });
     expect(s.phase).toBe('feedback');
     expect(s.verdict?.correct).toBe(true);
+    expect(s.results).toEqual([{ exerciseId: 'e1', verdict: verdict(true), timeSpentSeconds: 5 }]);
   });
 
   it('a second CHECK_START while checking is a no-op (single-shot submit)', () => {
@@ -153,7 +154,7 @@ describe('advance transitions', () => {
     let s = toAnswering(['e1', 'e2'], 0);
     s = runnerReducer(s, { type: 'ANSWER_CHANGE', answer: 'a', canSubmit: true });
     s = runnerReducer(s, { type: 'CHECK_START' });
-    s = runnerReducer(s, { type: 'CHECK_SUCCESS', verdict: verdict(true) });
+    s = runnerReducer(s, { type: 'CHECK_SUCCESS', verdict: verdict(true), timeSpentSeconds: 3 });
     s = runnerReducer(s, { type: 'ADVANCE' });
 
     expect(s.idx).toBe(1);
@@ -163,17 +164,19 @@ describe('advance transitions', () => {
     expect(s.answer).toBeNull();
     expect(s.canSubmit).toBe(false);
     expect(s.verdict).toBeNull();
+    expect(s.results).toHaveLength(1);
   });
 
   it('completes the set after advancing past the last item', () => {
     let s = toAnswering(['only'], 0);
     s = runnerReducer(s, { type: 'ANSWER_CHANGE', answer: 'a', canSubmit: true });
     s = runnerReducer(s, { type: 'CHECK_START' });
-    s = runnerReducer(s, { type: 'CHECK_SUCCESS', verdict: verdict(false) });
+    s = runnerReducer(s, { type: 'CHECK_SUCCESS', verdict: verdict(false), timeSpentSeconds: 8 });
     expect(isLastExercise(s)).toBe(true);
 
     s = runnerReducer(s, { type: 'ADVANCE' });
     expect(s.phase).toBe('complete');
+    expect(s.results).toEqual([{ exerciseId: 'only', verdict: verdict(false), timeSpentSeconds: 8 }]);
   });
 
   it('ignores ADVANCE outside the feedback phase', () => {

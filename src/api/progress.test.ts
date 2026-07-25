@@ -1,4 +1,16 @@
-import { buildLessonCompletionRequest } from './progress';
+import { buildExerciseCompletionRequest, buildLessonCompletionRequest } from './progress';
+import type { SubmitAttemptResponse } from './exercises';
+
+function verdict(overrides: Partial<SubmitAttemptResponse>): SubmitAttemptResponse {
+  return {
+    attemptId: 'a',
+    correct: false,
+    score: null,
+    requiresReview: false,
+    feedback: { summary: '' },
+    ...overrides,
+  };
+}
 
 describe('buildLessonCompletionRequest', () => {
   it('sends the uppercase LESSON content type and the lesson id', () => {
@@ -29,5 +41,25 @@ describe('buildLessonCompletionRequest', () => {
     } finally {
       spy.mockRestore();
     }
+  });
+});
+
+describe('buildExerciseCompletionRequest', () => {
+  it('sends the uppercase EXERCISE content type, the exercise id, and completed:true', () => {
+    const request = buildExerciseCompletionRequest('ex-1', verdict({ score: 100 }), 12);
+    expect(request.contentType).toBe('EXERCISE');
+    expect(request.contentId).toBe('ex-1');
+    expect(request.completed).toBe(true);
+    expect(request.timeSpentSeconds).toBe(12);
+  });
+
+  it('passes the server score through unchanged', () => {
+    const request = buildExerciseCompletionRequest('ex-1', verdict({ score: 75 }), 5);
+    expect(request.score).toBe(75);
+  });
+
+  it('omits score when the verdict has none (still-pending free-form review)', () => {
+    const request = buildExerciseCompletionRequest('ex-1', verdict({ score: null }), 5);
+    expect(request.score).toBeUndefined();
   });
 });

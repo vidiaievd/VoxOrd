@@ -135,6 +135,19 @@ export interface Translations {
     modelAnswer: string;
     writingTaskPlaceholder: string;
     writingTaskWordCount: string; // '{count}', '{min}', '{max}'
+    resultsExcellentTitle: string;
+    resultsExcellentMessage: string;
+    resultsGoodTitle: string;
+    resultsGoodMessage: string;
+    resultsOkayTitle: string;
+    resultsOkayMessage: string;
+    resultsKeepGoingTitle: string;
+    resultsKeepGoingMessage: string;
+    resultsAccuracy: string;
+    resultsCorrectOf: string; // '{correct}', '{total}'
+    resultsTime: string;
+    resultsByOutcome: string;
+    resultsNeedsReview: string;
   };
 
   stats: {

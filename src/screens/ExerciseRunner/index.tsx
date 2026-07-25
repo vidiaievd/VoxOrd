@@ -14,6 +14,7 @@ import { ColorScheme } from '../../theme/colors';
 import { useExerciseRunner } from '../../hooks/useExerciseRunner';
 import { ExerciseBody } from './ExerciseBody';
 import { FeedbackBar } from './FeedbackBar';
+import { SetResultsScreen } from './SetResultsScreen';
 
 interface ExerciseRunnerScreenProps {
   /** The exercise (content) ids in this set, in order. */
@@ -21,7 +22,7 @@ interface ExerciseRunnerScreenProps {
   /** Which item to open first. */
   startIndex: number;
   onBack: () => void;
-  /** Called when the set is finished (Phase 4.6 turns this into a summary). */
+  /** Called when the user leaves the results screen (or an empty set completes immediately). Navigating back to UnitContents remounts it, which refetches contents — no explicit refresh call needed. */
   onComplete: () => void;
 }
 
@@ -40,6 +41,13 @@ export function ExerciseRunnerScreen({
   );
 
   const progressRatio = progress.total > 0 ? progress.current / progress.total : 0;
+
+  // A non-empty finished set gets the full results summary (own SafeAreaView,
+  // no header/progress-bar chrome); an empty set (edge case) falls through to
+  // the plain "set complete" card below, since there's nothing to summarize.
+  if (state.phase === 'complete' && state.results.length > 0) {
+    return <SetResultsScreen results={state.results} onContinue={onComplete} />;
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>

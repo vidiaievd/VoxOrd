@@ -26,6 +26,13 @@ export type RunnerPhase =
   | 'loadError'
   | 'complete';
 
+/** One item's outcome, recorded on CHECK_SUCCESS and kept for the set's results summary. */
+export interface ItemResult {
+  exerciseId: string;
+  verdict: SubmitAttemptResponse;
+  timeSpentSeconds: number;
+}
+
 export interface RunnerState {
   /** The set of exercise (content) ids this runner walks through. */
   exerciseIds: string[];
@@ -41,6 +48,8 @@ export interface RunnerState {
   submitError: string | null;
   /** Fatal for the current item: display fetch failed. */
   loadError: string | null;
+  /** Every item's verdict so far, in order — survives the per-item reset, used to post progress and show the set's results summary once 'complete'. */
+  results: ItemResult[];
 }
 
 export type RunnerAction =
@@ -50,12 +59,12 @@ export type RunnerAction =
   | { type: 'LOAD_FAILURE'; message: string }
   | { type: 'ANSWER_CHANGE'; answer: unknown; canSubmit: boolean }
   | { type: 'CHECK_START' }
-  | { type: 'CHECK_SUCCESS'; verdict: SubmitAttemptResponse }
+  | { type: 'CHECK_SUCCESS'; verdict: SubmitAttemptResponse; timeSpentSeconds: number }
   | { type: 'CHECK_FAILURE'; message: string }
   | { type: 'ADVANCE' };
 
-/** Fields reset every time we (re)enter a fresh item in the 'loading' phase. */
-function freshItemFields(): Omit<RunnerState, 'exerciseIds' | 'idx' | 'phase'> {
+/** Fields reset every time we (re)enter a fresh item in the 'loading' phase. Excludes `results`, which accumulates across the whole set. */
+function freshItemFields(): Omit<RunnerState, 'exerciseIds' | 'idx' | 'phase' | 'results'> {
   return {
     display: null,
     answer: null,
@@ -74,6 +83,7 @@ export function initRunnerState(exerciseIds: string[], startIndex = 0): RunnerSt
     idx: clampedStart,
     // An empty set is immediately complete; otherwise load the first item.
     phase: exerciseIds.length === 0 ? 'complete' : 'loading',
+    results: [],
     ...freshItemFields(),
   };
 }
@@ -117,9 +127,17 @@ export function runnerReducer(state: RunnerState, action: RunnerAction): RunnerS
       if (state.phase !== 'answering' || !state.canSubmit) return state;
       return { ...state, phase: 'checking', submitError: null };
 
-    case 'CHECK_SUCCESS':
+    case 'CHECK_SUCCESS': {
       if (state.phase !== 'checking') return state;
-      return { ...state, phase: 'feedback', verdict: action.verdict };
+      const exerciseId = currentExerciseId(state);
+      const result: ItemResult[] = exerciseId
+        ? [
+            ...state.results,
+            { exerciseId, verdict: action.verdict, timeSpentSeconds: action.timeSpentSeconds },
+          ]
+        : state.results;
+      return { ...state, phase: 'feedback', verdict: action.verdict, results: result };
+    }
 
     case 'CHECK_FAILURE':
       // Keep the answer so the user can just retry the Check.

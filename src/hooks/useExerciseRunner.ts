@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import {
   getExerciseDisplay,
   startAttempt,
   submitAttempt,
 } from '../api/exercises';
+import { buildExerciseCompletionRequest, upsertProgress } from '../api/progress';
 import {
   currentExerciseId,
   initRunnerState,
@@ -12,6 +13,8 @@ import {
   type RunnerState,
 } from '../screens/ExerciseRunner/runnerMachine';
 import { useSettings } from './useSettings';
+
+export type ProgressPostStatus = 'idle' | 'posting' | 'done' | 'error';
 
 function errorMessage(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
@@ -30,6 +33,8 @@ export interface ExerciseRunnerController {
   advance: () => void;
   /** Retry loading the current item after a load error. */
   retry: () => void;
+  /** Status of posting each result's progress once the set reaches 'complete'. */
+  progressPostStatus: ProgressPostStatus;
 }
 
 /**
@@ -123,7 +128,7 @@ export function useExerciseRunner(
         locale: uiLanguage,
       });
       if (!mounted.current) return;
-      dispatch({ type: 'CHECK_SUCCESS', verdict });
+      dispatch({ type: 'CHECK_SUCCESS', verdict, timeSpentSeconds });
     } catch (e) {
       if (!mounted.current) return;
       dispatch({ type: 'CHECK_FAILURE', message: errorMessage(e) });
@@ -135,6 +140,38 @@ export function useExerciseRunner(
   const advance = useCallback(() => {
     dispatch({ type: 'ADVANCE' });
   }, []);
+
+  // Post one progress record per finished exercise once the set completes.
+  // There's no backend "set" endpoint (EXERCISE is a singular content
+  // type — see buildExerciseCompletionRequest), so this mirrors the web
+  // reader's per-item POST /progress, just fired in a loop here. Fires once
+  // per mount via progressPostedRef; best-effort — a failure here shouldn't
+  // block the results screen the user is already looking at.
+  const [progressPostStatus, setProgressPostStatus] = useState<ProgressPostStatus>('idle');
+  const progressPostedRef = useRef(false);
+
+  useEffect(() => {
+    if (state.phase !== 'complete' || state.results.length === 0) return;
+    if (progressPostedRef.current) return;
+    progressPostedRef.current = true;
+
+    setProgressPostStatus('posting');
+    (async () => {
+      try {
+        await Promise.all(
+          state.results.map(({ exerciseId, verdict, timeSpentSeconds }) =>
+            upsertProgress(buildExerciseCompletionRequest(exerciseId, verdict, timeSpentSeconds)),
+          ),
+        );
+        if (!mounted.current) return;
+        setProgressPostStatus('done');
+      } catch (e) {
+        if (!mounted.current) return;
+        console.warn('[ExerciseRunner] Failed to post set progress:', e);
+        setProgressPostStatus('error');
+      }
+    })();
+  }, [state.phase, state.results]);
 
   const retry = useCallback(() => {
     dispatch({ type: 'LOAD_START' });
@@ -153,5 +190,6 @@ export function useExerciseRunner(
     check,
     advance,
     retry,
+    progressPostStatus,
   };
 }

@@ -1,5 +1,6 @@
 import { apiClient } from './client';
 import type { ProgressRecord, UpsertProgressRequest } from './types';
+import type { SubmitAttemptResponse } from './exercises';
 
 const PROGRESS_PATH = '/api/v1/progress';
 
@@ -33,6 +34,28 @@ export function buildLessonCompletionRequest(
     contentType: 'LESSON',
     contentId: lessonId,
     timeSpentSeconds: Math.max(0, Math.round((nowMs - startedAtMs) / 1000)),
+    completed: true,
+  };
+}
+
+/**
+ * One `POST /progress` per finished exercise (there is no "set" concept on
+ * the backend — `EXERCISE` is a singular content type, see
+ * `VALID_CONTENT_TYPES` in learning-service's content-ref.ts — so the
+ * runner posts once per item in the set it just completed). `score` is the
+ * server's 0-100 verdict score passed straight through: exercise-engine's
+ * validators and the progress DTO already share that scale.
+ */
+export function buildExerciseCompletionRequest(
+  exerciseId: string,
+  verdict: SubmitAttemptResponse,
+  timeSpentSeconds: number,
+): UpsertProgressRequest {
+  return {
+    contentType: 'EXERCISE',
+    contentId: exerciseId,
+    timeSpentSeconds,
+    score: verdict.score ?? undefined,
     completed: true,
   };
 }
