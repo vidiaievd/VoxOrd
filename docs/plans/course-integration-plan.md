@@ -1266,18 +1266,81 @@ Built:
 Jest **285 passed / 27 suites** (baseline 259/25), only the environmental
 `App.test.tsx` failing.
 
-#### Step 8.1b-3 — next: per-answer callbacks + session driver
+#### Step 8.1b-3 — session driver + screen — DONE (2026-07-27, VoxOrd `7b7f340`, `2acbc8a`, `1989f4b`)
 
-- Add `onAnswer(wordId, { correct, hintUsed, gaveUp })` to `useQuiz`,
-  `useListening`, `useSpelling`; gate `progressRepository.recordAnswer` behind a
-  "course word" flag while leaving `wordModeStrengthRepository` alone.
-- A session driver analogous to `useDeepSession` but taking a `DeckReviewSet`
-  instead of a `deckId` (`useDeepSession.ts:58` is hardwired to
-  `deepSessionRepository.loadWordsForDeck`), running listening → quiz → spelling
-  (flashcard only as a non-scoring preview for NEW cards), then posting one
-  review per graded word through `reviewQueueStore`.
-- Deep Session's 4h per-deck cooldown (`useDeepSessionCooldown.ts:4`) must not
-  gate a course session — FSRS due-ness wins for course words.
+Three commits, pure logic → data → UI.
+
+**Per-answer tracking** (`7b7f340`). New optional 4th argument
+`ExerciseTracking` on `useQuiz` / `useListening` / `useSpelling`
+(`src/hooks/exerciseTracking.ts`):
+
+- `onAnswer(wordId, {correct, hintUsed, gaveUp})` fires once per submitted
+  answer, retries included. Invoked **after** the state update, not inside the
+  updater — matching how `onComplete` was already reported — so a re-invoked
+  reducer cannot double-count. Spelling's skip reports **one** gave-up event,
+  not the three penalty answers the local engine records.
+- `skipLocalProgress` suppresses `progressRepository.recordAnswer` only.
+  `wordModeStrengthRepository` deliberately still runs — `word_mode_strength` is
+  a local-only exercise-mode picker by design.
+- Both optional; personal-deck sessions pass nothing and are byte-identical.
+
+**`hintUsed` counts only an *earned* hint** (decided with the user, 2026-07-27):
+under `spellingHintMode: 'always'` the hint is on screen for every word, so
+counting it would cap every course card at `HARD` forever while carrying no
+information about that word. Mistakes still drive grading in that mode. Default
+is `after_mistake`, so this only affects users who opted into permanent hints.
+
+**Session driver** (`2acbc8a`) — `src/hooks/useCourseReviewSession.ts`, the
+course-word counterpart of `useDeepSession` (which is hardwired to
+`loadWordsForDeck(deckId)`). Word set comes from the server queue; the 4h
+deep-session cooldown deliberately does **not** apply, since for course words
+FSRS due-ness decides when a word returns. Evidence accumulates across phases
+and grades once at the end → exactly one review event per card. Preview answers
+and padding-word answers are filtered out before reaching the grader.
+`planPhases`/`newCardWordIds` added to `courseReviewSet` (7 tests): the 4-option
+modes are dropped when even a padded set cannot reach four words, so a small
+deck gets a spelling-only session instead of hitting the exercise's "not enough
+words" dead end mid-session. `Quiz`/`Spelling`/`ListeningExercise` gained a
+pass-through `tracking` prop.
+
+**Screen** (`1989f4b`) — `ReviewSessionScreen` rebuilt on the driver;
+`useCourseReviewSets` loads and resolves the queue (deliberately **not** through
+`useSwrResource`: a stale due list would have the user drill cards that are no
+longer due). `PhaseTracker` shows the phases this session actually has.
+`SessionSummary` is the first and only place ratings are surfaced, so the
+derivation stays visible; unanswered due words are reported as left-for-next-time
+rather than defaulted. Due cards whose list was never imported are reported on
+the empty state instead of making the queue look empty. **Deleted**
+`useSrsReview` + `RatingButtons` — the rejected self-assessment UX.
+
+`tsc --noEmit` clean apart from the long-standing `WordRepository.ts` error;
+Jest **292 passed / 27 suites**; eslint clean on the new files.
+
+**User test checkpoint (not yet run).** Entry point is still the reviews-due row
+on Course Home (Home rework is 8.1b-4). Backend is already seeded from the
+previous session; re-seed via `POST /srs/cards/bulk-introduce` if the queue has
+drained. The account's UI language must be **`ru`** — `ny-i-norge-a2` was seeded
+with Russian translations only, and `en` legitimately returns `immersionMode`.
+1. Import a course vocabulary list first if none is imported — the session can
+   only drill words that exist in a local deck.
+2. Course Home → reviews-due row → the session runs listening → quiz → spelling
+   (plus a flashcard preview if any card is NEW), **never asking you to rate
+   yourself**.
+3. The summary shows how many cards got each rating. Verify on web
+   (`/student/srs`) that those cards moved.
+4. Deliberately fail a quiz answer for one word and ace another; the failed one
+   should come back as `AGAIN` in the summary.
+5. Offline: turn Wi-Fi off mid-session — the session must keep running, and the
+   summary should show a pending-sync count. Turn Wi-Fi back on (re-run `adb
+   reverse`, Phase 6 gotcha) and confirm the queue drains.
+
+#### Step 8.1b-4 — next: Home as the single "what do I study now"
+
+Aggregate due across local decks and course cards on Home, with a breakdown;
+`deck.repeatWords`/`newWords` are already computed in SQL and never rendered
+(`DeckRepository.ts:43-44`). The Courses tab stays for content. Also on the list:
+the dead weight found in the UX audit (`TopicsSection` duplicating
+`ContinueLearningCard`, the no-op `AIPracticeCard`).
 
 ### Step 8.2 — Grammar (mastery display only) — Sonnet
 - No grammar *trainer* exists yet — audited 2026-07-24: the web only shows a
