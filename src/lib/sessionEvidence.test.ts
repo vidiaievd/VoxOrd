@@ -25,7 +25,14 @@ describe('recordWordAttempt', () => {
     ]);
 
     expect(evidence.byWordId[1]).toEqual([
-      { mode: 'quiz', failedAttempts: 0, eventuallyCorrect: true, hintUsed: false, gaveUp: false },
+      {
+        mode: 'quiz',
+        failedAttempts: 0,
+        eventuallyCorrect: true,
+        hintUsed: false,
+        gaveUp: false,
+        typoed: false,
+      },
     ]);
     expect(evidence.byWordId[2][0].failedAttempts).toBe(1);
   });

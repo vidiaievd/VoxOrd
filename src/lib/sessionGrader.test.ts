@@ -13,6 +13,7 @@ function outcome(mode: GradedMode, over: Partial<ModeOutcome> = {}): ModeOutcome
     eventuallyCorrect: true,
     hintUsed: false,
     gaveUp: false,
+    typoed: false,
     ...over,
   };
 }
@@ -29,7 +30,14 @@ function play(steps: Array<[GradedMode, boolean] | [GradedMode, boolean, object]
 describe('recordAttempt', () => {
   it('records a first-try success as zero failures', () => {
     expect(play([['quiz', true]])).toEqual([
-      { mode: 'quiz', failedAttempts: 0, eventuallyCorrect: true, hintUsed: false, gaveUp: false },
+      {
+        mode: 'quiz',
+        failedAttempts: 0,
+        eventuallyCorrect: true,
+        hintUsed: false,
+        gaveUp: false,
+        typoed: false,
+      },
     ]);
   });
 
@@ -128,6 +136,21 @@ describe('gradeWord — HARD', () => {
     expect(gradeWord([outcome('quiz'), outcome('spelling', { failedAttempts: 1 })])).toBe('HARD');
   });
 
+  it('when spelling was accepted as a near-miss', () => {
+    // A slipped keystroke is not a lapse: recall was there, production was
+    // imperfect. Without this the grader's rule 3 would reset the schedule of a
+    // word the user actually knows.
+    expect(gradeWord([outcome('quiz'), outcome('spelling', { typoed: true })])).toBe('HARD');
+  });
+
+  it('when a typo is followed by a clean retry in the same mode', () => {
+    const outcomes = play([
+      ['quiz', true],
+      ['spelling', true, { typo: true }],
+    ]);
+    expect(gradeWord(outcomes)).toBe('HARD');
+  });
+
   it('receptive-but-not-productive is HARD, not a lapse', () => {
     const outcomes = play([
       ['quiz', true],
@@ -150,6 +173,12 @@ describe('gradeWord — EASY', () => {
     // Perfect recognition only — EASY jumps ~8 days and skips learning, so it
     // requires the hardest mode.
     expect(gradeWord([outcome('quiz'), outcome('listening'), outcome('context')])).toBe('GOOD');
+  });
+
+  it('is not awarded after a near-miss, even if first-try accepted', () => {
+    expect(
+      gradeWord([outcome('quiz'), outcome('spelling', { typoed: true })]),
+    ).toBe('HARD');
   });
 
   it('is not awarded when the hint was shown, even if first-try correct', () => {

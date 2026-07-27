@@ -58,12 +58,19 @@ export interface ModeOutcome {
   hintUsed: boolean;
   /** Spelling only: the user pressed skip, i.e. gave up. */
   gaveUp: boolean;
+  /**
+   * Spelling only: an answer was accepted as a near-miss (see
+   * `answerMatching`). Recall was there, production was imperfect — a weaker
+   * signal than a clean success, but nothing like a lapse.
+   */
+  typoed: boolean;
 }
 
 export interface AttemptResult {
   correct: boolean;
   hintUsed?: boolean;
   gaveUp?: boolean;
+  typo?: boolean;
 }
 
 /**
@@ -85,6 +92,7 @@ export function recordAttempt(
     eventuallyCorrect: false,
     hintUsed: false,
     gaveUp: false,
+    typoed: false,
   };
 
   const updated: ModeOutcome = {
@@ -94,6 +102,7 @@ export function recordAttempt(
     eventuallyCorrect: base.eventuallyCorrect || result.correct,
     hintUsed: base.hintUsed || result.hintUsed === true,
     gaveUp: base.gaveUp || result.gaveUp === true,
+    typoed: base.typoed || result.typo === true,
   };
 
   return existing
@@ -144,13 +153,20 @@ export function gradeWord(outcomes: ModeOutcome[]): ReviewRating | null {
   // 4. Recognised the translation but not the target form in context.
   if (context && !isFirstTry(context)) return 'HARD';
 
-  // 5. Produced it, but only with help or after one slip.
-  if (spelling && (spelling.hintUsed || spelling.failedAttempts === 1)) return 'HARD';
+  // 5. Produced it, but only with help, with a near-miss, or after one slip.
+  if (
+    spelling &&
+    (spelling.hintUsed || spelling.typoed || spelling.failedAttempts === 1)
+  ) {
+    return 'HARD';
+  }
 
   // 6. Flawless, and proven productively. EASY skips the learning phase
   //    entirely (measured: straight to REVIEW, ~8 days), so it demands the
   //    hardest mode as evidence — never awarded on recognition alone.
-  if (spelling && !spelling.hintUsed && graded.every(isFirstTry)) return 'EASY';
+  if (spelling && !spelling.hintUsed && !spelling.typoed && graded.every(isFirstTry)) {
+    return 'EASY';
+  }
 
   // 7. Correct, but without production evidence to justify a long jump.
   return 'GOOD';
