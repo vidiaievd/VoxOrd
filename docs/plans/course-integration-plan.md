@@ -1115,25 +1115,80 @@ with an FSRS card for the same word"). The user instinctively went to Home
    across local + course, with breakdown. Courses tab stays for *content*
    (lessons, exercises), not word drilling.
 
-Draft mapping (thresholds need empirical tuning, not settled):
+#### Mode audit — what each mode actually measures (verified in source)
 
-| Behaviour across the session | Rating |
-|---|---|
-| Wrong on first attempt in a productive mode (spelling/quiz) | `AGAIN` |
-| Right, but after a retry / with a hint / slow | `HARD` |
-| Right first attempt in every mode attempted | `GOOD` |
-| Right first attempt, fast, including spelling | `EASY` (be conservative) |
+⚠️ **`flashcard` is self-report, not a recall test**: `const isCorrect =
+direction === 'right'` (`useCard.ts:157`) — swipe right means "I knew it" and
+nothing is ever compared. `PHASE_ORDER` in Deep Session *starts* with flashcard
+(`useDeepSession.ts:36`), so reusing that session as-is would smuggle the
+rejected self-assessment straight back in as phase 1.
 
-Open sub-questions, deliberately unresolved:
-- Which modes are "decisive"? A miss in `listening` should probably not cost a
-  full `AGAIN` lapse (it resets stability).
-- Deep Session has a **4h per-deck cooldown** (`useDeepSessionCooldown.ts:4`),
-  FSRS has its own due schedule. For course words FSRS due-ness must win;
-  cooldown is a local-deck concept.
-- Signal available today is thin: `recordAnswer` is strictly binary
-  (`ProgressRepository.ts:38`), `responseTimeMs` is only populated by spelling
-  and flashcard, spelling's `mistakeCount` is transient UI state never persisted
-  (`useSpelling.ts:24`). Capturing per-word attempt counts needs new plumbing.
+| Mode | User action | Direction | Check |
+|---|---|---|---|
+| `matching` | pair 5 tiles by tapping | NO ↔ translation | id identity; pool narrows, **last pair is free** |
+| `quiz` | pick 1 of 4 | NO word → translation | exact string equality |
+| `listening` | pick 1 of 4 | TTS audio → translation | same |
+| `context` | pick 1 of 4 | NO sentence with `___` → **the NO word** | same |
+| `spelling` | **types** the word | translation → **the NO word** | trim+lowercase, no fuzzy |
+
+Retrieval difficulty: `spelling` > `context` > `quiz ≈ listening` > `matching`.
+
+#### Final grading scheme (decided 2026-07-27)
+
+Evaluated top-down, first match wins:
+
+| | Condition | Rating |
+|---|---|---|
+| 1 | pressed skip in spelling (gave up) | `AGAIN` |
+| 2 | first-try miss in `quiz` or `listening` | `AGAIN` |
+| 3 | spelling failed ≥2× before correct, or never correct | `AGAIN` |
+| 4 | first-try miss in `context` | `HARD` |
+| 5 | spelling used the hint **or** took exactly 1 retry | `HARD` |
+| 6 | every mode first-try, spelling present, no hint | `EASY` |
+| 7 | otherwise | `GOOD` |
+
+Decisions behind it:
+- **Rule 2 stays strict** (user chose this over requiring two misses): failing a
+  4-way choice of the *native translation* means the word is not known, so the
+  stability reset is earned. It is the main tuning knob if it proves harsh.
+- **`EASY` requires production evidence** — measured, it skips the learning
+  phase and jumps to ~8 days, so recognition alone can never earn it.
+- **`flashcard` = non-scoring preview, NEW cards only** (user choice): you
+  cannot test a word never seen, but the swipe must award nothing.
+- **`matching` is not scored** — the self-narrowing pool inflates "correct".
+- **Timing dropped from v1**: only flashcard (excluded) and spelling populate
+  `responseTimeMs`, and spelling's clock starts at question display so it
+  *includes previous failed attempts* (`useSpelling.ts:126`) — not a clean
+  recall latency. A "fast" threshold on that would be invented, and `EASY` is
+  too big a lever to hang on a noisy signal.
+
+Still open:
+- Deep Session has a **4h per-deck cooldown** (`useDeepSessionCooldown.ts:4`)
+  while FSRS has its own due schedule. For course words FSRS due-ness must win;
+  the cooldown is a local-deck concept.
+- Existing plumbing cannot carry this signal: `recordAnswer` is strictly binary
+  (`ProgressRepository.ts:38`), hint usage is persisted nowhere, and
+  `SessionRepository.recordResult` takes only `{isCorrect, responseTimeMs}` — a
+  requeued retry is indistinguishable from a first-try success. Course sessions
+  therefore accumulate their own evidence in memory (below) and never touch the
+  local word DB.
+
+#### Step 8.1b-1 — grading logic — DONE (2026-07-27, VoxOrd `4ee9985`)
+
+`src/lib/sessionGrader.ts` (beside `reviewQueue.ts`, its closest sibling):
+`recordAttempt()` folds a stream of binary answers into per-mode `ModeOutcome`s
+(retries accumulate into one outcome; a later wrong answer cannot un-earn an
+earlier success; `hintUsed`/`gaveUp` latch), and `gradeWord()` collapses them
+into one rating. Returns **`null`** when there is no evidence — only a preview
+ran, or the session was abandoned before any answer — and the caller must then
+send no review event, leaving the card due.
+
+23 tests covering every row of the table plus the edge cases: abandoned
+mid-question (presented-but-unanswered must not read as failure), abandonment
+capping at `GOOD` so work is not lost, and rule 2 outranking a flawless
+spelling result. `tsc --noEmit` and Jest at baseline (259 passing / 25 suites;
+only the environmental `App.test.tsx` and the long-standing
+`WordRepository.ts` type error remain).
 
 **Scope note:** this is a rebuild of Phase 8 plus a retrofit of Phase 5.2 plus a
 Home rework — larger than the original 8.1. Sequence it as pure logic → data
