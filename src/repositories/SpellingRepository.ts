@@ -4,6 +4,18 @@ import { SpellingQuestion } from '../hooks/useSpelling';
 
 const QUESTION_COUNT = 7;
 
+/**
+ * Phrases are excluded from the spelling drill.
+ *
+ * Typing a whole phrase letter-perfect is a memory test, not a spelling test:
+ * seeded entries reach 31 characters (`Alle som er bosatt i Norge, ...`), and
+ * with the grader's rule 3 a phrase that cannot realistically be typed would
+ * reset its FSRS schedule every session. Phrases are still drilled in
+ * quiz/listening, where recognition is the right measure. Decided with the
+ * user, 2026-07-27.
+ */
+const EXCLUDED_PART_OF_SPEECH = 'phrase';
+
 function buildHint(word: string): string {
   return word
     .split('')
@@ -41,10 +53,11 @@ class SpellingRepository {
        JOIN ${TABLE.TRANSLATIONS} t   ON t.wordId  = w.id AND t.languageCode = ?
        LEFT JOIN word_mode_strength wms
          ON wms.wordId = w.id AND wms.deckId = ? AND wms.exerciseType = 'spelling'
+       WHERE (w.partOfSpeech IS NULL OR w.partOfSpeech != ?)
        ${wordFilter}
        ORDER BY strength ASC, RANDOM()
        LIMIT ?;`,
-      [deckId, uiLang, deckId, limit],
+      [deckId, uiLang, deckId, EXCLUDED_PART_OF_SPEECH, limit],
     );
 
     return (result.rows ?? []).map(row => ({

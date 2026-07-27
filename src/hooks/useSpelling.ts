@@ -6,6 +6,7 @@ import { wordModeStrengthRepository } from '../repositories/WordModeStrengthRepo
 import { settingsStore, SpellingHintMode } from '../store/settingsStore';
 import type { ExerciseTracking } from './exerciseTracking';
 import type { AttemptResult } from '../lib/sessionGrader';
+import { classifyAnswer } from '../lib/answerMatching';
 
 export interface SpellingQuestion {
   wordId: number;
@@ -26,6 +27,10 @@ export interface SpellingState {
   mistakeCount: number;
   showHint: boolean;
   showSkip: boolean;
+  /** The full correct word is on screen (after two mistakes). */
+  isRevealed: boolean;
+  /** The last answer was accepted as a near-miss, not an exact match. */
+  wasTypo: boolean;
   isComplete: boolean;
   totalWords: number;
 }
@@ -43,10 +48,12 @@ export interface UseSpellingResult {
 const MISTAKES_BEFORE_HINT = 2;
 const MISTAKES_BEFORE_SKIP = 3;
 const SKIP_PENALTY_MISTAKES = 3;
-
-function normalizeAnswer(value: string): string {
-  return value.trim().toLowerCase();
-}
+/**
+ * After this many mistakes the full word is shown. Previously the only way to
+ * ever see it was pressing skip, which itself needed three mistakes — so a word
+ * you could not guess was a dead end.
+ */
+const MISTAKES_BEFORE_REVEAL = 2;
 
 function resolveInitialHint(): boolean {
   const spellingHintMode = settingsStore.get(
@@ -83,6 +90,8 @@ export function useSpelling(
     mistakeCount: 0,
     showHint: resolveInitialHint(),
     showSkip: false,
+    isRevealed: false,
+    wasTypo: false,
     isComplete: false,
     totalWords: 0,
   });
@@ -130,8 +139,12 @@ export function useSpelling(
       }
 
       const question = prev.questions[prev.currentIndex];
-      const isCorrect =
-        normalizeAnswer(prev.input) === normalizeAnswer(question.word);
+      // A near-miss is accepted so a slipped keystroke is not read as "did not
+      // know the word", but it is reported as a typo so the grader can hold it
+      // to HARD instead of a clean success.
+      const verdict = classifyAnswer(prev.input, question.word);
+      const isCorrect = verdict !== 'wrong';
+      const isTypo = verdict === 'typo';
       const responseTimeMs = Date.now() - shownAtRef.current;
       const newMistakeCount = isCorrect
         ? prev.mistakeCount
@@ -156,6 +169,7 @@ export function useSpelling(
         result: {
           correct: isCorrect,
           hintUsed: spellingHintMode === 'after_mistake' && prev.showHint,
+          typo: isTypo,
         },
       };
 
@@ -189,6 +203,9 @@ export function useSpelling(
           ...prev,
           isAnswered: true,
           isCorrect: true,
+          wasTypo: isTypo,
+          // A typo still shows the correct form, so the right spelling is seen.
+          isRevealed: prev.isRevealed || isTypo,
           correctCount: prev.correctCount + 1,
           mistakeCount: newMistakeCount,
           showHint,
@@ -200,6 +217,8 @@ export function useSpelling(
         ...prev,
         input: '',
         isCorrect: false,
+        wasTypo: false,
+        isRevealed: prev.isRevealed || newMistakeCount >= MISTAKES_BEFORE_REVEAL,
         mistakeCount: newMistakeCount,
         showHint,
         showSkip,
@@ -249,6 +268,7 @@ export function useSpelling(
         isSkipped: true,
         skippedCount: prev.skippedCount + 1,
         showHint: true,
+        isRevealed: true,
       };
     });
 
@@ -295,6 +315,8 @@ export function useSpelling(
         mistakeCount: 0,
         showHint: spellingHintMode === 'always',
         showSkip: false,
+        isRevealed: false,
+        wasTypo: false,
         isComplete,
       };
     });

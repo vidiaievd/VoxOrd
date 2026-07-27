@@ -13,6 +13,11 @@ class ListeningRepository {
   ): Promise<ListeningQuestion[]> {
     const db = getDatabase();
 
+    // NOTE: this must land in a real WHERE clause. It used to be interpolated
+    // directly after the LEFT JOIN's ON condition, which made it part of that
+    // condition — and a LEFT JOIN's ON never filters the left table, so the
+    // override silently had no effect and the exercise drilled arbitrary deck
+    // words. The `WHERE 1 = 1` below exists so this can always be appended.
     const wordFilter =
       overrideWordIds && overrideWordIds.length > 0
         ? `AND w.id IN (${overrideWordIds.join(',')})`
@@ -31,6 +36,7 @@ class ListeningRepository {
        JOIN ${TABLE.TRANSLATIONS} t   ON t.wordId  = w.id AND t.languageCode = ?
        LEFT JOIN word_mode_strength wms
          ON wms.wordId = w.id AND wms.deckId = ? AND wms.exerciseType = 'listening'
+       WHERE 1 = 1
        ${wordFilter}
        ORDER BY strength ASC, RANDOM()
        LIMIT ?;`,

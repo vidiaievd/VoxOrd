@@ -39,6 +39,17 @@ export function SpellingExercise({
   const styles = makeStyles(colors);
   const { state, isLoading, sessionId, setInput, submit, skip, next } =
     useSpelling(deckId, overrideWordIds, onComplete, tracking);
+
+  // A phase inside a larger session must not dead-end on an empty question set
+  // (e.g. spelling now skips phrases, so a phrase-only set yields nothing).
+  // Report it as finished so the session moves on instead of stranding the user
+  // on a "no words" screen with only a back button.
+  useEffect(() => {
+    if (!isLoading && state.questions.length === 0 && onComplete) {
+      onComplete(0);
+    }
+  }, [isLoading, state.questions.length, onComplete]);
+
   const inputRef = useRef<TextInput>(null);
   useAutoAdvance(state.isAnswered, state.isCorrect, next);
 
@@ -201,20 +212,42 @@ export function SpellingExercise({
               {state.isCorrect === false && (
                 <View style={styles.feedbackWrong}>
                   <Text style={styles.feedbackWrongText}>
-                    {state.mistakeCount >= MISTAKES_BEFORE_HINT
-                      ? '✗ Try again — hint is now visible'
+                    {state.isRevealed
+                      ? '✗ Not quite — the correct spelling is below'
                       : '✗ Not quite, try again'}
                   </Text>
                 </View>
               )}
 
-              {/* Correct feedback */}
+              {/* Correct feedback — a near-miss says so rather than claiming a
+                  clean success, and always shows the correct form. */}
               {state.isAnswered && state.isCorrect && (
-                <View style={styles.feedbackCorrect}>
-                  <Text style={styles.feedbackCorrectText}>✓ Correct!</Text>
+                <View
+                  style={
+                    state.wasTypo ? styles.feedbackWrong : styles.feedbackCorrect
+                  }
+                >
+                  <Text
+                    style={
+                      state.wasTypo
+                        ? styles.feedbackWrongText
+                        : styles.feedbackCorrectText
+                    }
+                  >
+                    {state.wasTypo ? '≈ Almost — small typo' : '✓ Correct!'}
+                  </Text>
                   <Text style={styles.feedbackCorrectSub}>
                     Next word in 0.8s...
                   </Text>
+                </View>
+              )}
+
+              {/* The correct spelling, once revealed. Without this a word you
+                  cannot guess was a dead end until skip appeared. */}
+              {state.isRevealed && (
+                <View style={styles.revealContainer}>
+                  <Text style={styles.revealLabel}>Correct spelling</Text>
+                  <Text style={styles.revealWord}>{question.word}</Text>
                 </View>
               )}
             </>
@@ -262,7 +295,6 @@ export function SpellingExercise({
 }
 
 // Expose constant for component use
-const MISTAKES_BEFORE_HINT = 2;
 
 const makeStyles = (colors: ColorScheme) =>
   StyleSheet.create({
@@ -412,6 +444,30 @@ const makeStyles = (colors: ColorScheme) =>
       color: colors.textMuted,
       textAlign: 'center',
       lineHeight: 18,
+    },
+    revealContainer: {
+      backgroundColor: colors.backgroundCard,
+      borderRadius: 12,
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      alignItems: 'center',
+      marginTop: 12,
+      marginBottom: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    revealLabel: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.textMuted,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      marginBottom: 4,
+    },
+    revealWord: {
+      fontSize: 24,
+      fontWeight: '800',
+      color: colors.textPrimary,
     },
     actions: {
       marginTop: 8,

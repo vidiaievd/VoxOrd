@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -39,6 +39,17 @@ export function QuizExercise({
     onComplete,
     tracking,
   );
+
+  // A phase inside a larger session must not dead-end on an empty question set
+  // (e.g. spelling now skips phrases, so a phrase-only set yields nothing).
+  // Report it as finished so the session moves on instead of stranding the user
+  // on a "no words" screen with only a back button.
+  useEffect(() => {
+    if (!isLoading && state.questions.length === 0 && onComplete) {
+      onComplete(0);
+    }
+  }, [isLoading, state.questions.length, onComplete]);
+
   useAutoAdvance(state.isAnswered, state.isCorrect, next);
 
   if (isLoading) {
