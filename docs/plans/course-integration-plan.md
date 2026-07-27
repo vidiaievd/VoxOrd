@@ -1173,7 +1173,7 @@ Still open:
   therefore accumulate their own evidence in memory (below) and never touch the
   local word DB.
 
-#### Step 8.1b-1 — grading logic — DONE (2026-07-27, VoxOrd `4ee9985`)
+#### Step 8.1b-1 — grading logic — DONE (2026-07-27, VoxOrd `506dbbf`)
 
 `src/lib/sessionGrader.ts` (beside `reviewQueue.ts`, its closest sibling):
 `recordAttempt()` folds a stream of binary answers into per-mode `ModeOutcome`s
