@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../../providers/ThemeProvider';
 import { ColorScheme } from '../../../theme/colors';
 import { useSpelling } from '../../../hooks/useSpelling';
+import type { ExerciseTracking } from '../../../hooks/exerciseTracking';
 import { useAutoAdvance } from '../../../hooks/useAutoAdvance';
 
 interface SpellingExerciseProps {
@@ -22,6 +23,8 @@ interface SpellingExerciseProps {
   onBack: () => void;
   onSessionDone: (sessionId: number) => void;
   onComplete?: (correctCount: number) => void;
+  /** Optional per-answer instrumentation; used by course review sessions. */
+  tracking?: ExerciseTracking;
 }
 
 export function SpellingExercise({
@@ -30,11 +33,12 @@ export function SpellingExercise({
   onBack,
   onSessionDone,
   onComplete,
+  tracking,
 }: SpellingExerciseProps) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const { state, isLoading, sessionId, setInput, submit, skip, next } =
-    useSpelling(deckId, overrideWordIds, onComplete);
+    useSpelling(deckId, overrideWordIds, onComplete, tracking);
   const inputRef = useRef<TextInput>(null);
   useAutoAdvance(state.isAnswered, state.isCorrect, next);
 

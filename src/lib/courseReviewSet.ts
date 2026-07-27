@@ -176,6 +176,48 @@ export function buildReviewSet(
 }
 
 /**
+ * Ordered modes of a course review session.
+ *
+ * `preview` is the flashcard screen in its non-scoring `review` mode: a card
+ * the user has never seen cannot be *tested*, and the swipe is self-report
+ * (`useCard.ts`: `isCorrect = direction === 'right'`), which is exactly the
+ * input this redesign removes. It shows the NEW words and awards nothing.
+ *
+ * `context` and `matching` are absent by design: matching inflates "correct"
+ * as its pool narrows, and the context query needs `word_examples` rows with
+ * `isContextSentence = 1`, which the importer never writes — for a course deck
+ * it returns nothing regardless of client work.
+ */
+export type CourseReviewPhase = 'preview' | 'listening' | 'quiz' | 'spelling';
+
+/** Due words the user has never studied — previewed, never graded. */
+export function newCardWordIds(set: CourseReviewSet): number[] {
+  return set.due.filter((word) => word.state === 'NEW').map((word) => word.wordId);
+}
+
+/**
+ * Which modes this set can actually run.
+ *
+ * The 4-option modes are dropped when even the padded set cannot reach the
+ * minimum — a deck smaller than four words. Letting them run would show the
+ * exercise's "not enough words" dead end mid-session. Spelling has no such
+ * floor, so a tiny deck still gets a real, gradeable session.
+ */
+export function planPhases(
+  set: CourseReviewSet,
+  previewWordIds: number[],
+  minPoolSize = MIN_POOL_SIZE,
+): CourseReviewPhase[] {
+  if (set.wordIds.length === 0) return [];
+
+  const phases: CourseReviewPhase[] = [];
+  if (previewWordIds.length > 0) phases.push('preview');
+  if (set.wordIds.length >= minPoolSize) phases.push('listening', 'quiz');
+  phases.push('spelling');
+  return phases;
+}
+
+/**
  * Whether an answer for this word counts toward a rating. Padding words are
  * drilled for the user's benefit but must leave the server schedule alone.
  */

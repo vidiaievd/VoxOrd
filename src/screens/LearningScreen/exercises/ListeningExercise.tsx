@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../../providers/ThemeProvider';
 import { ColorScheme } from '../../../theme/colors';
 import { useListening } from '../../../hooks/useListening';
+import type { ExerciseTracking } from '../../../hooks/exerciseTracking';
 import { useAutoAdvance } from '../../../hooks/useAutoAdvance';
 
 interface ListeningExerciseProps {
@@ -18,6 +19,8 @@ interface ListeningExerciseProps {
   onBack: () => void;
   onSessionDone: (sessionId: number) => void;
   onComplete?: (correctCount: number) => void;
+  /** Optional per-answer instrumentation; used by course review sessions. */
+  tracking?: ExerciseTracking;
 }
 
 export function ListeningExercise({
@@ -26,11 +29,12 @@ export function ListeningExercise({
   onBack,
   onSessionDone,
   onComplete,
+  tracking,
 }: ListeningExerciseProps) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const { state, isLoading, sessionId, speak, selectOption, next, installTts } =
-    useListening(deckId, overrideWordIds, onComplete);
+    useListening(deckId, overrideWordIds, onComplete, tracking);
   useAutoAdvance(state.isAnswered, state.isCorrect, next);
 
   // TTS engine not installed

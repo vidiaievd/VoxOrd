@@ -4,7 +4,9 @@ import {
   cardIdForWord,
   groupByDeck,
   isGraded,
+  newCardWordIds,
   padNeeded,
+  planPhases,
   resolveDueWords,
   type CourseDueWord,
   type LinkedWordRow,
@@ -163,6 +165,54 @@ describe('buildReviewSet', () => {
   it('ignores duplicate padding candidates', () => {
     const set = buildReviewSet(10, [dueWord(1)], [50, 50, 51, 52]);
     expect(set.padWordIds).toEqual([50, 51, 52]);
+  });
+});
+
+describe('newCardWordIds', () => {
+  it('selects only cards the user has never studied', () => {
+    const due = [
+      { ...dueWord(1), state: 'NEW' as SrsCardState },
+      dueWord(2),
+      { ...dueWord(3), state: 'NEW' as SrsCardState },
+    ];
+    const set = buildReviewSet(10, due, []);
+
+    expect(newCardWordIds(set)).toEqual([1, 3]);
+  });
+
+  it('is empty when everything has been seen', () => {
+    expect(newCardWordIds(buildReviewSet(10, [dueWord(1)], []))).toEqual([]);
+  });
+});
+
+describe('planPhases', () => {
+  const fourWords = buildReviewSet(10, [dueWord(1), dueWord(2)], [50, 51]);
+
+  it('runs listening, quiz and spelling once the pool is big enough', () => {
+    expect(planPhases(fourWords, [])).toEqual(['listening', 'quiz', 'spelling']);
+  });
+
+  it('prepends a preview when there are unseen words', () => {
+    expect(planPhases(fourWords, [1])).toEqual([
+      'preview',
+      'listening',
+      'quiz',
+      'spelling',
+    ]);
+  });
+
+  it('drops the 4-option modes when even padding cannot reach the minimum', () => {
+    const tiny = buildReviewSet(10, [dueWord(1)], [50]);
+    expect(planPhases(tiny, [])).toEqual(['spelling']);
+  });
+
+  it('never includes context or matching', () => {
+    expect(planPhases(fourWords, [1])).not.toContain('context');
+    expect(planPhases(fourWords, [1])).not.toContain('matching');
+  });
+
+  it('plans nothing for an empty set', () => {
+    expect(planPhases(buildReviewSet(10, [], []), [])).toEqual([]);
   });
 });
 

@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../../providers/ThemeProvider';
 import { ColorScheme } from '../../../theme/colors';
 import { useQuiz } from '../../../hooks/useQuiz';
+import type { ExerciseTracking } from '../../../hooks/exerciseTracking';
 import { useAutoAdvance } from '../../../hooks/useAutoAdvance';
 
 interface QuizExerciseProps {
@@ -18,6 +19,8 @@ interface QuizExerciseProps {
   onBack: () => void;
   onSessionDone: (sessionId: number) => void;
   onComplete?: (correctCount: number) => void;
+  /** Optional per-answer instrumentation; used by course review sessions. */
+  tracking?: ExerciseTracking;
 }
 
 export function QuizExercise({
@@ -26,6 +29,7 @@ export function QuizExercise({
   onBack,
   onSessionDone,
   onComplete,
+  tracking,
 }: QuizExerciseProps) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
@@ -33,6 +37,7 @@ export function QuizExercise({
     deckId,
     overrideWordIds,
     onComplete,
+    tracking,
   );
   useAutoAdvance(state.isAnswered, state.isCorrect, next);
 
