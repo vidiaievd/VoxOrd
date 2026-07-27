@@ -73,6 +73,14 @@ export function useSpelling(
   // Mutable queue — wrong answers get appended to end, no re-render on mutation
   const queueRef = useRef<SpellingQuestion[]>([]);
   const shownAtRef = useRef<number>(Date.now());
+  // Unlike quiz/listening (one attempt per presentation, then locked until
+  // `next`), spelling lets the user keep retrying the same question without
+  // advancing — "Try again" and "Next" are both available on a wrong answer.
+  // Without this flag, every one of those retries would push another copy of
+  // the word onto the retry queue, so a handful of mistyped attempts on one
+  // word could demand it be typed correctly several more times later in the
+  // session. One requeue per presentation, no matter how many wrong attempts.
+  const requeuedThisPresentationRef = useRef(false);
   // Read through a ref so an inline tracking object does not destabilise
   // submit/skip.
   const trackingRef = useRef(tracking);
@@ -106,6 +114,7 @@ export function useSpelling(
       ]);
       if (!cancelled) {
         queueRef.current = [...questions];
+        requeuedThisPresentationRef.current = false;
         setSessionId(sid);
         setState(prev => ({
           ...prev,
@@ -193,9 +202,11 @@ export function useSpelling(
         });
       }
 
-      // If wrong — push to end of queue for retry
-      if (!isCorrect) {
+      // If wrong — push to end of queue for retry, but only once per
+      // presentation (see the ref's comment above).
+      if (!isCorrect && !requeuedThisPresentationRef.current) {
         queueRef.current.push(question);
+        requeuedThisPresentationRef.current = true;
       }
 
       if (isCorrect) {
@@ -299,6 +310,7 @@ export function useSpelling(
       }
 
       shownAtRef.current = Date.now();
+      requeuedThisPresentationRef.current = false;
 
       const spellingHintMode = settingsStore.get(
         'spellingHintMode',
