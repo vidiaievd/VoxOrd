@@ -208,6 +208,13 @@ export interface Translations {
     pendingSync: string; // '{count} answers waiting to sync'
     loadError: string;
     offlineLoad: string;
+    submitting: string;
+    stillDue: string; // '{count} words left for next time'
+    notImported: string; // '{count} due words are not in a saved list'
+    phasePreview: string;
+    phaseListening: string;
+    phaseQuiz: string;
+    phaseSpelling: string;
   };
 
   audioLesson: {

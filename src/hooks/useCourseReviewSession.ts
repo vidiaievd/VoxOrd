@@ -139,11 +139,11 @@ export function useCourseReviewSession(
       setPhaseIndex(next);
       return;
     }
-    void submitAll();
+    submitAll();
   }, [phases, phaseIndex, submitAll]);
 
   const finishEarly = useCallback(() => {
-    void submitAll();
+    submitAll();
   }, [submitAll]);
 
   const tracking = useMemo<ExerciseTracking>(

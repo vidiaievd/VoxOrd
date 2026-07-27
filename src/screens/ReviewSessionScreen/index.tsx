@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,137 +11,245 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
-import { useSrsReview } from '../../hooks/useSrsReview';
-import { predictedByRating } from '../../api/srs';
+import {
+  primarySet,
+  useCourseReviewSets,
+} from '../../hooks/useCourseReviewSets';
+import { useCourseReviewSession } from '../../hooks/useCourseReviewSession';
+import type { DeckReviewSet } from '../../lib/courseReviewLoader';
+import type { Deck } from '../../repositories/DeckRepository';
 import { OfflineBanner } from '../../components/OfflineBanner';
-import { RatingButtons } from './RatingButtons';
+import { CardScreen } from '../CardScreen';
+import { QuizExercise } from '../LearningScreen/exercises/QuizExercise';
+import { SpellingExercise } from '../LearningScreen/exercises/SpellingExercise';
+import { ListeningExercise } from '../LearningScreen/exercises/ListeningExercise';
+import { PhaseTracker } from './PhaseTracker';
+import { SessionSummary } from './SessionSummary';
 
 interface ReviewSessionScreenProps {
   onBack: () => void;
 }
 
 /**
- * Course-word review session (Phase 8.1). A thin client over the server's FSRS:
- * it renders the due queue, shows the server's predicted intervals on the
- * rating buttons, and submits answers — no scheduling happens here. Personal
- * VoxOrd words are untouched by this screen; they keep their own local engine.
+ * Course-word review session.
+ *
+ * The rating sent to the server is **derived from what the user did**, never
+ * self-reported: the same due words are drilled through listening, quiz and
+ * spelling, per-word evidence accumulates, and one FSRS rating per card is
+ * posted at the end. Scheduling itself happens entirely server-side — this
+ * screen computes no intervals.
+ *
+ * Personal VoxOrd words are untouched: only words imported from a platform
+ * vocabulary list can appear here, and their local 6-stage progress is
+ * deliberately not written during the session.
  */
 export function ReviewSessionScreen({ onBack }: ReviewSessionScreenProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const session = useSrsReview();
+  const { loading, error, offline, overview, decks, reload } = useCourseReviewSets();
 
-  const header = (
-    <View style={styles.header}>
-      <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.7}>
-        <Text style={styles.backText}>‹ {t('common.back')}</Text>
-      </TouchableOpacity>
-      <Text style={styles.headerTitle}>{t('review.title')}</Text>
-      <Text style={styles.counter}>
-        {session.card ? `${session.reviewedCount + 1}/${session.reviewedCount + session.remainingCount}` : ''}
-      </Text>
-    </View>
-  );
+  const set = primarySet(overview);
+  const deck = set ? decks.get(set.deckId) ?? null : null;
 
-  const renderBody = () => {
-    if (session.loading) {
-      return (
+  if (loading) {
+    return (
+      <Frame onBack={onBack} styles={styles} title={t('review.title')}>
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={colors.accent} />
         </View>
-      );
-    }
+      </Frame>
+    );
+  }
 
-    if (session.loadError) {
-      return (
+  if (error) {
+    return (
+      <Frame onBack={onBack} styles={styles} title={t('review.title')}>
+        {offline && <OfflineBanner />}
         <View style={styles.centered}>
           <Text style={styles.message}>
-            {session.offline ? t('review.offlineLoad') : t('review.loadError')}
+            {offline ? t('review.offlineLoad') : t('review.loadError')}
           </Text>
-          <TouchableOpacity style={styles.primaryButton} onPress={session.reload} activeOpacity={0.8}>
+          <TouchableOpacity style={styles.primaryButton} onPress={reload} activeOpacity={0.8}>
             <Text style={styles.primaryButtonText}>{t('courses.retry')}</Text>
           </TouchableOpacity>
         </View>
-      );
-    }
+      </Frame>
+    );
+  }
 
-    if (!session.card) {
-      // Both "nothing was due" and "the session is finished" land here; the
-      // count tells them apart.
-      return (
+  if (!set || !deck) {
+    // Three different situations land here and the copy has to tell them apart:
+    // nothing is due; something is due but its list was never imported; or the
+    // deck row vanished under us.
+    const unresolved = overview?.unresolvedCardIds.length ?? 0;
+    return (
+      <Frame onBack={onBack} styles={styles} title={t('review.title')}>
         <View style={styles.centered}>
-          <Text style={styles.doneTitle}>
-            {session.finished ? t('review.sessionDone') : t('review.nothingDue')}
-          </Text>
-          {session.finished && (
+          <Text style={styles.doneTitle}>{t('review.nothingDue')}</Text>
+          {unresolved > 0 && (
             <Text style={styles.message}>
-              {t('review.reviewedCount', { count: session.reviewedCount })}
-            </Text>
-          )}
-          {session.pendingCount > 0 && (
-            <Text style={styles.pending}>
-              {t('review.pendingSync', { count: session.pendingCount })}
+              {t('review.notImported', { count: unresolved })}
             </Text>
           )}
           <TouchableOpacity style={styles.primaryButton} onPress={onBack} activeOpacity={0.8}>
             <Text style={styles.primaryButtonText}>{t('common.back')}</Text>
           </TouchableOpacity>
         </View>
-      );
-    }
-
-    const { card } = session;
-    const front = card.front!;
-    const back = card.back ?? null;
-
-    return (
-      <>
-        <ScrollView contentContainerStyle={styles.cardBody}>
-          <Text style={styles.word}>{front.word}</Text>
-          {!!front.partOfSpeech && <Text style={styles.pos}>{front.partOfSpeech}</Text>}
-          {!!front.ipaTranscription && <Text style={styles.ipa}>{front.ipaTranscription}</Text>}
-
-          {session.revealed && (
-            <View style={styles.answer}>
-              {back?.translation ? (
-                <Text style={styles.translation}>{back.translation}</Text>
-              ) : (
-                <Text style={styles.noTranslation}>{t('review.noTranslation')}</Text>
-              )}
-              {!!back?.alternativeTranslations.length && (
-                <Text style={styles.alternatives}>{back.alternativeTranslations.join(', ')}</Text>
-              )}
-              {!!back?.definition && <Text style={styles.definition}>{back.definition}</Text>}
-              {back?.examples.map((example, i) => (
-                <View key={i} style={styles.example}>
-                  <Text style={styles.exampleText}>{example.text}</Text>
-                  {!!example.translation && (
-                    <Text style={styles.exampleTranslation}>{example.translation}</Text>
-                  )}
-                </View>
-              ))}
-            </View>
-          )}
-        </ScrollView>
-
-        {session.revealed ? (
-          <RatingButtons predicted={predictedByRating(card)} onRate={session.rate} />
-        ) : (
-          <TouchableOpacity style={styles.revealButton} onPress={session.reveal} activeOpacity={0.8}>
-            <Text style={styles.revealText}>{t('review.showAnswer')}</Text>
-          </TouchableOpacity>
-        )}
-      </>
+      </Frame>
     );
+  }
+
+  return <RunningSession set={set} deck={deck} onBack={onBack} onDone={onBack} />;
+}
+
+interface RunningSessionProps {
+  set: DeckReviewSet;
+  deck: Deck;
+  onBack: () => void;
+  onDone: () => void;
+}
+
+/**
+ * Split out so the session hook mounts only once a set exists — it keys its
+ * phase plan off the word list, and mounting it with an empty set would plan an
+ * empty session.
+ */
+function RunningSession({ set, deck, onBack, onDone }: RunningSessionProps) {
+  const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
+  const { state, tracking, wordIds, advance } = useCourseReviewSession(set);
+
+  // Every exercise reports a correct count we do not use: the rating comes from
+  // the accumulated per-answer evidence, not from a phase score.
+  const handlePhaseDone = useCallback(() => advance(), [advance]);
+  const handlePreviewDone = useCallback(() => advance(), [advance]);
+
+  if (state.stage === 'loading' || state.stage === 'submitting') {
+    return (
+      <Frame onBack={onBack} styles={styles} title={t('review.title')}>
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={colors.accent} />
+          {state.stage === 'submitting' && (
+            <Text style={styles.message}>{t('review.submitting')}</Text>
+          )}
+        </View>
+      </Frame>
+    );
+  }
+
+  if (state.stage === 'complete') {
+    return (
+      <Frame onBack={onBack} styles={styles} title={t('review.title')}>
+        <ScrollView contentContainerStyle={styles.centered}>
+          <SessionSummary
+            submitted={state.submitted}
+            ungradedCount={state.ungradedCount}
+            onDone={onDone}
+          />
+        </ScrollView>
+      </Frame>
+    );
+  }
+
+  const header = (
+    <View style={styles.header}>
+      <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.7}>
+        <Text style={styles.backText}>‹ {t('common.back')}</Text>
+      </TouchableOpacity>
+      <Text style={styles.headerTitle} numberOfLines={1}>
+        {set.deckTitle || t('review.title')}
+      </Text>
+      <PhaseTracker
+        phase={state.phase}
+        phaseIndex={state.phaseIndex}
+        totalPhases={state.totalPhases}
+      />
+    </View>
+  );
+
+  const body = () => {
+    switch (state.phase) {
+      case 'preview':
+        return (
+          <CardScreen
+            deck={deck}
+            mode="review"
+            overrideWords={state.previewWords}
+            onBack={onBack}
+            onDeepDone={handlePreviewDone}
+          />
+        );
+      case 'listening':
+        return (
+          <ListeningExercise
+            deckId={set.deckId}
+            overrideWordIds={wordIds}
+            onBack={onBack}
+            onSessionDone={handlePhaseDone}
+            onComplete={handlePhaseDone}
+            tracking={tracking}
+          />
+        );
+      case 'quiz':
+        return (
+          <QuizExercise
+            deckId={set.deckId}
+            overrideWordIds={wordIds}
+            onBack={onBack}
+            onSessionDone={handlePhaseDone}
+            onComplete={handlePhaseDone}
+            tracking={tracking}
+          />
+        );
+      case 'spelling':
+        return (
+          <SpellingExercise
+            deckId={set.deckId}
+            overrideWordIds={wordIds}
+            onBack={onBack}
+            onSessionDone={handlePhaseDone}
+            onComplete={handlePhaseDone}
+            tracking={tracking}
+          />
+        );
+      default:
+        return (
+          <View style={styles.centered}>
+            <Text style={styles.message}>{t('review.nothingDue')}</Text>
+          </View>
+        );
+    }
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {header}
-      {/* Answers are queued while offline, so the session keeps running. */}
-      {session.offline && <OfflineBanner />}
-      {renderBody()}
+      <View style={styles.flex}>{body()}</View>
+    </SafeAreaView>
+  );
+}
+
+interface FrameProps {
+  title: string;
+  onBack: () => void;
+  styles: ReturnType<typeof makeStyles>;
+  children: React.ReactNode;
+}
+
+function Frame({ title, onBack, styles, children }: FrameProps) {
+  const { t } = useTranslation();
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.7}>
+          <Text style={styles.backText}>‹ {t('common.back')}</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>{title}</Text>
+        <View style={styles.backButton} />
+      </View>
+      {children}
     </SafeAreaView>
   );
 }
@@ -152,6 +260,9 @@ const makeStyles = (colors: ColorScheme) =>
       flex: 1,
       backgroundColor: colors.background,
     },
+    flex: {
+      flex: 1,
+    },
     header: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -160,6 +271,7 @@ const makeStyles = (colors: ColorScheme) =>
       paddingVertical: 12,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
+      gap: 8,
     },
     backButton: {
       minWidth: 70,
@@ -169,18 +281,14 @@ const makeStyles = (colors: ColorScheme) =>
       color: colors.accent,
     },
     headerTitle: {
+      flex: 1,
+      textAlign: 'center',
       fontSize: 17,
       fontWeight: '600',
       color: colors.textPrimary,
     },
-    counter: {
-      minWidth: 70,
-      textAlign: 'right',
-      fontSize: 14,
-      color: colors.textSecondary,
-    },
     centered: {
-      flex: 1,
+      flexGrow: 1,
       alignItems: 'center',
       justifyContent: 'center',
       paddingHorizontal: 32,
@@ -189,11 +297,6 @@ const makeStyles = (colors: ColorScheme) =>
     message: {
       fontSize: 15,
       color: colors.textSecondary,
-      textAlign: 'center',
-    },
-    pending: {
-      fontSize: 13,
-      color: colors.warning,
       textAlign: 'center',
     },
     doneTitle: {
@@ -210,87 +313,6 @@ const makeStyles = (colors: ColorScheme) =>
       paddingHorizontal: 28,
     },
     primaryButtonText: {
-      color: colors.textInverted,
-      fontSize: 16,
-      fontWeight: '600',
-    },
-    cardBody: {
-      flexGrow: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: 24,
-      paddingVertical: 32,
-    },
-    word: {
-      fontSize: 34,
-      fontWeight: '700',
-      color: colors.textPrimary,
-      textAlign: 'center',
-    },
-    pos: {
-      fontSize: 14,
-      color: colors.textMuted,
-      marginTop: 6,
-    },
-    ipa: {
-      fontSize: 15,
-      color: colors.textSecondary,
-      marginTop: 4,
-    },
-    answer: {
-      marginTop: 28,
-      alignItems: 'center',
-      alignSelf: 'stretch',
-      borderTopWidth: 1,
-      borderTopColor: colors.border,
-      paddingTop: 24,
-      gap: 8,
-    },
-    translation: {
-      fontSize: 24,
-      fontWeight: '600',
-      color: colors.textPrimary,
-      textAlign: 'center',
-    },
-    noTranslation: {
-      fontSize: 15,
-      color: colors.textMuted,
-      fontStyle: 'italic',
-    },
-    alternatives: {
-      fontSize: 15,
-      color: colors.textSecondary,
-      textAlign: 'center',
-    },
-    definition: {
-      fontSize: 15,
-      color: colors.textSecondary,
-      textAlign: 'center',
-    },
-    example: {
-      alignSelf: 'stretch',
-      backgroundColor: colors.backgroundCard,
-      borderRadius: 10,
-      padding: 12,
-      marginTop: 4,
-    },
-    exampleText: {
-      fontSize: 15,
-      color: colors.textPrimary,
-    },
-    exampleTranslation: {
-      fontSize: 14,
-      color: colors.textSecondary,
-      marginTop: 4,
-    },
-    revealButton: {
-      margin: 16,
-      backgroundColor: colors.accent,
-      borderRadius: 12,
-      paddingVertical: 16,
-      alignItems: 'center',
-    },
-    revealText: {
       color: colors.textInverted,
       fontSize: 16,
       fontWeight: '600',

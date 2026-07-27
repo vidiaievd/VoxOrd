@@ -200,6 +200,13 @@ export const ru: Translations = {
     pendingSync: 'Ответов ждёт отправки: {count}',
     loadError: 'Не удалось загрузить очередь повторений',
     offlineLoad: 'Нет сети — подключитесь, чтобы начать повторение',
+    submitting: 'Сохраняем результаты…',
+    stillDue: 'Слов осталось на следующий раз: {count}',
+    notImported: 'Слов к повторению нет в сохранённых списках: {count}',
+    phasePreview: 'Знакомство',
+    phaseListening: 'Аудирование',
+    phaseQuiz: 'Выбор',
+    phaseSpelling: 'Написание',
   },
   audioLesson: {
     stageListen: 'Слушать',

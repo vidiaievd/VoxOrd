@@ -200,6 +200,13 @@ export const uk: Translations = {
     pendingSync: 'Відповідей чекає на надсилання: {count}',
     loadError: 'Не вдалося завантажити чергу повторень',
     offlineLoad: 'Немає мережі — підключіться, щоб почати повторення',
+    submitting: 'Зберігаємо результати…',
+    stillDue: 'Слів залишилося на наступний раз: {count}',
+    notImported: 'Слів до повторення немає у збережених списках: {count}',
+    phasePreview: 'Знайомство',
+    phaseListening: 'Аудіювання',
+    phaseQuiz: 'Вибір',
+    phaseSpelling: 'Написання',
   },
   audioLesson: {
     stageListen: 'Слухати',

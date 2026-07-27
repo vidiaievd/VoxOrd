@@ -200,6 +200,13 @@ export const en: Translations = {
     pendingSync: '{count} answers waiting to sync',
     loadError: "Couldn't load your review queue",
     offlineLoad: "You're offline — connect to start a review session",
+    submitting: 'Saving your results…',
+    stillDue: '{count} words left for next time',
+    notImported: '{count} due words are not in a saved list yet',
+    phasePreview: 'Preview',
+    phaseListening: 'Listening',
+    phaseQuiz: 'Quiz',
+    phaseSpelling: 'Spelling',
   },
   audioLesson: {
     stageListen: 'Listen',
