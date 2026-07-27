@@ -1194,6 +1194,91 @@ only the environmental `App.test.tsx` and the long-standing
 Home rework — larger than the original 8.1. Sequence it as pure logic → data
 layer → UI with a commit per step, per the working agreement.
 
+#### Step 8.1b-2 — data layer — DONE (2026-07-27, VoxOrd `4aa09be`, `8052e82`)
+
+**The fork from the previous session is resolved: linkage, not new exercise
+bodies.** Explore agent over the real sources found that `useQuiz`,
+`useListening` and `useSpelling` **already take an `overrideWordIds` argument**
+(`useQuiz.ts:33`), threaded into SQL as `AND w.id IN (…)`
+(`QuizRepository.ts:16-20`) — `DeepSessionScreen` already drives them over an
+arbitrary subset. So the existing exercise machinery can drill a server-due word
+set unchanged, and nothing server-backed has to be rewritten.
+
+Facts that shaped the design, all verified in source:
+
+- **`SrsCard.contentId` (VOCABULARY_WORD) *is* `words.platformItemId`** — the
+  Phase 5.2 importer already stores the platform vocabulary item id, so no
+  schema change is needed to map a due card to a local word.
+- **A session must be scoped to one deck**: every exercise query joins
+  `deck_words ON dw.deckId = ?` *in addition to* the override filter, so a set
+  spanning two imported lists would silently lose words.
+- **Sets smaller than 4 produce nothing**: `QuizRepository.ts:45` /
+  `ListeningRepository.ts:46` return `[]` when the pool has fewer than 4 words.
+- **`useContext` and `useMatching` have no override path** (`useContext.ts:107`,
+  `useMatching.ts:59`) — and imported `word_examples` rows are written with
+  `isContextSentence = 0` (`VocabularyImportRepository.ts:258`), so the context
+  query returns zero rows for course decks regardless. **Context is therefore
+  out of the v1 course session**; `sessionGrader` handles its absence fine
+  (rule 4 simply never fires). Matching was already excluded as unscored.
+- **The hooks emit no per-word outcome**: `onComplete(correctCount)` is the only
+  output, retries live in an unexported `queueRef`, and spelling's
+  `hintUsed`/`gaveUp` reset per question (`useSpelling.ts:255-256`) and are never
+  paired with a wordId. Feeding `recordAttempt` requires adding an
+  `onAnswer(wordId, AttemptResult)` prop — that is step 8.1b-3.
+
+Decisions taken with the user (2026-07-27):
+
+1. **cardId is held in session memory, not persisted.** The `platformItemId`
+   join is enough to resolve the due set, so there is no migration v10 and no
+   stale second copy of server truth on the device. (Rejected: a
+   `words.platformCardId` column — it buys offline session start, which course
+   reviews do not have anyway since the due list itself comes from the server.)
+2. **Small due sets are padded, not skipped.** 1-3 due words are topped up with
+   other words from the same deck so quiz/listening still build; padding words
+   are drilled but **never graded** and never produce a review event. (Rejected:
+   dropping those modes, which would make `EASY` nearly unreachable; and
+   blocking the session, which strands genuinely overdue cards.)
+3. **`progressRepository.recordAnswer` is suppressed for course words**, so the
+   retired 6-stage engine no longer computes a second schedule for a word the
+   server owns — this is the root cause identified above.
+   `wordModeStrengthRepository` **stays**, since the plan already designates
+   `word_mode_strength` a local-only exercise-mode picker decoupled from the
+   authoritative weight. Implemented in 8.1b-3 (it needs the hook changes).
+
+Built:
+
+- `src/lib/courseReviewSet.ts` (+ 18 tests) — pure: `resolveDueWords` (matches
+  cards to local rows, reports cards whose list was never imported instead of
+  dropping them, ignores EXERCISE cards and content-less cards), `groupByDeck`,
+  `padNeeded`, `buildReviewSet` (never uses a due word as padding),
+  `isGraded` / `cardIdForWord`.
+- `src/lib/sessionEvidence.ts` (+ 11 tests) — pure, immutable per-session ledger
+  around `sessionGrader`: `recordWordAttempt` accumulates per word across modes,
+  `gradeSession` collapses each word to **exactly one** rating, dropping words
+  with no usable evidence so the card stays due.
+- `src/repositories/CourseReviewRepository.ts` — read-only SELECTs only
+  (`getLinkedWords`, `getPaddingCandidates` weakest-first, `getDeckTitles`).
+  Writes nothing, modifies no existing repository.
+- `src/lib/courseReviewLoader.ts` — composes `/srs/due` + local rows into one
+  runnable `DeckReviewSet` per deck; padding fetched only for decks that need it.
+
+`tsc --noEmit` clean apart from the long-standing `WordRepository.ts` error;
+Jest **285 passed / 27 suites** (baseline 259/25), only the environmental
+`App.test.tsx` failing.
+
+#### Step 8.1b-3 — next: per-answer callbacks + session driver
+
+- Add `onAnswer(wordId, { correct, hintUsed, gaveUp })` to `useQuiz`,
+  `useListening`, `useSpelling`; gate `progressRepository.recordAnswer` behind a
+  "course word" flag while leaving `wordModeStrengthRepository` alone.
+- A session driver analogous to `useDeepSession` but taking a `DeckReviewSet`
+  instead of a `deckId` (`useDeepSession.ts:58` is hardwired to
+  `deepSessionRepository.loadWordsForDeck`), running listening → quiz → spelling
+  (flashcard only as a non-scoring preview for NEW cards), then posting one
+  review per graded word through `reviewQueueStore`.
+- Deep Session's 4h per-deck cooldown (`useDeepSessionCooldown.ts:4`) must not
+  gate a course session — FSRS due-ness wins for course words.
+
 ### Step 8.2 — Grammar (mastery display only) — Sonnet
 - No grammar *trainer* exists yet — audited 2026-07-24: the web only shows a
   grammar **mastery %** (skill-index tiles over `/api/v1/mastery/course/:id`),
