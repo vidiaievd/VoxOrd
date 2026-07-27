@@ -378,17 +378,14 @@ export interface CourseHomePayload {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
- * SRS (Phase 8, optional)
- * Source: ssz-platform-web/src/features/learning/types.ts
+ * SRS — see src/api/srs.ts
+ *
+ * The shapes that used to live here were copied from
+ * ssz-platform-web/src/features/learning/types.ts, which turned out to
+ * describe an API that does not exist (numeric ratings, a front/back the
+ * server never returned). They are gone; the verified contract lives next
+ * to its calls in src/api/srs.ts.
  * ────────────────────────────────────────────────────────────────────── */
-
-export type ReviewRating = 1 | 2 | 3 | 4;
-
-export interface SrsDueResponse {
-  dueCount: number;
-  dailyLimit: number;
-  reviewedToday: number;
-}
 
 /* ─────────────────────────────────────────────────────────────────────────
  * Auth
