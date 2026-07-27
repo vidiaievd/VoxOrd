@@ -985,21 +985,159 @@ does not try to update a card in place — the next session refetches. The
 session is not scoped to a course, because the server has no per-course due
 filter. No Jest tests for the hook or screen, per the established convention.
 
-**User test checkpoint (not yet run) — needs seeded SRS cards first.** Until
-today no vocabulary list could ever seed cards (the 404 fixed in `9c9c272`),
-so the due queue is very likely empty on the current data. Suggested order:
-1. Rebuild/restart content-service and learning-service from the fixed source.
-2. Seed cards: either re-trigger enrollment for a course whose vocabulary list
-   has `autoAddToSrs = true`, or call `POST /api/v1/srs/cards/bulk-introduce`
-   `{vocabularyListId}` directly (it returned 422 before the fix).
+**Backend prep — DONE (2026-07-27).** content-service and learning-service
+rebuilt/restarted from the fixed source. 20 cards seeded for `student@example.com`
+via `POST /srs/cards/bulk-introduce` against three ny-i-norge-a2 vocabulary
+lists ("17C" 16 introduced, "17D" 4 introduced/1 skipped-duplicate, "18A"
+0 introduced/1 skipped — already-introduced words are skipped, not
+duplicated). `GET /srs/stats/me` confirmed `dueNowCount: 20`.
+
+**Platform bug #4 found and fixed while verifying — ssz-platform `68747f4`.**
+The `4127811` due-card content enrichment (front/back) was wired correctly
+end-to-end but failed on *every* call and silently no-op'd: content-service's
+`POST internal/vocabulary-items/batch-display` validated
+`vocabularyItemIds` with `@IsUUID('4', ...)` (v4 only), but the platform's
+actual vocabulary item IDs (and `srs_review_cards.content_id`) are
+deterministic **UUID v5** — every call 400'd, learning-service logged a
+`warn` and returned cards with no `front`/`back` key at all (best-effort
+swallow, matches the design intent, just triggered on 100% of calls instead
+of 0%). Fixed: `@IsUUID('4', ...)` → `@IsUUID('all', ...)`
+(`batch-get-vocabulary-items-for-display.request.dto.ts:26`). Re-verified
+post-fix: `GET /srs/due?language=ru&includeExamples=true` now returns real
+`front.word` ("danse", "lysere tider") and `back.translation`
+("танцевать", "более светлые времена / светлые дни") for the seeded cards.
+(`?language=en` correctly returns `immersionMode: true` with no translation —
+not a bug, `ny-i-norge-a2` was only ever seeded with `ru` translations per
+`seed-ny-i-norge-a2.ts`; `ru` is the right query language for this course.)
+
+**User test checkpoint (not yet run) — backend is ready, needs the phone.**
+1. ~~Rebuild/restart content-service and learning-service~~ — done above.
+2. ~~Seed cards~~ — done above, 20 due for `student@example.com`.
 3. On the phone: Course Home shows a non-zero reviews-due row → tap it → rate a
-   few words, confirming the interval labels differ per button.
+   few words, confirming the interval labels differ per button. **Use a
+   device/emulator client configured for `?language=ru`** if the mobile SRS
+   API call has a hardcoded/default language param — check `src/api/srs.ts`
+   against what language the account's UI/course is actually set to, since
+   `en` will legitimately show blank translations for this course's seed data.
 4. Verify the same card's due date/state on the web at `/student/srs` (its
    trainer was realigned to the same contract in ssz-platform-web `40bfee6`).
 5. Offline: turn Wi-Fi off mid-session, rate a few more cards (the session must
    keep going and show the offline banner + pending count), turn Wi-Fi back on
    (re-run `adb reverse`, see the Phase 6 gotcha) and reopen the session — the
    queue should replay and those cards should not come back.
+
+### Step 8.1b — REDESIGN: auto-graded multi-mode review + unified study IA (2026-07-27)
+
+User rejected the self-assessment UX built in 8.1 after seeing it on device
+("не понравилось, что мы отправляем это на оценивание пользователю") and
+separately reported that it was **not discoverable what needs reviewing at
+all**. Both are being addressed together as one redesign. The 8.1 API layer,
+offline queue and server contract all survive unchanged — only the *rating
+input* and the *entry point* change.
+
+#### Server contract de-risked first (curl, no mobile UI) — ALL PASSED
+
+Verified directly against the live gateway before designing anything on top:
+
+| Check | Result |
+|---|---|
+| Review changes schedule | `NEW → LEARNING`, `dueAt` +10h, `reps` 0→1, `stability` 0→2.3065 |
+| Idempotent replay (same key) | Byte-identical card returned, `reps` stayed 1 — no double-schedule |
+| Mobile client actually reaches server | `reviewedTodayCount` was already 4 from the user's on-device taps |
+| All four ratings discriminate | see spread below |
+
+Empirical first-review spread on a NEW card (this is FSRS-5 with the server's
+profile, measured — not assumed):
+
+| Rating | state after | stability | next due |
+|---|---|---|---|
+| `AGAIN` | LEARNING | 0.212 | immediately |
+| `HARD` | LEARNING | 1.293 | ~6 min |
+| `GOOD` | LEARNING | 2.307 | ~12 min |
+| `EASY` | **REVIEW** | 8.296 | **8 days** |
+
+Two design-relevant consequences:
+- `AGAIN`/`HARD`/`GOOD` are nearly indistinguishable *to the user* on a first
+  review (all "back in minutes"); they differ in **stability**, which compounds
+  over later reviews. So a richer signal than binary is genuinely worth
+  building — the payoff is long-run pacing, not the immediate interval.
+- `EASY` is qualitatively different: it **skips the learning phase entirely**
+  and jumps to 8 days. Auto-awarding it must be conservative.
+
+#### UX audit — why the review queue was invisible (verified in source)
+
+The app **never surfaces pending work anywhere**, for course words *or* local
+decks. It only shows completed work.
+
+- `HomeScreenData` (`HomeRepository.ts:7-35`) has no due/review field at all;
+  Home renders `wordsLearned` and `dailyProgress.done/goal` — both "done", not
+  "waiting".
+- `deck.repeatWords` / `newWords` **are already computed in SQL**
+  (`DeckRepository.ts:43-44`) and never rendered. `DeckGroupsSection` shows
+  only total words + % learned.
+- Home has zero knowledge of course SRS — grep for `srs|review` across
+  `HomeScreen/`, `HomeRepository`, `useHomeData` returns nothing.
+- No tab badges exist; `TabItem` (`RootNavigator.tsx:416-428`) supports only
+  icon/label/active-underline.
+- The reviews-due row (`CourseStatsSection.tsx:61-66`) is tappable but styled
+  as a **plain text row** (no background/border/radius/padding, `:78-88`), sits
+  inside the mastery block as its trailing line, two levels deep
+  (Courses → course → header row) — **and the tab bar is hidden on CourseHome**
+  (`RootNavigator.tsx:365`).
+- Dead weight on Home's prime real estate: `TopicsSection` always duplicates
+  `ContinueLearningCard` (both built from `continueLearning`,
+  `HomeScreen/index.tsx:118-128`); `AIPracticeCard` is `onPress={() => {}}`.
+
+#### Root cause — duplicated source of truth, not just bad layout
+
+Phase 5.2's "Save to VoxOrd deck" was built **before** Phase 8 and gives course
+words a **second, independent 6-stage local schedule**, while the same words are
+server FSRS cards. This directly violates this plan's own architecture decision
+("server FSRS is the single source of truth" / "never reconcile a 6-stage weight
+with an FSRS card for the same word"). The user instinctively went to Home
+(where the imported deck lives) and never found the server queue on Course Home.
+
+#### Decisions taken with the user (2026-07-27)
+
+1. **Rating is derived from performance, never self-reported** for course words.
+2. **Multi-mode session** (option "Полный"): course due-words are drilled
+   through several exercise modes, per-word attempts accumulated across the
+   whole session, aggregated into **exactly one** rating per card, sent **once**.
+   ⚠️ Critical: Deep Session runs the *same word set* through 4 phases
+   (`useDeepSession.ts:36`) — naively posting a review per phase would
+   reschedule one card 4× (the idempotency key does NOT protect here; those are
+   legitimately distinct events).
+3. **Imported course deck becomes a view onto the server cards** — it stores
+   `cardId`, training it emits review events into the existing offline queue,
+   server stays authoritative. One word, one schedule. (Chosen over deleting the
+   import, and over keeping two labelled schedules.)
+4. **Home becomes the single answer to "what do I study now"** — aggregate due
+   across local + course, with breakdown. Courses tab stays for *content*
+   (lessons, exercises), not word drilling.
+
+Draft mapping (thresholds need empirical tuning, not settled):
+
+| Behaviour across the session | Rating |
+|---|---|
+| Wrong on first attempt in a productive mode (spelling/quiz) | `AGAIN` |
+| Right, but after a retry / with a hint / slow | `HARD` |
+| Right first attempt in every mode attempted | `GOOD` |
+| Right first attempt, fast, including spelling | `EASY` (be conservative) |
+
+Open sub-questions, deliberately unresolved:
+- Which modes are "decisive"? A miss in `listening` should probably not cost a
+  full `AGAIN` lapse (it resets stability).
+- Deep Session has a **4h per-deck cooldown** (`useDeepSessionCooldown.ts:4`),
+  FSRS has its own due schedule. For course words FSRS due-ness must win;
+  cooldown is a local-deck concept.
+- Signal available today is thin: `recordAnswer` is strictly binary
+  (`ProgressRepository.ts:38`), `responseTimeMs` is only populated by spelling
+  and flashcard, spelling's `mistakeCount` is transient UI state never persisted
+  (`useSpelling.ts:24`). Capturing per-word attempt counts needs new plumbing.
+
+**Scope note:** this is a rebuild of Phase 8 plus a retrofit of Phase 5.2 plus a
+Home rework — larger than the original 8.1. Sequence it as pure logic → data
+layer → UI with a commit per step, per the working agreement.
 
 ### Step 8.2 — Grammar (mastery display only) — Sonnet
 - No grammar *trainer* exists yet — audited 2026-07-24: the web only shows a
