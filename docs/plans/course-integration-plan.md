@@ -1143,8 +1143,8 @@ Evaluated top-down, first match wins:
 | 2 | first-try miss in `quiz` or `listening` | `AGAIN` |
 | 3 | spelling failed ≥2× before correct, or never correct | `AGAIN` |
 | 4 | first-try miss in `context` | `HARD` |
-| 5 | spelling used the hint **or** took exactly 1 retry | `HARD` |
-| 6 | every mode first-try, spelling present, no hint | `EASY` |
+| 5 | spelling used the hint, was a **typo**, or took exactly 1 retry | `HARD` |
+| 6 | every mode first-try, spelling present, no hint, no typo | `EASY` |
 | 7 | otherwise | `GOOD` |
 
 Decisions behind it:
@@ -1375,6 +1375,70 @@ learning-service sends. Every other service's internal routes (content-service
 confirmed) do check it. Out of scope for this plan; flag to the team as an
 authz gap in organization-service before anything internal-only relies on it
 for real protection.
+
+#### Step 8.1b-3a — Spelling mode reworked (2026-07-27, VoxOrd `7ddadf5`, `85ff6d2`)
+
+Found by the user's first real on-device run: they got stuck in the spelling
+phase and could not finish. Investigating turned up four problems, one of them
+much more serious than the reported symptom.
+
+**⚠️ `overrideWordIds` never worked — in any of the three exercises.** The
+filter `AND w.id IN (...)` was interpolated directly after the LEFT JOIN's `ON`
+condition (`QuizRepository.ts`, `ListeningRepository.ts`,
+`SpellingRepository.ts`), which made it part of that condition — and a LEFT
+JOIN's `ON` never filters the left table. Verified against the real device
+database: asking for words `20,21,22` returned `12,13,14`. So Deep Session was
+never actually drilling its own phase word set, and the course review session
+would have drilled arbitrary deck words instead of the due ones — the whole
+linkage would have silently not worked, while looking plausible on screen.
+Fixed by giving each query a real `WHERE` clause. **This invalidates any
+conclusion drawn from a Deep Session word set before this commit.**
+
+The three spelling-specific problems, all verified in source and in the seeded
+data:
+
+1. **The correct spelling was unreachable.** It was rendered only under
+   `state.isSkipped`, and skip needs three mistakes — so a word you could not
+   guess was a dead end. Now revealed after **two** mistakes and on a typo,
+   with the wrong-answer copy pointing at it.
+2. **Punctuation had to be typed exactly.** The check was `trim().toLowerCase()`
+   with `===`. Seeded entries include `Det gjør ikke noe.` (trailing period) and
+   `Alle som er bosatt i Norge, ...` (31 chars, comma + ellipsis), and the
+   underscore hint renders punctuation as just another `_` — so the requirement
+   was undiscoverable. `normalizeAnswer` now drops punctuation, treats hyphens
+   as spaces and collapses whitespace, on both sides. Norwegian letters are
+   preserved: folding æ/ø/å would accept genuinely wrong spellings.
+3. **Phrases were being letter-perfect drilled.** 7 of the 18 due cards were
+   `phrase`; on device, 16 multi-word entries across decks, longest
+   `Jeg holdt på å bli sprø.`. That is a memory test, not a spelling test, and
+   under grading rule 3 an untypeable phrase would reset its FSRS schedule every
+   single session. `SpellingRepository` now excludes `partOfSpeech = 'phrase'`.
+   Phrases still run in quiz/listening, where recognition is the right measure.
+   Consequence, accepted: a phrase card can never earn `EASY` (rule 6 requires
+   spelling evidence), so phrases repeat more often — appropriate for phrases.
+
+**Typo policy (decided with the user, 2026-07-27):** a near-miss within an edit
+tolerance is **accepted, but graded `HARD`** — recall was there, production was
+imperfect. Tolerance scales with length and is **zero at ≤4 characters**, where
+one edit is as likely to be a different word (`tips`/`tid`) as a slip; 1 edit up
+to 11 characters, 2 beyond. Rejected: counting it as an ordinary mistake (two
+typos would hit rule 3 and reset a well-known word's schedule) and accepting it
+silently (it would let sloppy spelling earn `EASY`).
+
+Implementation: `src/lib/answerMatching.ts` (`normalizeAnswer`, `levenshtein`,
+`typoTolerance`, `classifyAnswer` → `correct | typo | wrong`), 23 tests.
+`sessionGrader` gained a `typo` attempt flag latching into `typoed`; rules 5
+and 6 updated above. An empty question set inside a multi-phase session now
+auto-advances instead of stranding the user on a "no words available" screen —
+newly reachable now that spelling can legitimately have nothing to ask.
+
+**Blast radius, accepted by the user:** this is shared word-learning code
+(`src/repositories/`, ground rule #1), so personal decks get the same behaviour.
+One spelling mode, one set of rules.
+
+Suite: **318 passed / 28 suites**, only the environmental `App.test.tsx`
+failing. The `WordRepository.ts` type error and one `QuizRepository` eslint
+warning are both pre-existing and untouched.
 
 #### Step 8.1b-4 — next: Home as the single "what do I study now"
 
