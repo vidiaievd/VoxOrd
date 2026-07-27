@@ -4,6 +4,8 @@ import { sessionRepository } from '../repositories/SessionRepository';
 import { spellingRepository } from '../repositories/SpellingRepository';
 import { wordModeStrengthRepository } from '../repositories/WordModeStrengthRepository';
 import { settingsStore, SpellingHintMode } from '../store/settingsStore';
+import type { ExerciseTracking } from './exerciseTracking';
+import type { AttemptResult } from '../lib/sessionGrader';
 
 export interface SpellingQuestion {
   wordId: number;
@@ -57,12 +59,17 @@ export function useSpelling(
   deckId: number,
   overrideWordIds?: number[],
   onComplete?: (correctCount: number) => void,
+  tracking?: ExerciseTracking,
 ): UseSpellingResult {
   const [isLoading, setIsLoading] = useState(true);
   const [sessionId, setSessionId] = useState<number | null>(null);
   // Mutable queue — wrong answers get appended to end, no re-render on mutation
   const queueRef = useRef<SpellingQuestion[]>([]);
   const shownAtRef = useRef<number>(Date.now());
+  // Read through a ref so an inline tracking object does not destabilise
+  // submit/skip.
+  const trackingRef = useRef(tracking);
+  trackingRef.current = tracking;
 
   const [state, setState] = useState<SpellingState>({
     questions: [],
@@ -115,6 +122,8 @@ export function useSpelling(
   }, []);
 
   const submit = useCallback(() => {
+    let answered: { wordId: number; result: AttemptResult } | null = null;
+
     setState(prev => {
       if (prev.isAnswered || prev.isSkipped || prev.input.trim() === '') {
         return prev;
@@ -138,7 +147,21 @@ export function useSpelling(
 
       const showSkip = newMistakeCount >= MISTAKES_BEFORE_SKIP;
 
-      progressRepository.recordAnswer(question.wordId, deckId, isCorrect);
+      // Only an *earned* hint counts as help: under `always` the hint is on
+      // screen for every word, so it carries no information about this word and
+      // would otherwise cap every course card at HARD forever (decided with the
+      // user, 2026-07-27). Mistakes still drive the grading in that mode.
+      answered = {
+        wordId: question.wordId,
+        result: {
+          correct: isCorrect,
+          hintUsed: spellingHintMode === 'after_mistake' && prev.showHint,
+        },
+      };
+
+      if (!trackingRef.current?.skipLocalProgress) {
+        progressRepository.recordAnswer(question.wordId, deckId, isCorrect);
+      }
       wordModeStrengthRepository.recordAnswer(
         question.wordId,
         deckId,
@@ -182,16 +205,27 @@ export function useSpelling(
         showSkip,
       };
     });
+
+    // Outside the updater — a re-invoked reducer must not double-count.
+    if (answered) {
+      const { wordId, result } = answered;
+      trackingRef.current?.onAnswer?.(wordId, result);
+    }
   }, [deckId, sessionId]);
 
   const skip = useCallback(() => {
+    let skipped: number | null = null;
+
     setState(prev => {
       if (prev.isAnswered || prev.isSkipped) return prev;
 
       const question = prev.questions[prev.currentIndex];
+      skipped = question.wordId;
 
       for (let i = 0; i < SKIP_PENALTY_MISTAKES; i++) {
-        progressRepository.recordAnswer(question.wordId, deckId, false);
+        if (!trackingRef.current?.skipLocalProgress) {
+          progressRepository.recordAnswer(question.wordId, deckId, false);
+        }
         wordModeStrengthRepository.recordAnswer(
           question.wordId,
           deckId,
@@ -217,6 +251,12 @@ export function useSpelling(
         showHint: true,
       };
     });
+
+    // One attempt, not three: the local engine takes a triple penalty, but for
+    // grading this is a single event — the user gave up on this word.
+    if (skipped !== null) {
+      trackingRef.current?.onAnswer?.(skipped, { correct: false, gaveUp: true });
+    }
   }, [deckId, sessionId]);
 
   const next = useCallback(() => {

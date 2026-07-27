@@ -4,6 +4,7 @@ import { progressRepository } from '../repositories/ProgressRepository';
 import { sessionRepository } from '../repositories/SessionRepository';
 import { wordModeStrengthRepository } from '../repositories/WordModeStrengthRepository';
 import { listeningRepository } from '../repositories/ListeningRepository';
+import type { ExerciseTracking } from './exerciseTracking';
 
 export interface ListeningQuestion {
   wordId: number;
@@ -44,10 +45,15 @@ export function useListening(
   deckId: number,
   overrideWordIds?: number[],
   onComplete?: (correctCount: number) => void,
+  tracking?: ExerciseTracking,
 ): UseListeningResult {
   const [isLoading, setIsLoading] = useState(true);
   const [sessionId, setSessionId] = useState<number | null>(null);
   const queueRef = useRef<ListeningQuestion[]>([]);
+  // Read through a ref so an inline tracking object does not destabilise
+  // selectOption.
+  const trackingRef = useRef(tracking);
+  trackingRef.current = tracking;
   const [state, setState] = useState<ListeningState>({
     questions: [],
     currentIndex: 0,
@@ -149,13 +155,18 @@ export function useListening(
 
   const selectOption = useCallback(
     (option: string) => {
+      let answered: { wordId: number; isCorrect: boolean } | null = null;
+
       setState(prev => {
         if (prev.isAnswered) return prev;
 
         const question = prev.questions[prev.currentIndex];
         const isCorrect = option === question.correctAnswer;
+        answered = { wordId: question.wordId, isCorrect };
 
-        progressRepository.recordAnswer(question.wordId, deckId, isCorrect);
+        if (!trackingRef.current?.skipLocalProgress) {
+          progressRepository.recordAnswer(question.wordId, deckId, isCorrect);
+        }
         wordModeStrengthRepository.recordAnswer(
           question.wordId,
           deckId,
@@ -185,6 +196,12 @@ export function useListening(
           correctCount: isCorrect ? prev.correctCount + 1 : prev.correctCount,
         };
       });
+
+      // Outside the updater — a re-invoked reducer must not double-count.
+      if (answered) {
+        const { wordId, isCorrect } = answered;
+        trackingRef.current?.onAnswer?.(wordId, { correct: isCorrect });
+      }
     },
     [deckId, sessionId],
   );
