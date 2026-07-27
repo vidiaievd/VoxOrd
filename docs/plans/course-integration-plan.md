@@ -884,8 +884,14 @@ whole `/student/srs` web trainer turns out to be non-functional fiction:
   `{rating: 'AGAIN'|'HARD'|'GOOD'|'EASY', reviewedAt?}`; the web BFF sends a
   numeric `rating: 1..4` plus `latencyMs` + `idempotencyKey`, which the server
   never had → 400. Web's `/srs/stats` (server route is `/srs/stats/me`) and
-  `/srs/settings` (no such route) 404 as well. **User decided (2026-07-27):
-  fixing the web trainer is a separate task, not this session.**
+  `/srs/settings` (no such route) 404 as well. **Fixed the same day** —
+  ssz-platform-web `40bfee6` realigned types, all three BFF routes, the card,
+  the rating bar and the session store to the real contract; SRS settings were
+  removed (no route, no server-side concept) and the stats page now shows the
+  counts `/srs/stats/me` actually returns instead of retention/heatmap, which
+  need a review log learning-service does not keep. So web and mobile now
+  speak the same contract and the Phase 8 parity checkpoint can use the web
+  UI directly.
 - **`GET /srs/due` takes only `limit`** — no `contentType`, no `courseId`
   filter.
 - **A client cannot enrich a card itself:** the card carries only `contentId`
@@ -988,8 +994,8 @@ so the due queue is very likely empty on the current data. Suggested order:
    `{vocabularyListId}` directly (it returned 422 before the fix).
 3. On the phone: Course Home shows a non-zero reviews-due row → tap it → rate a
    few words, confirming the interval labels differ per button.
-4. Verify the same card's due date/state on the web (the web trainer UI itself
-   is broken — check via the API or the DB, not `/student/srs`).
+4. Verify the same card's due date/state on the web at `/student/srs` (its
+   trainer was realigned to the same contract in ssz-platform-web `40bfee6`).
 5. Offline: turn Wi-Fi off mid-session, rate a few more cards (the session must
    keep going and show the offline banner + pending count), turn Wi-Fi back on
    (re-run `adb reverse`, see the Phase 6 gotcha) and reopen the session — the
