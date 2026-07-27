@@ -947,6 +947,54 @@ reviewedAt?, idempotencyKey?}`, `GET /srs/stats/me`.
   offline-readable content cache. Keep this queue separate from any
   personal-word state.
 
+**Step 8.1 — DONE (2026-07-27), needs on-device test.** Three commits:
+
+- `25322e5` **API layer** — `getDueCards` / `reviewCard` beside the existing
+  `getSrsStats` in `src/api/srs.ts`, plus pure `vocabularyCards()` (the due
+  queue is global and mixes EXERCISE cards in — `/srs/due` has no filter) and
+  `predictedByRating()`, 10 tests. The stale web-derived `SrsCard`/
+  `ReviewRating` types in `api/types.ts` were deleted; nothing imported them.
+- `424d7a4` **offline queue** — pure logic in `src/lib/reviewQueue.ts`
+  (12 tests) + `src/store/reviewQueueStore.ts`. Every answer is persisted
+  before it is sent; `submit()` flushes the whole queue rather than its own
+  entry so answers keep their order; flush is single-flight and stops at the
+  first entry worth retrying. Kept on failure: network error, 401, 429, 5xx.
+  Dropped: 404/403/422 — an answer the server can never accept must not block
+  the queue behind it.
+- `2c76304` **screen** — `useSrsReview` + `src/screens/ReviewSessionScreen/`
+  (word → "Show answer" → four rating buttons labelled with the server's
+  predicted intervals). Rating advances immediately and submits through the
+  queue, so the session survives going offline mid-way. Entry point: the
+  reviews-due row on Course Home, now tappable (the only place that count is
+  surfaced today). New `review` i18n namespace + `courseHome.startReview` in
+  en/ru/uk; new `ReviewSession` member in the navigator's `Screen` union.
+
+`tsc --noEmit` clean apart from the long-standing `WordRepository.ts` error;
+Jest 236 passing / 24 suites, only the environmental `App.test.tsx` failing —
+same baseline as Phase 7.
+
+Known limitations, deliberate: the review response carries no `predicted` and
+no `front`/`back` (the server fills those only on `/srs/due`), so the client
+does not try to update a card in place — the next session refetches. The
+session is not scoped to a course, because the server has no per-course due
+filter. No Jest tests for the hook or screen, per the established convention.
+
+**User test checkpoint (not yet run) — needs seeded SRS cards first.** Until
+today no vocabulary list could ever seed cards (the 404 fixed in `9c9c272`),
+so the due queue is very likely empty on the current data. Suggested order:
+1. Rebuild/restart content-service and learning-service from the fixed source.
+2. Seed cards: either re-trigger enrollment for a course whose vocabulary list
+   has `autoAddToSrs = true`, or call `POST /api/v1/srs/cards/bulk-introduce`
+   `{vocabularyListId}` directly (it returned 422 before the fix).
+3. On the phone: Course Home shows a non-zero reviews-due row → tap it → rate a
+   few words, confirming the interval labels differ per button.
+4. Verify the same card's due date/state on the web (the web trainer UI itself
+   is broken — check via the API or the DB, not `/student/srs`).
+5. Offline: turn Wi-Fi off mid-session, rate a few more cards (the session must
+   keep going and show the offline banner + pending count), turn Wi-Fi back on
+   (re-run `adb reverse`, see the Phase 6 gotcha) and reopen the session — the
+   queue should replay and those cards should not come back.
+
 ### Step 8.2 — Grammar (mastery display only) — Sonnet
 - No grammar *trainer* exists yet — audited 2026-07-24: the web only shows a
   grammar **mastery %** (skill-index tiles over `/api/v1/mastery/course/:id`),
