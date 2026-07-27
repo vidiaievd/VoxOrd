@@ -1334,6 +1334,48 @@ with Russian translations only, and `en` legitimately returns `immersionMode`.
    summary should show a pending-sync count. Turn Wi-Fi back on (re-run `adb
    reverse`, Phase 6 gotcha) and confirm the queue drains.
 
+#### Test-environment fix — enrollment was broken platform-wide (2026-07-27, ssz-platform `16af7d8`, `a8bf338`)
+
+Found while trying to enroll the test account in `ny-i-norge-a2` so its
+imported deck could actually resolve the seeded due cards (all 18 due cards
+pointed at a list from `ny-i-norge-a2`; the account was enrolled only in
+Norsk B1, so there was no in-app path to "Save to VoxOrd deck" for that list
+at all). `POST /api/v1/enrollments` 502'd for **any** container, not just this
+one — confirmed via Explore agent against real source before touching
+anything, per the working agreement.
+
+Two independent one-line platform bugs, both pre-existing (present since the
+initial service scaffolds, unrelated to this plan's prior work):
+
+1. **content-service** — `EnrollInContainerHandler` calls
+   `GET internal/containers/:id/access-tier` on every enrollment; the route
+   never existed (`content-client.ts`'s `getAccessTier` was stubbed against it
+   in learning-service's first scaffold commit, never implemented server-side).
+   Fixed: added the route to `InternalController`, backed by the existing
+   `GetContainerQuery`. The domain's `AccessTier` enum is lowercase
+   (`free_within_school`); learning-service's port compares against uppercase
+   literals, so the value is upper-cased on the wire — otherwise every tier
+   would silently fail to match and access checks would be bypassed rather than
+   enforced.
+2. **learning-service** — `OrganizationClient`'s axios `baseURL` was
+   `${cfg.baseUrl}/internal`, missing organization-service's global `/api/v1`
+   prefix. Every call 404'd; `getMemberRole`'s catch treats a 404 as "not a
+   member" (indistinguishable from a real not-found), so a **real, active**
+   school member was denied `FREE_WITHIN_SCHOOL` enrollment.
+   `content-client.ts` already had the prefix right — this was the one
+   inconsistent client.
+
+Both rebuilt/restarted; enrollment in `ny-i-norge-a2` verified end-to-end
+(`201`, account now enrolled in both courses).
+
+**Separate finding, deliberately not fixed (2026-07-27):** organization-service's
+`internal/*` controller has no `InternalAuthGuard` at all — only `@Public()`,
+which bypasses the JWT guard but nothing checks the `x-internal-token` header
+learning-service sends. Every other service's internal routes (content-service
+confirmed) do check it. Out of scope for this plan; flag to the team as an
+authz gap in organization-service before anything internal-only relies on it
+for real protection.
+
 #### Step 8.1b-4 — next: Home as the single "what do I study now"
 
 Aggregate due across local decks and course cards on Home, with a breakdown;
