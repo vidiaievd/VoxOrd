@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { ColorScheme } from '../../theme/colors';
 import { useTheme } from '../../providers/ThemeProvider';
 import { useTranslation } from '../../i18n';
@@ -8,6 +8,8 @@ import type { CourseMastery } from '../../api/types';
 interface CourseStatsSectionProps {
   mastery: CourseMastery;
   srsDueCount: number;
+  /** Opens the review session (Phase 8.1). */
+  onReviewPress: () => void;
 }
 
 const SKILL_LABEL_KEYS = {
@@ -25,7 +27,7 @@ const SKILL_LABEL_KEYS = {
  * course — see the caveat in `src/api/courseHome.ts` — so this renders as a
  * general reviews-due stat, not "due in this course".
  */
-export function CourseStatsSection({ mastery, srsDueCount }: CourseStatsSectionProps) {
+export function CourseStatsSection({ mastery, srsDueCount, onReviewPress }: CourseStatsSectionProps) {
   const { colors } = useTheme();
   const { t } = useTranslation();
   const styles = makeStyles(colors);
@@ -57,7 +59,10 @@ export function CourseStatsSection({ mastery, srsDueCount }: CourseStatsSectionP
       )}
 
       {srsDueCount > 0 && (
-        <Text style={styles.reviewsDue}>{t('courseHome.reviewsDue', { count: srsDueCount })}</Text>
+        <TouchableOpacity style={styles.reviewsRow} onPress={onReviewPress} activeOpacity={0.7}>
+          <Text style={styles.reviewsDue}>{t('courseHome.reviewsDue', { count: srsDueCount })}</Text>
+          <Text style={styles.reviewsCta}>{t('courseHome.startReview')} ›</Text>
+        </TouchableOpacity>
       )}
     </View>
   );
@@ -69,6 +74,17 @@ const makeStyles = (colors: ColorScheme) =>
       paddingHorizontal: 20,
       paddingTop: 16,
       paddingBottom: 8,
+    },
+    reviewsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: 4,
+    },
+    reviewsCta: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.accent,
     },
     headerRow: {
       flexDirection: 'row',

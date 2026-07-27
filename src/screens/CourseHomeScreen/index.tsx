@@ -23,9 +23,15 @@ interface CourseHomeScreenProps {
   courseId: string;
   onBack: () => void;
   onUnitPress: (unitId: string) => void;
+  onReviewPress: () => void;
 }
 
-export function CourseHomeScreen({ courseId, onBack, onUnitPress }: CourseHomeScreenProps) {
+export function CourseHomeScreen({
+  courseId,
+  onBack,
+  onUnitPress,
+  onReviewPress,
+}: CourseHomeScreenProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
@@ -80,7 +86,11 @@ export function CourseHomeScreen({ courseId, onBack, onUnitPress }: CourseHomeSc
           keyExtractor={(unit: UnitSummary) => unit.id}
           renderItem={({ item }) => <UnitRow unit={item} onPress={() => onUnitPress(item.id)} />}
           ListHeaderComponent={
-            <CourseStatsSection mastery={data.mastery} srsDueCount={data.srsDueCount} />
+            <CourseStatsSection
+              mastery={data.mastery}
+              srsDueCount={data.srsDueCount}
+              onReviewPress={onReviewPress}
+            />
           }
           contentContainerStyle={styles.list}
           refreshControl={

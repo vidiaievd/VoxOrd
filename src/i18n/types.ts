@@ -98,6 +98,7 @@ export interface Translations {
     skillSpeaking: string;
     skillWriting: string;
     reviewsDue: string; // '{count} reviews due'
+    startReview: string;
   };
 
   unitContents: {
@@ -191,6 +192,22 @@ export interface Translations {
     resultsTime: string;
     resultsByOutcome: string;
     resultsNeedsReview: string;
+  };
+
+  review: {
+    title: string;
+    showAnswer: string;
+    again: string;
+    hard: string;
+    good: string;
+    easy: string;
+    noTranslation: string;
+    sessionDone: string;
+    nothingDue: string;
+    reviewedCount: string; // '{count} words reviewed'
+    pendingSync: string; // '{count} answers waiting to sync'
+    loadError: string;
+    offlineLoad: string;
   };
 
   audioLesson: {

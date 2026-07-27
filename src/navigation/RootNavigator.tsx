@@ -23,6 +23,7 @@ import { UnitContentsScreen } from '../screens/UnitContentsScreen';
 import { LessonReaderScreen } from '../screens/LessonReaderScreen';
 import { ExerciseRunnerScreen } from '../screens/ExerciseRunner';
 import { VocabularyListScreen } from '../screens/VocabularyListScreen';
+import { ReviewSessionScreen } from '../screens/ReviewSessionScreen';
 
 type Tab = 'Home' | 'Courses' | 'Settings';
 
@@ -43,6 +44,7 @@ type Screen =
   | { name: 'UnitContents'; unitId: string; courseId: string }
   | { name: 'LessonReader'; lessonId: string; unitId: string; courseId: string }
   | { name: 'VocabularyList'; listId: string; unitId: string; courseId: string }
+  | { name: 'ReviewSession'; courseId: string }
   | {
       name: 'ExerciseRunner';
       exerciseIds: string[];
@@ -245,6 +247,9 @@ export function RootNavigator() {
             onUnitPress={unitId =>
               navigateTo({ name: 'UnitContents', unitId, courseId: screen.courseId })
             }
+            onReviewPress={() =>
+              navigateTo({ name: 'ReviewSession', courseId: screen.courseId })
+            }
           />
         );
 
@@ -297,6 +302,13 @@ export function RootNavigator() {
           />
         );
       }
+
+      case 'ReviewSession':
+        return (
+          <ReviewSessionScreen
+            onBack={() => setScreen({ name: 'CourseHome', courseId: screen.courseId })}
+          />
+        );
 
       case 'VocabularyList':
         return (
