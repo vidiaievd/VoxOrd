@@ -865,6 +865,68 @@ web client runs NO `ts-fsrs`, it renders a presentation-shape `SrsCard`
 mirrors that contract 1:1, so **no client-side FSRS engine is needed for course
 words** — the wrapper is a Phase 9 concern, not a prerequisite here.
 
+### Research findings (2026-07-27, verified against actual platform source)
+
+The premise above ("the web trainer is a working thin client, mirror it 1:1")
+is **wrong** — re-verified via Explore agent before writing any code, and the
+whole `/student/srs` web trainer turns out to be non-functional fiction:
+
+- **The server has no `front`/`back`.** `ReviewCardDto` (learning-service
+  `application/dto/srs.dto.ts`) is raw FSRS: `{id, userId, contentType,
+  contentId, state, dueAt, stability, difficulty, scheduledDays, reps, lapses,
+  predicted[]}`. `predicted` is an **array** of
+  `{rating: 'AGAIN'|'HARD'|'GOOD'|'EASY', scheduledDays, label}`, not a
+  `{'1'..'4'}` map.
+- **The web BFF composes nothing** — `app/api/learning/srs/due/route.ts` casts
+  the upstream body to its invented `SrsCard` type and returns it, so
+  `card.front.word` is `undefined` at runtime.
+- **Review contract mismatch (web is broken):** the server takes
+  `{rating: 'AGAIN'|'HARD'|'GOOD'|'EASY', reviewedAt?}`; the web BFF sends a
+  numeric `rating: 1..4` plus `latencyMs` + `idempotencyKey`, which the server
+  never had → 400. Web's `/srs/stats` (server route is `/srs/stats/me`) and
+  `/srs/settings` (no such route) 404 as well. **User decided (2026-07-27):
+  fixing the web trainer is a separate task, not this session.**
+- **`GET /srs/due` takes only `limit`** — no `contentType`, no `courseId`
+  filter.
+- **A client cannot enrich a card itself:** the card carries only `contentId`
+  (a vocabulary item id); the public item route is nested under a `listId` the
+  card does not know, and the by-id route is internal-token-only and not
+  exposed through the gateway.
+
+### Platform fixes made first (ssz-platform, 2026-07-27)
+
+User chose the full server-side fix over a client-side composition workaround.
+
+1. `9c9c272` **the known Phase 5 bug** — content-service `InternalController`
+   gained `GET internal/vocabulary-lists/:id` and `.../items` (unpaginated,
+   returns `{id, word, position}[]`). Unblocks `bulk-introduce` (was 422),
+   auto-add-to-SRS on enrollment (was a silent no-op — the consumer swallows
+   the 404 as "skip", so no list ever seeded cards), the vocabulary roll-up in
+   course mastery, and `POST /srs/placement/apply`. Still missing from the same
+   controller and still called by the same client, **out of scope, unfixed**:
+   `/containers/:id/access-tier`, `/content-items/:type/:id[/visibility]`.
+2. `4127811` **card content resolved server-side** — new internal
+   `POST internal/vocabulary-items/batch-display` (the batch display query the
+   public controller already exposes, minus the list-id nesting), and
+   `GetDueCardsHandler` now fills `front {word, partOfSpeech, ipaTranscription,
+   audioMediaId, listId}` and `back {translation, alternativeTranslations,
+   definition, usageNotes, translationLanguage, fallbackUsed, immersionMode,
+   examples[]}` for every VOCABULARY_WORD card in **one** batch call.
+   Best-effort: a content failure logs and leaves them null instead of failing
+   the queue. EXERCISE cards stay bare. `/srs/due` gained `?language=`
+   (default `en`) and `?includeExamples=`. Only `/srs/due` enriches —
+   `/srs/cards/:id` and the review response still return bare cards.
+3. `1960b23` **idempotency** — there was none, and no review log exists to
+   build it from, so a replayed review rescheduled the card twice. Optional
+   `idempotencyKey` on the review body, claimed via Redis `SET NX` (7-day TTL);
+   a repeat returns the card unchanged and touches nothing, a rejected review
+   releases the key. Redis down → every claim succeeds (previous behaviour).
+   User chose this over an at-least-once queue or dropping the offline queue.
+
+Mobile therefore consumes: `GET /srs/due?limit&language&includeExamples`,
+`POST /srs/cards/:id/review {rating: 'AGAIN'|'HARD'|'GOOD'|'EASY',
+reviewedAt?, idempotencyKey?}`, `GET /srs/stats/me`.
+
 ### Step 8.1 — Due list + review session (course words) — Sonnet
 - `src/api/srs.ts`: `getDue()`,
   `reviewCard(id, {rating, latencyMs, idempotencyKey})`, `getStats()`. Mirror
