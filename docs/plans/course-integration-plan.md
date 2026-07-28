@@ -1547,7 +1547,10 @@ Suite: **346 passed / 30 suites** (was 318/28), only the environmental
 
 ---
 
-## Phase 9 (heavy — discuss & separate branch) — Retire the 6-stage engine, FSRS for personal words — ⚠️ Opus
+## Phase 9 — Retire the 6-stage engine, FSRS for personal words — ⚠️ Opus — CODE COMPLETE (2026-07-28), awaiting device test
+
+All five steps are implemented on branch `feature/fsrs-personal-words`. The
+device test checklist is at the end of this phase, under Step 9.5.
 
 ⚠️ This phase deliberately **overrides ground rule #1** (do not modify
 `src/db/`, `src/learning-engine/`, `src/repositories/`). It rewrites the local
@@ -1881,8 +1884,132 @@ Original spec for reference:
 - Personal words remain offline-first: no server sync in this phase; the payoff
   is one engine to maintain and future sync-readiness, not immediate sync.
 
-### Step 9.5 — Read paths and UI that still speak 6-stage
+### Step 9.5 — Read paths and UI that still speak 6-stage — DONE (2026-07-28, VoxOrd `4fbe058`)
 
+FSRS now owns the local schedule outright. `SpacedRepetition` is deleted along
+with its per-answer write, and every read that spoke 6-stage speaks cards.
+
+**One place decides what "new / due / learned" means.** `srs/dueness.ts` — five
+call sites previously answered it independently off the `status` column. Its SQL
+fragments and its classifier are built from the same constants, because the
+queries cannot be unit-tested (SQLite opens at import time); the rules they
+encode are tested through `bucketOf`/`isDue` instead.
+
+**The learned threshold is 3 days of stability, and that is not a new
+judgement.** It continues the bridge 9.3's conversion was built on — stability
+*is* the number of days until recall falls to 90%, and the profile schedules at
+0.9 retention — while the retired engine called stage 4 "learned" and stage 4
+*was* its 3-day interval. Same threshold, restated in the new model's terms.
+
+`bucketOf` and `isDue` are deliberately **orthogonal**: a word does not become
+less learned by falling due, so "% learned" is stability-based while the due
+badge is time-based.
+
+#### Regression found and fixed while switching `getNextWord` over
+
+Writing the schedule once at session end means a word answered earlier in the
+same sitting **is still due**. The old per-answer write pushed it into the
+future immediately, which hid the fact that `getNextWord`'s single `excludeId`
+only ever excluded the *previous* word — so the flashcard screen would have
+cycled the same few words forever. It now takes the set of words already seen
+this sitting.
+
+Worth recording because it is the general shape of the risk in 9.4/9.5: moving
+a write from per-answer to per-session changes what is true *during* a session,
+not just after it.
+
+#### XP
+
+Moved to session end on the retired engine's own scale — it paid
+`(stage + 1) * 5`, which `xpForCard` reproduces by reading stability against
+that engine's intervals (5 XP for a word scheduled at once, 30 for one a week
+out). Only the flashcard screen ever paid XP per answer; the other modes read
+`recordAnswer`'s return value and ignored it, taking XP from session
+completion. So `awardXp` is on for `flashcard` only — turning it on everywhere
+would have quietly inflated XP.
+
+#### Also removed as dead
+
+`WordRepository` (no callers at all), `updateWordStatus`,
+`ProgressRepository.get`/`getDueWords`/`getStageDistribution`, and
+`SessionEngine.prioritizeWords`/`buildExercises`. `skipLocalProgress` is gone
+too — with no exercise writing a schedule there is nothing to suppress; course
+words stay server-authoritative because only `usePersonalSession` schedules
+locally and course reviews never use it, backed by `applyReview`'s SQL guard.
+
+Deleting `WordRepository` also cleared the long-standing type error the plan
+had been carrying since Phase 8: **`tsc --noEmit` is clean for the first time.**
+
+606 passed / 35 suites (was 568 entering Phase 9's implementation steps).
+eslint at baseline — 3 pre-existing errors, all in untouched files.
+
+#### Intended behaviour changes (verify, do not "fix")
+
+1. **`repeatWords` now means "due now"**, where it meant "at stage 1–3". It
+   feeds the deck due badges, ModeSelector's "To repeat", and Home's study-now
+   number. Never-introduced words stay excluded, exactly as before, so the
+   count does not jump by the whole unseen backlog.
+2. **A flashcard session ends when the deck has no more *due* words**, not when
+   it runs out of not-recently-answered ones. Expect "All done!" sooner, and
+   expect an empty deck screen to be normal rather than a bug.
+3. **"Stage N" on the card back is now New / Learning / Learned**
+   (`card.bucket.*`, added to `en`/`ru`/`uk`).
+4. **Matching schedules nothing.** It stays unscored because its pool narrows,
+   so the last pair is correct for free. It still records `word_mode_strength`
+   and the session result.
+
+### Phase 9 — user test checklist (run in a fresh session)
+
+Back up the device DB first (`adb` pull, per the recorded procedure). The v10
+migration already ran and passed; this is about the read/write switch.
+
+**A. Nothing crashes, nothing empties**
+1. Home loads: study-now number, deck groups, due badges, week activity.
+2. Open a deck → ModeSelector shows Learned / New / To repeat.
+3. Settings → Statistics loads (global learned / due counts).
+
+**B. Each mode drills and schedules**
+
+For each of Self Assessment, Quiz, Spelling, Listening, Context, Matching, and
+one Deep Session:
+4. The session runs to completion and reaches the results screen.
+5. After it, the deck's "To repeat" count *drops* (those words got scheduled
+   into the future) rather than staying put.
+6. Re-entering the same mode immediately offers **different** words, or says
+   the deck is done — never the same word over and over. (This is the
+   regression fixed above; it is the single most valuable thing to check.)
+
+**C. One rating per word per sitting**
+
+7. Pull the DB after a Deep Session and check a word it drilled: `fsrsReps`
+   must have gone up by **exactly 1**, not 4. Same for a multi-retry word in a
+   single Quiz or Spelling session.
+8. `fsrsProfileId = 'fsrs-6-default-v1'`, `fsrsDueAt` in the future.
+
+**D. Course words are untouched by the local engine**
+
+9. A course word imported into a local deck (Phase 5.2) must still have all
+   `fsrs*` columns NULL after drilling it locally — the SQL guard in
+   `applyReview`.
+10. A course review session (Courses → review queue) still posts to the server
+    and still moves the server card, unchanged by any of this.
+
+**E. Counts and XP**
+
+11. Home's study-now number is plausible as "words waiting right now" — it will
+    differ from the old number, that is intended (change 1 above).
+12. XP still increases after a Self Assessment session. It now lands once at
+    the end rather than per swipe, so watch the total, not a per-card animation
+    (there never was one).
+13. `learnedWords` / "% learned" moved onto stability — spot-check that a word
+    you know well reads as Learned on the card back and a fresh one as New.
+
+**F. Abandonment**
+
+14. Start a session, answer 2–3 words, then hit back. Those words must still be
+    scheduled (their `fsrsReps` went up); words never answered must not be.
+
+Original spec for reference:
 - `db/words.ts` `getNextWord` (orders by `nextReview`/`memoryStage`),
   `SessionEngine` ordering, `getStageDistribution`, `FlipCard`'s "Stage N",
   and `DeckRepository`'s status-based `newWords`/`repeatWords` → real due-ness.
