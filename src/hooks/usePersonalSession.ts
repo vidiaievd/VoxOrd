@@ -85,20 +85,41 @@ export function usePersonalSession(
     let xp = 0;
 
     for (const { wordId, rating } of graded) {
-      // Silently skips course words and words with no progress row — see
-      // `applyReview`. Sequential rather than parallel: these are small writes
-      // on one SQLite connection, and ordering keeps a failure easy to read.
-      const card = await progressRepository.applyReview(
-        wordId,
-        deckIdRef.current,
-        rating,
-        reviewedAt,
-      );
-      // A forgotten word earns nothing, exactly as a wrong answer used to.
-      if (card && rating !== 'AGAIN') xp += xpForCard(card);
+      // Per-word, because a session grades a *set*: one word whose write fails
+      // must not cost the others their schedule, and a session grades once, so
+      // there is no later run to pick them up. Nothing is swallowed — the warn
+      // names the word, which is what a lost update looked like from the device
+      // (a `session_results` row with `fsrsReps` still at 0 next to it).
+      try {
+        // Silently skips course words and words with no progress row — see
+        // `applyReview`. Sequential rather than parallel: these are small writes
+        // on one SQLite connection, and ordering keeps a failure easy to read.
+        const card = await progressRepository.applyReview(
+          wordId,
+          deckIdRef.current,
+          rating,
+          reviewedAt,
+        );
+        // A forgotten word earns nothing, exactly as a wrong answer used to.
+        if (card && rating !== 'AGAIN') xp += xpForCard(card);
+      } catch (error) {
+        console.warn(
+          `[SRS] failed to schedule word ${wordId} (rating ${rating}) — its review is lost`,
+          error,
+        );
+      }
     }
 
-    if (awardXpRef.current && xp > 0) await userRepository.addXP(xp);
+    // Same reasoning as the loop: `finish` runs from an unmount cleanup with no
+    // one to catch it, so a failed XP write must not surface as an unhandled
+    // rejection — and must not stay invisible either.
+    if (awardXpRef.current && xp > 0) {
+      try {
+        await userRepository.addXP(xp);
+      } catch (error) {
+        console.warn(`[SRS] failed to award ${xp} XP for the session`, error);
+      }
+    }
   }, []);
 
   const trackingFor = useCallback(
