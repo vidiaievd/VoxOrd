@@ -1440,13 +1440,62 @@ Suite: **318 passed / 28 suites**, only the environmental `App.test.tsx`
 failing. The `WordRepository.ts` type error and one `QuizRepository` eslint
 warning are both pre-existing and untouched.
 
-#### Step 8.1b-4 — next: Home as the single "what do I study now"
+#### Step 8.1b-4 — Home as the single "what do I study now" — DONE (2026-07-28, VoxOrd `b1562a8`, `3570ef1`, `6f35b51`, `5d2ac30`)
 
-Aggregate due across local decks and course cards on Home, with a breakdown;
-`deck.repeatWords`/`newWords` are already computed in SQL and never rendered
-(`DeckRepository.ts:43-44`). The Courses tab stays for content. Also on the list:
-the dead weight found in the UX audit (`TopicsSection` duplicating
-`ContinueLearningCard`, the no-op `AIPracticeCard`).
+Aggregated due across local decks and course cards on Home, with a breakdown;
+`deck.repeatWords`/`newWords` were already computed in SQL and never rendered
+(`DeckRepository.ts:43-44`). The Courses tab stays for content. Also removed the
+dead weight found in the UX audit (`TopicsSection` duplicating
+`ContinueLearningCard`, the no-op `AIPracticeCard`, `HomeHeader`'s no-op
+`onAvatarPress`), and added `ReviewSession`/`VocabularyList` to the tab-bar-hiding
+screen list (a pre-existing inconsistency, not new).
+
+**On-device test (2026-07-28) found four bugs, all fixed in `5d2ac30`:**
+
+1. **Race condition — course-due row silently missing on cold start.**
+   `HomeRepository.getCourseDueCount()` checked `authStore.getState().status
+   !== 'signedIn'` and returned 0 — but on a cold start `useHomeData` fired
+   before the stored session finished restoring (`authStore`'s third state,
+   `'restoring'`), so it saw a status that wasn't `'signedIn'` *yet* and
+   returned 0 with no error, no warning, nothing. Reproduced twice on-device:
+   present after a warm tab-switch remount, silently gone on the next cold
+   start. Fixed: `useHomeData` now waits out `'restoring'` and reloads on every
+   auth status change.
+2. **ru/uk pluralization.** `'{count} слов'` was used at every count —
+   grammatically wrong for 2-4 ("4 слов" instead of "4 слова"), visible in the
+   Study Now widget and identically in `courseHome.reviewsDue`. Added
+   `src/i18n/pluralize.ts` (Slavic one/few/many rule, English one/other),
+   wired into `t()` via a `{ one, few, many }` value shape. Applied to
+   `studyNow.courseDue`, `studyNow.localDue`, `courseHome.reviewsDue`. Not
+   applied to `deckWords`/`vocabulary.wordCount`/`writingTaskWordCount` — same
+   class of bug, spotted but out of scope for this pass, left as a follow-up.
+3. **`ReviewSessionScreen` dead end.** Home's course-due count comes from the
+   server's global `dueNowCount`; the review session can only drill due cards
+   whose vocabulary list is imported locally (`resolveDueWords`'s
+   `unresolvedCardIds`). A due card from a never-imported list landed the user
+   on "nothing to review" printed right next to the count that said otherwise
+   — verified against the real due queue (`/srs/due` returned 4 valid
+   `VOCABULARY_WORD` cards with content, all from one unimported list).
+   Decided with the user: offer the import inline rather than only counting
+   drillable words on Home (the alternative would hide the unresolved words
+   from the user entirely). `unresolvedListIds` (deduped `card.front.listId`)
+   now threads from `resolveDueWords()` through `courseReviewLoader` to the
+   screen; a new `ImportUnresolvedList` component reuses
+   `useVocabularyList`/`useVocabularyImport` (same hooks `VocabularyListScreen`
+   uses) to import without needing the course/unit navigation context, and
+   calls `reload()` on success. Verified on-device: import button resolves
+   straight into a running review session on the just-imported words.
+4. Removed a leftover debug `console.log` in `ProgressRepository.recordAnswer`.
+
+**Also observed, not chased further:** two consecutive `useCourseReviewSets()`
+loads returned the same 4 due cards in different preview order — the server's
+due-queue ordering may not be fully deterministic when cards share a `dueAt`.
+Doesn't affect correctness (any due card is legitimately due), not investigated
+against the learning-service SQL.
+
+Suite: **346 passed / 30 suites** (was 318/28), only the environmental
+`App.test.tsx` failing (native SQLite module unavailable under Jest). `tsc
+--noEmit` clean (pre-existing `WordRepository.ts` error untouched).
 
 ### Step 8.2 — Grammar (mastery display only) — Sonnet
 - No grammar *trainer* exists yet — audited 2026-07-24: the web only shows a
