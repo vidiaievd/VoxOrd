@@ -1623,8 +1623,47 @@ detectable in code but not per-card. Adding the column is a Prisma migration
 with its own blast radius; sequence it separately once the mobile side proves
 the contract.
 
-### Step 9.2 — SRS wrapper in VoxOrd — needs `ts-fsrs@5.4.0` installed first
+### Step 9.2 — SRS wrapper in VoxOrd — DONE (2026-07-28, VoxOrd `e27fbc7`)
 
+`ts-fsrs` pinned to exactly `5.4.0` in VoxOrd (installed by the assistant on
+the user's explicit instruction, overriding ground rule #3 for this one step)
+and re-pinned from a floating `^5.3.2` in learning-service.
+
+`src/srs/engine.port.ts` (domain `SrsCard` in **epoch ms**, not `Date` — that
+is how VoxOrd already stores times; the adapter converts at the boundary),
+`profiles.ts` (mirror of the server's `SSZ_FSRS_PROFILE`), `fsrs-adapter.ts`
+(the only file importing `ts-fsrs`, plus `needsProfileMigration`). Nothing
+calls it yet — Step 9.4 is the first caller.
+
+**Golden vectors, and how they were captured.** No test-account credentials
+exist in either repo, so the vectors could not be pulled over HTTP. Instead
+they were produced by **running the server's own `FsrsScheduler` class**
+(ssz-platform `78218cf`) over every rating sequence of depth 3 from a fresh
+card — 84 vectors. That is stronger than it sounds for this purpose: it
+exercises the server's *card mapping* (`last_review`, `learning_steps`,
+Date↔epoch) as well as its parameters, which is exactly where a wrapper goes
+wrong. The fixture also embeds learning-service's profile verbatim and
+compares it field for field, because a depth-3 walk does not reach all 21
+weights.
+
+Additionally the suite asserts the first-review spread **measured over HTTP**
+in Step 8.1b (AGAIN 0.212 / HARD 1.2931 / GOOD 2.3065 / EASY 8.2956 → REVIEW
+at 8 days), which the captured vectors reproduce exactly — independent
+confirmation that the local run matches real end-to-end behaviour.
+
+Mutation-checked so the suite is known to have teeth: dropping `last_review`
+fails 116 tests, flipping `enable_short_term` fails 147, nudging one weight
+fails 3.
+
+`lapses` follows `ReviewCard.review()`'s rule — a REVIEW-state card rated
+AGAIN, not any AGAIN — so both sides count lapses identically. (Verified along
+the way that `lapses` is not an input to the FSRS math: recomputing all 84
+vectors under the wrong lapse rule changed zero outputs.)
+
+Suite: **540 passed / 32 suites** (was 360/31), only the environmental
+`App.test.tsx` failing. `tsc --noEmit` and eslint at baseline.
+
+Original spec for reference:
 - **Build the SRS engine wrapper** (`src/srs/`: `engine.port.ts`,
   `profiles.ts`, `fsrs-adapter.ts`) per the "SRS engine abstraction & FSRS
   parity" section — this is where `ts-fsrs` first enters the app (course words
