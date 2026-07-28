@@ -1,7 +1,8 @@
 import { apiClient } from './client';
-import type { CourseMastery, SkillMastery } from './types';
+import type { CourseMastery, GrammarRuleMastery, SkillMastery } from './types';
 
 const COURSE_MASTERY_PATH = (courseId: string) => `/api/v1/mastery/course/${courseId}`;
+const GRAMMAR_RULE_MASTERY_PATH = (ruleId: string) => `/api/v1/mastery/grammar-rules/${ruleId}`;
 
 /**
  * `GET /mastery/course/:containerId` (learning-service). Confirmed against
@@ -39,5 +40,31 @@ export async function getCourseMastery(courseId: string): Promise<CourseMastery>
       skill('speaking', raw.spoken),
       skill('writing', raw.written),
     ],
+  };
+}
+
+/**
+ * `GET /mastery/grammar-rules/:id` (learning-service). Confirmed against
+ * services/learning-service/src/modules/srs/presentation/mastery.controller.ts
+ * and grammar-rule-mastery.service.ts — no dedicated GRAMMAR_RULE SRS card
+ * type exists server-side, so mastery is derived from the retrievability of
+ * the rule's exercise-pool cards. Same `/api/v1/mastery` gateway block as
+ * course mastery covers this path already (no separate gateway gap).
+ */
+interface RawGrammarRuleMastery {
+  grammarRuleId: string;
+  poolSize: number;
+  introducedCount: number;
+  averageRetrievability: number;
+  masteredCount: number;
+  status: 'NOT_STARTED' | 'LEARNING' | 'MASTERED';
+}
+
+export async function getGrammarRuleMastery(ruleId: string): Promise<GrammarRuleMastery> {
+  const raw = await apiClient.get<RawGrammarRuleMastery>(GRAMMAR_RULE_MASTERY_PATH(ruleId));
+  return {
+    grammarRuleId: raw.grammarRuleId,
+    masteryPercent: Math.round(raw.averageRetrievability * 100),
+    status: raw.status,
   };
 }

@@ -279,6 +279,14 @@ export interface CourseMastery {
   bySkill: SkillMastery[];
 }
 
+export type GrammarRuleMasteryStatus = 'NOT_STARTED' | 'LEARNING' | 'MASTERED';
+
+export interface GrammarRuleMastery {
+  grammarRuleId: string;
+  masteryPercent: number;
+  status: GrammarRuleMasteryStatus;
+}
+
 export type CanDoState = 'locked' | 'in-progress' | 'unlocked';
 
 export interface CanDoItem {
@@ -318,6 +326,8 @@ export interface UnitContentsItem {
   durationMinutes: number | null;
   xpReward: number | null;
   status: UnitContentsItemStatus;
+  /** Grammar rules only — mastery %, fetched separately per-item. */
+  masteryPercent: number | null;
 }
 
 export interface UnitContentsSection {

@@ -39,6 +39,13 @@ function invert(links: Links): Links {
  * flag/score), but PRACTICE mode's `feedback.correctAnswer` carries the full
  * expected pair set, so feedback highlighting IS possible here — reusing that
  * value to recolor each link, the same way MultipleChoiceBody does.
+ *
+ * `verdict.correct` is checked first (available in both PRACTICE and GRADED):
+ * if the whole attempt is correct, every linked pair is green regardless of
+ * `expectedPairs`. Only a wrong attempt falls back to `expectedPairs` (PRACTICE
+ * only) to tell which individual links were right vs wrong; in GRADED mode a
+ * wrong attempt still can't distinguish per-pair, so every link reds out —
+ * same limitation MultipleChoiceBody has for its own GRADED wrong case.
  */
 export function MatchPairsBody({ display, disabled, verdict, onAnswerChange }: ExerciseBodyProps) {
   const { colors } = useTheme();
@@ -83,11 +90,10 @@ export function MatchPairsBody({ display, disabled, verdict, onAnswerChange }: E
   const leftStyle = (id: string) => {
     const linkedRight = links[id];
     if (showFeedback) {
-      if (linkedRight && expectedPairs && isLinkExpected(expectedPairs, id, linkedRight)) {
-        return styles.itemCorrect;
-      }
-      if (linkedRight) return styles.itemWrong;
-      return styles.item;
+      if (!linkedRight) return styles.item;
+      if (verdict!.correct) return styles.itemCorrect;
+      if (expectedPairs && isLinkExpected(expectedPairs, id, linkedRight)) return styles.itemCorrect;
+      return styles.itemWrong;
     }
     if (selectedLeftId === id) return styles.itemSelected;
     if (linkedRight) return styles.itemLinked;
@@ -97,11 +103,10 @@ export function MatchPairsBody({ display, disabled, verdict, onAnswerChange }: E
   const rightStyle = (id: string) => {
     const partnerLeft = rightToLeft[id];
     if (showFeedback) {
-      if (partnerLeft && expectedPairs && isLinkExpected(expectedPairs, partnerLeft, id)) {
-        return styles.itemCorrect;
-      }
-      if (partnerLeft) return styles.itemWrong;
-      return styles.item;
+      if (!partnerLeft) return styles.item;
+      if (verdict!.correct) return styles.itemCorrect;
+      if (expectedPairs && isLinkExpected(expectedPairs, partnerLeft, id)) return styles.itemCorrect;
+      return styles.itemWrong;
     }
     if (selectedLeftId && links[selectedLeftId] === id) return styles.itemSelected;
     if (partnerLeft) return styles.itemLinked;

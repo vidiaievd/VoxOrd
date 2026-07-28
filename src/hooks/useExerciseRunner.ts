@@ -40,6 +40,8 @@ export interface ExerciseRunnerController {
   advance: () => void;
   /** Retry loading the current item after a load error. */
   retry: () => void;
+  /** Footer "Try again": re-answer the same wrong item as a fresh attempt. */
+  retryAttempt: () => void;
   /** Status of posting each result's progress once the set reaches 'complete'. */
   progressPostStatus: ProgressPostStatus;
 }
@@ -201,6 +203,13 @@ export function useExerciseRunner(
     dispatch({ type: 'LOAD_START' });
   }, []);
 
+  const retryAttempt = useCallback(() => {
+    // Timer restarts here: the retry's timeSpentSeconds should measure the
+    // second attempt, not include time spent reading the first verdict.
+    answeringStartedAtRef.current = Date.now();
+    dispatch({ type: 'RETRY_ITEM' });
+  }, []);
+
   const progress = useMemo(
     () => ({ current: state.idx + 1, total: state.exerciseIds.length }),
     [state.idx, state.exerciseIds.length],
@@ -214,6 +223,7 @@ export function useExerciseRunner(
     check,
     advance,
     retry,
+    retryAttempt,
     progressPostStatus,
   };
 }

@@ -15,11 +15,11 @@ const display = (id: string): ExerciseDisplay => ({
   content: { question: 'q' },
 });
 
-const verdict = (correct: boolean): SubmitAttemptResponse => ({
+const verdict = (correct: boolean, requiresReview = false): SubmitAttemptResponse => ({
   attemptId: 'att-1',
   correct,
   score: correct ? 100 : 0,
-  requiresReview: false,
+  requiresReview,
   feedback: { summary: correct ? 'Correct' : 'Try again' },
 });
 
@@ -182,5 +182,75 @@ describe('advance transitions', () => {
   it('ignores ADVANCE outside the feedback phase', () => {
     const answering = toAnswering(['e1', 'e2']);
     expect(runnerReducer(answering, { type: 'ADVANCE' })).toBe(answering);
+  });
+});
+
+describe('retry transitions', () => {
+  function toWrongFeedback(ids: string[]): RunnerState {
+    let s = toAnswering(ids, 0);
+    s = runnerReducer(s, { type: 'ANSWER_CHANGE', answer: 'a', canSubmit: true });
+    s = runnerReducer(s, { type: 'CHECK_START' });
+    return runnerReducer(s, { type: 'CHECK_SUCCESS', verdict: verdict(false), timeSpentSeconds: 4 });
+  }
+
+  it('a wrong verdict returns to answering, drops its result, and bumps attemptSeq', () => {
+    const s = runnerReducer(toWrongFeedback(['e1']), { type: 'RETRY_ITEM' });
+    expect(s.phase).toBe('answering');
+    expect(s.answer).toBeNull();
+    expect(s.canSubmit).toBe(false);
+    expect(s.verdict).toBeNull();
+    expect(s.results).toEqual([]);
+    expect(s.attemptSeq).toBe(1);
+    expect(s.display?.id).toBe('e1'); // same item, no re-fetch
+  });
+
+  it('is a no-op on a correct verdict', () => {
+    let s = toAnswering(['e1']);
+    s = runnerReducer(s, { type: 'ANSWER_CHANGE', answer: 'a', canSubmit: true });
+    s = runnerReducer(s, { type: 'CHECK_START' });
+    s = runnerReducer(s, { type: 'CHECK_SUCCESS', verdict: verdict(true), timeSpentSeconds: 2 });
+    expect(runnerReducer(s, { type: 'RETRY_ITEM' })).toBe(s);
+  });
+
+  it('is a no-op on a requiresReview verdict (nothing graded to retry)', () => {
+    let s = toAnswering(['e1']);
+    s = runnerReducer(s, { type: 'ANSWER_CHANGE', answer: 'a', canSubmit: true });
+    s = runnerReducer(s, { type: 'CHECK_START' });
+    s = runnerReducer(s, {
+      type: 'CHECK_SUCCESS',
+      verdict: verdict(false, true),
+      timeSpentSeconds: 2,
+    });
+    expect(runnerReducer(s, { type: 'RETRY_ITEM' })).toBe(s);
+  });
+
+  it('is a no-op outside the feedback phase', () => {
+    const answering = toAnswering(['e1']);
+    expect(runnerReducer(answering, { type: 'RETRY_ITEM' })).toBe(answering);
+  });
+
+  it('only drops the current item\'s result, keeping earlier items', () => {
+    let s = toAnswering(['e1', 'e2'], 0);
+    s = runnerReducer(s, { type: 'ANSWER_CHANGE', answer: 'a', canSubmit: true });
+    s = runnerReducer(s, { type: 'CHECK_START' });
+    s = runnerReducer(s, { type: 'CHECK_SUCCESS', verdict: verdict(true), timeSpentSeconds: 1 });
+    s = runnerReducer(s, { type: 'ADVANCE' });
+    s = runnerReducer(s, { type: 'LOAD_SUCCESS', display: display('e2') });
+    s = runnerReducer(s, { type: 'ANSWER_CHANGE', answer: 'b', canSubmit: true });
+    s = runnerReducer(s, { type: 'CHECK_START' });
+    s = runnerReducer(s, { type: 'CHECK_SUCCESS', verdict: verdict(false), timeSpentSeconds: 3 });
+    expect(s.results).toHaveLength(2);
+
+    s = runnerReducer(s, { type: 'RETRY_ITEM' });
+    expect(s.results).toEqual([{ exerciseId: 'e1', verdict: verdict(true), timeSpentSeconds: 1 }]);
+  });
+
+  it('a subsequent correct retry re-adds a fresh result for the same item', () => {
+    let s = toWrongFeedback(['e1']);
+    s = runnerReducer(s, { type: 'RETRY_ITEM' });
+    s = runnerReducer(s, { type: 'ANSWER_CHANGE', answer: 'a', canSubmit: true });
+    s = runnerReducer(s, { type: 'CHECK_START' });
+    s = runnerReducer(s, { type: 'CHECK_SUCCESS', verdict: verdict(true), timeSpentSeconds: 6 });
+    expect(s.results).toEqual([{ exerciseId: 'e1', verdict: verdict(true), timeSpentSeconds: 6 }]);
   });
 });

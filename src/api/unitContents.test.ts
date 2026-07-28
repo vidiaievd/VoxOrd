@@ -1,11 +1,16 @@
 import { getUnitContents } from './unitContents';
 import { apiClient } from './client';
+import { getGrammarRuleMastery } from './mastery';
 
 jest.mock('./client', () => ({
   apiClient: { get: jest.fn() },
 }));
+jest.mock('./mastery', () => ({
+  getGrammarRuleMastery: jest.fn(),
+}));
 
 const mockGet = apiClient.get as jest.Mock;
+const mockGetGrammarRuleMastery = getGrammarRuleMastery as jest.Mock;
 
 /**
  * The wire payload as learning-service actually serializes it: `contentType`
@@ -61,6 +66,7 @@ function wirePayload() {
 
 beforeEach(() => {
   mockGet.mockReset();
+  mockGetGrammarRuleMastery.mockReset();
 });
 
 describe('getUnitContents', () => {
@@ -101,6 +107,82 @@ describe('getUnitContents', () => {
       xpReward: 10,
       status: 'available',
     });
+  });
+
+  it('attaches mastery percent to grammar_rule items only', async () => {
+    mockGet.mockResolvedValue({
+      moduleId: 'unit-1',
+      moduleTitle: 'Leksjon 1',
+      sections: [
+        {
+          id: 'sec-1',
+          title: 'Grammatikk',
+          items: [
+            {
+              id: 'item-4',
+              contentType: 'GRAMMAR_RULE',
+              contentId: 'rule-1',
+              title: 'Bestemt form',
+              lessonKind: null,
+              durationMinutes: null,
+              xpReward: null,
+              status: 'available',
+            },
+            {
+              id: 'item-1',
+              contentType: 'LESSON',
+              contentId: 'lesson-1',
+              title: 'Hei!',
+              lessonKind: 'text',
+              durationMinutes: 10,
+              xpReward: 10,
+              status: 'available',
+            },
+          ],
+        },
+      ],
+      ungroupedItems: [],
+    });
+    mockGetGrammarRuleMastery.mockResolvedValue({
+      grammarRuleId: 'rule-1',
+      masteryPercent: 62,
+      status: 'LEARNING',
+    });
+
+    const result = await getUnitContents('unit-1');
+
+    expect(mockGetGrammarRuleMastery).toHaveBeenCalledWith('rule-1');
+    expect(mockGetGrammarRuleMastery).toHaveBeenCalledTimes(1);
+    expect(result.sections[0].items[0].masteryPercent).toBe(62);
+    expect(result.sections[0].items[1].masteryPercent).toBeNull();
+  });
+
+  it('leaves masteryPercent null when the mastery fetch fails, without throwing', async () => {
+    mockGet.mockResolvedValue({
+      moduleId: 'unit-1',
+      moduleTitle: 'Leksjon 1',
+      sections: [],
+      ungroupedItems: [
+        {
+          id: 'item-4',
+          contentType: 'GRAMMAR_RULE',
+          contentId: 'rule-1',
+          title: 'Bestemt form',
+          lessonKind: null,
+          durationMinutes: null,
+          xpReward: null,
+          status: 'available',
+        },
+      ],
+    });
+    mockGetGrammarRuleMastery.mockRejectedValue(new Error('network error'));
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const result = await getUnitContents('unit-1');
+
+    expect(result.ungroupedItems[0].masteryPercent).toBeNull();
+    expect(warnSpy).toHaveBeenCalled();
+    warnSpy.mockRestore();
   });
 
   it('handles a unit with no sections or ungrouped items', async () => {

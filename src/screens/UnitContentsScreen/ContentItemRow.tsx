@@ -7,10 +7,7 @@ import type { UnitContentsItem } from '../../api/types';
 
 interface ContentItemRowProps {
   item: UnitContentsItem;
-  /**
-   * Lessons (Phase 3 reader), exercises (Phase 4 runner) and vocabulary lists
-   * (Phase 5 reader) are tappable. Grammar rules stay inert until Phase 6.
-   */
+  /** Lessons, exercises, vocabulary lists and grammar rules are all tappable. */
   onPress?: () => void;
 }
 
@@ -46,6 +43,11 @@ export function ContentItemRow({ item, onPress }: ContentItemRowProps) {
         {item.durationMinutes !== null && (
           <Text style={styles.meta}>
             {t('unitContents.duration', { minutes: item.durationMinutes })}
+          </Text>
+        )}
+        {item.contentType === 'grammar_rule' && item.masteryPercent !== null && (
+          <Text style={styles.meta}>
+            {t('unitContents.masteryPercent', { percent: item.masteryPercent })}
           </Text>
         )}
       </View>

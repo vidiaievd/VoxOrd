@@ -23,9 +23,11 @@ const SKILL_LABEL_KEYS = {
 
 /**
  * Mastery bars + reviews-due counter (display only, Phase 6). `srsDueCount`
- * is the user's total due count across all content, not scoped to this
- * course — see the caveat in `src/api/courseHome.ts` — so this renders as a
- * general reviews-due stat, not "due in this course".
+ * is the count of due words actually resolved against the user's imported
+ * local decks (see `useCourseReviewSets`/`courseReviewSet.ts`), not scoped to
+ * this course — so this renders as a general reviews-due stat, not "due in
+ * this course" — but it always matches what the "Повторить" screen can
+ * actually run, unlike the raw `/srs/stats/me` total.
  */
 export function CourseStatsSection({ mastery, srsDueCount, onReviewPress }: CourseStatsSectionProps) {
   const { colors } = useTheme();

@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import { getGrammarRuleMastery } from './mastery';
 import type {
   UnitContentsItem,
   UnitContentsItemType,
@@ -22,7 +23,29 @@ function normalizeContentType(wire: string): UnitContentsItemType {
 }
 
 function normalizeItem(item: UnitContentsItem): UnitContentsItem {
-  return { ...item, contentType: normalizeContentType(item.contentType) };
+  return { ...item, contentType: normalizeContentType(item.contentType), masteryPercent: null };
+}
+
+/**
+ * Grammar rules have no per-rule mastery in the contents payload itself (it's
+ * a separate roll-up, see `getGrammarRuleMastery`). Fetched per-item and
+ * attached in place; a failure on one rule never blocks the others or the
+ * rest of the screen — same non-fatal convention as course mastery in
+ * `courseHome.ts`.
+ */
+async function attachGrammarRuleMastery(items: UnitContentsItem[]): Promise<UnitContentsItem[]> {
+  return Promise.all(
+    items.map(async (item) => {
+      if (item.contentType !== 'grammar_rule') return item;
+      try {
+        const mastery = await getGrammarRuleMastery(item.contentId);
+        return { ...item, masteryPercent: mastery.masteryPercent };
+      } catch (e) {
+        console.warn(`[UnitContents] Failed to load grammar mastery for ${item.contentId}:`, e);
+        return item;
+      }
+    }),
+  );
 }
 
 /**
@@ -33,14 +56,17 @@ function normalizeItem(item: UnitContentsItem): UnitContentsItem {
  */
 export async function getUnitContents(unitId: string): Promise<UnitContentsResult> {
   const result = await apiClient.get<UnitContentsResult>(UNIT_CONTENTS_PATH(unitId));
-  return {
-    ...result,
-    sections: result.sections.map(
-      (section): UnitContentsSection => ({
+  const sections = await Promise.all(
+    result.sections.map(
+      async (section): Promise<UnitContentsSection> => ({
         ...section,
-        items: section.items.map(normalizeItem),
+        items: await attachGrammarRuleMastery(section.items.map(normalizeItem)),
       }),
     ),
-    ungroupedItems: result.ungroupedItems.map(normalizeItem),
+  );
+  return {
+    ...result,
+    sections,
+    ungroupedItems: await attachGrammarRuleMastery(result.ungroupedItems.map(normalizeItem)),
   };
 }

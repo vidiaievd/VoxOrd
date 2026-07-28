@@ -1,4 +1,4 @@
-import { getCourseMastery } from './mastery';
+import { getCourseMastery, getGrammarRuleMastery } from './mastery';
 import { apiClient } from './client';
 
 jest.mock('./client', () => ({
@@ -55,5 +55,45 @@ describe('getCourseMastery', () => {
 
     expect(result.overallMastery).toBe(67);
     expect(result.bySkill[0].masteryPercent).toBe(33);
+  });
+});
+
+describe('getGrammarRuleMastery', () => {
+  beforeEach(() => mockGet.mockReset());
+
+  it('maps averageRetrievability fraction to a rounded percent', async () => {
+    mockGet.mockResolvedValue({
+      grammarRuleId: 'rule-1',
+      poolSize: 10,
+      introducedCount: 6,
+      averageRetrievability: 0.734,
+      masteredCount: 3,
+      status: 'LEARNING',
+    });
+
+    const result = await getGrammarRuleMastery('rule-1');
+
+    expect(result).toEqual({
+      grammarRuleId: 'rule-1',
+      masteryPercent: 73,
+      status: 'LEARNING',
+    });
+    expect(mockGet).toHaveBeenCalledWith('/api/v1/mastery/grammar-rules/rule-1');
+  });
+
+  it('reports NOT_STARTED with 0% when the pool has no SRS cards yet', async () => {
+    mockGet.mockResolvedValue({
+      grammarRuleId: 'rule-2',
+      poolSize: 4,
+      introducedCount: 0,
+      averageRetrievability: 0,
+      masteredCount: 0,
+      status: 'NOT_STARTED',
+    });
+
+    const result = await getGrammarRuleMastery('rule-2');
+
+    expect(result.masteryPercent).toBe(0);
+    expect(result.status).toBe('NOT_STARTED');
   });
 });

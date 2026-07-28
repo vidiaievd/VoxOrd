@@ -50,6 +50,13 @@ export interface RunnerState {
   loadError: string | null;
   /** Every item's verdict so far, in order — survives the per-item reset, used to post progress and show the set's results summary once 'complete'. */
   results: ItemResult[];
+  /**
+   * Bumped on RETRY_ITEM (reset to 0 on every fresh item). Only used as part
+   * of the body component's remount key — `display.id` alone doesn't change
+   * on a same-item retry, so a body's local input state (e.g. MatchPairsBody's
+   * `links`) wouldn't otherwise reset.
+   */
+  attemptSeq: number;
 }
 
 export type RunnerAction =
@@ -61,7 +68,8 @@ export type RunnerAction =
   | { type: 'CHECK_START' }
   | { type: 'CHECK_SUCCESS'; verdict: SubmitAttemptResponse; timeSpentSeconds: number }
   | { type: 'CHECK_FAILURE'; message: string }
-  | { type: 'ADVANCE' };
+  | { type: 'ADVANCE' }
+  | { type: 'RETRY_ITEM' };
 
 /** Fields reset every time we (re)enter a fresh item in the 'loading' phase. Excludes `results`, which accumulates across the whole set. */
 function freshItemFields(): Omit<RunnerState, 'exerciseIds' | 'idx' | 'phase' | 'results'> {
@@ -72,6 +80,7 @@ function freshItemFields(): Omit<RunnerState, 'exerciseIds' | 'idx' | 'phase' | 
     verdict: null,
     submitError: null,
     loadError: null,
+    attemptSeq: 0,
   };
 }
 
@@ -151,6 +160,29 @@ export function runnerReducer(state: RunnerState, action: RunnerAction): RunnerS
         return { ...state, phase: 'complete', ...freshItemFields() };
       }
       return { ...state, idx: state.idx + 1, phase: 'loading', ...freshItemFields() };
+    }
+
+    case 'RETRY_ITEM': {
+      // Only from a genuinely wrong, graded verdict — not correct, and not a
+      // requiresReview item (translate_*/writing_task have no right/wrong to retry).
+      if (state.phase !== 'feedback' || !state.verdict) return state;
+      if (state.verdict.correct || state.verdict.requiresReview) return state;
+      // Drop this item's just-recorded wrong result — the retry's outcome
+      // replaces it (only the latest attempt counts toward progress).
+      const exerciseId = currentExerciseId(state);
+      const results = exerciseId
+        ? state.results.filter((r) => r.exerciseId !== exerciseId)
+        : state.results;
+      return {
+        ...state,
+        phase: 'answering',
+        answer: null,
+        canSubmit: false,
+        verdict: null,
+        submitError: null,
+        results,
+        attemptSeq: state.attemptSeq + 1,
+      };
     }
 
     default:

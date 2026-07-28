@@ -119,6 +119,7 @@ export interface Translations {
     statusInProgress: string;
     statusAvailable: string;
     statusLocked: string;
+    masteryPercent: string; // 'Mastery: {percent}%'
   };
 
   lessonReader: {
@@ -128,6 +129,15 @@ export interface Translations {
     unsupportedKind: string;
     noTranslation: string;
     markAsRead: string;
+  };
+
+  grammarRuleReader: {
+    title: string;
+    loadError: string;
+    noContent: string;
+    goToPractice: string;
+    noPracticeExercises: string;
+    practiceLoadError: string;
   };
 
   vocabulary: {
@@ -169,10 +179,10 @@ export interface Translations {
     check: string;
     continue: string;
     finish: string;
+    tryAgain: string;
     correct: string;
     incorrect: string;
     submittedForReview: string;
-    expectedAnswer: string;
     setComplete: string;
     setCompleteDesc: string;
     done: string;
