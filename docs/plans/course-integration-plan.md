@@ -1670,8 +1670,79 @@ Original spec for reference:
   in Phase 8 need no client FSRS). Mirror the server's frozen profile exactly;
   unit-test with **golden vectors captured from the server** (a fixed
   (card, rating, reviewedAt) triple must reproduce the server's card).
-### Step 9.3 — Migration v10: FSRS columns + one-time conversion
+### Step 9.3 — Migration v10: FSRS columns + one-time conversion — DONE (2026-07-28, VoxOrd `9fc26f3`)
 
+Eleven `fsrs*`-prefixed columns on `word_progress` (prefixed because the table
+already has `status` and `lastReviewed` meaning something else) plus a
+`(deckId, fsrsDueAt)` index. Nothing reads them yet — 9.4 is the first caller.
+
+`src/srs/legacyConversion.ts` is a pure function with 28 tests; the migration
+only applies it.
+
+**The conversion hinges on stability, and that is the point.** In FSRS,
+stability *is* the number of days for recall to fall to 90%, and the profile
+schedules at `requestRetention = 0.9` — so a word the old engine had earned a
+3-day interval for becomes a card FSRS also schedules at ~3 days. The two
+models disagree about nearly everything else, but this one quantity means the
+same thing in both, which makes it the honest thing to convert on. Difficulty
+is interpolated by success rate between the initial difficulties **the engine
+itself assigns** for AGAIN and GOOD (read from the engine, not hardcoded, so
+the anchors cannot drift from the profile's weights). EASY's initial
+difficulty is deliberately not the upper anchor: it clamps to FSRS's floor of
+1, which no amount of 6-stage history should be able to earn.
+
+| 6-stage input | FSRS output |
+|---|---|
+| stage 0, or no review history | fresh NEW card, due now |
+| stage 1 (1h) / 2 (8h) | LEARNING, at learning step 1 / 2 |
+| stage 3–5 (1d/3d/7d) | REVIEW |
+| the stage's interval | `stability`, in days |
+| successCount / reviewCount | `difficulty`, interpolated |
+| `nextReview` | `dueAt`, kept as-is — an overdue word stays overdue |
+| failures | `lapses` (reporting only; verified not an FSRS input) |
+
+A stage above 0 with no recorded review history is inconsistent data and
+converts to a fresh NEW card rather than inventing stability from nothing.
+
+**Rollback:** the old columns (`memoryStage`, `nextReview`,
+`shortTermStrength`, `longTermStrength`) are kept and never written, so
+reverting means "stop reading the new columns", not "convert back" — there is
+no way back through a lossy mapping. A later migration drops them once the
+FSRS path is proven.
+
+**Idempotent and re-runnable**, which matters because the runner records a
+version only after `up()` succeeds: the backfill touches only rows with a NULL
+`fsrsProfileId`, and column adds go through `addColumnIfMissing` (the v8/v9
+lesson). Updates are chunked through `executeBatch` (200 at a time) so a large
+personal library is a handful of native calls, not one per word.
+
+**Course words are skipped** (`words.platformItemId IS NOT NULL`) — the server
+owns their schedule and the local engine was already suppressed for them in
+8.1b-3.
+
+**Found while building, matters for 9.4:** `seedIfEmpty()` runs *after*
+`runMigrations()` in `App.tsx`, and the vocabulary importer inserts rows at any
+time. So a `word_progress` row with a NULL `fsrsProfileId` is normal and means
+"not an FSRS card yet" — 9.4 must treat it as a card to introduce, never as a
+card with stability 0.
+
+Suite: **568 passed / 33 suites** (was 540/32), only the environmental
+`App.test.tsx` failing. `tsc --noEmit` and eslint at baseline.
+
+**User test checkpoint (not yet run) — the first step that touches real data.**
+Back up the device DB first (`adb` pull, per the recorded procedure) so a bad
+conversion is recoverable.
+1. Launch the app and watch Metro logs for `[DB] v10: converted N
+   word_progress rows to FSRS cards` — N should be the number of *personal*
+   progress rows, excluding imported course words.
+2. Word learning must behave exactly as before: 9.4 has not switched the read
+   or write path yet, so decks, sessions, Home counts and stats still run on
+   the 6-stage columns. Any change in behaviour here is a bug, not progress.
+3. Optionally pull the DB and spot-check a few rows: a well-known word should
+   have a high `fsrsStability` and low `fsrsDifficulty`; a struggling one the
+   reverse; imported course words should have all `fsrs*` columns NULL.
+
+Original spec for reference:
 - Migrate `word_progress`: add FSRS columns (`state, stability, difficulty,
   dueAt, reps, lapses, elapsedDays, scheduledDays, learningSteps,
   lastReviewedAt, profileId`); seed them from the existing `memoryStage` /
