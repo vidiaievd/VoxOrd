@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { progressRepository } from '../repositories/ProgressRepository';
 import { sessionRepository } from '../repositories/SessionRepository';
 import { wordModeStrengthRepository } from '../repositories/WordModeStrengthRepository';
 import { quizRepository } from '../repositories/QuizRepository';
@@ -92,9 +91,6 @@ export function useQuiz(
         const isCorrect = option === question.correctAnswer;
         answered = { wordId: question.wordId, isCorrect };
 
-        if (!trackingRef.current?.skipLocalProgress) {
-          progressRepository.recordAnswer(question.wordId, deckId, isCorrect);
-        }
         wordModeStrengthRepository.recordAnswer(
           question.wordId,
           deckId,

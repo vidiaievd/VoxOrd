@@ -42,6 +42,11 @@ export const ru: Translations = {
     repeat: 'повтор',
     learned: 'изучено',
     flipFirst: 'Переверните карточку перед свайпом',
+    bucket: {
+      new: 'Новое',
+      learning: 'Учится',
+      learned: 'Выучено',
+    },
   },
   settings: {
     title: 'Настройки',

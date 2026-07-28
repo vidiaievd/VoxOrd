@@ -148,9 +148,10 @@ export function useCourseReviewSession(
 
   const tracking = useMemo<ExerciseTracking>(
     () => ({
-      // Course words are server-authoritative; the local 6-stage engine must
-      // not build a second schedule for them.
-      skipLocalProgress: true,
+      // No `skipLocalProgress` any more: since Step 9.5 an exercise writes no
+      // schedule of its own, so there is nothing left to suppress. Course words
+      // stay server-authoritative because only `usePersonalSession` schedules
+      // locally, and it is never used here.
       onAnswer: (wordId: number, result: AttemptResult) => {
         const phase = phases?.[phaseIndex];
         // The preview awards nothing, and padding words exist only to make the

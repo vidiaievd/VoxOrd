@@ -1,19 +1,4 @@
-import { ExerciseType, SessionType, MemoryStage } from '../db/types';
-import { Word } from '../db/words';
-
-export interface SessionWord extends Word {
-  memoryStage: MemoryStage;
-  nextReview: number | null;
-  reviewCount: number;
-}
-
-export interface Exercise {
-  id: string; // unique identifier for the exercise
-  type: ExerciseType;
-  word: SessionWord;
-  options?: string[]; // for quiz/matching
-  correctIndex?: number; // for quiz
-}
+import { ExerciseType, SessionType } from '../db/types';
 
 export interface SessionConfig {
   type: SessionType;
@@ -65,63 +50,7 @@ const SESSION_DEFINITIONS: Record<
   },
 };
 
-// Order of exercises — from simple to complex
-const EXERCISE_ORDER: Record<ExerciseType, number> = {
-  flashcard: 1,
-  listening: 2,
-  matching: 3,
-  context: 4,
-  spelling: 5,
-  quiz: 6,
-};
-
 export class SessionEngine {
-  // Prioritize words for the session based on due status, memory stage, and review count
-  static prioritizeWords(words: SessionWord[]): SessionWord[] {
-    return [...words].sort((a, b) => {
-      // 1. Those due for review come first (nextReview in the past or null)
-      const now = Date.now();
-      const aDue = !a.nextReview || now >= a.nextReview ? 0 : 1;
-      const bDue = !b.nextReview || now >= b.nextReview ? 0 : 1;
-      if (aDue !== bDue) return aDue - bDue;
-
-      // 2. By memory stage (newer words first)
-      if (a.memoryStage !== b.memoryStage) {
-        return a.memoryStage - b.memoryStage;
-      }
-
-      // 3. By review count (less reviewed first)
-      return a.reviewCount - b.reviewCount;
-    });
-  }
-
-  // Build list of exercises for the session based on session type and selected words
-  static buildExercises(
-    words: SessionWord[],
-    sessionType: SessionType,
-  ): Exercise[] {
-    const def = SESSION_DEFINITIONS[sessionType];
-    const exercises: Exercise[] = [];
-    let counter = 0;
-
-    for (let rep = 0; rep < def.repetitions; rep++) {
-      for (const exerciseType of def.exercises) {
-        for (const word of words) {
-          exercises.push({
-            id: `${exerciseType}_${word.id}_${rep}_${counter++}`,
-            type: exerciseType,
-            word,
-          });
-        }
-      }
-    }
-
-    // Sort exercises by predefined order
-    return exercises.sort(
-      (a, b) => EXERCISE_ORDER[a.type] - EXERCISE_ORDER[b.type],
-    );
-  }
-
   // Calculate XP based on performance and session type
   static calculateXP(params: {
     correctAnswers: number;

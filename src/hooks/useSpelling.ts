@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { progressRepository } from '../repositories/ProgressRepository';
 import { sessionRepository } from '../repositories/SessionRepository';
 import { spellingRepository } from '../repositories/SpellingRepository';
 import { wordModeStrengthRepository } from '../repositories/WordModeStrengthRepository';
@@ -182,9 +181,6 @@ export function useSpelling(
         },
       };
 
-      if (!trackingRef.current?.skipLocalProgress) {
-        progressRepository.recordAnswer(question.wordId, deckId, isCorrect);
-      }
       wordModeStrengthRepository.recordAnswer(
         question.wordId,
         deckId,
@@ -253,9 +249,6 @@ export function useSpelling(
       skipped = question.wordId;
 
       for (let i = 0; i < SKIP_PENALTY_MISTAKES; i++) {
-        if (!trackingRef.current?.skipLocalProgress) {
-          progressRepository.recordAnswer(question.wordId, deckId, false);
-        }
         wordModeStrengthRepository.recordAnswer(
           question.wordId,
           deckId,

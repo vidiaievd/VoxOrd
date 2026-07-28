@@ -20,16 +20,4 @@ export interface ExerciseTracking {
    * double-counted by a re-invoked reducer.
    */
   onAnswer?: (wordId: number, result: AttemptResult) => void;
-
-  /**
-   * Suppresses `progressRepository.recordAnswer`, i.e. the local 6-stage
-   * schedule.
-   *
-   * Course words are server-authoritative FSRS cards; letting the local engine
-   * also schedule them is the duplicated-source-of-truth bug this redesign
-   * exists to remove. `wordModeStrengthRepository` is deliberately NOT
-   * suppressed — `word_mode_strength` is a local-only exercise-mode picker,
-   * decoupled from the authoritative weight by design.
-   */
-  skipLocalProgress?: boolean;
 }

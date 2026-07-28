@@ -42,6 +42,11 @@ export const en: Translations = {
     repeat: 'repeat',
     learned: 'learned',
     flipFirst: 'Flip card before swiping',
+    bucket: {
+      new: 'New',
+      learning: 'Learning',
+      learned: 'Learned',
+    },
   },
   settings: {
     title: 'Settings',

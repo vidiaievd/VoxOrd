@@ -11,6 +11,8 @@ import {
   type SessionMode,
 } from '../lib/sessionGrader';
 import { progressRepository } from '../repositories/ProgressRepository';
+import { userRepository } from '../repositories/UserRepository';
+import { xpForCard } from '../srs/dueness';
 import type { ExerciseTracking } from './exerciseTracking';
 
 /**
@@ -27,11 +29,21 @@ import type { ExerciseTracking } from './exerciseTracking';
  * an individual exercise: `DeepSessionScreen` owns one across its phases, while
  * a standalone exercise owns its own. `ownedTracking` below encodes that rule.
  *
- * Dual write, deliberately: nothing here touches the 6-stage columns, which
- * `progressRepository.recordAnswer` keeps writing per answer exactly as before.
- * Everything that *reads* a schedule still speaks 6-stage until Step 9.5, so
- * this step must be invisible on device — that is what makes it testable.
+ * Since Step 9.5 this is the only thing that writes a local schedule at all —
+ * the 6-stage engine and its per-answer write are gone.
  */
+
+export interface PersonalSessionOptions {
+  /**
+   * Award per-word XP as the retired engine did.
+   *
+   * Only the flashcard screen ever paid XP per answer — the other modes read
+   * `recordAnswer`'s return value and ignored it, taking their XP from session
+   * completion instead. Turning it on everywhere would quietly inflate XP, so
+   * the flag preserves exactly who used to earn it.
+   */
+  awardXp?: boolean;
+}
 
 export interface PersonalSession {
   /** Instrumentation to hand an exercise running `mode` in this session. */
@@ -43,7 +55,13 @@ export interface PersonalSession {
   finish: () => Promise<void>;
 }
 
-export function usePersonalSession(deckId: number): PersonalSession {
+export function usePersonalSession(
+  deckId: number,
+  options: PersonalSessionOptions = {},
+): PersonalSession {
+  const awardXpRef = useRef(options.awardXp === true);
+  awardXpRef.current = options.awardXp === true;
+
   // A ref, not state: `finish` runs from an unmount cleanup, where a state read
   // would see a stale closure and grade an empty ledger.
   const evidenceRef = useRef<SessionEvidence>(createEvidence());
@@ -64,19 +82,27 @@ export function usePersonalSession(deckId: number): PersonalSession {
     // One timestamp for the whole session: the answers are evidence about one
     // sitting, so they must not schedule off slightly different instants.
     const reviewedAt = Date.now();
+    let xp = 0;
+
     for (const { wordId, rating } of graded) {
       // Silently skips course words and words with no progress row — see
       // `applyReview`. Sequential rather than parallel: these are small writes
       // on one SQLite connection, and ordering keeps a failure easy to read.
-      await progressRepository.applyReview(wordId, deckIdRef.current, rating, reviewedAt);
+      const card = await progressRepository.applyReview(
+        wordId,
+        deckIdRef.current,
+        rating,
+        reviewedAt,
+      );
+      // A forgotten word earns nothing, exactly as a wrong answer used to.
+      if (card && rating !== 'AGAIN') xp += xpForCard(card);
     }
+
+    if (awardXpRef.current && xp > 0) await userRepository.addXP(xp);
   }, []);
 
   const trackingFor = useCallback(
     (mode: SessionMode): ExerciseTracking => ({
-      // Left false on purpose: the 6-stage write stays until Step 9.5 switches
-      // the read paths over. This is the flag to flip there.
-      skipLocalProgress: false,
       onAnswer: (wordId: number, result: AttemptResult) => {
         evidenceRef.current = recordWordAttempt(evidenceRef.current, wordId, mode, result);
       },
@@ -108,7 +134,7 @@ export function useOwnedTracking(
   mode: SessionMode,
   provided?: ExerciseTracking,
 ): ExerciseTracking {
-  const session = usePersonalSession(deckId);
+  const session = usePersonalSession(deckId, { awardXp: mode === 'flashcard' });
   const own = useMemo(() => session.trackingFor(mode), [session, mode]);
   return provided ?? own;
 }

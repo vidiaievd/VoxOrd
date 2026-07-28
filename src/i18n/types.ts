@@ -37,6 +37,11 @@ export interface Translations {
     repeat: string;
     learned: string;
     flipFirst: string;
+    bucket: {
+      new: string;
+      learning: string;
+      learned: string;
+    };
   };
 
   settings: {

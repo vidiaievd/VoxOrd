@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { getNextWord, Word } from '../db/words';
-import { progressRepository } from '../repositories/ProgressRepository';
 import { sessionRepository } from '../repositories/SessionRepository';
 import { userRepository } from '../repositories/UserRepository';
 import { activityRepository } from '../repositories/ActivityRepository';
@@ -54,6 +53,10 @@ export function useCard(
   const shownAtRef = useRef<number>(Date.now());
   const weakIdsRef = useRef<Set<number>>(new Set());
   const queueRef = useRef<DeepSessionWord[]>([]);
+  // Words already shown this sitting. Needed because the schedule is written
+  // once at session end (Step 9.5), so an answered word is still due and would
+  // otherwise be handed back immediately.
+  const seenRef = useRef<number[]>([]);
   const isDeepMode = !!overrideWords;
   // Read through a ref so a caller passing an inline object does not need to
   // memoize it just to keep onSwipe stable.
@@ -92,7 +95,7 @@ export function useCard(
         }
       } else {
         // Normal mode — load from DB
-        const first = await getNextWord(deckId, null);
+        const first = await getNextWord(deckId);
         if (!cancelled) {
           if (!first) {
             setIsEmpty(true);
@@ -129,7 +132,7 @@ export function useCard(
   );
 
   const loadNext = useCallback(
-    async (currentWordId: number) => {
+    async () => {
       if (isDeepMode) {
         const next = queueRef.current.shift();
         if (!next) {
@@ -142,7 +145,7 @@ export function useCard(
           shownAtRef.current = Date.now();
         }
       } else {
-        const next = await getNextWord(deckId, currentWordId);
+        const next = await getNextWord(deckId, seenRef.current);
         if (!next) {
           setIsEmpty(true);
           if (sessionId) await finishSession(sessionId);
@@ -164,16 +167,15 @@ export function useCard(
       const responseTimeMs = Date.now() - shownAtRef.current;
 
       if (mode === 'assessment') {
-        // assessment mode — record progress and session results
+        // assessment mode — feed the session grader and record session results
         //
         // The swipe is self-report, not a recall test (`isCorrect` is just the
         // direction), so `sessionGrader` refuses to score it alongside measured
         // modes. `gradePersonalWord` accepts it on its own and caps it at GOOD,
         // which is what keeps this screen able to schedule anything at all.
-        const { xpEarned } = trackingRef.current?.skipLocalProgress
-          ? { xpEarned: 0 }
-          : await progressRepository.recordAnswer(word.id, deckId, isCorrect);
-
+        //
+        // Nothing is scheduled here: the session grades every word once when it
+        // ends, and awards the per-word XP this used to award per swipe.
         trackingRef.current?.onAnswer?.(word.id, { correct: isCorrect });
 
         if (sessionId) {
@@ -189,7 +191,6 @@ export function useCard(
         totalRef.current += 1;
         if (isCorrect) {
           correctRef.current += 1;
-          if (xpEarned > 0) await userRepository.addXP(xpEarned);
         } else {
           weakIdsRef.current.add(word.id);
         }
@@ -203,9 +204,10 @@ export function useCard(
         }
       }
 
-      await loadNext(word.id);
+      seenRef.current.push(word.id);
+      await loadNext();
     },
-    [word, deckId, sessionId, mode, loadNext],
+    [word, sessionId, mode, loadNext],
   );
 
   const onFlip = useCallback(() => {

@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import Tts from 'react-native-tts';
-import { progressRepository } from '../repositories/ProgressRepository';
 import { sessionRepository } from '../repositories/SessionRepository';
 import { wordModeStrengthRepository } from '../repositories/WordModeStrengthRepository';
 import { listeningRepository } from '../repositories/ListeningRepository';
@@ -164,9 +163,6 @@ export function useListening(
         const isCorrect = option === question.correctAnswer;
         answered = { wordId: question.wordId, isCorrect };
 
-        if (!trackingRef.current?.skipLocalProgress) {
-          progressRepository.recordAnswer(question.wordId, deckId, isCorrect);
-        }
         wordModeStrengthRepository.recordAnswer(
           question.wordId,
           deckId,

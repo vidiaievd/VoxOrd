@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { getDatabase } from '../db/database';
 import { TABLE } from '../db/types';
-import { progressRepository } from '../repositories/ProgressRepository';
 import { sessionRepository } from '../repositories/SessionRepository';
 
 export interface MatchingPair {
@@ -98,8 +97,10 @@ export function useMatching(deckId: number): UseMatchingResult {
     ) => {
       const isCorrect = wordId === transId;
 
-      // Fire-and-forget — no need to await in setState
-      progressRepository.recordAnswer(wordId, deckId, isCorrect);
+      // Matching is not scored: its pool narrows as pairs are consumed, so the
+      // last pair is correct for free (plan Step 9.4). It records no schedule —
+      // only `word_mode_strength`, the local exercise-mode picker, and the
+      // session result for the stats screen.
       if (sid) {
         sessionRepository.recordResult({
           sessionId: sid,
@@ -152,7 +153,7 @@ export function useMatching(deckId: number): UseMatchingResult {
         }, MISTAKE_RESET_DELAY_MS);
       }
     },
-    [deckId],
+    [],
   );
 
   const selectWord = useCallback(

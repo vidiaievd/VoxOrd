@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { getDatabase } from '../db/database';
 import { TABLE } from '../db/types';
-import { progressRepository } from '../repositories/ProgressRepository';
 import { sessionRepository } from '../repositories/SessionRepository';
 import type { ExerciseTracking } from './exerciseTracking';
 
@@ -155,9 +154,6 @@ export function useContext(
         const isCorrect = option === question.correctAnswer;
         answered = { wordId: question.wordId, isCorrect };
 
-        if (!trackingRef.current?.skipLocalProgress) {
-          progressRepository.recordAnswer(question.wordId, deckId, isCorrect);
-        }
         if (sessionId) {
           sessionRepository.recordResult({
             sessionId,
@@ -184,7 +180,7 @@ export function useContext(
         trackingRef.current?.onAnswer?.(wordId, { correct: isCorrect });
       }
     },
-    [deckId, sessionId],
+    [sessionId],
   );
 
   const next = useCallback(() => {
