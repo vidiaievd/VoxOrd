@@ -14,8 +14,16 @@ export const ru: Translations = {
     deckWords: '{count} слов',
     studyNow: {
       title: 'Пора повторить',
-      courseDue: '{count} слов из курса на повторение',
-      localDue: '{count} слов на повторение в наборах',
+      courseDue: {
+        one: '{count} слово из курса на повторение',
+        few: '{count} слова из курса на повторение',
+        many: '{count} слов из курса на повторение',
+      },
+      localDue: {
+        one: '{count} слово на повторение в наборах',
+        few: '{count} слова на повторение в наборах',
+        many: '{count} слов на повторение в наборах',
+      },
     },
   },
   deckCard: {
@@ -98,7 +106,11 @@ export const ru: Translations = {
     skillListening: 'Аудирование',
     skillSpeaking: 'Говорение',
     skillWriting: 'Письмо',
-    reviewsDue: '{count} слов на повторение',
+    reviewsDue: {
+      one: '{count} слово на повторение',
+      few: '{count} слова на повторение',
+      many: '{count} слов на повторение',
+    },
     startReview: 'Повторить',
   },
   unitContents: {

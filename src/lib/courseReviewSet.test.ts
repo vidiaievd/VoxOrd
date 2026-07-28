@@ -61,13 +61,44 @@ describe('resolveDueWords', () => {
   });
 
   it('reports cards whose list was never imported instead of dropping them', () => {
-    const { resolved, unresolvedCardIds } = resolveDueWords(
+    const { resolved, unresolvedCardIds, unresolvedListIds } = resolveDueWords(
       [card({ id: 'c1', contentId: 'item-1' }), card({ id: 'c2', contentId: 'nope' })],
       [row(5, 'item-1')],
     );
 
     expect(resolved.map((w) => w.cardId)).toEqual(['c1']);
     expect(unresolvedCardIds).toEqual(['c2']);
+    expect(unresolvedListIds).toEqual(['list-1']);
+  });
+
+  it('dedupes unresolved list ids across multiple unresolved cards', () => {
+    const otherList = {
+      word: 'stund',
+      partOfSpeech: null,
+      ipaTranscription: null,
+      audioMediaId: null,
+      listId: 'list-2',
+    };
+    const { unresolvedListIds } = resolveDueWords(
+      [
+        card({ id: 'c1', contentId: 'nope-1' }),
+        card({ id: 'c2', contentId: 'nope-2' }),
+        card({ id: 'c3', contentId: 'nope-3', front: otherList }),
+      ],
+      [],
+    );
+
+    expect(unresolvedListIds.sort()).toEqual(['list-1', 'list-2']);
+  });
+
+  it('omits an unresolved card with no front from unresolvedListIds', () => {
+    const { unresolvedCardIds, unresolvedListIds } = resolveDueWords(
+      [card({ id: 'c1', contentId: 'item-1', front: null })],
+      [],
+    );
+
+    expect(unresolvedCardIds).toEqual([]);
+    expect(unresolvedListIds).toEqual([]);
   });
 
   it('ignores EXERCISE cards — the due queue is global and mixes them in', () => {

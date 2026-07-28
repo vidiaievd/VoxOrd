@@ -33,6 +33,8 @@ export interface CourseReviewOverview {
    * can offer an import rather than pretending the queue is empty.
    */
   unresolvedCardIds: string[];
+  /** The lists behind `unresolvedCardIds`, deduped — what the import CTA offers. */
+  unresolvedListIds: string[];
 }
 
 export interface LoadCourseReviewOptions {
@@ -68,7 +70,7 @@ async function composeReviewSets(
   cards: SrsCard[],
   linkedWords: Awaited<ReturnType<typeof courseReviewRepository.getLinkedWords>>,
 ): Promise<CourseReviewOverview> {
-  const { resolved, unresolvedCardIds } = resolveDueWords(cards, linkedWords);
+  const { resolved, unresolvedCardIds, unresolvedListIds } = resolveDueWords(cards, linkedWords);
   const byDeck = groupByDeck(resolved);
 
   const titles = await courseReviewRepository.getDeckTitles([...byDeck.keys()]);
@@ -93,5 +95,5 @@ async function composeReviewSets(
     });
   }
 
-  return { sets, totalDue: resolved.length, unresolvedCardIds };
+  return { sets, totalDue: resolved.length, unresolvedCardIds, unresolvedListIds };
 }

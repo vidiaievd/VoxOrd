@@ -25,6 +25,7 @@ import { SpellingExercise } from '../LearningScreen/exercises/SpellingExercise';
 import { ListeningExercise } from '../LearningScreen/exercises/ListeningExercise';
 import { PhaseTracker } from './PhaseTracker';
 import { SessionSummary } from './SessionSummary';
+import { ImportUnresolvedList } from './ImportUnresolvedList';
 
 interface ReviewSessionScreenProps {
   onBack: () => void;
@@ -83,6 +84,7 @@ export function ReviewSessionScreen({ onBack }: ReviewSessionScreenProps) {
     // nothing is due; something is due but its list was never imported; or the
     // deck row vanished under us.
     const unresolved = overview?.unresolvedCardIds.length ?? 0;
+    const unresolvedListIds = overview?.unresolvedListIds ?? [];
     return (
       <Frame onBack={onBack} styles={styles} title={t('review.title')}>
         <View style={styles.centered}>
@@ -92,6 +94,9 @@ export function ReviewSessionScreen({ onBack }: ReviewSessionScreenProps) {
               {t('review.notImported', { count: unresolved })}
             </Text>
           )}
+          {unresolvedListIds.map((listId) => (
+            <ImportUnresolvedList key={listId} listId={listId} onImported={reload} />
+          ))}
           <TouchableOpacity style={styles.primaryButton} onPress={onBack} activeOpacity={0.8}>
             <Text style={styles.primaryButtonText}>{t('common.back')}</Text>
           </TouchableOpacity>

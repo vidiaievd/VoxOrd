@@ -14,8 +14,16 @@ export const uk: Translations = {
     deckWords: '{count} слів',
     studyNow: {
       title: 'Час повторити',
-      courseDue: '{count} слів із курсу на повторення',
-      localDue: '{count} слів на повторення в наборах',
+      courseDue: {
+        one: '{count} слово із курсу на повторення',
+        few: '{count} слова із курсу на повторення',
+        many: '{count} слів із курсу на повторення',
+      },
+      localDue: {
+        one: '{count} слово на повторення в наборах',
+        few: '{count} слова на повторення в наборах',
+        many: '{count} слів на повторення в наборах',
+      },
     },
   },
   deckCard: {
@@ -98,7 +106,11 @@ export const uk: Translations = {
     skillListening: 'Аудіювання',
     skillSpeaking: 'Говоріння',
     skillWriting: 'Письмо',
-    reviewsDue: '{count} слів на повторення',
+    reviewsDue: {
+      one: '{count} слово на повторення',
+      few: '{count} слова на повторення',
+      many: '{count} слів на повторення',
+    },
     startReview: 'Повторити',
   },
   unitContents: {

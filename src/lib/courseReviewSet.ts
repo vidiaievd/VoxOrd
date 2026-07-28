@@ -72,6 +72,14 @@ export interface ResolvedDueWords {
    * reviewed.
    */
   unresolvedCardIds: string[];
+  /**
+   * The vocabulary lists those unresolved cards belong to (deduped) — enough
+   * for the UI to offer "import this list" instead of a dead end. A card
+   * without `front.listId` (content lookup failed server-side) contributes
+   * nothing here; it already has no `front.word` either, so it's filtered out
+   * before this list is built.
+   */
+  unresolvedListIds: string[];
 }
 
 /**
@@ -92,6 +100,7 @@ export function resolveDueWords(
 
   const resolved: CourseDueWord[] = [];
   const unresolvedCardIds: string[] = [];
+  const unresolvedListIds = new Set<string>();
   const seenWordIds = new Set<number>();
 
   for (const card of cards) {
@@ -102,6 +111,7 @@ export function resolveDueWords(
     const row = byItemId.get(card.contentId);
     if (!row) {
       unresolvedCardIds.push(card.id);
+      if (card.front?.listId) unresolvedListIds.add(card.front.listId);
       continue;
     }
     // Defensive: two cards pointing at one local word would drill it twice and
@@ -118,7 +128,7 @@ export function resolveDueWords(
     });
   }
 
-  return { resolved, unresolvedCardIds };
+  return { resolved, unresolvedCardIds, unresolvedListIds: [...unresolvedListIds] };
 }
 
 /** Splits resolved due words into per-deck buckets, largest bucket first. */

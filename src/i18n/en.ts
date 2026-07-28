@@ -14,8 +14,16 @@ export const en: Translations = {
     deckWords: '{count} words',
     studyNow: {
       title: 'Study now',
-      courseDue: '{count} course words due',
-      localDue: '{count} words due in your decks',
+      courseDue: {
+        one: '{count} course word due',
+        few: '{count} course words due',
+        many: '{count} course words due',
+      },
+      localDue: {
+        one: '{count} word due in your decks',
+        few: '{count} words due in your decks',
+        many: '{count} words due in your decks',
+      },
     },
   },
   deckCard: {
@@ -98,7 +106,11 @@ export const en: Translations = {
     skillListening: 'Listening',
     skillSpeaking: 'Speaking',
     skillWriting: 'Writing',
-    reviewsDue: '{count} reviews due',
+    reviewsDue: {
+      one: '{count} review due',
+      few: '{count} reviews due',
+      many: '{count} reviews due',
+    },
     startReview: 'Review now',
   },
   unitContents: {

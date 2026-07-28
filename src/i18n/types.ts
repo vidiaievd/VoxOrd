@@ -1,3 +1,5 @@
+import type { PluralForms } from './pluralize';
+
 export interface Translations {
   nav: {
     home: string;
@@ -13,8 +15,8 @@ export interface Translations {
     deckWords: string; // '{count} words'
     studyNow: {
       title: string;
-      courseDue: string; // '{count} course words due'
-      localDue: string; // '{count} words due in your decks'
+      courseDue: PluralForms; // '{count} course words due'
+      localDue: PluralForms; // '{count} words due in your decks'
     };
   };
 
@@ -102,7 +104,7 @@ export interface Translations {
     skillListening: string;
     skillSpeaking: string;
     skillWriting: string;
-    reviewsDue: string; // '{count} reviews due'
+    reviewsDue: PluralForms; // '{count} reviews due'
     startReview: string;
   };
 
