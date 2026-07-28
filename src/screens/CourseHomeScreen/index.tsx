@@ -13,6 +13,7 @@ import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
 import { useCourseHome } from '../../hooks/useCourseHome';
+import { useCourseReviewSets } from '../../hooks/useCourseReviewSets';
 import { UnitRow } from './UnitRow';
 import { CourseStatsSection } from './CourseStatsSection';
 import { OfflineBanner } from '../../components/OfflineBanner';
@@ -36,6 +37,13 @@ export function CourseHomeScreen({
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const { status, data, error, refreshing, stale, refresh } = useCourseHome(courseId);
+  // `data.srsDueCount` comes from the global, unfiltered `/srs/stats/me` stat
+  // (see the caveat in `src/api/courseHome.ts`) and can be nonzero while the
+  // "Повторить" screen has nothing runnable — it also counts EXERCISE cards
+  // and VOCABULARY_WORD cards whose list was never imported locally. Use the
+  // same resolved-against-local-decks count the review screen itself runs on,
+  // so the counter never promises a session that turns out empty.
+  const { overview: reviewOverview } = useCourseReviewSets();
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -88,7 +96,7 @@ export function CourseHomeScreen({
           ListHeaderComponent={
             <CourseStatsSection
               mastery={data.mastery}
-              srsDueCount={data.srsDueCount}
+              srsDueCount={reviewOverview?.totalDue ?? 0}
               onReviewPress={onReviewPress}
             />
           }
