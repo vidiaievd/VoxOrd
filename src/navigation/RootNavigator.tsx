@@ -44,7 +44,7 @@ type Screen =
   | { name: 'UnitContents'; unitId: string; courseId: string }
   | { name: 'LessonReader'; lessonId: string; unitId: string; courseId: string }
   | { name: 'VocabularyList'; listId: string; unitId: string; courseId: string }
-  | { name: 'ReviewSession'; courseId: string }
+  | { name: 'ReviewSession'; courseId?: string }
   | {
       name: 'ExerciseRunner';
       exerciseIds: string[];
@@ -306,7 +306,13 @@ export function RootNavigator() {
       case 'ReviewSession':
         return (
           <ReviewSessionScreen
-            onBack={() => setScreen({ name: 'CourseHome', courseId: screen.courseId })}
+            onBack={() =>
+              setScreen(
+                screen.courseId
+                  ? { name: 'CourseHome', courseId: screen.courseId }
+                  : { name: 'Home' },
+              )
+            }
           />
         );
 
@@ -347,6 +353,7 @@ export function RootNavigator() {
                 deck: { id: deckId } as Deck,
               });
             }}
+            onStartCourseReview={() => navigateTo({ name: 'ReviewSession' })}
           />
         );
     }
@@ -365,6 +372,8 @@ export function RootNavigator() {
     screen.name !== 'CourseHome' &&
     screen.name !== 'UnitContents' &&
     screen.name !== 'LessonReader' &&
+    screen.name !== 'VocabularyList' &&
+    screen.name !== 'ReviewSession' &&
     screen.name !== 'ExerciseRunner';
 
   return (

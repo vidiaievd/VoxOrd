@@ -12,6 +12,11 @@ export const uk: Translations = {
     wordCount: '{learned}/{total} вивчено',
     myDecks: 'Мої набори',
     deckWords: '{count} слів',
+    studyNow: {
+      title: 'Час повторити',
+      courseDue: '{count} слів із курсу на повторення',
+      localDue: '{count} слів на повторення в наборах',
+    },
   },
   deckCard: {
     new: 'нових',

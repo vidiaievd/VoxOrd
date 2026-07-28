@@ -65,6 +65,12 @@ export function DeckGroupsSection({ groups, onDeckPress }: DeckGroupsSectionProp
                     </View>
                   </View>
 
+                  {deck.repeatWords > 0 && (
+                    <View style={styles.dueBadge}>
+                      <Text style={styles.dueBadgeText}>{deck.repeatWords}</Text>
+                    </View>
+                  )}
+
                   <Text style={styles.percent}>{percent}%</Text>
                 </TouchableOpacity>
               );
@@ -153,5 +159,17 @@ const makeStyles = (colors: ColorScheme) =>
       fontSize: 12,
       fontWeight: '700',
       color: colors.textMuted,
+    },
+    dueBadge: {
+      backgroundColor: '#fff3e0',
+      borderRadius: 10,
+      paddingHorizontal: 7,
+      paddingVertical: 2,
+      marginRight: 8,
+    },
+    dueBadgeText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: '#ff9f43',
     },
   });

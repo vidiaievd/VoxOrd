@@ -12,6 +12,11 @@ export const en: Translations = {
     wordCount: '{learned}/{total} learned',
     myDecks: 'My decks',
     deckWords: '{count} words',
+    studyNow: {
+      title: 'Study now',
+      courseDue: '{count} course words due',
+      localDue: '{count} words due in your decks',
+    },
   },
   deckCard: {
     new: 'new',

@@ -11,6 +11,11 @@ export interface Translations {
     wordCount: string; // '{learned}/{total} learned'
     myDecks: string;
     deckWords: string; // '{count} words'
+    studyNow: {
+      title: string;
+      courseDue: string; // '{count} course words due'
+      localDue: string; // '{count} words due in your decks'
+    };
   };
 
   deckCard: {

@@ -12,6 +12,11 @@ export const ru: Translations = {
     wordCount: '{learned}/{total} изучено',
     myDecks: 'Мои наборы',
     deckWords: '{count} слов',
+    studyNow: {
+      title: 'Пора повторить',
+      courseDue: '{count} слов из курса на повторение',
+      localDue: '{count} слов на повторение в наборах',
+    },
   },
   deckCard: {
     new: 'новых',
