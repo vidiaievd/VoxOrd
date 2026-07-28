@@ -12,6 +12,7 @@ import { ColorScheme } from '../../../theme/colors';
 import { useListening } from '../../../hooks/useListening';
 import type { ExerciseTracking } from '../../../hooks/exerciseTracking';
 import { useAutoAdvance } from '../../../hooks/useAutoAdvance';
+import { useOwnedTracking } from '../../../hooks/usePersonalSession';
 
 interface ListeningExerciseProps {
   deckId: number;
@@ -33,8 +34,11 @@ export function ListeningExercise({
 }: ListeningExerciseProps) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  // No tracking from above means this screen is the whole sitting, so it owns
+  // the session that schedules its words.
+  const session = useOwnedTracking(deckId, 'listening', tracking);
   const { state, isLoading, sessionId, speak, selectOption, next, installTts } =
-    useListening(deckId, overrideWordIds, onComplete, tracking);
+    useListening(deckId, overrideWordIds, onComplete, session);
 
   // A phase inside a larger session must not dead-end on an empty question set
   // (e.g. spelling now skips phrases, so a phrase-only set yields nothing).

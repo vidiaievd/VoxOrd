@@ -1,9 +1,10 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../providers/ThemeProvider';
 import { useDeepSession } from '../../hooks/useDeepSession';
 import { Deck } from '../../repositories/DeckRepository';
+import { usePersonalSession } from '../../hooks/usePersonalSession';
 
 import { PhaseHeader } from './components/deep-session/PhaseHeader';
 import { PhaseTransitionScreen } from './components/deep-session/PhaseTransitionScreen';
@@ -26,6 +27,16 @@ export function DeepSessionScreen({
 }: DeepSessionScreenProps) {
   const { colors } = useTheme();
   const { state, isLoading, reportPhaseResult } = useDeepSession(deck.id);
+
+  // One session across all four phases. Grading per phase would reschedule the
+  // same card up to four times for what the user experiences as one sitting —
+  // the trap Step 8.1b called out for course reviews, and it applies here for
+  // the same reason: PHASE_ORDER runs the *same word set* through every phase.
+  const personal = usePersonalSession(deck.id);
+
+  useEffect(() => {
+    if (state.phase === 'complete') personal.finish();
+  }, [state.phase, personal]);
 
   const handleCardDone = useCallback(
     (_weakIds: number[], correctCount: number) => {
@@ -107,6 +118,7 @@ export function DeepSessionScreen({
             onBack={onBack}
             onSessionDone={onSessionDone}
             onComplete={reportPhaseResult}
+            tracking={personal.trackingFor('quiz')}
           />
         </View>
       );
@@ -120,6 +132,7 @@ export function DeepSessionScreen({
             onBack={onBack}
             onSessionDone={onSessionDone}
             onComplete={reportPhaseResult}
+            tracking={personal.trackingFor('spelling')}
           />
         </View>
       );
@@ -133,6 +146,7 @@ export function DeepSessionScreen({
             onBack={onBack}
             onSessionDone={onSessionDone}
             onComplete={reportPhaseResult}
+            tracking={personal.trackingFor('listening')}
           />
         </View>
       );

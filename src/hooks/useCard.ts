@@ -5,6 +5,7 @@ import { sessionRepository } from '../repositories/SessionRepository';
 import { userRepository } from '../repositories/UserRepository';
 import { activityRepository } from '../repositories/ActivityRepository';
 import { DeepSessionWord } from './useDeepSession';
+import type { ExerciseTracking } from './exerciseTracking';
 
 export type SwipeDirection = 'left' | 'right';
 export type FlashcardMode = 'assessment' | 'review';
@@ -40,6 +41,7 @@ export function useCard(
   mode: FlashcardMode = 'assessment',
   overrideWords?: DeepSessionWord[],
   onDeepDone?: (weakIds: number[], correctCount: number) => void,
+  tracking?: ExerciseTracking,
 ): UseCardResult {
   const [word, setWord] = useState<Word | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -53,6 +55,10 @@ export function useCard(
   const weakIdsRef = useRef<Set<number>>(new Set());
   const queueRef = useRef<DeepSessionWord[]>([]);
   const isDeepMode = !!overrideWords;
+  // Read through a ref so a caller passing an inline object does not need to
+  // memoize it just to keep onSwipe stable.
+  const trackingRef = useRef(tracking);
+  trackingRef.current = tracking;
 
   useEffect(() => {
     let cancelled = false;
@@ -159,11 +165,16 @@ export function useCard(
 
       if (mode === 'assessment') {
         // assessment mode — record progress and session results
-        const { xpEarned } = await progressRepository.recordAnswer(
-          word.id,
-          deckId,
-          isCorrect,
-        );
+        //
+        // The swipe is self-report, not a recall test (`isCorrect` is just the
+        // direction), so `sessionGrader` refuses to score it alongside measured
+        // modes. `gradePersonalWord` accepts it on its own and caps it at GOOD,
+        // which is what keeps this screen able to schedule anything at all.
+        const { xpEarned } = trackingRef.current?.skipLocalProgress
+          ? { xpEarned: 0 }
+          : await progressRepository.recordAnswer(word.id, deckId, isCorrect);
+
+        trackingRef.current?.onAnswer?.(word.id, { correct: isCorrect });
 
         if (sessionId) {
           await sessionRepository.recordResult({

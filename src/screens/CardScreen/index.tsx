@@ -14,6 +14,7 @@ import { Deck } from '../../repositories/DeckRepository';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
 import { DeepSessionWord } from '../../hooks/useDeepSession';
+import { useOwnedTracking } from '../../hooks/usePersonalSession';
 
 interface CardScreenProps {
   deck: Deck;
@@ -34,11 +35,16 @@ export function CardScreen({
   const { colors } = useTheme();
   const styles = makeStyles(colors);
 
+  // Only 'assessment' schedules anything: in 'review' mode (Deep Session's
+  // flashcard phase) useCard writes nothing at all, and the measured phases
+  // that follow are what grade those words.
+  const session = useOwnedTracking(deck.id, 'flashcard');
   const { word, isLoading, isEmpty, onSwipe, onFlip } = useCard(
     deck.id,
     mode,
     overrideWords,
     onDeepDone,
+    mode === 'assessment' ? session : undefined,
   );
 
   if (isLoading) {

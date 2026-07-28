@@ -12,6 +12,7 @@ import { ColorScheme } from '../../../theme/colors';
 import { useQuiz } from '../../../hooks/useQuiz';
 import type { ExerciseTracking } from '../../../hooks/exerciseTracking';
 import { useAutoAdvance } from '../../../hooks/useAutoAdvance';
+import { useOwnedTracking } from '../../../hooks/usePersonalSession';
 
 interface QuizExerciseProps {
   deckId: number;
@@ -33,11 +34,14 @@ export function QuizExercise({
 }: QuizExerciseProps) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  // No tracking from above means this screen is the whole sitting, so it owns
+  // the session that schedules its words.
+  const session = useOwnedTracking(deckId, 'quiz', tracking);
   const { state, isLoading, sessionId, selectOption, next } = useQuiz(
     deckId,
     overrideWordIds,
     onComplete,
-    tracking,
+    session,
   );
 
   // A phase inside a larger session must not dead-end on an empty question set

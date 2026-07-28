@@ -1,8 +1,9 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { getDatabase } from '../db/database';
 import { TABLE } from '../db/types';
 import { progressRepository } from '../repositories/ProgressRepository';
 import { sessionRepository } from '../repositories/SessionRepository';
+import type { ExerciseTracking } from './exerciseTracking';
 
 export interface ContextQuestion {
   wordId: number;
@@ -104,9 +105,16 @@ async function loadQuestions(
   });
 }
 
-export function useContext(deckId: number): UseContextResult {
+export function useContext(
+  deckId: number,
+  tracking?: ExerciseTracking,
+): UseContextResult {
   const [isLoading, setIsLoading] = useState(true);
   const [sessionId, setSessionId] = useState<number | null>(null);
+  // Read through a ref so a caller passing an inline object does not need to
+  // memoize it just to keep selectOption stable.
+  const trackingRef = useRef(tracking);
+  trackingRef.current = tracking;
   const [state, setState] = useState<ContextState>({
     questions: [],
     currentIndex: 0,
@@ -138,13 +146,18 @@ export function useContext(deckId: number): UseContextResult {
 
   const selectOption = useCallback(
     (option: string) => {
+      let answered: { wordId: number; isCorrect: boolean } | null = null;
+
       setState(prev => {
         if (prev.isAnswered) return prev;
 
         const question = prev.questions[prev.currentIndex];
         const isCorrect = option === question.correctAnswer;
+        answered = { wordId: question.wordId, isCorrect };
 
-        progressRepository.recordAnswer(question.wordId, deckId, isCorrect);
+        if (!trackingRef.current?.skipLocalProgress) {
+          progressRepository.recordAnswer(question.wordId, deckId, isCorrect);
+        }
         if (sessionId) {
           sessionRepository.recordResult({
             sessionId,
@@ -163,6 +176,13 @@ export function useContext(deckId: number): UseContextResult {
           correctCount: isCorrect ? prev.correctCount + 1 : prev.correctCount,
         };
       });
+
+      // Outside the updater: a re-invoked reducer must not double-count an
+      // attempt.
+      if (answered) {
+        const { wordId, isCorrect } = answered;
+        trackingRef.current?.onAnswer?.(wordId, { correct: isCorrect });
+      }
     },
     [deckId, sessionId],
   );
