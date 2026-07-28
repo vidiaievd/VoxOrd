@@ -1,0 +1,4473 @@
+{
+  "profileId": "fsrs-6-default-v1",
+  "capturedAt": "2026-07-28",
+  "source": "learning-service FsrsScheduler (ssz-platform 78218cf)",
+  "serverProfile": {
+    "id": "fsrs-6-default-v1",
+    "generation": "fsrs-6",
+    "w": [
+      0.212,
+      1.2931,
+      2.3065,
+      8.2956,
+      6.4133,
+      0.8334,
+      3.0194,
+      0.001,
+      1.8722,
+      0.1666,
+      0.796,
+      1.4835,
+      0.0614,
+      0.2629,
+      1.6483,
+      0.6014,
+      1.8729,
+      0.5425,
+      0.0912,
+      0.0658,
+      0.1542
+    ],
+    "requestRetention": 0.9,
+    "maximumIntervalDays": 365,
+    "enableShortTerm": true,
+    "enableFuzz": false,
+    "learningSteps": [
+      "1m",
+      "10m"
+    ],
+    "relearningSteps": [
+      "10m"
+    ]
+  },
+  "vectors": [
+    {
+      "path": [
+        "AGAIN"
+      ],
+      "input": {
+        "state": "NEW",
+        "stability": 0,
+        "difficulty": 0,
+        "dueAt": "2026-07-28T09:00:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 0,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": null
+      },
+      "reviewedAt": "2026-07-28T09:00:00.000Z",
+      "rating": "AGAIN",
+      "output": {
+        "state": "LEARNING",
+        "dueAt": "2026-07-28T09:01:00.000Z",
+        "stability": 0.212,
+        "difficulty": 6.4133,
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 1,
+          "label": "1 day"
+        }
+      ]
+    },
+    {
+      "path": [
+        "AGAIN",
+        "AGAIN"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 0.212,
+        "difficulty": 6.4133,
+        "dueAt": "2026-07-28T09:01:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 1,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:00:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:10:00.000Z",
+      "rating": "AGAIN",
+      "output": {
+        "state": "LEARNING",
+        "dueAt": "2026-07-28T09:11:00.000Z",
+        "stability": 0.08335672,
+        "difficulty": 8.80630447,
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 1,
+          "label": "1 day"
+        }
+      ]
+    },
+    {
+      "path": [
+        "AGAIN",
+        "AGAIN",
+        "AGAIN"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 0.08335672,
+        "difficulty": 8.80630447,
+        "dueAt": "2026-07-28T09:11:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:20:00.000Z",
+      "rating": "AGAIN",
+      "output": {
+        "state": "LEARNING",
+        "dueAt": "2026-07-28T09:21:00.000Z",
+        "stability": 0.03485141,
+        "difficulty": 9.59286876,
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 1,
+          "label": "1 day"
+        }
+      ]
+    },
+    {
+      "path": [
+        "AGAIN",
+        "AGAIN",
+        "HARD"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 0.08335672,
+        "difficulty": 8.80630447,
+        "dueAt": "2026-07-28T09:11:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:20:00.000Z",
+      "rating": "HARD",
+      "output": {
+        "state": "LEARNING",
+        "dueAt": "2026-07-28T09:26:00.000Z",
+        "stability": 0.08335672,
+        "difficulty": 9.19279765,
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 1,
+          "label": "1 day"
+        }
+      ]
+    },
+    {
+      "path": [
+        "AGAIN",
+        "AGAIN",
+        "GOOD"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 0.08335672,
+        "difficulty": 8.80630447,
+        "dueAt": "2026-07-28T09:11:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:20:00.000Z",
+      "rating": "GOOD",
+      "output": {
+        "state": "LEARNING",
+        "dueAt": "2026-07-28T09:30:00.000Z",
+        "stability": 0.10314065,
+        "difficulty": 8.79272653,
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "learningSteps": 1
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 1,
+          "label": "1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 1,
+          "label": "1 day"
+        }
+      ]
+    },
+    {
+      "path": [
+        "AGAIN",
+        "AGAIN",
+        "EASY"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 0.08335672,
+        "difficulty": 8.80630447,
+        "dueAt": "2026-07-28T09:11:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:20:00.000Z",
+      "rating": "EASY",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-07-29T09:20:00.000Z",
+        "stability": 0.1774331,
+        "difficulty": 8.39265542,
+        "elapsedDays": 0,
+        "scheduledDays": 1,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.74884172,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 1,
+          "label": "1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 2,
+          "label": "2 days"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 3,
+          "label": "3 days"
+        }
+      ]
+    },
+    {
+      "path": [
+        "AGAIN",
+        "HARD"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 0.212,
+        "difficulty": 6.4133,
+        "dueAt": "2026-07-28T09:01:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 1,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:00:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:10:00.000Z",
+      "rating": "HARD",
+      "output": {
+        "state": "LEARNING",
+        "dueAt": "2026-07-28T09:16:00.000Z",
+        "stability": 0.212,
+        "difficulty": 7.60420977,
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 1,
+          "label": "1 day"
+        }
+      ]
+    },
+    {
+      "path": [
+        "AGAIN",
+        "HARD",
+        "AGAIN"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 0.212,
+        "difficulty": 7.60420977,
+        "dueAt": "2026-07-28T09:16:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:20:00.000Z",
+      "rating": "AGAIN",
+      "output": {
+        "state": "LEARNING",
+        "dueAt": "2026-07-28T09:21:00.000Z",
+        "stability": 0.08335672,
+        "difficulty": 9.19774841,
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 1,
+          "label": "1 day"
+        }
+      ]
+    },
+    {
+      "path": [
+        "AGAIN",
+        "HARD",
+        "HARD"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 0.212,
+        "difficulty": 7.60420977,
+        "dueAt": "2026-07-28T09:16:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:20:00.000Z",
+      "rating": "HARD",
+      "output": {
+        "state": "LEARNING",
+        "dueAt": "2026-07-28T09:26:00.000Z",
+        "stability": 0.212,
+        "difficulty": 8.39479117,
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 1,
+          "label": "1 day"
+        }
+      ]
+    },
+    {
+      "path": [
+        "AGAIN",
+        "HARD",
+        "GOOD"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 0.212,
+        "difficulty": 7.60420977,
+        "dueAt": "2026-07-28T09:16:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:20:00.000Z",
+      "rating": "GOOD",
+      "output": {
+        "state": "LEARNING",
+        "dueAt": "2026-07-28T09:30:00.000Z",
+        "stability": 0.24668919,
+        "difficulty": 7.59183393,
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "learningSteps": 1
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 1,
+          "label": "1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 1,
+          "label": "1 day"
+        }
+      ]
+    },
+    {
+      "path": [
+        "AGAIN",
+        "HARD",
+        "EASY"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 0.212,
+        "difficulty": 7.60420977,
+        "dueAt": "2026-07-28T09:16:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:20:00.000Z",
+      "rating": "EASY",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-07-29T09:20:00.000Z",
+        "stability": 0.42437996,
+        "difficulty": 6.78887669,
+        "elapsedDays": 0,
+        "scheduledDays": 1,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.8314596,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 2,
+          "label": "2 days"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 3,
+          "label": "3 days"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 4,
+          "label": "4 days"
+        }
+      ]
+    },
+    {
+      "path": [
+        "AGAIN",
+        "GOOD"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 0.212,
+        "difficulty": 6.4133,
+        "dueAt": "2026-07-28T09:01:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 1,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:00:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:10:00.000Z",
+      "rating": "GOOD",
+      "output": {
+        "state": "LEARNING",
+        "dueAt": "2026-07-28T09:20:00.000Z",
+        "stability": 0.24668919,
+        "difficulty": 6.40211507,
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "learningSteps": 1
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 1,
+          "label": "1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 1,
+          "label": "1 day"
+        }
+      ]
+    },
+    {
+      "path": [
+        "AGAIN",
+        "GOOD",
+        "AGAIN"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 0.24668919,
+        "difficulty": 6.40211507,
+        "dueAt": "2026-07-28T09:20:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 1,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:20:00.000Z",
+      "rating": "AGAIN",
+      "output": {
+        "state": "LEARNING",
+        "dueAt": "2026-07-28T09:21:00.000Z",
+        "stability": 0.09603384,
+        "difficulty": 8.80262806,
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 1,
+          "label": "1 day"
+        }
+      ]
+    },
+    {
+      "path": [
+        "AGAIN",
+        "GOOD",
+        "HARD"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 0.24668919,
+        "difficulty": 6.40211507,
+        "dueAt": "2026-07-28T09:20:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 1,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:20:00.000Z",
+      "rating": "HARD",
+      "output": {
+        "state": "LEARNING",
+        "dueAt": "2026-07-28T09:26:00.000Z",
+        "stability": 0.24668919,
+        "difficulty": 7.59678469,
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "learningSteps": 1
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 1,
+          "label": "1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 1,
+          "label": "1 day"
+        }
+      ]
+    },
+    {
+      "path": [
+        "AGAIN",
+        "GOOD",
+        "GOOD"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 0.24668919,
+        "difficulty": 6.40211507,
+        "dueAt": "2026-07-28T09:20:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 1,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:20:00.000Z",
+      "rating": "GOOD",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-07-29T09:20:00.000Z",
+        "stability": 0.28420636,
+        "difficulty": 6.39094132,
+        "elapsedDays": 0,
+        "scheduledDays": 1,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.79438612,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 1,
+          "label": "1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 2,
+          "label": "2 days"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 4,
+          "label": "4 days"
+        }
+      ]
+    },
+    {
+      "path": [
+        "AGAIN",
+        "GOOD",
+        "EASY"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 0.24668919,
+        "difficulty": 6.40211507,
+        "dueAt": "2026-07-28T09:20:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 1,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:20:00.000Z",
+      "rating": "EASY",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-07-29T09:20:00.000Z",
+        "stability": 0.48892084,
+        "difficulty": 5.18509795,
+        "elapsedDays": 0,
+        "scheduledDays": 1,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.84394401,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 2,
+          "label": "2 days"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 3,
+          "label": "3 days"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 6,
+          "label": "6 days"
+        }
+      ]
+    },
+    {
+      "path": [
+        "AGAIN",
+        "EASY"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 0.212,
+        "difficulty": 6.4133,
+        "dueAt": "2026-07-28T09:01:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 1,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:00:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:10:00.000Z",
+      "rating": "EASY",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-07-29T09:10:00.000Z",
+        "stability": 0.42437996,
+        "difficulty": 5.20002037,
+        "elapsedDays": 0,
+        "scheduledDays": 1,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.8314596,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 2,
+          "label": "2 days"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 3,
+          "label": "3 days"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 5,
+          "label": "5 days"
+        }
+      ]
+    },
+    {
+      "path": [
+        "AGAIN",
+        "EASY",
+        "AGAIN"
+      ],
+      "input": {
+        "state": "REVIEW",
+        "stability": 0.42437996,
+        "difficulty": 5.20002037,
+        "dueAt": "2026-07-29T09:10:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 1,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-29T09:10:00.000Z",
+      "rating": "AGAIN",
+      "output": {
+        "state": "RELEARNING",
+        "dueAt": "2026-07-29T09:20:00.000Z",
+        "stability": 0.17250245,
+        "difficulty": 8.40750771,
+        "elapsedDays": 1,
+        "scheduledDays": 0,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 1,
+          "label": "1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 1,
+          "label": "1 day"
+        }
+      ]
+    },
+    {
+      "path": [
+        "AGAIN",
+        "EASY",
+        "HARD"
+      ],
+      "input": {
+        "state": "REVIEW",
+        "stability": 0.42437996,
+        "difficulty": 5.20002037,
+        "dueAt": "2026-07-29T09:10:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 1,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-29T09:10:00.000Z",
+      "rating": "HARD",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-07-31T09:10:00.000Z",
+        "stability": 2.01850261,
+        "difficulty": 6.79877821,
+        "elapsedDays": 1,
+        "scheduledDays": 2,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.90063141,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 4,
+          "label": "4 days"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 6,
+          "label": "6 days"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 10,
+          "label": "10 days"
+        }
+      ]
+    },
+    {
+      "path": [
+        "AGAIN",
+        "EASY",
+        "GOOD"
+      ],
+      "input": {
+        "state": "REVIEW",
+        "stability": 0.42437996,
+        "difficulty": 5.20002037,
+        "dueAt": "2026-07-29T09:10:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 1,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-29T09:10:00.000Z",
+      "rating": "GOOD",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-08-01T09:10:00.000Z",
+        "stability": 3.07506611,
+        "difficulty": 5.19004872,
+        "elapsedDays": 1,
+        "scheduledDays": 3,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.90168888,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 8,
+          "label": "8 days"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 11,
+          "label": "11 days"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 18,
+          "label": "3 weeks"
+        }
+      ]
+    },
+    {
+      "path": [
+        "AGAIN",
+        "EASY",
+        "EASY"
+      ],
+      "input": {
+        "state": "REVIEW",
+        "stability": 0.42437996,
+        "difficulty": 5.20002037,
+        "dueAt": "2026-07-29T09:10:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 1,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-29T09:10:00.000Z",
+      "rating": "EASY",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-08-03T09:10:00.000Z",
+        "stability": 5.38885005,
+        "difficulty": 3.58131923,
+        "elapsedDays": 1,
+        "scheduledDays": 5,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.90506226,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 15,
+          "label": "2 weeks"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 21,
+          "label": "3 weeks"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 34,
+          "label": "5 weeks"
+        }
+      ]
+    },
+    {
+      "path": [
+        "HARD"
+      ],
+      "input": {
+        "state": "NEW",
+        "stability": 0,
+        "difficulty": 0,
+        "dueAt": "2026-07-28T09:00:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 0,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": null
+      },
+      "reviewedAt": "2026-07-28T09:00:00.000Z",
+      "rating": "HARD",
+      "output": {
+        "state": "LEARNING",
+        "dueAt": "2026-07-28T09:06:00.000Z",
+        "stability": 1.2931,
+        "difficulty": 5.11217071,
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 2,
+          "label": "2 days"
+        }
+      ]
+    },
+    {
+      "path": [
+        "HARD",
+        "AGAIN"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 1.2931,
+        "difficulty": 5.11217071,
+        "dueAt": "2026-07-28T09:06:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 1,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:00:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:10:00.000Z",
+      "rating": "AGAIN",
+      "output": {
+        "state": "LEARNING",
+        "dueAt": "2026-07-28T09:11:00.000Z",
+        "stability": 0.45140292,
+        "difficulty": 8.37863212,
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 1,
+          "label": "1 day"
+        }
+      ]
+    },
+    {
+      "path": [
+        "HARD",
+        "AGAIN",
+        "AGAIN"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 0.45140292,
+        "difficulty": 8.37863212,
+        "dueAt": "2026-07-28T09:11:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:20:00.000Z",
+      "rating": "AGAIN",
+      "output": {
+        "state": "LEARNING",
+        "dueAt": "2026-07-28T09:21:00.000Z",
+        "stability": 0.16887745,
+        "difficulty": 9.45229578,
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 1,
+          "label": "1 day"
+        }
+      ]
+    },
+    {
+      "path": [
+        "HARD",
+        "AGAIN",
+        "HARD"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 0.45140292,
+        "difficulty": 8.37863212,
+        "dueAt": "2026-07-28T09:11:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:20:00.000Z",
+      "rating": "HARD",
+      "output": {
+        "state": "LEARNING",
+        "dueAt": "2026-07-28T09:26:00.000Z",
+        "stability": 0.45140292,
+        "difficulty": 8.90888882,
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 1,
+          "label": "1 day"
+        }
+      ]
+    },
+    {
+      "path": [
+        "HARD",
+        "AGAIN",
+        "GOOD"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 0.45140292,
+        "difficulty": 8.37863212,
+        "dueAt": "2026-07-28T09:11:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:20:00.000Z",
+      "rating": "GOOD",
+      "output": {
+        "state": "LEARNING",
+        "dueAt": "2026-07-28T09:30:00.000Z",
+        "stability": 0.49978266,
+        "difficulty": 8.36548186,
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "learningSteps": 1
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 1,
+          "label": "1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 1,
+          "label": "1 day"
+        }
+      ]
+    },
+    {
+      "path": [
+        "HARD",
+        "AGAIN",
+        "EASY"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 0.45140292,
+        "difficulty": 8.37863212,
+        "dueAt": "2026-07-28T09:11:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:20:00.000Z",
+      "rating": "EASY",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-07-29T09:20:00.000Z",
+        "stability": 0.85977723,
+        "difficulty": 7.8220749,
+        "elapsedDays": 0,
+        "scheduledDays": 1,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.88928896,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 2,
+          "label": "2 days"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 3,
+          "label": "3 days"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 4,
+          "label": "4 days"
+        }
+      ]
+    },
+    {
+      "path": [
+        "HARD",
+        "HARD"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 1.2931,
+        "difficulty": 5.11217071,
+        "dueAt": "2026-07-28T09:06:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 1,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:00:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:10:00.000Z",
+      "rating": "HARD",
+      "output": {
+        "state": "LEARNING",
+        "dueAt": "2026-07-28T09:16:00.000Z",
+        "stability": 1.2931,
+        "difficulty": 6.74045952,
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 2,
+          "label": "2 days"
+        }
+      ]
+    },
+    {
+      "path": [
+        "HARD",
+        "HARD",
+        "AGAIN"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 1.2931,
+        "difficulty": 6.74045952,
+        "dueAt": "2026-07-28T09:16:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:20:00.000Z",
+      "rating": "AGAIN",
+      "output": {
+        "state": "LEARNING",
+        "dueAt": "2026-07-28T09:21:00.000Z",
+        "stability": 0.45140292,
+        "difficulty": 8.91383958,
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 1,
+          "label": "1 day"
+        }
+      ]
+    },
+    {
+      "path": [
+        "HARD",
+        "HARD",
+        "HARD"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 1.2931,
+        "difficulty": 6.74045952,
+        "dueAt": "2026-07-28T09:16:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:20:00.000Z",
+      "rating": "HARD",
+      "output": {
+        "state": "LEARNING",
+        "dueAt": "2026-07-28T09:26:00.000Z",
+        "stability": 1.2931,
+        "difficulty": 7.8213935,
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 2,
+          "label": "2 days"
+        }
+      ]
+    },
+    {
+      "path": [
+        "HARD",
+        "HARD",
+        "GOOD"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 1.2931,
+        "difficulty": 6.74045952,
+        "dueAt": "2026-07-28T09:16:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:20:00.000Z",
+      "rating": "GOOD",
+      "output": {
+        "state": "LEARNING",
+        "dueAt": "2026-07-28T09:30:00.000Z",
+        "stability": 1.33589976,
+        "difficulty": 6.72894743,
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "learningSteps": 1
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 1,
+          "label": "1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 2,
+          "label": "2 days"
+        }
+      ]
+    },
+    {
+      "path": [
+        "HARD",
+        "HARD",
+        "EASY"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 1.2931,
+        "difficulty": 6.74045952,
+        "dueAt": "2026-07-28T09:16:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:20:00.000Z",
+      "rating": "EASY",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-07-30T09:20:00.000Z",
+        "stability": 2.29815136,
+        "difficulty": 5.63650136,
+        "elapsedDays": 0,
+        "scheduledDays": 2,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.90925939,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 5,
+          "label": "5 days"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 8,
+          "label": "8 days"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 12,
+          "label": "12 days"
+        }
+      ]
+    },
+    {
+      "path": [
+        "HARD",
+        "GOOD"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 1.2931,
+        "difficulty": 5.11217071,
+        "dueAt": "2026-07-28T09:06:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 1,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:00:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:10:00.000Z",
+      "rating": "GOOD",
+      "output": {
+        "state": "LEARNING",
+        "dueAt": "2026-07-28T09:20:00.000Z",
+        "stability": 1.33589976,
+        "difficulty": 5.10228691,
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "learningSteps": 1
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 1,
+          "label": "1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 2,
+          "label": "2 days"
+        }
+      ]
+    },
+    {
+      "path": [
+        "HARD",
+        "GOOD",
+        "AGAIN"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 1.33589976,
+        "difficulty": 5.10228691,
+        "dueAt": "2026-07-28T09:20:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 1,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:20:00.000Z",
+      "rating": "AGAIN",
+      "output": {
+        "state": "LEARNING",
+        "dueAt": "2026-07-28T09:21:00.000Z",
+        "stability": 0.46534558,
+        "difficulty": 8.37538339,
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 1,
+          "label": "1 day"
+        }
+      ]
+    },
+    {
+      "path": [
+        "HARD",
+        "GOOD",
+        "HARD"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 1.33589976,
+        "difficulty": 5.10228691,
+        "dueAt": "2026-07-28T09:20:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 1,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:20:00.000Z",
+      "rating": "HARD",
+      "output": {
+        "state": "LEARNING",
+        "dueAt": "2026-07-28T09:26:00.000Z",
+        "stability": 1.33589976,
+        "difficulty": 6.73389818,
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "learningSteps": 1
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 1,
+          "label": "1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 2,
+          "label": "2 days"
+        }
+      ]
+    },
+    {
+      "path": [
+        "HARD",
+        "GOOD",
+        "GOOD"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 1.33589976,
+        "difficulty": 5.10228691,
+        "dueAt": "2026-07-28T09:20:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 1,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:20:00.000Z",
+      "rating": "GOOD",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-07-29T09:20:00.000Z",
+        "stability": 1.37716224,
+        "difficulty": 5.09241299,
+        "elapsedDays": 0,
+        "scheduledDays": 1,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.92044788,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 3,
+          "label": "3 days"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 5,
+          "label": "5 days"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 8,
+          "label": "8 days"
+        }
+      ]
+    },
+    {
+      "path": [
+        "HARD",
+        "GOOD",
+        "EASY"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 1.33589976,
+        "difficulty": 5.10228691,
+        "dueAt": "2026-07-28T09:20:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 1,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:20:00.000Z",
+      "rating": "EASY",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-07-30T09:20:00.000Z",
+        "stability": 2.36913529,
+        "difficulty": 3.4509278,
+        "elapsedDays": 0,
+        "scheduledDays": 2,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.91120895,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 7,
+          "label": "7 days"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 10,
+          "label": "10 days"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 16,
+          "label": "2 weeks"
+        }
+      ]
+    },
+    {
+      "path": [
+        "HARD",
+        "EASY"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 1.2931,
+        "difficulty": 5.11217071,
+        "dueAt": "2026-07-28T09:06:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 1,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:00:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:10:00.000Z",
+      "rating": "EASY",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-07-30T09:10:00.000Z",
+        "stability": 2.29815136,
+        "difficulty": 3.4641143,
+        "elapsedDays": 0,
+        "scheduledDays": 2,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.90925939,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 7,
+          "label": "7 days"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 10,
+          "label": "10 days"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 16,
+          "label": "2 weeks"
+        }
+      ]
+    },
+    {
+      "path": [
+        "HARD",
+        "EASY",
+        "AGAIN"
+      ],
+      "input": {
+        "state": "REVIEW",
+        "stability": 2.29815136,
+        "difficulty": 3.4641143,
+        "dueAt": "2026-07-30T09:10:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 2,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-30T09:10:00.000Z",
+      "rating": "AGAIN",
+      "output": {
+        "state": "RELEARNING",
+        "dueAt": "2026-07-30T09:20:00.000Z",
+        "stability": 0.58827748,
+        "difficulty": 7.83692718,
+        "elapsedDays": 2,
+        "scheduledDays": 0,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 1,
+          "label": "1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 1,
+          "label": "1 day"
+        }
+      ]
+    },
+    {
+      "path": [
+        "HARD",
+        "EASY",
+        "HARD"
+      ],
+      "input": {
+        "state": "REVIEW",
+        "stability": 2.29815136,
+        "difficulty": 3.4641143,
+        "dueAt": "2026-07-30T09:10:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 2,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-30T09:10:00.000Z",
+      "rating": "HARD",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-08-06T09:10:00.000Z",
+        "stability": 6.71436842,
+        "difficulty": 5.64640287,
+        "elapsedDays": 2,
+        "scheduledDays": 7,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.89711241,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 15,
+          "label": "2 weeks"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 21,
+          "label": "3 weeks"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 34,
+          "label": "5 weeks"
+        }
+      ]
+    },
+    {
+      "path": [
+        "HARD",
+        "EASY",
+        "GOOD"
+      ],
+      "input": {
+        "state": "REVIEW",
+        "stability": 2.29815136,
+        "difficulty": 3.4641143,
+        "dueAt": "2026-07-30T09:10:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 2,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-30T09:10:00.000Z",
+      "rating": "GOOD",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-08-09T09:10:00.000Z",
+        "stability": 9.64137894,
+        "difficulty": 3.45587856,
+        "elapsedDays": 2,
+        "scheduledDays": 10,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.89747138,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 26,
+          "label": "4 weeks"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 37,
+          "label": "5 weeks"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 61,
+          "label": "2 months"
+        }
+      ]
+    },
+    {
+      "path": [
+        "HARD",
+        "EASY",
+        "EASY"
+      ],
+      "input": {
+        "state": "REVIEW",
+        "stability": 2.29815136,
+        "difficulty": 3.4641143,
+        "dueAt": "2026-07-30T09:10:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 2,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-30T09:10:00.000Z",
+      "rating": "EASY",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-08-15T09:10:00.000Z",
+        "stability": 16.05128229,
+        "difficulty": 1.26535424,
+        "elapsedDays": 2,
+        "scheduledDays": 16,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.9002197,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 48,
+          "label": "7 weeks"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 69,
+          "label": "2 months"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 115,
+          "label": "4 months"
+        }
+      ]
+    },
+    {
+      "path": [
+        "GOOD"
+      ],
+      "input": {
+        "state": "NEW",
+        "stability": 0,
+        "difficulty": 0,
+        "dueAt": "2026-07-28T09:00:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 0,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": null
+      },
+      "reviewedAt": "2026-07-28T09:00:00.000Z",
+      "rating": "GOOD",
+      "output": {
+        "state": "LEARNING",
+        "dueAt": "2026-07-28T09:10:00.000Z",
+        "stability": 2.3065,
+        "difficulty": 2.11810397,
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "learningSteps": 1
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 2,
+          "label": "2 days"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 4,
+          "label": "4 days"
+        }
+      ]
+    },
+    {
+      "path": [
+        "GOOD",
+        "AGAIN"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 2.3065,
+        "difficulty": 2.11810397,
+        "dueAt": "2026-07-28T09:10:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 1,
+        "lapses": 0,
+        "learningSteps": 1,
+        "lastReviewedAt": "2026-07-28T09:00:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:10:00.000Z",
+      "rating": "AGAIN",
+      "output": {
+        "state": "LEARNING",
+        "dueAt": "2026-07-28T09:11:00.000Z",
+        "stability": 0.77508398,
+        "difficulty": 7.39450274,
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 1,
+          "label": "1 day"
+        }
+      ]
+    },
+    {
+      "path": [
+        "GOOD",
+        "AGAIN",
+        "AGAIN"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 0.77508398,
+        "difficulty": 7.39450274,
+        "dueAt": "2026-07-28T09:11:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:20:00.000Z",
+      "rating": "AGAIN",
+      "output": {
+        "state": "LEARNING",
+        "dueAt": "2026-07-28T09:21:00.000Z",
+        "stability": 0.27983836,
+        "difficulty": 9.12881914,
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 1,
+          "label": "1 day"
+        }
+      ]
+    },
+    {
+      "path": [
+        "GOOD",
+        "AGAIN",
+        "HARD"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 0.77508398,
+        "difficulty": 7.39450274,
+        "dueAt": "2026-07-28T09:11:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:20:00.000Z",
+      "rating": "HARD",
+      "output": {
+        "state": "LEARNING",
+        "dueAt": "2026-07-28T09:26:00.000Z",
+        "stability": 0.77508398,
+        "difficulty": 8.25557787,
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 1,
+          "label": "1 day"
+        }
+      ]
+    },
+    {
+      "path": [
+        "GOOD",
+        "AGAIN",
+        "GOOD"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 0.77508398,
+        "difficulty": 7.39450274,
+        "dueAt": "2026-07-28T09:11:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:20:00.000Z",
+      "rating": "GOOD",
+      "output": {
+        "state": "LEARNING",
+        "dueAt": "2026-07-28T09:30:00.000Z",
+        "stability": 0.8281648,
+        "difficulty": 7.38233661,
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "learningSteps": 1
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 1,
+          "label": "1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 2,
+          "label": "2 days"
+        }
+      ]
+    },
+    {
+      "path": [
+        "GOOD",
+        "AGAIN",
+        "EASY"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 0.77508398,
+        "difficulty": 7.39450274,
+        "dueAt": "2026-07-28T09:11:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:20:00.000Z",
+      "rating": "EASY",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-07-29T09:20:00.000Z",
+        "stability": 1.42469376,
+        "difficulty": 6.50909534,
+        "elapsedDays": 0,
+        "scheduledDays": 1,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.92243292,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 3,
+          "label": "3 days"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 4,
+          "label": "4 days"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 6,
+          "label": "6 days"
+        }
+      ]
+    },
+    {
+      "path": [
+        "GOOD",
+        "HARD"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 2.3065,
+        "difficulty": 2.11810397,
+        "dueAt": "2026-07-28T09:10:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 1,
+        "lapses": 0,
+        "learningSteps": 1,
+        "lastReviewedAt": "2026-07-28T09:00:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:10:00.000Z",
+      "rating": "HARD",
+      "output": {
+        "state": "LEARNING",
+        "dueAt": "2026-07-28T09:16:00.000Z",
+        "stability": 2.3065,
+        "difficulty": 4.75285849,
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "learningSteps": 1
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 2,
+          "label": "2 days"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 4,
+          "label": "4 days"
+        }
+      ]
+    },
+    {
+      "path": [
+        "GOOD",
+        "HARD",
+        "AGAIN"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 2.3065,
+        "difficulty": 4.75285849,
+        "dueAt": "2026-07-28T09:16:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 1,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:20:00.000Z",
+      "rating": "AGAIN",
+      "output": {
+        "state": "LEARNING",
+        "dueAt": "2026-07-28T09:21:00.000Z",
+        "stability": 0.77508398,
+        "difficulty": 8.26052864,
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 1,
+          "label": "1 day"
+        }
+      ]
+    },
+    {
+      "path": [
+        "GOOD",
+        "HARD",
+        "HARD"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 2.3065,
+        "difficulty": 4.75285849,
+        "dueAt": "2026-07-28T09:16:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 1,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:20:00.000Z",
+      "rating": "HARD",
+      "output": {
+        "state": "LEARNING",
+        "dueAt": "2026-07-28T09:26:00.000Z",
+        "stability": 2.3065,
+        "difficulty": 6.50193132,
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "learningSteps": 1
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 2,
+          "label": "2 days"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 4,
+          "label": "4 days"
+        }
+      ]
+    },
+    {
+      "path": [
+        "GOOD",
+        "HARD",
+        "GOOD"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 2.3065,
+        "difficulty": 4.75285849,
+        "dueAt": "2026-07-28T09:16:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 1,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:20:00.000Z",
+      "rating": "GOOD",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-07-30T09:20:00.000Z",
+        "stability": 2.3065,
+        "difficulty": 4.743334,
+        "elapsedDays": 0,
+        "scheduledDays": 2,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.90949326,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 6,
+          "label": "6 days"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 8,
+          "label": "8 days"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 14,
+          "label": "2 weeks"
+        }
+      ]
+    },
+    {
+      "path": [
+        "GOOD",
+        "HARD",
+        "EASY"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 2.3065,
+        "difficulty": 4.75285849,
+        "dueAt": "2026-07-28T09:16:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 1,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:20:00.000Z",
+      "rating": "EASY",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-08-01T09:20:00.000Z",
+        "stability": 3.94605407,
+        "difficulty": 2.98473668,
+        "elapsedDays": 0,
+        "scheduledDays": 4,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.89906444,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 12,
+          "label": "12 days"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 18,
+          "label": "3 weeks"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 30,
+          "label": "4 weeks"
+        }
+      ]
+    },
+    {
+      "path": [
+        "GOOD",
+        "GOOD"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 2.3065,
+        "difficulty": 2.11810397,
+        "dueAt": "2026-07-28T09:10:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 1,
+        "lapses": 0,
+        "learningSteps": 1,
+        "lastReviewedAt": "2026-07-28T09:00:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:10:00.000Z",
+      "rating": "GOOD",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-07-30T09:10:00.000Z",
+        "stability": 2.3065,
+        "difficulty": 2.11121424,
+        "elapsedDays": 0,
+        "scheduledDays": 2,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.90949326,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 8,
+          "label": "8 days"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 11,
+          "label": "11 days"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 19,
+          "label": "3 weeks"
+        }
+      ]
+    },
+    {
+      "path": [
+        "GOOD",
+        "GOOD",
+        "AGAIN"
+      ],
+      "input": {
+        "state": "REVIEW",
+        "stability": 2.3065,
+        "difficulty": 2.11121424,
+        "dueAt": "2026-07-30T09:10:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 2,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-30T09:10:00.000Z",
+      "rating": "AGAIN",
+      "output": {
+        "state": "RELEARNING",
+        "dueAt": "2026-07-30T09:20:00.000Z",
+        "stability": 0.60770166,
+        "difficulty": 7.39223814,
+        "elapsedDays": 2,
+        "scheduledDays": 0,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 1,
+          "label": "1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 1,
+          "label": "1 day"
+        }
+      ]
+    },
+    {
+      "path": [
+        "GOOD",
+        "GOOD",
+        "HARD"
+      ],
+      "input": {
+        "state": "REVIEW",
+        "stability": 2.3065,
+        "difficulty": 2.11121424,
+        "dueAt": "2026-07-30T09:10:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 2,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-30T09:10:00.000Z",
+      "rating": "HARD",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-08-07T09:10:00.000Z",
+        "stability": 7.51735908,
+        "difficulty": 4.74828477,
+        "elapsedDays": 2,
+        "scheduledDays": 8,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.89566823,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 19,
+          "label": "3 weeks"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 26,
+          "label": "4 weeks"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 43,
+          "label": "6 weeks"
+        }
+      ]
+    },
+    {
+      "path": [
+        "GOOD",
+        "GOOD",
+        "GOOD"
+      ],
+      "input": {
+        "state": "REVIEW",
+        "stability": 2.3065,
+        "difficulty": 2.11121424,
+        "dueAt": "2026-07-30T09:10:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 2,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-30T09:10:00.000Z",
+      "rating": "GOOD",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-08-10T09:10:00.000Z",
+        "stability": 10.97104786,
+        "difficulty": 2.1043314,
+        "elapsedDays": 2,
+        "scheduledDays": 11,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.89981884,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 32,
+          "label": "5 weeks"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 46,
+          "label": "7 weeks"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 77,
+          "label": "3 months"
+        }
+      ]
+    },
+    {
+      "path": [
+        "GOOD",
+        "GOOD",
+        "EASY"
+      ],
+      "input": {
+        "state": "REVIEW",
+        "stability": 2.3065,
+        "difficulty": 2.11121424,
+        "dueAt": "2026-07-30T09:10:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 2,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-07-30T09:10:00.000Z",
+      "rating": "EASY",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-08-18T09:10:00.000Z",
+        "stability": 18.53433169,
+        "difficulty": 1,
+        "elapsedDays": 2,
+        "scheduledDays": 19,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.89828618,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 56,
+          "label": "8 weeks"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 81,
+          "label": "3 months"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 136,
+          "label": "5 months"
+        }
+      ]
+    },
+    {
+      "path": [
+        "GOOD",
+        "EASY"
+      ],
+      "input": {
+        "state": "LEARNING",
+        "stability": 2.3065,
+        "difficulty": 2.11810397,
+        "dueAt": "2026-07-28T09:10:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 1,
+        "lapses": 0,
+        "learningSteps": 1,
+        "lastReviewedAt": "2026-07-28T09:00:00.000Z"
+      },
+      "reviewedAt": "2026-07-28T09:10:00.000Z",
+      "rating": "EASY",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-08-01T09:10:00.000Z",
+        "stability": 3.94605407,
+        "difficulty": 1,
+        "elapsedDays": 0,
+        "scheduledDays": 4,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.89906444,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 14,
+          "label": "2 weeks"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 21,
+          "label": "3 weeks"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 36,
+          "label": "5 weeks"
+        }
+      ]
+    },
+    {
+      "path": [
+        "GOOD",
+        "EASY",
+        "AGAIN"
+      ],
+      "input": {
+        "state": "REVIEW",
+        "stability": 3.94605407,
+        "difficulty": 1,
+        "dueAt": "2026-08-01T09:10:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 4,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-08-01T09:10:00.000Z",
+      "rating": "AGAIN",
+      "output": {
+        "state": "RELEARNING",
+        "dueAt": "2026-08-01T09:20:00.000Z",
+        "stability": 0.91521163,
+        "difficulty": 7.02698957,
+        "elapsedDays": 4,
+        "scheduledDays": 0,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 1,
+          "label": "1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 2,
+          "label": "2 days"
+        }
+      ]
+    },
+    {
+      "path": [
+        "GOOD",
+        "EASY",
+        "HARD"
+      ],
+      "input": {
+        "state": "REVIEW",
+        "stability": 3.94605407,
+        "difficulty": 1,
+        "dueAt": "2026-08-01T09:10:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 4,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-08-01T09:10:00.000Z",
+      "rating": "HARD",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-08-15T09:10:00.000Z",
+        "stability": 14.21704924,
+        "difficulty": 4.01060897,
+        "elapsedDays": 4,
+        "scheduledDays": 14,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.90105345,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 35,
+          "label": "5 weeks"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 48,
+          "label": "7 weeks"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 78,
+          "label": "3 months"
+        }
+      ]
+    },
+    {
+      "path": [
+        "GOOD",
+        "EASY",
+        "GOOD"
+      ],
+      "input": {
+        "state": "REVIEW",
+        "stability": 3.94605407,
+        "difficulty": 1,
+        "dueAt": "2026-08-01T09:10:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 4,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-08-01T09:10:00.000Z",
+      "rating": "GOOD",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-08-22T09:10:00.000Z",
+        "stability": 21.02452958,
+        "difficulty": 1,
+        "elapsedDays": 4,
+        "scheduledDays": 21,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.90008018,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 62,
+          "label": "2 months"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 89,
+          "label": "3 months"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 149,
+          "label": "5 months"
+        }
+      ]
+    },
+    {
+      "path": [
+        "GOOD",
+        "EASY",
+        "EASY"
+      ],
+      "input": {
+        "state": "REVIEW",
+        "stability": 3.94605407,
+        "difficulty": 1,
+        "dueAt": "2026-08-01T09:10:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 4,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:10:00.000Z"
+      },
+      "reviewedAt": "2026-08-01T09:10:00.000Z",
+      "rating": "EASY",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-09-06T09:10:00.000Z",
+        "stability": 35.93233085,
+        "difficulty": 1,
+        "elapsedDays": 4,
+        "scheduledDays": 36,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.89987069,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 100,
+          "label": "3 months"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 143,
+          "label": "5 months"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 236,
+          "label": "8 months"
+        }
+      ]
+    },
+    {
+      "path": [
+        "EASY"
+      ],
+      "input": {
+        "state": "NEW",
+        "stability": 0,
+        "difficulty": 0,
+        "dueAt": "2026-07-28T09:00:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "reps": 0,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": null
+      },
+      "reviewedAt": "2026-07-28T09:00:00.000Z",
+      "rating": "EASY",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-08-05T09:00:00.000Z",
+        "stability": 8.2956,
+        "difficulty": 1,
+        "elapsedDays": 0,
+        "scheduledDays": 8,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.9024733,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 27,
+          "label": "4 weeks"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 39,
+          "label": "6 weeks"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 66,
+          "label": "2 months"
+        }
+      ]
+    },
+    {
+      "path": [
+        "EASY",
+        "AGAIN"
+      ],
+      "input": {
+        "state": "REVIEW",
+        "stability": 8.2956,
+        "difficulty": 1,
+        "dueAt": "2026-08-05T09:00:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 8,
+        "reps": 1,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:00:00.000Z"
+      },
+      "reviewedAt": "2026-08-05T09:00:00.000Z",
+      "rating": "AGAIN",
+      "output": {
+        "state": "RELEARNING",
+        "dueAt": "2026-08-05T09:10:00.000Z",
+        "stability": 1.38863246,
+        "difficulty": 7.02698957,
+        "elapsedDays": 8,
+        "scheduledDays": 0,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 1,
+          "label": "1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 2,
+          "label": "2 days"
+        }
+      ]
+    },
+    {
+      "path": [
+        "EASY",
+        "AGAIN",
+        "AGAIN"
+      ],
+      "input": {
+        "state": "RELEARNING",
+        "stability": 1.38863246,
+        "difficulty": 7.02698957,
+        "dueAt": "2026-08-05T09:10:00.000Z",
+        "elapsedDays": 8,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 1,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-08-05T09:00:00.000Z"
+      },
+      "reviewedAt": "2026-08-05T09:10:00.000Z",
+      "rating": "AGAIN",
+      "output": {
+        "state": "RELEARNING",
+        "dueAt": "2026-08-05T09:20:00.000Z",
+        "stability": 0.48248377,
+        "difficulty": 9.00802006,
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 1,
+          "label": "1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 1,
+          "label": "1 day"
+        }
+      ]
+    },
+    {
+      "path": [
+        "EASY",
+        "AGAIN",
+        "HARD"
+      ],
+      "input": {
+        "state": "RELEARNING",
+        "stability": 1.38863246,
+        "difficulty": 7.02698957,
+        "dueAt": "2026-08-05T09:10:00.000Z",
+        "elapsedDays": 8,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 1,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-08-05T09:00:00.000Z"
+      },
+      "reviewedAt": "2026-08-05T09:10:00.000Z",
+      "rating": "HARD",
+      "output": {
+        "state": "RELEARNING",
+        "dueAt": "2026-08-05T09:25:00.000Z",
+        "stability": 1.38863246,
+        "difficulty": 8.01160551,
+        "elapsedDays": 0,
+        "scheduledDays": 0,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 1,
+          "label": "1 day"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 2,
+          "label": "2 days"
+        }
+      ]
+    },
+    {
+      "path": [
+        "EASY",
+        "AGAIN",
+        "GOOD"
+      ],
+      "input": {
+        "state": "RELEARNING",
+        "stability": 1.38863246,
+        "difficulty": 7.02698957,
+        "dueAt": "2026-08-05T09:10:00.000Z",
+        "elapsedDays": 8,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 1,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-08-05T09:00:00.000Z"
+      },
+      "reviewedAt": "2026-08-05T09:10:00.000Z",
+      "rating": "GOOD",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-08-06T09:10:00.000Z",
+        "stability": 1.42788168,
+        "difficulty": 7.01519095,
+        "elapsedDays": 0,
+        "scheduledDays": 1,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.92256243,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 3,
+          "label": "3 days"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 4,
+          "label": "4 days"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 6,
+          "label": "6 days"
+        }
+      ]
+    },
+    {
+      "path": [
+        "EASY",
+        "AGAIN",
+        "EASY"
+      ],
+      "input": {
+        "state": "RELEARNING",
+        "stability": 1.38863246,
+        "difficulty": 7.02698957,
+        "dueAt": "2026-08-05T09:10:00.000Z",
+        "elapsedDays": 8,
+        "scheduledDays": 0,
+        "reps": 2,
+        "lapses": 1,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-08-05T09:00:00.000Z"
+      },
+      "reviewedAt": "2026-08-05T09:10:00.000Z",
+      "rating": "EASY",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-08-07T09:10:00.000Z",
+        "stability": 2.45638806,
+        "difficulty": 6.01877639,
+        "elapsedDays": 0,
+        "scheduledDays": 2,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.91349026,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 5,
+          "label": "5 days"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 7,
+          "label": "7 days"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 12,
+          "label": "12 days"
+        }
+      ]
+    },
+    {
+      "path": [
+        "EASY",
+        "HARD"
+      ],
+      "input": {
+        "state": "REVIEW",
+        "stability": 8.2956,
+        "difficulty": 1,
+        "dueAt": "2026-08-05T09:00:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 8,
+        "reps": 1,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:00:00.000Z"
+      },
+      "reviewedAt": "2026-08-05T09:00:00.000Z",
+      "rating": "HARD",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-09-01T09:00:00.000Z",
+        "stability": 26.70418346,
+        "difficulty": 4.01060897,
+        "elapsedDays": 8,
+        "scheduledDays": 27,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.89924136,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 62,
+          "label": "2 months"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 85,
+          "label": "3 months"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 137,
+          "label": "5 months"
+        }
+      ]
+    },
+    {
+      "path": [
+        "EASY",
+        "HARD",
+        "AGAIN"
+      ],
+      "input": {
+        "state": "REVIEW",
+        "stability": 26.70418346,
+        "difficulty": 4.01060897,
+        "dueAt": "2026-09-01T09:00:00.000Z",
+        "elapsedDays": 8,
+        "scheduledDays": 27,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-08-05T09:00:00.000Z"
+      },
+      "reviewedAt": "2026-09-01T09:00:00.000Z",
+      "rating": "AGAIN",
+      "output": {
+        "state": "RELEARNING",
+        "dueAt": "2026-09-01T09:10:00.000Z",
+        "stability": 2.2431012,
+        "difficulty": 8.01655626,
+        "elapsedDays": 27,
+        "scheduledDays": 0,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 2,
+          "label": "2 days"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 4,
+          "label": "4 days"
+        }
+      ]
+    },
+    {
+      "path": [
+        "EASY",
+        "HARD",
+        "HARD"
+      ],
+      "input": {
+        "state": "REVIEW",
+        "stability": 26.70418346,
+        "difficulty": 4.01060897,
+        "dueAt": "2026-09-01T09:00:00.000Z",
+        "elapsedDays": 8,
+        "scheduledDays": 27,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-08-05T09:00:00.000Z"
+      },
+      "reviewedAt": "2026-09-01T09:00:00.000Z",
+      "rating": "HARD",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-11-02T09:00:00.000Z",
+        "stability": 61.96788476,
+        "difficulty": 6.0091915,
+        "elapsedDays": 27,
+        "scheduledDays": 62,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.8999644,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 112,
+          "label": "4 months"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 146,
+          "label": "5 months"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 219,
+          "label": "7 months"
+        }
+      ]
+    },
+    {
+      "path": [
+        "EASY",
+        "HARD",
+        "GOOD"
+      ],
+      "input": {
+        "state": "REVIEW",
+        "stability": 26.70418346,
+        "difficulty": 4.01060897,
+        "dueAt": "2026-09-01T09:00:00.000Z",
+        "elapsedDays": 8,
+        "scheduledDays": 27,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-08-05T09:00:00.000Z"
+      },
+      "reviewedAt": "2026-09-01T09:00:00.000Z",
+      "rating": "GOOD",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-11-25T09:00:00.000Z",
+        "stability": 85.34020159,
+        "difficulty": 4.00182673,
+        "elapsedDays": 27,
+        "scheduledDays": 85,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.90027418,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 177,
+          "label": "6 months"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 238,
+          "label": "8 months"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 365,
+          "label": "1 years"
+        }
+      ]
+    },
+    {
+      "path": [
+        "EASY",
+        "HARD",
+        "EASY"
+      ],
+      "input": {
+        "state": "REVIEW",
+        "stability": 26.70418346,
+        "difficulty": 4.01060897,
+        "dueAt": "2026-09-01T09:00:00.000Z",
+        "elapsedDays": 8,
+        "scheduledDays": 27,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-08-05T09:00:00.000Z"
+      },
+      "reviewedAt": "2026-09-01T09:00:00.000Z",
+      "rating": "EASY",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2027-01-16T09:00:00.000Z",
+        "stability": 136.52358181,
+        "difficulty": 1.99446196,
+        "elapsedDays": 27,
+        "scheduledDays": 137,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.8997605,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 313,
+          "label": "10 months"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 365,
+          "label": "1 years"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 366,
+          "label": "1 years"
+        }
+      ]
+    },
+    {
+      "path": [
+        "EASY",
+        "GOOD"
+      ],
+      "input": {
+        "state": "REVIEW",
+        "stability": 8.2956,
+        "difficulty": 1,
+        "dueAt": "2026-08-05T09:00:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 8,
+        "reps": 1,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:00:00.000Z"
+      },
+      "reviewedAt": "2026-08-05T09:00:00.000Z",
+      "rating": "GOOD",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-09-13T09:00:00.000Z",
+        "stability": 38.90515015,
+        "difficulty": 1,
+        "elapsedDays": 8,
+        "scheduledDays": 39,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.89983262,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 108,
+          "label": "4 months"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 153,
+          "label": "5 months"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 253,
+          "label": "8 months"
+        }
+      ]
+    },
+    {
+      "path": [
+        "EASY",
+        "GOOD",
+        "AGAIN"
+      ],
+      "input": {
+        "state": "REVIEW",
+        "stability": 38.90515015,
+        "difficulty": 1,
+        "dueAt": "2026-09-13T09:00:00.000Z",
+        "elapsedDays": 8,
+        "scheduledDays": 39,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-08-05T09:00:00.000Z"
+      },
+      "reviewedAt": "2026-09-13T09:00:00.000Z",
+      "rating": "AGAIN",
+      "output": {
+        "state": "RELEARNING",
+        "dueAt": "2026-09-13T09:10:00.000Z",
+        "stability": 2.8623267,
+        "difficulty": 7.02698957,
+        "elapsedDays": 39,
+        "scheduledDays": 0,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 3,
+          "label": "3 days"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 5,
+          "label": "5 days"
+        }
+      ]
+    },
+    {
+      "path": [
+        "EASY",
+        "GOOD",
+        "HARD"
+      ],
+      "input": {
+        "state": "REVIEW",
+        "stability": 38.90515015,
+        "difficulty": 1,
+        "dueAt": "2026-09-13T09:00:00.000Z",
+        "elapsedDays": 8,
+        "scheduledDays": 39,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-08-05T09:00:00.000Z"
+      },
+      "reviewedAt": "2026-09-13T09:00:00.000Z",
+      "rating": "HARD",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-12-30T09:00:00.000Z",
+        "stability": 107.52183554,
+        "difficulty": 4.01060897,
+        "elapsedDays": 39,
+        "scheduledDays": 108,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.89969486,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 220,
+          "label": "7 months"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 294,
+          "label": "10 months"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 365,
+          "label": "1 years"
+        }
+      ]
+    },
+    {
+      "path": [
+        "EASY",
+        "GOOD",
+        "GOOD"
+      ],
+      "input": {
+        "state": "REVIEW",
+        "stability": 38.90515015,
+        "difficulty": 1,
+        "dueAt": "2026-09-13T09:00:00.000Z",
+        "elapsedDays": 8,
+        "scheduledDays": 39,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-08-05T09:00:00.000Z"
+      },
+      "reviewedAt": "2026-09-13T09:00:00.000Z",
+      "rating": "GOOD",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2027-02-13T09:00:00.000Z",
+        "stability": 153.00007099,
+        "difficulty": 1,
+        "elapsedDays": 39,
+        "scheduledDays": 153,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.90000003,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 365,
+          "label": "1 years"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 366,
+          "label": "1 years"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 367,
+          "label": "1 years"
+        }
+      ]
+    },
+    {
+      "path": [
+        "EASY",
+        "GOOD",
+        "EASY"
+      ],
+      "input": {
+        "state": "REVIEW",
+        "stability": 38.90515015,
+        "difficulty": 1,
+        "dueAt": "2026-09-13T09:00:00.000Z",
+        "elapsedDays": 8,
+        "scheduledDays": 39,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-08-05T09:00:00.000Z"
+      },
+      "reviewedAt": "2026-09-13T09:00:00.000Z",
+      "rating": "EASY",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2027-05-24T09:00:00.000Z",
+        "stability": 252.59352738,
+        "difficulty": 1,
+        "elapsedDays": 39,
+        "scheduledDays": 253,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.8998895,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 365,
+          "label": "1 years"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 366,
+          "label": "1 years"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 367,
+          "label": "1 years"
+        }
+      ]
+    },
+    {
+      "path": [
+        "EASY",
+        "EASY"
+      ],
+      "input": {
+        "state": "REVIEW",
+        "stability": 8.2956,
+        "difficulty": 1,
+        "dueAt": "2026-08-05T09:00:00.000Z",
+        "elapsedDays": 0,
+        "scheduledDays": 8,
+        "reps": 1,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-07-28T09:00:00.000Z"
+      },
+      "reviewedAt": "2026-08-05T09:00:00.000Z",
+      "rating": "EASY",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2026-10-10T09:00:00.000Z",
+        "stability": 65.62422648,
+        "difficulty": 1,
+        "elapsedDays": 8,
+        "scheduledDays": 66,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.89960725,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 172,
+          "label": "6 months"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 242,
+          "label": "8 months"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 365,
+          "label": "1 years"
+        }
+      ]
+    },
+    {
+      "path": [
+        "EASY",
+        "EASY",
+        "AGAIN"
+      ],
+      "input": {
+        "state": "REVIEW",
+        "stability": 65.62422648,
+        "difficulty": 1,
+        "dueAt": "2026-10-10T09:00:00.000Z",
+        "elapsedDays": 8,
+        "scheduledDays": 66,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-08-05T09:00:00.000Z"
+      },
+      "reviewedAt": "2026-10-10T09:00:00.000Z",
+      "rating": "AGAIN",
+      "output": {
+        "state": "RELEARNING",
+        "dueAt": "2026-10-10T09:10:00.000Z",
+        "stability": 3.52895666,
+        "difficulty": 7.02698957,
+        "elapsedDays": 66,
+        "scheduledDays": 0,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 1,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 4,
+          "label": "4 days"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 6,
+          "label": "6 days"
+        }
+      ]
+    },
+    {
+      "path": [
+        "EASY",
+        "EASY",
+        "HARD"
+      ],
+      "input": {
+        "state": "REVIEW",
+        "stability": 65.62422648,
+        "difficulty": 1,
+        "dueAt": "2026-10-10T09:00:00.000Z",
+        "elapsedDays": 8,
+        "scheduledDays": 66,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-08-05T09:00:00.000Z"
+      },
+      "reviewedAt": "2026-10-10T09:00:00.000Z",
+      "rating": "HARD",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2027-03-31T09:00:00.000Z",
+        "stability": 171.95883418,
+        "difficulty": 4.01060897,
+        "elapsedDays": 66,
+        "scheduledDays": 172,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.89998355,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 337,
+          "label": "11 months"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 365,
+          "label": "1 years"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 366,
+          "label": "1 years"
+        }
+      ]
+    },
+    {
+      "path": [
+        "EASY",
+        "EASY",
+        "GOOD"
+      ],
+      "input": {
+        "state": "REVIEW",
+        "stability": 65.62422648,
+        "difficulty": 1,
+        "dueAt": "2026-10-10T09:00:00.000Z",
+        "elapsedDays": 8,
+        "scheduledDays": 66,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-08-05T09:00:00.000Z"
+      },
+      "reviewedAt": "2026-10-10T09:00:00.000Z",
+      "rating": "GOOD",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2027-06-09T09:00:00.000Z",
+        "stability": 242.43601181,
+        "difficulty": 1,
+        "elapsedDays": 66,
+        "scheduledDays": 242,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.90012362,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 365,
+          "label": "1 years"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 366,
+          "label": "1 years"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 367,
+          "label": "1 years"
+        }
+      ]
+    },
+    {
+      "path": [
+        "EASY",
+        "EASY",
+        "EASY"
+      ],
+      "input": {
+        "state": "REVIEW",
+        "stability": 65.62422648,
+        "difficulty": 1,
+        "dueAt": "2026-10-10T09:00:00.000Z",
+        "elapsedDays": 8,
+        "scheduledDays": 66,
+        "reps": 2,
+        "lapses": 0,
+        "learningSteps": 0,
+        "lastReviewedAt": "2026-08-05T09:00:00.000Z"
+      },
+      "reviewedAt": "2026-10-10T09:00:00.000Z",
+      "rating": "EASY",
+      "output": {
+        "state": "REVIEW",
+        "dueAt": "2027-10-10T09:00:00.000Z",
+        "stability": 396.77501923,
+        "difficulty": 1,
+        "elapsedDays": 66,
+        "scheduledDays": 365,
+        "learningSteps": 0
+      },
+      "retrievabilityAtDue": 0.9056314,
+      "predictedAtDue": [
+        {
+          "rating": "AGAIN",
+          "scheduledDays": 0,
+          "label": "< 1 day"
+        },
+        {
+          "rating": "HARD",
+          "scheduledDays": 365,
+          "label": "1 years"
+        },
+        {
+          "rating": "GOOD",
+          "scheduledDays": 366,
+          "label": "1 years"
+        },
+        {
+          "rating": "EASY",
+          "scheduledDays": 367,
+          "label": "1 years"
+        }
+      ]
+    }
+  ]
+}
