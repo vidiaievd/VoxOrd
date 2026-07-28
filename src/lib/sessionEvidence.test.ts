@@ -5,9 +5,9 @@ import {
   recordWordAttempt,
   type SessionEvidence,
 } from './sessionEvidence';
-import type { AttemptResult, GradedMode } from './sessionGrader';
+import { gradePersonalWord, type AttemptResult, type SessionMode } from './sessionGrader';
 
-type Step = [number, GradedMode, boolean] | [number, GradedMode, boolean, Partial<AttemptResult>];
+type Step = [number, SessionMode, boolean] | [number, SessionMode, boolean, Partial<AttemptResult>];
 
 function play(steps: Step[]): SessionEvidence {
   return steps.reduce<SessionEvidence>(
@@ -103,5 +103,29 @@ describe('answeredCount', () => {
 
   it('is zero on an untouched session', () => {
     expect(answeredCount(createEvidence())).toBe(0);
+  });
+});
+
+describe('gradeSession — personal decks', () => {
+  it('uses the grader it is given, so a swipe-only session still rates', () => {
+    const evidence = play([
+      [1, 'flashcard', true],
+      [2, 'flashcard', false],
+    ]);
+
+    // The default (course) grader discards self-report entirely.
+    expect(gradeSession(evidence)).toEqual([]);
+
+    expect(
+      gradeSession(evidence, gradePersonalWord).sort((a, b) => a.wordId - b.wordId),
+    ).toEqual([
+      { wordId: 1, rating: 'GOOD' },
+      { wordId: 2, rating: 'AGAIN' },
+    ]);
+  });
+
+  it('counts answered words under the personal grader too', () => {
+    expect(answeredCount(play([[1, 'flashcard', true]]), gradePersonalWord)).toBe(1);
+    expect(answeredCount(play([[1, 'flashcard', true]]))).toBe(0);
   });
 });

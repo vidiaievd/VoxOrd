@@ -40,16 +40,38 @@ import type { ReviewRating } from '../api/srs';
 export type GradedMode = 'listening' | 'quiz' | 'context' | 'spelling';
 
 /**
+ * Self-reported, not measured: `isCorrect` is `direction === 'right'`
+ * (`useCard.ts`) — nothing is ever compared against the answer.
+ *
+ * It exists as a mode of its own because personal decks offer flashcards as a
+ * standalone activity ("Self Assessment" in `ModeSelector`, and the whole of
+ * `CardScreen`), so treating it as pure practice would leave those sessions
+ * unable to schedule anything at all. `gradePersonalWord` therefore accepts it,
+ * but only as a last resort and never above `GOOD` — see there. Course reviews
+ * never record it: the flashcard phase is a non-scoring preview for NEW cards.
+ */
+export type SelfReportMode = 'flashcard';
+
+/** Every mode an outcome can be recorded for. */
+export type SessionMode = GradedMode | SelfReportMode;
+
+const SELF_REPORT_MODE: SelfReportMode = 'flashcard';
+
+function isPerformanceOutcome(outcome: ModeOutcome): boolean {
+  return outcome.mode !== SELF_REPORT_MODE;
+}
+
+/**
  * 4-way recognition of the *native translation* — the easiest real test.
  * A first-try miss here is the strongest negative signal available.
  */
-const RECOGNITION_MODES: readonly GradedMode[] = ['quiz', 'listening'];
+const RECOGNITION_MODES: readonly SessionMode[] = ['quiz', 'listening'];
 
 /** Free-text production of the target word — the hardest mode. */
 const PRODUCTION_MODE: GradedMode = 'spelling';
 
 export interface ModeOutcome {
-  mode: GradedMode;
+  mode: SessionMode;
   /** Wrong answers before the eventual correct one. 0 = right first try. */
   failedAttempts: number;
   /** Whether the user ever got it right in this mode. */
@@ -82,7 +104,7 @@ export interface AttemptResult {
  */
 export function recordAttempt(
   outcomes: ModeOutcome[],
-  mode: GradedMode,
+  mode: SessionMode,
   result: AttemptResult,
 ): ModeOutcome[] {
   const existing = outcomes.find((o) => o.mode === mode);
@@ -123,7 +145,9 @@ function isFirstTry(outcome: ModeOutcome): boolean {
 }
 
 /**
- * Collapses a session's outcomes for one card into a single rating.
+ * Collapses a session's outcomes for one card into a single rating, using
+ * **measured performance only** — `flashcard` outcomes are discarded here even
+ * if present.
  *
  * Returns `null` when there is nothing to judge (only a preview happened, or
  * the session was abandoned before any answer) — the caller must then send no
@@ -132,7 +156,7 @@ function isFirstTry(outcome: ModeOutcome): boolean {
  * Rules are evaluated top-down; the first match wins.
  */
 export function gradeWord(outcomes: ModeOutcome[]): ReviewRating | null {
-  const graded = outcomes.filter(hasEvidence);
+  const graded = outcomes.filter(isPerformanceOutcome).filter(hasEvidence);
   if (graded.length === 0) return null;
 
   const spelling = graded.find((o) => o.mode === PRODUCTION_MODE);
@@ -170,4 +194,46 @@ export function gradeWord(outcomes: ModeOutcome[]): ReviewRating | null {
 
   // 7. Correct, but without production evidence to justify a long jump.
   return 'GOOD';
+}
+
+/**
+ * The personal-deck counterpart of `gradeWord` (plan Step 9.4).
+ *
+ * Personal words are scheduled by the on-device FSRS engine rather than by the
+ * server, and they reach it through activities course reviews never use: the
+ * standalone `flashcard` mode. Two rules, in this order:
+ *
+ * 1. **Measured performance always wins.** If the session produced any evidence
+ *    from a real test, self-report is discarded outright — it adds nothing and
+ *    could only dilute a harder signal. This is what makes Deep Session behave
+ *    identically to a course session even though its first phase is flashcards
+ *    (`PHASE_ORDER` in `useDeepSession`), including keeping `EASY` reachable:
+ *    rule 6's "every mode first-try" is never held hostage by a swipe.
+ *
+ * 2. **Self-report alone can move a card, but never far.** A flashcard-only
+ *    session caps at `GOOD` — `EASY` skips the learning phase entirely
+ *    (measured: straight to REVIEW at ~8 days), and no self-assessment should
+ *    buy that. A swipe left is taken at face value as `AGAIN`: the unreliable
+ *    half of self-report is the claim of knowing, not the admission of not
+ *    knowing, and an unnecessary extra review is the safe direction to err in.
+ *
+ * Why grade self-report at all, having rejected it for course words (2026-07-27):
+ * that rejection was about *asking the user to rate an FSRS card* inside an
+ * auto-graded review. Here the swipe is a mode the user deliberately chose,
+ * labelled "Self Assessment", and the previous 6-stage engine already advanced
+ * a stage on exactly this signal — so scoring it is parity, not a new demand on
+ * the user. `matching` stays unscored, for the reason it always was: the pool
+ * narrows as pairs are consumed, so the last pair is correct for free.
+ */
+export function gradePersonalWord(outcomes: ModeOutcome[]): ReviewRating | null {
+  const measured = gradeWord(outcomes);
+  if (measured !== null) return measured;
+
+  const selfReport = outcomes.find(
+    (o) => o.mode === SELF_REPORT_MODE && hasEvidence(o),
+  );
+  if (!selfReport) return null;
+
+  // A single "I didn't know it" outweighs any later claim to the contrary.
+  return selfReport.failedAttempts > 0 ? 'AGAIN' : 'GOOD';
 }

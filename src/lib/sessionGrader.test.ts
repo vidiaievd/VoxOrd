@@ -1,12 +1,13 @@
 import {
+  gradePersonalWord,
   gradeWord,
   recordAttempt,
-  type GradedMode,
   type ModeOutcome,
+  type SessionMode,
 } from './sessionGrader';
 
 /** Builds an outcome directly, for tests that assert on the decision table. */
-function outcome(mode: GradedMode, over: Partial<ModeOutcome> = {}): ModeOutcome {
+function outcome(mode: SessionMode, over: Partial<ModeOutcome> = {}): ModeOutcome {
   return {
     mode,
     failedAttempts: 0,
@@ -19,10 +20,10 @@ function outcome(mode: GradedMode, over: Partial<ModeOutcome> = {}): ModeOutcome
 }
 
 /** Feeds a sequence of answers through the accumulator, as a session would. */
-function play(steps: Array<[GradedMode, boolean] | [GradedMode, boolean, object]>): ModeOutcome[] {
+function play(steps: Array<[SessionMode, boolean] | [SessionMode, boolean, object]>): ModeOutcome[] {
   return steps.reduce<ModeOutcome[]>(
     (acc, [mode, correct, extra = {}]) =>
-      recordAttempt(acc, mode as GradedMode, { correct: correct as boolean, ...extra }),
+      recordAttempt(acc, mode as SessionMode, { correct: correct as boolean, ...extra }),
     [],
   );
 }
@@ -223,5 +224,79 @@ describe('gradeWord — end-to-end sequences', () => {
       ['spelling', false, { gaveUp: true }],
     ]);
     expect(gradeWord(outcomes)).toBe('AGAIN');
+  });
+});
+
+describe('gradeWord — self-report is not measured performance', () => {
+  it('ignores a flashcard outcome entirely', () => {
+    expect(gradeWord(play([['flashcard', true]]))).toBeNull();
+    expect(gradeWord(play([['flashcard', false]]))).toBeNull();
+  });
+
+  it('does not let a swiped-away card drag a measured session down', () => {
+    // Without the filter, rule 6's "every mode first-try" would fail here and
+    // the flawless spelling result would silently degrade from EASY to GOOD.
+    const outcomes = play([
+      ['flashcard', false],
+      ['quiz', true],
+      ['spelling', true],
+    ]);
+    expect(gradeWord(outcomes)).toBe('EASY');
+  });
+});
+
+describe('gradePersonalWord', () => {
+  it('matches gradeWord whenever measured evidence exists', () => {
+    const cases: ModeOutcome[][] = [
+      play([['quiz', true]]),
+      play([['quiz', false], ['quiz', true]]),
+      play([['context', false], ['context', true]]),
+      play([['spelling', true, { hintUsed: true }]]),
+      play([['quiz', true], ['spelling', true]]),
+      play([['spelling', false, { gaveUp: true }]]),
+    ];
+
+    for (const outcomes of cases) {
+      expect(gradePersonalWord(outcomes)).toBe(gradeWord(outcomes));
+    }
+  });
+
+  it('lets measured evidence override a contradicting swipe', () => {
+    // Deep Session opens with flashcards over the same words it then tests.
+    expect(gradePersonalWord(play([['flashcard', true], ['quiz', false], ['quiz', true]])))
+      .toBe('AGAIN');
+    expect(gradePersonalWord(play([['flashcard', false], ['quiz', true]])))
+      .toBe('GOOD');
+  });
+
+  it('keeps EASY reachable in a session that opened with flashcards', () => {
+    const outcomes = play([
+      ['flashcard', true],
+      ['listening', true],
+      ['quiz', true],
+      ['spelling', true],
+    ]);
+    expect(gradePersonalWord(outcomes)).toBe('EASY');
+  });
+
+  it('grades a flashcard-only session at GOOD, never EASY', () => {
+    expect(gradePersonalWord(play([['flashcard', true]]))).toBe('GOOD');
+  });
+
+  it('takes an admitted miss at face value', () => {
+    expect(gradePersonalWord(play([['flashcard', false]]))).toBe('AGAIN');
+  });
+
+  it('lets one admitted miss outweigh a later claim of knowing', () => {
+    expect(gradePersonalWord(play([['flashcard', false], ['flashcard', true]])))
+      .toBe('AGAIN');
+  });
+
+  it('returns null for an untouched word, leaving it due', () => {
+    expect(gradePersonalWord([])).toBeNull();
+  });
+
+  it('returns null when a mode was presented but never answered', () => {
+    expect(gradePersonalWord([outcome('flashcard', { eventuallyCorrect: false })])).toBeNull();
   });
 });

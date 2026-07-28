@@ -3,8 +3,8 @@ import {
   gradeWord,
   recordAttempt,
   type AttemptResult,
-  type GradedMode,
   type ModeOutcome,
+  type SessionMode,
 } from './sessionGrader';
 
 /**
@@ -39,7 +39,7 @@ export function createEvidence(): SessionEvidence {
 export function recordWordAttempt(
   evidence: SessionEvidence,
   wordId: number,
-  mode: GradedMode,
+  mode: SessionMode,
   result: AttemptResult,
 ): SessionEvidence {
   const current = evidence.byWordId[wordId] ?? [];
@@ -56,18 +56,28 @@ export interface GradedWord {
   rating: ReviewRating;
 }
 
+/** How a single word's outcomes collapse into a rating, or into nothing. */
+export type WordGrader = (outcomes: ModeOutcome[]) => ReviewRating | null;
+
 /**
  * One rating per word with any usable evidence.
  *
- * Words `gradeWord` returns `null` for are dropped rather than defaulted: no
+ * Words the grader returns `null` for are dropped rather than defaulted: no
  * evidence means the word was only previewed or the session was abandoned
  * before it was answered, and the honest outcome there is to send nothing and
  * leave the card due.
+ *
+ * The grader is a parameter because personal decks score one mode course
+ * reviews never see — pass `gradePersonalWord` for them (plan Step 9.4). The
+ * ledger itself is identical either way, so it stays one implementation.
  */
-export function gradeSession(evidence: SessionEvidence): GradedWord[] {
+export function gradeSession(
+  evidence: SessionEvidence,
+  grade: WordGrader = gradeWord,
+): GradedWord[] {
   const graded: GradedWord[] = [];
   for (const [key, outcomes] of Object.entries(evidence.byWordId)) {
-    const rating = gradeWord(outcomes);
+    const rating = grade(outcomes);
     if (rating === null) continue;
     graded.push({ wordId: Number(key), rating });
   }
@@ -75,6 +85,9 @@ export function gradeSession(evidence: SessionEvidence): GradedWord[] {
 }
 
 /** Words that have produced at least one answer — for session progress UI. */
-export function answeredCount(evidence: SessionEvidence): number {
-  return gradeSession(evidence).length;
+export function answeredCount(
+  evidence: SessionEvidence,
+  grade: WordGrader = gradeWord,
+): number {
+  return gradeSession(evidence, grade).length;
 }
