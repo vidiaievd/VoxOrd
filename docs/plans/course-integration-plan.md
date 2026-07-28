@@ -1497,7 +1497,7 @@ Suite: **346 passed / 30 suites** (was 318/28), only the environmental
 `App.test.tsx` failing (native SQLite module unavailable under Jest). `tsc
 --noEmit` clean (pre-existing `WordRepository.ts` error untouched).
 
-### Step 8.2 — Grammar (mastery display only) — Sonnet
+### Step 8.2 — Grammar (mastery display only) — DONE (2026-07-28, VoxOrd `19bbed1`, `9056607`)
 - No grammar *trainer* exists yet — audited 2026-07-24: the web only shows a
   grammar **mastery %** (skill-index tiles over `/api/v1/mastery/course/:id`),
   and there is no per-rule SRS card server-side (`SrsContentType` is only
@@ -1506,6 +1506,42 @@ Suite: **346 passed / 30 suites** (was 318/28), only the environmental
   Phase 6), driven by ordinary course exercises. A real per-rule grammar drill
   is separate future product work on **both** web and mobile — out of scope
   here.
+- Shipped: grammar mastery badge on `CourseHomeScreen`/`UnitContentsScreen`
+  (`src/api/mastery.ts`), a `GrammarRuleReaderScreen` rendering rule theory as
+  markdown (tables, bold/italic, emoji, example blocks, mnemonics with a left
+  border) via `react-native-markdown-display`, and a "Перейти к практике" entry
+  point that opens the rule's exercise pool through `ExerciseRunner`.
+  `ExerciseRunner` gained retry handling for Match Pairs — a wrong attempt
+  resets connections and re-colors instead of double-counting progress —
+  plus a `FeedbackBar` pass for the new flow.
+- **On-device test (2026-07-28)**, course "Ny i Norge — A2", unit
+  "17 — Grammatikk og øvelser":
+  - Grammar mastery badge renders ("Освоено: N%").
+  - Match Pairs: all correct → all green; one wrong → "Попробовать снова"
+    appears, connections reset, progress not double-counted.
+  - Grammar theory markdown (tables, bold/italic, emoji, example blocks,
+    bordered mnemonic) renders correctly and legibly on the dark theme — the
+    old invisible-text bug did not reproduce.
+  - "Перейти к практике" correctly launches the rule's exercise pool.
+  - No regressions found on Home or elsewhere in navigation.
+  - **Known gap, not yet verified on-device:** (1) `FeedbackBar` omitting the
+    "Ожидаемый ответ: ..." line is untested for a wrong answer; (2) the retry
+    button's exclusion for `translate`/`writing_task` at "submitted for
+    review" status (vs. an actually-wrong answer) is untested; (3) the
+    "Перейти к практике" empty-pool edge case (rule with no exercises) is
+    untested — should show "Для этого правила пока нет упражнений" rather than
+    a blank screen. Left as a follow-up before fully closing this out.
+  - Also found and fixed in this pass (`9056607`): `CourseHomeScreen` showed
+    "N слов на повторение" from the global, unfiltered `srsStats.dueNowCount`
+    (`/srs/stats/me`), which can be nonzero while the "Повторить" screen
+    (which resolves due cards only against locally imported decks via
+    `useCourseReviewSets`/`resolveDueWords`) has nothing to run — the same
+    dead-end class of bug as Step 8.1b-4's `ReviewSessionScreen` issue, on a
+    different screen. Fixed by having `CourseHomeScreen` read
+    `useCourseReviewSets().overview.totalDue` instead of `data.srsDueCount`.
+- Suite: **360 passed / 31 suites**, only the environmental `App.test.tsx`
+  failing (native SQLite module unavailable under Jest). `tsc --noEmit` clean
+  (pre-existing `WordRepository.ts` error untouched).
 - **User test checkpoint:** review a course word on mobile → same due date and
   state on web; review one on web → reflected on mobile after refresh.
 
