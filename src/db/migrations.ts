@@ -1,4 +1,6 @@
 import { DB } from './types';
+import { FsrsAdapter } from '../srs/fsrs-adapter';
+import { convertLegacyProgress, difficultyAnchors } from '../srs/legacyConversion';
 
 export interface Migration {
   version: number;
@@ -346,7 +348,119 @@ export const migrations: Migration[] = [
     `);
     },
   },
+  {
+    version: 10,
+    up: async db => {
+      // FSRS card columns on word_progress, replacing the 6-stage model
+      // (course-integration plan, Step 9.3). The old columns — memoryStage,
+      // nextReview, shortTermStrength, longTermStrength — are deliberately
+      // KEPT and left untouched: the conversion below is lossy and
+      // one-directional, so rollback has to mean "stop reading the new
+      // columns", not "convert back". A later migration drops them once the
+      // FSRS path is proven.
+      //
+      // Prefixed names because word_progress already has `status` and
+      // `lastReviewed` meaning something else.
+      await addColumnIfMissing(db, 'word_progress', 'fsrsState', 'TEXT');
+      await addColumnIfMissing(db, 'word_progress', 'fsrsStability', 'REAL');
+      await addColumnIfMissing(db, 'word_progress', 'fsrsDifficulty', 'REAL');
+      await addColumnIfMissing(db, 'word_progress', 'fsrsDueAt', 'INTEGER');
+      await addColumnIfMissing(db, 'word_progress', 'fsrsReps', 'INTEGER');
+      await addColumnIfMissing(db, 'word_progress', 'fsrsLapses', 'INTEGER');
+      await addColumnIfMissing(db, 'word_progress', 'fsrsElapsedDays', 'REAL');
+      await addColumnIfMissing(db, 'word_progress', 'fsrsScheduledDays', 'REAL');
+      await addColumnIfMissing(db, 'word_progress', 'fsrsLearningSteps', 'INTEGER');
+      await addColumnIfMissing(db, 'word_progress', 'fsrsLastReviewedAt', 'INTEGER');
+      await addColumnIfMissing(db, 'word_progress', 'fsrsProfileId', 'TEXT');
+
+      // Due queries become "dueAt <= now" per deck instead of the old
+      // status/stage scan.
+      await db.execute(`
+      CREATE INDEX IF NOT EXISTS idx_word_progress_fsrs_due
+        ON word_progress(deckId, fsrsDueAt);
+    `);
+
+      await backfillFsrsCards(db);
+    },
+  },
 ];
+
+/**
+ * One-time conversion of existing 6-stage progress into FSRS cards.
+ *
+ * Idempotent and re-runnable: it only touches rows with no fsrsProfileId yet,
+ * which matters because the migration runner records a version only after
+ * `up()` succeeds — a failure part-way through means the whole migration runs
+ * again on the next launch.
+ *
+ * Course words are skipped entirely. Their schedule belongs to the server
+ * (plan Phase 8), and the local 6-stage engine was already suppressed for them
+ * in Step 8.1b-3, so there is no local history worth converting.
+ *
+ * NOTE for the read/write path (Step 9.4): this backfill is not the only way a
+ * row can exist. `seedIfEmpty()` runs *after* migrations, and the vocabulary
+ * importer inserts rows at any time, so a word_progress row with a NULL
+ * fsrsProfileId is normal and means "not an FSRS card yet". Callers must treat
+ * that as a fresh card to introduce, never as a card with stability 0.
+ */
+async function backfillFsrsCards(db: DB): Promise<void> {
+  const engine = new FsrsAdapter();
+  const now = Date.now();
+  const anchors = difficultyAnchors(engine, now);
+
+  const result = await db.execute(`
+    SELECT wp.id, wp.memoryStage, wp.nextReview, wp.lastReviewed,
+           wp.reviewCount, wp.successCount
+    FROM word_progress wp
+    JOIN words w ON w.id = wp.wordId
+    WHERE wp.fsrsProfileId IS NULL
+      AND w.platformItemId IS NULL;
+  `);
+
+  const rows = result.rows ?? [];
+  if (rows.length === 0) {
+    console.log('[DB] v10: no legacy word_progress rows to convert');
+    return;
+  }
+
+  const updates = rows.map(row => {
+    const card = convertLegacyProgress(
+      {
+        memoryStage: (row.memoryStage ?? 0) as number,
+        nextReview: (row.nextReview ?? null) as number | null,
+        lastReviewed: (row.lastReviewed ?? null) as number | null,
+        reviewCount: (row.reviewCount ?? 0) as number,
+        successCount: (row.successCount ?? 0) as number,
+      },
+      anchors,
+      engine.profileId,
+      now,
+    );
+
+    return [
+      `UPDATE word_progress
+          SET fsrsState = ?, fsrsStability = ?, fsrsDifficulty = ?, fsrsDueAt = ?,
+              fsrsReps = ?, fsrsLapses = ?, fsrsElapsedDays = ?, fsrsScheduledDays = ?,
+              fsrsLearningSteps = ?, fsrsLastReviewedAt = ?, fsrsProfileId = ?
+        WHERE id = ?;`,
+      [
+        card.state, card.stability, card.difficulty, card.dueAt,
+        card.reps, card.lapses, card.elapsedDays, card.scheduledDays,
+        card.learningSteps, card.lastReviewedAt, card.profileId,
+        row.id as number,
+      ],
+    ] as [string, (string | number | null)[]];
+  });
+
+  // Chunked so a large personal library is a handful of native calls rather
+  // than one call per word.
+  const CHUNK = 200;
+  for (let i = 0; i < updates.length; i += CHUNK) {
+    await db.executeBatch(updates.slice(i, i + CHUNK));
+  }
+
+  console.log(`[DB] v10: converted ${updates.length} word_progress rows to FSRS cards`);
+}
 
 async function addColumnIfMissing(
   db: DB,
