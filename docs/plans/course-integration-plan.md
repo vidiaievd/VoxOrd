@@ -1729,7 +1729,8 @@ card with stability 0.
 Suite: **568 passed / 33 suites** (was 540/32), only the environmental
 `App.test.tsx` failing. `tsc --noEmit` and eslint at baseline.
 
-**User test checkpoint (not yet run) — the first step that touches real data.**
+**User test checkpoint — PASSED (2026-07-28).** The first step that touched
+real data. Original instructions kept below for the record.
 Back up the device DB first (`adb` pull, per the recorded procedure) so a bad
 conversion is recoverable.
 1. Launch the app and watch Metro logs for `[DB] v10: converted N
@@ -1756,8 +1757,118 @@ Original spec for reference:
   words, owned by the server.
 - Pure conversion function with its own tests; the migration only applies it.
 
-### Step 9.4 — Switch the write path to FSRS
+### Step 9.4 — Switch the write path to FSRS — DONE (2026-07-28, VoxOrd `05c2433`, `00712a5`, `831057f`)
 
+Sequenced as pure logic → data layer → UI, one commit each, per the working
+agreement established in 8.1b.
+
+#### Two decisions taken before writing any code
+
+**1. Dual write, not a cutover.** Step 9.5 still reads the 6-stage columns
+everywhere (`getNextWord`, deck counts, stats, "Stage N"). Had 9.4 stopped
+writing them, the app between 9.4 and 9.5 would be visibly broken — words
+frozen at stage 0, `getNextWord` cycling the same word, counters lying — and
+the step's own checkpoint ("behaves exactly as before") would be unverifiable.
+So `recordAnswer` keeps writing 6-stage per answer, `applyReview` writes FSRS
+per session, and 9.5 flips the reads and removes the legacy write. This also
+keeps 9.3's rollback story literally true: revert = stop reading the new
+columns.
+
+**2. `flashcard` is graded for personal words, capped at `GOOD`.** The course
+grader scores only `quiz | listening | context | spelling`, but personal decks
+offer flashcards as a *standalone activity* ("Self Assessment" in
+`ModeSelector`, and all of `CardScreen`). Under a strict reuse those sessions
+would schedule nothing, leaving swiped words due forever — the worst outcome
+precisely for new material, which is what flashcards are for. Rejected
+alternatives: leaving them unscored (above), and "introduce-only" (the mode
+would work once per word and then go silently inert — unexplainable to a user).
+
+The rule has three parts, each derived from a decision already taken rather
+than invented here:
+- **Measured performance wins outright when present.** Not cosmetic: Deep
+  Session opens with flashcards over the same words it then tests, so without
+  discarding the swipe, rule 6's "every mode first-try" would fail and a
+  flawless spelling result would silently degrade `EASY` → `GOOD`.
+- **Self-report alone never earns `EASY`** — measured, `EASY` skips the
+  learning phase and jumps ~8 days.
+- **A swipe left is `AGAIN` at face value.** The unreliable half of self-report
+  is the claim of knowing, not the admission of not knowing, and an extra
+  review is the safe direction to err in.
+
+The 2026-07-27 rejection of self-assessment was about *asking the user to rate
+an FSRS card* inside an auto-graded course review. Here the user chose a mode
+that is literally called Self Assessment, and the 6-stage engine already
+advanced a stage on exactly this signal — so scoring it is parity, not a new
+demand. `matching` stays unscored for its original reason: the pool narrows as
+pairs are consumed, so the last pair is correct for free. Consequence to
+sanity-check in 9.5: a matching-only or (post-9.5) flashcard-free session
+schedules nothing.
+
+#### Step 9.4-1 — grading logic (VoxOrd `05c2433`)
+
+`gradePersonalWord` beside `gradeWord` in `sessionGrader.ts`; `gradeWord` now
+discards `flashcard` outcomes explicitly. `gradeSession`/`answeredCount` take
+the grader as a parameter instead of being duplicated — the ledger is identical
+for both word origins. 580 passed / 33 suites (was 568).
+
+#### Step 9.4-2 — data layer (VoxOrd `00712a5`)
+
+`srs/cardRow.ts` is the pure half so it can be tested at all: the repository
+cannot be, since `db/database.ts` opens SQLite at import time. Same division as
+`legacyConversion.ts` and the v10 migration.
+
+`readCard` returns `null` for a row holding no card, **which is the normal case,
+not an error** — the exact trap the v10 note flagged for 9.4. Reading such a row
+as a card would hand FSRS a zero-stability REVIEW card instead of introducing
+one. A row with a profile but an unreadable state is treated the same way and
+warned about: it can only come from our own writes, and restarting the card is
+recoverable where feeding a bogus state to the scheduler is not.
+
+`ProgressRepository.applyReview` puts the **course-word guard in SQL, not in the
+caller**, because Phase 5.2's "Save to VoxOrd deck" put server-owned words into
+ordinary local decks — `skipLocalProgress` at the hook level is not enough. The
+v10 backfill skipped them on the same rule. A foreign `profileId` is carried
+forward with a one-time warning rather than reset: discarding a card's history
+is worse, and `review()` restamps on the way out.
+
+592 passed / 34 suites (was 580).
+
+#### Step 9.4-3 — session driver + screen wiring (VoxOrd `831057f`)
+
+`usePersonalSession` — the local counterpart of `useCourseReviewSession`, same
+reason: **one rating per word per sitting**. Deep Session runs the same word set
+through four phases, so grading per phase would reschedule one card four times.
+
+Hence a session belongs to whoever owns the whole sitting, never to an
+individual exercise. `useOwnedTracking` encodes it: an exercise handed tracking
+from above is someone else's phase; one that is not owns its session. Its own
+session is always constructed (hooks cannot be conditional) but stays inert — a
+session with no answers grades nothing. Grading also runs on unmount so backing
+out mid-way still credits answered words; `finish` is idempotent.
+
+`useContext` and `useCard` gained the tracking parameter the other three
+exercises already had. In `useCard` only `assessment` records — Deep Session's
+flashcard phase runs in `review` mode, which writes nothing and is graded by the
+measured phases after it.
+
+No new tests: the repo has no hook or screen tests and no testing-library
+(ground rule 6 — those are verified on device). The logic underneath is covered
+by 9.4-1 and 9.4-2.
+
+**User test checkpoint (not yet run).** Everything must behave **exactly as
+before** — this step is deliberately invisible, since nothing reads the FSRS
+columns until 9.5. Any visible change is a bug, not progress.
+1. Run each personal mode (Self Assessment, Quiz, Spelling, Listening,
+   Context, Matching) and a Deep Session; stage progress, deck counters, XP and
+   stats must move as they always did.
+2. Optionally pull the DB and check `fsrs*` columns now advance for personal
+   words after a session ends: `fsrsReps` +1 per session (**not per answer, and
+   not per Deep Session phase** — that is the thing worth verifying), `fsrsDueAt`
+   in the future, `fsrsProfileId = 'fsrs-6-default-v1'`.
+3. Course words imported into a local deck must still have all `fsrs*` columns
+   NULL — the SQL guard.
+
+Original spec for reference:
 - Replace `SpacedRepetition` (6-stage) with the `FsrsAdapter` for personal
   (non-course) words, so on-device scheduling uses the same engine and card
   shape as the server.
