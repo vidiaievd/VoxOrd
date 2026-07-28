@@ -1554,30 +1554,121 @@ Suite: **346 passed / 30 suites** (was 318/28), only the environmental
 word engine and **migrates real user learning data**. Do it on its own branch,
 with a reversible migration and the full Jest suite green before and after.
 
+### Research findings (2026-07-28, verified against actual source)
+
+- **The server's FSRS profile was never frozen.** `fsrs-scheduler.ts:41` was
+  literally `new FSRS({ maximum_interval: maxInterval })` — `w`,
+  `request_retention`, `enable_short_term`, `enable_fuzz` and the learning steps
+  all came from ts-fsrs defaults. The `SSZ_FSRS_V1` sketch in this plan's
+  abstraction section describes something that did not exist yet.
+- **The installed defaults are FSRS-6 (21 weights), not FSRS-5 (19)** as that
+  sketch assumed. `ts-fsrs` resolves to **5.4.0** (`package.json` says `^5.3.2`).
+  The defaults match Step 8.1b's measured first-review spread exactly
+  (`w[0..3] = 0.212 / 1.2931 / 2.3065 / 8.2956` → the observed stabilities), so
+  the live server is confirmed to be running stock FSRS-6 defaults.
+- `SRS_MAX_INTERVAL_DAYS` is set nowhere in the repo → the effective cap is the
+  schema default, **365**.
+- **The 6-stage engine is called from exactly one place** —
+  `ProgressRepository.recordAnswer()` (`SpacedRepetition.processAnswer`). But the
+  *columns* it writes are read much more widely: `db/words.ts` (`getNextWord`
+  filters and orders by `nextReview` + `memoryStage`), `SessionEngine` (word
+  ordering), `getStageDistribution` (stats), `FlipCard.tsx:162` ("Stage N").
+- **`DeckRepository`'s `newWords`/`repeatWords` count the text `status` column,
+  not actual due-ness** (`DeckRepository.ts:41-44`). So Home's Study-Now widget
+  from 8.1b-4 currently shows "words at stage 1–3", not "words due now". Under
+  FSRS due-ness becomes exact, which is a **behaviour change** on that widget —
+  intended, but call it out when testing.
+- **Course words are already excluded** from local scheduling
+  (`skipLocalProgress`, Step 8.1b-3), but their `word_progress` rows still exist
+  and stay `status = 'new'`. The migration must leave them alone; the new FSRS
+  path must keep skipping any word with `platformItemId IS NOT NULL`.
+
+### Decisions taken with the user (2026-07-28)
+
+1. **Rating comes from performance, never self-report** — the existing
+   `sessionGrader` / `sessionEvidence` from Step 8.1b is reused for personal
+   words, giving both word origins one identical, already-tested signal and no
+   UX change. (Rejected: binary `correct→GOOD` / `wrong→AGAIN`, which loses
+   `EASY` — the only route to long intervals — and would make personal words
+   repeat far more often than course words; and Anki-style buttons, the
+   self-assessment UX already rejected in 8.1b.)
+2. **The profile is frozen on both sides**, under one shared
+   `profileId = 'fsrs-6-default-v1'`. (Rejected: freezing only on mobile, which
+   leaves a server-side ts-fsrs upgrade free to silently redefine course cards —
+   exactly what `profileId` exists to prevent.)
+3. **Existing personal progress is converted, not reset**: `memoryStage` →
+   FSRS card state, with `dueAt` taken from the existing `nextReview`. The
+   conversion is lossy and one-directional and is documented as a table. Old
+   columns are kept, so rollback is "stop reading the new ones". (Rejected:
+   resetting everything to NEW, which would dump every learned word back into
+   the queue.)
+
+### Step 9.1 — Freeze the server's FSRS profile — DONE (2026-07-28, ssz-platform `78218cf`)
+
+`services/learning-service/src/modules/srs/infrastructure/scheduler/fsrs-profile.ts`
+(`SSZ_FSRS_PROFILE`, id `fsrs-6-default-v1`, explicit 21 weights + retention +
+flags + steps) and `fsrs-scheduler.ts` now constructs `FSRS` from it.
+`SRS_MAX_INTERVAL_DAYS` stays overridable for operations; the profile supplies
+the default.
+
+**Numerically a no-op, proven not assumed:** all rating sequences of depth 5
+(1364 transitions) replayed through the old and new scheduler configs produced
+identical `state / stability / difficulty / scheduled_days / due / reps /
+lapses / learning_steps`. `tsc --noEmit` clean apart from the pre-existing
+`@ssz/messaging` module-resolution errors (unbuilt workspace package).
+
+**Open item, deliberately not in 9.1:** the server's `srs_review_cards` rows do
+not store `profile_id`, so a server-side profile change is currently
+detectable in code but not per-card. Adding the column is a Prisma migration
+with its own blast radius; sequence it separately once the mobile side proves
+the contract.
+
+### Step 9.2 — SRS wrapper in VoxOrd — needs `ts-fsrs@5.4.0` installed first
+
 - **Build the SRS engine wrapper** (`src/srs/`: `engine.port.ts`,
   `profiles.ts`, `fsrs-adapter.ts`) per the "SRS engine abstraction & FSRS
   parity" section — this is where `ts-fsrs` first enters the app (course words
   in Phase 8 need no client FSRS). Mirror the server's frozen profile exactly;
   unit-test with **golden vectors captured from the server** (a fixed
   (card, rating, reviewedAt) triple must reproduce the server's card).
-- Replace `SpacedRepetition` (6-stage) with the `FsrsAdapter` for personal
-  (non-course) words, so on-device scheduling uses the same engine and card
-  shape as the server.
+### Step 9.3 — Migration v10: FSRS columns + one-time conversion
+
 - Migrate `word_progress`: add FSRS columns (`state, stability, difficulty,
   dueAt, reps, lapses, elapsedDays, scheduledDays, learningSteps,
   lastReviewedAt, profileId`); seed them from the existing `memoryStage` /
   strength as a best-effort one-time conversion (document the mapping — it is
   lossy and one-directional). Keep the old columns until the new path is proven,
   then drop them in a later migration.
-- Decide the answer→rating input: either map the existing binary
-  correct/incorrect to `AGAIN`/`GOOD` (lossy, no UX change) or add Anki-style
-  `AGAIN/HARD/GOOD/EASY` buttons (better FSRS signal, UX change). Confirm with
-  the user at this step.
+- Follow the v8/v9 lesson: check `PRAGMA table_info` before each `ADD COLUMN`
+  (the runner wraps nothing in a transaction and SQLite rejects a duplicate
+  add), so a partial failure is safe to re-run.
+- Skip rows whose word has `platformItemId IS NOT NULL` — those are course
+  words, owned by the server.
+- Pure conversion function with its own tests; the migration only applies it.
+
+### Step 9.4 — Switch the write path to FSRS
+
+- Replace `SpacedRepetition` (6-stage) with the `FsrsAdapter` for personal
+  (non-course) words, so on-device scheduling uses the same engine and card
+  shape as the server.
+- Rating comes from `sessionGrader` (decision 1): thread `sessionEvidence`
+  through the ordinary per-deck sessions the way `useCourseReviewSession`
+  already does, and grade once per word at session end instead of per answer.
+  This changes `recordAnswer`'s shape — it is currently called per answer from
+  `useQuiz`/`useListening`/`useSpelling`/`useCard`/`useMatching`/`useContext`.
 - `word_mode_strength` stays as the local-only exercise-mode picker, untouched.
 - Personal words remain offline-first: no server sync in this phase; the payoff
   is one engine to maintain and future sync-readiness, not immediate sync.
+
+### Step 9.5 — Read paths and UI that still speak 6-stage
+
+- `db/words.ts` `getNextWord` (orders by `nextReview`/`memoryStage`),
+  `SessionEngine` ordering, `getStageDistribution`, `FlipCard`'s "Stage N",
+  and `DeckRepository`'s status-based `newWords`/`repeatWords` → real due-ness.
 - **User test checkpoint:** existing decks keep working; scheduling behaves
-  sensibly for words mid-progress; the migration is reversible.
+  sensibly for words mid-progress; the migration is reversible; Home's
+  Study-Now counts change meaning (status → real due-ness) and should be
+  sanity-checked.
 
 ## Risks / open questions (track while implementing)
 
