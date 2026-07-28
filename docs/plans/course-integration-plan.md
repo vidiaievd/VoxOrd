@@ -281,7 +281,7 @@ it (`ssz-platform-web/src/app/api/learning/**/route.ts`).
 
 ---
 
-## Phase 0 — Planning sanity check (no code)
+## Phase 0 — Planning sanity check (no code) — DONE
 
 **Step 0.1 — DONE (2026-07-19).** Endpoint map above is confirmed against
 `nginx.dev.conf` and the actual controllers. Findings: gateway dev port is
@@ -291,7 +291,18 @@ discrepancies with the original plan — architecture decisions all hold.
 
 ---
 
-## Phase 1 — Networking foundation & auth
+## Phase 1 — Networking foundation & auth — DONE
+
+> **Status reconciliation (2026-07-28).** Phases 1–4 were built and device-tested
+> as they went, but only some step headings ever got a marker — the habit of
+> stamping each one started at Phase 5. Rather than invent commits after the
+> fact, the deliverables were re-verified in source when Phase 9 closed:
+> `src/api/` (client, auth, courses, lessons, exercises, progress, unit
+> contents), the Courses / CourseHome / UnitContents / LessonReader screens, and
+> `ExerciseRunner` with all seven non-writing templates plus `writing_task`'s
+> "submitted for review" state — each with its Jest coverage. Everything Phases
+> 5–9 built sits on top of these and has been exercised on device many times
+> since. Treat the phases as done; the per-step prose below is the original spec.
 
 ### Step 1.1 — API client core
 Create `src/api/client.ts`:
@@ -356,7 +367,7 @@ Original spec for reference:
   restore flow, logout clears Keychain.
 - Android cleartext config for `10.0.2.2` (see Architecture decisions).
 
-### Step 1.4 — Login screen + Courses tab shell — CODE DONE, needs your on-device test (2026-07-19)
+### Step 1.4 — Login screen + Courses tab shell — DONE (2026-07-19; on-device login confirmed many times since)
 Implemented: third bottom tab **Courses** in `RootNavigator.tsx` (`Tab` union
 extended to `Home | Courses | Settings`, `SCREEN_FOR_TAB` map replaces the old
 Settings-only ternary). `src/screens/CoursesScreen/index.tsx` switches on
@@ -391,7 +402,7 @@ if you have an MFA-enabled test account, confirm it shows the
 
 ---
 
-## Phase 2 — Course list & course home
+## Phase 2 — Course list & course home — DONE
 
 ### Step 2.1 — Enrollments + course list
 - `src/api/courses.ts`: `getMyEnrollments()`, then fetch each course's
@@ -422,7 +433,7 @@ if you have an MFA-enabled test account, confirm it shows the
 
 ---
 
-## Phase 3 — Lesson reader (text MVP)
+## Phase 3 — Lesson reader (text MVP) — DONE
 
 Reference implementation: `ssz-platform-web/src/features/student/reader/`.
 
@@ -446,7 +457,7 @@ Reference implementation: `ssz-platform-web/src/features/student/reader/`.
 
 ---
 
-## Phase 4 — Exercise runner
+## Phase 4 — Exercise runner — DONE
 
 Reference: `ssz-platform-web/src/features/student/exercises/runner/`.
 Validation is **server-side** via the exercise-engine attempts endpoint —
@@ -496,7 +507,7 @@ the mobile app never contains answer-checking logic for platform exercises.
 
 ---
 
-## Phase 5 — Vocabulary lists in courses (read-only) — ⚠️ switch to Opus (see Model guidance)
+## Phase 5 — Vocabulary lists in courses (read-only) — DONE — ⚠️ switch to Opus (see Model guidance)
 
 ### Research findings (2026-07-25, verified against content-service source)
 
@@ -643,7 +654,7 @@ Original spec for reference:
 
 ---
 
-## Phase 6 — Course-home enrichment & resilience — ⚠️ switch to Opus (see Model guidance)
+## Phase 6 — Course-home enrichment & resilience — DONE — ⚠️ switch to Opus (see Model guidance)
 
 **Model note:** user decided (2026-07-25) to stay on Sonnet for the whole
 phase, including the nginx gateway fix — the facts were fully pre-verified by
@@ -769,7 +780,7 @@ payloads so the unit is *guaranteed* available offline. It layers on the same
 cache + review queue; add it once the passive path is proven. Not required for
 the first offline iteration.
 
-## Phase 7 — Media (audio first)
+## Phase 7 — Media (audio first) — DONE
 
 ### Research findings (2026-07-25, verified against content-service/media-service source)
 
@@ -855,7 +866,7 @@ setup so far).
 Video (`LessonVideoCue`, `LessonVideoQuestion`) remains explicitly **out of
 scope** for this plan; note it as a follow-up.
 
-## Phase 8 — Course word/grammar trainer on mobile (thin client, server-authoritative) — Sonnet
+## Phase 8 — Course word/grammar trainer on mobile (thin client, server-authoritative) — DONE — Sonnet
 
 Turns the platform's existing per-word FSRS into a mobile trainer. The engine
 already exists server-side AND the web trainer (`ssz-platform-web`
@@ -1547,10 +1558,15 @@ Suite: **346 passed / 30 suites** (was 318/28), only the environmental
 
 ---
 
-## Phase 9 — Retire the 6-stage engine, FSRS for personal words — ⚠️ Opus — CODE COMPLETE (2026-07-28), awaiting device test
+## Phase 9 — Retire the 6-stage engine, FSRS for personal words — ⚠️ Opus — DONE (2026-07-28), device test passed
 
-All five steps are implemented on branch `feature/fsrs-personal-words`. The
-device test checklist is at the end of this phase, under Step 9.5.
+All five steps are implemented on branch `feature/fsrs-personal-words`, and the
+device checklist at the end of Step 9.5 passed in full (14/14, A–F). The two
+findings from that run are fixed under Step 9.6, and the bookkeeping oddity it
+turned up under Step 9.7.
+
+**This is the last phase of the plan.** Phases 0–9 are done; what remains open
+is listed at the very end, under "Still open (deliberately, not forgotten)".
 
 ⚠️ This phase deliberately **overrides ground rule #1** (do not modify
 `src/db/`, `src/learning-engine/`, `src/repositories/`). It rewrites the local
@@ -2009,6 +2025,129 @@ one Deep Session:
 14. Start a session, answer 2–3 words, then hit back. Those words must still be
     scheduled (their `fsrsReps` went up); words never answered must not be.
 
+### Step 9.6 — Device-test follow-ups — DONE (2026-07-28)
+
+The checklist passed 14/14, including the ones that mattered most: B6 (no word
+cycling), C7 (`fsrsReps` +1 per sitting, Deep Session included), D9 (course
+words untouched by the local engine). Two findings were left unfixed during the
+test run and are fixed here.
+
+#### Quiz and Listening were silently skipped on small sets
+
+Both repositories bailed with `if (pool.length < OPTIONS_COUNT) return []`, so a
+set of fewer than four words produced *no questions* — the screen opened, found
+an empty queue and completed instantly. Reproduced live: a Deep Session on the
+two-word "Технологии" set ran Flashcards and Spelling only, with nothing saying
+the other two phases had been skipped.
+
+Pre-existing code, but Phase 9 made small sets routine by putting Deep Session
+on personal decks.
+
+**Fixed by topping the distractor pool up from the whole dictionary** rather
+than by hiding the modes. The deck is still asked first, so options stay topical
+when the deck can supply them; only a deck that cannot fill four options reaches
+outside itself. Rejected the alternative — dropping Quiz/Listening from
+`PHASE_ORDER` and `ModeSelector` below four words — because it removes half of
+Deep Session from exactly the small sets it was built for, and it would mean
+teaching the phase machinery a variable phase count (`totalPhases`, the header,
+the index arithmetic) to deliver *less* exercise.
+
+Two consequences are deliberate:
+
+- **Off-topic distractors make a small-set question easier** than a topical set
+  would. That is the price of the exercise running at all.
+- **Options shrink below four before a question is dropped** — the answer plus
+  at least one distractor. Only a one-word dictionary drops a word entirely, and
+  a translation matching the answer is skipped rather than offered, since a
+  dictionary-wide pool makes a synonym collision plausible.
+
+The two repositories were near-duplicates and stay so, edited in step.
+
+#### One lost FSRS update in Deep Session — hardened, cause never found
+
+A correct Spelling answer was recorded in `session_results` while the word's
+`fsrsReps` stayed 0. Never reproduced (a clean four-word rerun scheduled all
+four), logcat was gone by the time it was investigated, and Metro was showing
+"Fast Refresh disconnected" at that moment — so a dev-build hiccup is as likely
+as a real throw. Not chased blind on the device.
+
+What *was* wrong regardless: `usePersonalSession.finish()` scheduled its words
+in a bare loop, and `finish` is called with neither `await` nor `.catch` from
+both call sites (the unmount cleanup and the phase-complete effect). One word
+throwing therefore ended the loop, dropped every word after it, and surfaced
+nowhere — and since a session grades exactly once, there is no later run to pick
+them up. Now each word has its own `try`/`catch` with a `console.warn` naming the
+word and rating, in the shape `warnedForeignProfiles` already uses. The XP write
+is wrapped for the same reason: an unawaited caller would turn it into an
+unhandled rejection.
+
+Covered by unit tests instead of another device run: `applyReview` mocked to
+throw on the second of three words asserts the third is still scheduled, that
+the failure is logged with its word id, that `finish` does not reject, and that
+the words that succeeded still earn their XP.
+
+#### Duplicate `learning_sessions` rows per phase — diagnosed here, fixed in 9.7
+
+Each measured Deep Session phase opens its own `sessionType: 'quick'` row
+alongside the `'deep'` row, and the device test sometimes showed **two** per
+phase — one empty and unfinished, one real.
+
+Confirmed harmless, and confirmed *not* a dev-mode artifact:
+
+- **Harmless**: nothing user-visible reads these rows. XP reaches the user via
+  `userRepository.addXP` and `daily_activity`, never from `learning_sessions`;
+  FSRS is written by `usePersonalSession`; the Deep Session cooldown filters
+  `sessionType = 'deep'`; `getRecent` and `getStreakDays` both require
+  `finishedAt IS NOT NULL` (and have no callers today). The cost is orphan rows
+  accumulating slowly.
+- **Not dev-only**: there is no `StrictMode` in the app. `loadWordsByIds` ends in
+  `ORDER BY RANDOM()`, so every phase change hands the exercise a *reordered*
+  `overrideWordIds`; the exercise hooks key their setup effect on
+  `JSON.stringify(overrideWordIds)`, so it re-runs and calls
+  `sessionRepository.create` a second time. On a two-word set the reshuffle
+  changes the order half the time — matching "sometimes two rows". It happens in
+  release builds too.
+
+`tsc --noEmit` clean, eslint clean on every touched file. `App.test.tsx` fails
+to load op-sqlite's native module in Jest, before and after, as it always has.
+
+### Step 9.7 — Duplicate session rows + plan reconciliation — DONE (2026-07-28)
+
+#### The duplicate rows, fixed in two layers
+
+**The churn itself**, in `DeepSessionScreen`: the exercises were handed
+`state.wordsForPhase.map(w => w.wordId)` — the *re-fetched, reshuffled* list.
+They now get `state.allWordIds`, fixed when the session loaded. Flashcards keep
+taking the shuffled objects, because presentation order is exactly what they
+want; the other three shuffle internally anyway, so nothing about what the user
+sees changes.
+
+**The class of bug**, in the three exercise hooks: their setup effect now keys
+on `wordSetKey(overrideWordIds)` instead of `JSON.stringify(...)`. A set is the
+same set whatever order it arrives in, so no future caller can re-trigger this
+by reordering. "No override" and "empty override" stay distinct keys — the
+repositories read them differently (whole deck vs. `LIMIT 0`).
+
+Both layers are deliberate: the first removes today's trigger, the second makes
+the mistake unrepeatable. Neither touches `src/db/`, `src/learning-engine/` or
+`src/repositories/`, so this step needs no ground-rule override.
+
+Tested at the hook level, where the bug actually lived: `useQuiz` rendered with
+`[1,2,3]` then re-rendered with `[3,1,2]` and `[2,3,1]` must open **one**
+session, while `[1,2,4]` must open a second. Verified the reshuffle test fails
+against the pre-fix dependency and passes after. `useListening`/`useSpelling`
+are the same code; `wordSetKey` has its own unit tests.
+
+#### Plan reconciliation
+
+Phases 0–4 were stamped DONE after re-verifying their deliverables in source
+(see the note under Phase 1) — they had been built and device-tested as they
+went, but the habit of marking each step only started at Phase 5. Step 1.4's
+"needs your on-device test" was nine days stale.
+
+Full suite: **635 passed / 40 suites** (was 606 / 35 entering Step 9.6),
+`tsc --noEmit` clean, eslint clean on every touched file.
+
 Original spec for reference:
 - `db/words.ts` `getNextWord` (orders by `nextReview`/`memoryStage`),
   `SessionEngine` ordering, `getStageDistribution`, `FlipCard`'s "Stage N",
@@ -2018,26 +2157,46 @@ Original spec for reference:
   Study-Now counts change meaning (status → real due-ness) and should be
   sanity-checked.
 
-## Risks / open questions (track while implementing)
+## Risks / open questions — closed (2026-07-28)
 
-1. Exact gateway paths for learning-service aggregates (progress, unit
-   contents) — resolve in Step 0.1; some BFF paths may have no direct
-   gateway equivalent and need composition.
-2. MFA-enabled accounts can't log in on mobile in this plan (explicit
-   limitation; test account should have MFA disabled).
-3. Token audience/claims: verify the C# service issues tokens accepted by
-   NestJS services when called from mobile (same as web — should be fine,
-   confirm in Step 1.4 testing).
-4. Media URLs may be short-lived/signed — affects Phase 7 caching.
-5. `writing_task` may require teacher-review flows that don't fit mobile MVP —
-   confirm scope at Step 4.5.
+1. **Gateway paths for learning-service aggregates** — resolved in Step 0.1; the
+   one real gap (mastery / can-do routes) was found there, fixed on the platform
+   side in commit `1eea7fa`, and is recorded under "Gateway gap — FIXED".
+2. **MFA-enabled accounts cannot log in on mobile** — stands as an accepted
+   limitation, not a defect. `LoginForm` reports it distinctly via
+   `MfaNotSupportedError` rather than failing opaquely; such accounts use the
+   web app. Revisit only if a real user hits it.
+3. **Token audience / claims** — no issue; the C# service's tokens are accepted
+   by the NestJS services from mobile exactly as from web. Confirmed at Step 1.4
+   and by every phase since.
+4. **Short-lived / signed media URLs** — settled in Phase 7's research: the URLs
+   are stable enough to cache, and the reader fetches them per lesson. No
+   expiry-handling was needed.
+5. **`writing_task` teacher-review flow** — scoped down at Step 4.5 as planned.
+   Mobile submits and shows "submitted for review"; it never auto-scores and
+   never shows a verdict. Review itself stays on web.
 
-## Definition of done (for the whole plan, Phases 0–6)
+## Still open (deliberately, not forgotten)
+
+- **Offline access level 2** — see "Offline access — future level 2 (not v1)"
+  under Phase 6. Course content is cached for reading; a full offline exercise
+  flow is out of scope for v1.
+- **Local SRS treats every exercise mode as equal evidence.** `gradePersonalWord`
+  folds flashcard self-report, quiz, listening and spelling into one rating
+  without weighting them, even though they measure different things (recognition
+  vs. production). Raised after Step 8.1b-4, never filed as work. It is a design
+  question — whether production modes should carry more weight than recognition
+  ones — and needs a decision before any code.
+
+## Definition of done (Phases 0–6) — met
 
 - User can: log in → see courses → open course → read a lesson with glossary
   and translations → complete exercise sets of all 7 non-writing templates →
-  see identical progress on the web app.
+  see identical progress on the web app. ✅ verified on device across Phases 2–6.
 - Word learning (decks, sessions, stats, settings) behaves byte-for-byte as
-  before — verified by running the existing Jest suite and a manual smoke
-  test.
+  before. ✅ held through Phase 6. **Phase 9 deliberately ends this clause**: it
+  replaced the 6-stage engine with FSRS, so local scheduling is *intentionally*
+  no longer byte-for-byte — the changes are enumerated under Step 9.5's
+  "Intended behaviour changes" and were confirmed on device.
 - All new pure logic (auth lifecycle, composition, mappers) covered by Jest.
+  ✅ 635 tests / 40 suites.

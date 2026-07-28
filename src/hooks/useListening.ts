@@ -4,6 +4,7 @@ import { sessionRepository } from '../repositories/SessionRepository';
 import { wordModeStrengthRepository } from '../repositories/WordModeStrengthRepository';
 import { listeningRepository } from '../repositories/ListeningRepository';
 import type { ExerciseTracking } from './exerciseTracking';
+import { wordSetKey } from './wordSetKey';
 
 export interface ListeningQuestion {
   wordId: number;
@@ -122,7 +123,7 @@ export function useListening(
       cancelled = true;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deckId, JSON.stringify(overrideWordIds)]);
+  }, [deckId, wordSetKey(overrideWordIds)]);
 
   // Auto-play when question changes AND tts is ready — unchanged
   useEffect(() => {

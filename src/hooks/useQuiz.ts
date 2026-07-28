@@ -3,6 +3,7 @@ import { sessionRepository } from '../repositories/SessionRepository';
 import { wordModeStrengthRepository } from '../repositories/WordModeStrengthRepository';
 import { quizRepository } from '../repositories/QuizRepository';
 import type { ExerciseTracking } from './exerciseTracking';
+import { wordSetKey } from './wordSetKey';
 
 export interface QuizQuestion {
   wordId: number;
@@ -78,7 +79,7 @@ export function useQuiz(
       cancelled = true;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deckId, JSON.stringify(overrideWordIds)]);
+  }, [deckId, wordSetKey(overrideWordIds)]);
 
   const selectOption = useCallback(
     (option: string) => {

@@ -85,7 +85,14 @@ export function DeepSessionScreen({
     );
   }
 
-  const wordIds = state.wordsForPhase.map(w => w.wordId);
+  // The session's own id list, fixed when the session loaded — not the ids of
+  // `wordsForPhase`, which is re-fetched per phase with `ORDER BY RANDOM()` and
+  // therefore arrives in a new order every time. The exercises keyed their
+  // setup effect on these ids, so the reshuffle re-ran it and each phase opened
+  // a second, empty `learning_sessions` row. Flashcards still take the shuffled
+  // objects — presentation order is exactly what they want; the other three
+  // shuffle internally anyway.
+  const wordIds = state.allWordIds;
   const header = (
     <PhaseHeader
       phase={state.phase}

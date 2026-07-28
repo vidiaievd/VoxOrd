@@ -4,6 +4,7 @@ import { spellingRepository } from '../repositories/SpellingRepository';
 import { wordModeStrengthRepository } from '../repositories/WordModeStrengthRepository';
 import { settingsStore, SpellingHintMode } from '../store/settingsStore';
 import type { ExerciseTracking } from './exerciseTracking';
+import { wordSetKey } from './wordSetKey';
 import type { AttemptResult } from '../lib/sessionGrader';
 import { classifyAnswer } from '../lib/answerMatching';
 
@@ -129,7 +130,7 @@ export function useSpelling(
       cancelled = true;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deckId, JSON.stringify(overrideWordIds)]);
+  }, [deckId, wordSetKey(overrideWordIds)]);
 
   const setInput = useCallback((value: string) => {
     setState(prev => {
