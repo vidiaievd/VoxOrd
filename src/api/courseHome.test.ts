@@ -153,4 +153,42 @@ describe('getCourseHome', () => {
     expect(result.units).toEqual([]);
     expect(mockGet).not.toHaveBeenCalledWith(expect.stringContaining('/items'));
   });
+
+  it('wires mastery and SRS due count into the payload when both succeed', async () => {
+    routeGet({
+      '/progress/course/': overlay([]),
+      '/containers/course-1/versions/version-1/items': [],
+      '/containers/course-1': container(),
+      '/mastery/course/': {
+        containerId: 'course-1',
+        vocab: 0.8, grammar: 0.6, reading: 0.5, listening: 0.7, spoken: 0.3, written: 0.2, overall: 0.55,
+      },
+      '/srs/stats/me': {
+        newCount: 0, learningCount: 0, reviewCount: 0, relearningCount: 0,
+        suspendedCount: 0, dueNowCount: 12, reviewedTodayCount: 4,
+      },
+    });
+
+    const result = await getCourseHome('course-1');
+
+    expect(result.mastery.overallMastery).toBe(55);
+    expect(result.srsDueCount).toBe(12);
+    expect(result.srsReviewedToday).toBe(4);
+  });
+
+  it('degrades mastery/SRS to empty defaults without failing the whole screen when they error', async () => {
+    mockGet.mockImplementation(async (path: string) => {
+      if (path.includes('/progress/course/')) return overlay([]);
+      if (path.includes('/containers/course-1/versions/version-1/items')) return [];
+      if (path.includes('/containers/course-1')) return container();
+      throw new Error('network error');
+    });
+
+    const result = await getCourseHome('course-1');
+
+    expect(result.units).toEqual([]);
+    expect(result.mastery).toEqual({ courseId: 'course-1', overallMastery: 0, bySkill: [] });
+    expect(result.srsDueCount).toBe(0);
+    expect(result.srsReviewedToday).toBe(0);
+  });
 });

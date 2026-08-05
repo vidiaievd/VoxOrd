@@ -5,6 +5,13 @@ import {
   submitAttempt,
 } from '../api/exercises';
 import { buildExerciseCompletionRequest, upsertProgress } from '../api/progress';
+import type { ExerciseDisplay } from '../api/types';
+import {
+  getMemoryCache,
+  readCacheSnapshot,
+  setMemoryCache,
+  writeCacheSnapshot,
+} from '../lib/swrCache';
 import {
   currentExerciseId,
   initRunnerState,
@@ -33,6 +40,8 @@ export interface ExerciseRunnerController {
   advance: () => void;
   /** Retry loading the current item after a load error. */
   retry: () => void;
+  /** Footer "Try again": re-answer the same wrong item as a fresh attempt. */
+  retryAttempt: () => void;
   /** Status of posting each result's progress once the set reaches 'complete'. */
   progressPostStatus: ProgressPostStatus;
 }
@@ -73,10 +82,17 @@ export function useExerciseRunner(
   }, []);
 
   // Load the current item's display whenever we enter the 'loading' phase.
+  // Phase 6 open item: display content is near-immutable, so a cached copy
+  // (memory, then the AsyncStorage snapshot) is an acceptable fallback for
+  // offline reading — but unlike course home/lesson reader this does NOT
+  // paint the cache first, since Check/submit still needs the network
+  // regardless, so there's no benefit to showing cached content ahead of a
+  // fast successful fetch.
   useEffect(() => {
     if (state.phase !== 'loading') return;
     const exerciseId = currentExerciseId(state);
     if (!exerciseId) return;
+    const cacheKey = `exercise-display:${exerciseId}:${uiLanguage}`;
 
     let cancelled = false;
     (async () => {
@@ -84,9 +100,19 @@ export function useExerciseRunner(
         const display = await getExerciseDisplay(exerciseId, uiLanguage);
         if (cancelled || !mounted.current) return;
         answeringStartedAtRef.current = Date.now();
+        setMemoryCache(cacheKey, display);
+        void writeCacheSnapshot(cacheKey, display);
         dispatch({ type: 'LOAD_SUCCESS', display });
       } catch (e) {
         if (cancelled || !mounted.current) return;
+        const cached =
+          getMemoryCache<ExerciseDisplay>(cacheKey) ?? (await readCacheSnapshot<ExerciseDisplay>(cacheKey));
+        if (cancelled || !mounted.current) return;
+        if (cached) {
+          answeringStartedAtRef.current = Date.now();
+          dispatch({ type: 'LOAD_SUCCESS', display: cached });
+          return;
+        }
         dispatch({ type: 'LOAD_FAILURE', message: errorMessage(e) });
       }
     })();
@@ -177,6 +203,13 @@ export function useExerciseRunner(
     dispatch({ type: 'LOAD_START' });
   }, []);
 
+  const retryAttempt = useCallback(() => {
+    // Timer restarts here: the retry's timeSpentSeconds should measure the
+    // second attempt, not include time spent reading the first verdict.
+    answeringStartedAtRef.current = Date.now();
+    dispatch({ type: 'RETRY_ITEM' });
+  }, []);
+
   const progress = useMemo(
     () => ({ current: state.idx + 1, total: state.exerciseIds.length }),
     [state.idx, state.exerciseIds.length],
@@ -190,6 +223,7 @@ export function useExerciseRunner(
     check,
     advance,
     retry,
+    retryAttempt,
     progressPostStatus,
   };
 }

@@ -69,22 +69,26 @@ describe('matchPairsCanSubmit / buildMatchPairsAnswer', () => {
 });
 
 describe('extractExpectedPairs / isLinkExpected', () => {
-  const correctAnswer = {
-    pairs: [
-      { left_id: 'l1', right_id: 'r2' },
-      { left_id: 'l2', right_id: 'r4' },
-    ],
-  };
+  // Wire shape: RuleBasedFeedbackGenerator collapses the stored
+  // `{pairs: [{left_id, right_id}]}` into a single display string before it
+  // reaches the client — see matchPairs.ts's doc comment on the function.
+  const correctAnswer = 'l1 → r2, l2 → r4';
+  const expectedPairs = [
+    { left_id: 'l1', right_id: 'r2' },
+    { left_id: 'l2', right_id: 'r4' },
+  ];
 
-  it('reads well-formed pairs', () => {
-    expect(extractExpectedPairs(correctAnswer)).toEqual(correctAnswer.pairs);
+  it('parses the "left → right" display string back into pairs', () => {
+    expect(extractExpectedPairs(correctAnswer)).toEqual(expectedPairs);
   });
 
   it('returns null for malformed shapes', () => {
     expect(extractExpectedPairs(null)).toBeNull();
-    expect(extractExpectedPairs({})).toBeNull();
-    expect(extractExpectedPairs({ pairs: 'nope' })).toBeNull();
-    expect(extractExpectedPairs({ pairs: [{ left_id: 'l1' }] })).toBeNull();
+    expect(extractExpectedPairs(undefined)).toBeNull();
+    expect(extractExpectedPairs('')).toBeNull();
+    expect(extractExpectedPairs({ pairs: expectedPairs })).toBeNull();
+    expect(extractExpectedPairs('l1 r2')).toBeNull();
+    expect(extractExpectedPairs('l1 → ')).toBeNull();
   });
 
   it('checks membership of a submitted link in the expected set', () => {

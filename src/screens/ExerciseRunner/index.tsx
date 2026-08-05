@@ -35,10 +35,8 @@ export function ExerciseRunnerScreen({
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const { state, progress, isLast, setAnswer, check, advance, retry } = useExerciseRunner(
-    exerciseIds,
-    startIndex,
-  );
+  const { state, progress, isLast, setAnswer, check, advance, retry, retryAttempt } =
+    useExerciseRunner(exerciseIds, startIndex);
 
   const progressRatio = progress.total > 0 ? progress.current / progress.total : 0;
 
@@ -105,7 +103,8 @@ export function ExerciseRunnerScreen({
                 // Force a remount per item (mirrors the web reader's
                 // key={contentId}) so a body's local input state (selection,
                 // typed text) never leaks from one exercise to the next.
-                key={state.display.id}
+                // attemptSeq also forces a remount on a same-item retry.
+                key={`${state.display.id}:${state.attemptSeq}`}
                 display={state.display}
                 phase={state.phase}
                 disabled={state.phase !== 'answering'}
@@ -118,6 +117,11 @@ export function ExerciseRunnerScreen({
               {state.phase === 'feedback' && state.verdict ? (
                 <>
                   <FeedbackBar verdict={state.verdict} />
+                  {!state.verdict.correct && !state.verdict.requiresReview ? (
+                    <TouchableOpacity style={styles.secondaryBtn} onPress={retryAttempt}>
+                      <Text style={styles.secondaryBtnText}>{t('exerciseRunner.tryAgain')}</Text>
+                    </TouchableOpacity>
+                  ) : null}
                   <TouchableOpacity style={styles.primaryBtn} onPress={advance}>
                     <Text style={styles.primaryBtnText}>
                       {isLast ? t('exerciseRunner.finish') : t('exerciseRunner.continue')}
@@ -265,5 +269,18 @@ const makeStyles = (colors: ColorScheme) =>
       fontSize: 15,
       fontWeight: '700',
       color: colors.textInverted,
+    },
+    secondaryBtn: {
+      borderRadius: 14,
+      borderWidth: 2,
+      borderColor: colors.accent,
+      paddingVertical: 12,
+      alignItems: 'center',
+      marginBottom: 10,
+    },
+    secondaryBtnText: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: colors.accent,
     },
   });

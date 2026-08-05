@@ -1,9 +1,10 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../providers/ThemeProvider';
 import { useDeepSession } from '../../hooks/useDeepSession';
 import { Deck } from '../../repositories/DeckRepository';
+import { usePersonalSession } from '../../hooks/usePersonalSession';
 
 import { PhaseHeader } from './components/deep-session/PhaseHeader';
 import { PhaseTransitionScreen } from './components/deep-session/PhaseTransitionScreen';
@@ -26,6 +27,16 @@ export function DeepSessionScreen({
 }: DeepSessionScreenProps) {
   const { colors } = useTheme();
   const { state, isLoading, reportPhaseResult } = useDeepSession(deck.id);
+
+  // One session across all four phases. Grading per phase would reschedule the
+  // same card up to four times for what the user experiences as one sitting —
+  // the trap Step 8.1b called out for course reviews, and it applies here for
+  // the same reason: PHASE_ORDER runs the *same word set* through every phase.
+  const personal = usePersonalSession(deck.id);
+
+  useEffect(() => {
+    if (state.phase === 'complete') personal.finish();
+  }, [state.phase, personal]);
 
   const handleCardDone = useCallback(
     (_weakIds: number[], correctCount: number) => {
@@ -74,7 +85,14 @@ export function DeepSessionScreen({
     );
   }
 
-  const wordIds = state.wordsForPhase.map(w => w.wordId);
+  // The session's own id list, fixed when the session loaded — not the ids of
+  // `wordsForPhase`, which is re-fetched per phase with `ORDER BY RANDOM()` and
+  // therefore arrives in a new order every time. The exercises keyed their
+  // setup effect on these ids, so the reshuffle re-ran it and each phase opened
+  // a second, empty `learning_sessions` row. Flashcards still take the shuffled
+  // objects — presentation order is exactly what they want; the other three
+  // shuffle internally anyway.
+  const wordIds = state.allWordIds;
   const header = (
     <PhaseHeader
       phase={state.phase}
@@ -107,6 +125,7 @@ export function DeepSessionScreen({
             onBack={onBack}
             onSessionDone={onSessionDone}
             onComplete={reportPhaseResult}
+            tracking={personal.trackingFor('quiz')}
           />
         </View>
       );
@@ -120,6 +139,7 @@ export function DeepSessionScreen({
             onBack={onBack}
             onSessionDone={onSessionDone}
             onComplete={reportPhaseResult}
+            tracking={personal.trackingFor('spelling')}
           />
         </View>
       );
@@ -133,6 +153,7 @@ export function DeepSessionScreen({
             onBack={onBack}
             onSessionDone={onSessionDone}
             onComplete={reportPhaseResult}
+            tracking={personal.trackingFor('listening')}
           />
         </View>
       );

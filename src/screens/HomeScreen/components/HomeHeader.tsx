@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { ColorScheme } from '../../../theme/colors';
 import { useTheme } from '../../../providers/ThemeProvider';
 
@@ -8,7 +8,6 @@ interface HomeHeaderProps {
   avatar: string;
   streak: number;
   xp: number;
-  onAvatarPress: () => void;
 }
 
 export function HomeHeader({
@@ -16,14 +15,13 @@ export function HomeHeader({
   avatar,
   streak,
   xp,
-  onAvatarPress,
 }: HomeHeaderProps) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.userInfo} onPress={onAvatarPress}>
+      <View style={styles.userInfo}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{avatar}</Text>
         </View>
@@ -31,7 +29,7 @@ export function HomeHeader({
           <Text style={styles.greeting}>God dag,</Text>
           <Text style={styles.name}>{name} 👋</Text>
         </View>
-      </TouchableOpacity>
+      </View>
 
       <View style={styles.badges}>
         <View style={[styles.badge, { backgroundColor: '#fff3e0' }]}>

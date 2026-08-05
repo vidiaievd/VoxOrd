@@ -12,6 +12,7 @@ import { useTheme } from '../../../providers/ThemeProvider';
 import { ColorScheme } from '../../../theme/colors';
 import { useContext } from '../../../hooks/useContext';
 import { useAutoAdvance } from '../../../hooks/useAutoAdvance';
+import { useOwnedTracking } from '../../../hooks/usePersonalSession';
 
 interface ContextExerciseProps {
   deckId: number;
@@ -34,8 +35,11 @@ export function ContextExercise({
 }: ContextExerciseProps) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  // Context is only ever run standalone — neither CourseReviewPhase nor Deep
+  // Session's PHASE_ORDER includes it — so it always owns its session.
+  const session = useOwnedTracking(deckId, 'context');
   const { state, isLoading, sessionId, selectOption, next } =
-    useContext(deckId);
+    useContext(deckId, session);
   useAutoAdvance(state.isAnswered, state.isCorrect, next);
 
   if (isLoading) {

@@ -1,5 +1,6 @@
 import { getDatabase } from '../db/database';
 import { DeckUserStatus } from '../db/types';
+import { SQL } from '../srs/dueness';
 
 export interface DeckGroup {
   id: number;
@@ -30,6 +31,10 @@ export interface Deck {
 class DeckRepository {
   async getAll(): Promise<Deck[]> {
     const db = getDatabase();
+    // Counts come from the FSRS card, not from the retired `status` column
+    // (plan Step 9.5). `repeatWords` therefore now means "due now" where it
+    // used to mean "at stage 1-3" — the deliberate behaviour change, since it
+    // is what Home's study-now number is built from.
     const result = await db.execute(`
       SELECT
         d.id,
@@ -38,12 +43,12 @@ class DeckRepository {
         d.level,
         d.groupId,
         d.sortOrder,
-        COUNT(wp.wordId)                                         AS totalWords,
-        SUM(CASE WHEN wp.status = 'learned' THEN 1 ELSE 0 END)  AS learnedWords,
-        SUM(CASE WHEN wp.status = 'new'     THEN 1 ELSE 0 END)  AS newWords,
-        SUM(CASE WHEN wp.status = 'repeat'  THEN 1 ELSE 0 END)  AS repeatWords,
-        COALESCE(dus.isFavorite,  0)                             AS isFavorite,
-        COALESCE(dus.status,     'new')                          AS deckStatus,
+        COUNT(wp.wordId)                                       AS totalWords,
+        SUM(CASE WHEN ${SQL.isLearned('wp')} THEN 1 ELSE 0 END) AS learnedWords,
+        SUM(CASE WHEN ${SQL.isNew('wp')}     THEN 1 ELSE 0 END) AS newWords,
+        SUM(CASE WHEN ${SQL.isDue('wp')}     THEN 1 ELSE 0 END) AS repeatWords,
+        COALESCE(dus.isFavorite,  0)                           AS isFavorite,
+        COALESCE(dus.status,     'new')                        AS deckStatus,
         dus.startedAt,
         dus.completedAt
       FROM decks d
@@ -54,7 +59,7 @@ class DeckRepository {
         COALESCE(dus.isFavorite, 0) DESC,
         d.sortOrder ASC,
         d.createdAt ASC;
-    `);
+    `, [Date.now()]);
 
     return (result.rows ?? []).map((row) => ({
       id:           row.id           as number,
@@ -75,21 +80,26 @@ class DeckRepository {
     }));
   }
 
-  async getAllGrouped(): Promise<DeckGroup[]> {
+  /**
+   * Groups with their decks attached. `decks` may be passed in by a caller
+   * that already loaded them (HomeRepository does), to avoid running the
+   * aggregate deck query twice for one screen.
+   */
+  async getAllGrouped(decks?: Deck[]): Promise<DeckGroup[]> {
     const db = getDatabase();
 
     const groupsResult = await db.execute(
       'SELECT * FROM deck_groups ORDER BY sortOrder ASC;'
     );
     const groups = groupsResult.rows ?? [];
-    const decks = await this.getAll();
+    const allDecks = decks ?? (await this.getAll());
 
     return groups.map((g) => ({
       id:        g.id        as number,
       title:     g.title     as string,
       icon:      g.icon      as string,
       sortOrder: g.sortOrder as number,
-      decks:     decks.filter((d) => d.groupId === g.id),
+      decks:     allDecks.filter((d) => d.groupId === g.id),
     }));
   }
 

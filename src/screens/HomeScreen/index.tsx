@@ -13,10 +13,10 @@ import { HomeHeader } from './components/HomeHeader';
 import { ContinueLearningCard } from './components/ContinueLearningCard';
 import { DailyTrainingSection } from './components/DailyTrainingSection';
 import { ProgressSection } from './components/ProgressSection';
-import { TopicsSection } from './components/TopicsSection';
-import { AIPracticeCard } from './components/AIPracticeCard';
+import { StudyNowSection } from './components/StudyNowSection';
+import { DeckGroupsSection } from './components/DeckGroupsSection';
 import { useHomeData } from '../../hooks/useHomeData';
-import { TrainingMode, Topic } from './types';
+import { TrainingMode } from './types';
 import { Deck } from '../../repositories/DeckRepository';
 
 const TRAINING_MODES: TrainingMode[] = [
@@ -29,9 +29,10 @@ const TRAINING_MODES: TrainingMode[] = [
 interface HomeScreenProps {
   onDeckPress: (deck: Deck) => void;
   onModePress: (mode: string, deckId: number) => void;
+  onStartCourseReview: () => void;
 }
 
-export function HomeScreen({ onDeckPress, onModePress }: HomeScreenProps) {
+export function HomeScreen({ onDeckPress, onModePress, onStartCourseReview }: HomeScreenProps) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const { data, isLoading, refresh } = useHomeData();
@@ -84,28 +85,6 @@ export function HomeScreen({ onDeckPress, onModePress }: HomeScreenProps) {
     [data, onModePress],
   );
 
-  const handleTopic = useCallback(
-    (topic: Topic) => {
-      const deck: Deck = {
-        id: topic.id,
-        title: topic.title,
-        icon: topic.icon,
-        groupId: null,
-        languageCode: 'no',
-        level: null,
-        sortOrder: 0,
-        totalWords: topic.words,
-        learnedWords: Math.round(topic.progress * topic.words),
-        newWords: Math.round((1 - topic.progress) * topic.words),
-        repeatWords: 0,
-        status: 'in_progress',
-        isFavorite: false,
-      };
-      onDeckPress(deck);
-    },
-    [onDeckPress],
-  );
-
   if (isLoading) {
     return (
       <View style={styles.loader}>
@@ -113,18 +92,6 @@ export function HomeScreen({ onDeckPress, onModePress }: HomeScreenProps) {
       </View>
     );
   }
-
-  const topics: Topic[] = data?.continueLearning
-    ? [
-        {
-          id: data.continueLearning.deckId,
-          title: data.continueLearning.deckTitle,
-          icon: data.continueLearning.deckIcon,
-          words: data.continueLearning.totalWords,
-          progress: data.continueLearning.progress,
-        },
-      ]
-    : [];
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -144,8 +111,15 @@ export function HomeScreen({ onDeckPress, onModePress }: HomeScreenProps) {
           avatar={data?.profile.avatar ?? '👤'}
           streak={data?.stats.streak ?? 0}
           xp={data?.stats.xp ?? 0}
-          onAvatarPress={() => {}}
         />
+
+        {data?.studyNow && data.studyNow.totalDue > 0 && (
+          <StudyNowSection
+            localDue={data.studyNow.localDue}
+            courseDue={data.studyNow.courseDue}
+            onReviewCourse={onStartCourseReview}
+          />
+        )}
 
         {data?.continueLearning && (
           <ContinueLearningCard
@@ -173,15 +147,9 @@ export function HomeScreen({ onDeckPress, onModePress }: HomeScreenProps) {
           weekActivity={data?.weekActivity ?? Array(7).fill(0)}
         />
 
-        {topics.length > 0 && (
-          <TopicsSection title="Emner" topics={topics} onPress={handleTopic} />
-        )}
-
-        <AIPracticeCard
-          title="AI Practice"
-          subtitle="Øv ord i samtale"
-          ctaLabel="Start"
-          onPress={() => {}}
+        <DeckGroupsSection
+          groups={data?.deckGroups ?? []}
+          onDeckPress={onDeckPress}
         />
 
         <View style={styles.bottomPadding} />

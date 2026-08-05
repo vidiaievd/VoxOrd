@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../../providers/ThemeProvider';
 import { ColorScheme } from '../../../theme/colors';
 import { useListening } from '../../../hooks/useListening';
+import type { ExerciseTracking } from '../../../hooks/exerciseTracking';
 import { useAutoAdvance } from '../../../hooks/useAutoAdvance';
+import { useOwnedTracking } from '../../../hooks/usePersonalSession';
 
 interface ListeningExerciseProps {
   deckId: number;
@@ -18,6 +20,8 @@ interface ListeningExerciseProps {
   onBack: () => void;
   onSessionDone: (sessionId: number) => void;
   onComplete?: (correctCount: number) => void;
+  /** Optional per-answer instrumentation; used by course review sessions. */
+  tracking?: ExerciseTracking;
 }
 
 export function ListeningExercise({
@@ -26,11 +30,26 @@ export function ListeningExercise({
   onBack,
   onSessionDone,
   onComplete,
+  tracking,
 }: ListeningExerciseProps) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  // No tracking from above means this screen is the whole sitting, so it owns
+  // the session that schedules its words.
+  const session = useOwnedTracking(deckId, 'listening', tracking);
   const { state, isLoading, sessionId, speak, selectOption, next, installTts } =
-    useListening(deckId, overrideWordIds, onComplete);
+    useListening(deckId, overrideWordIds, onComplete, session);
+
+  // A phase inside a larger session must not dead-end on an empty question set
+  // (e.g. spelling now skips phrases, so a phrase-only set yields nothing).
+  // Report it as finished so the session moves on instead of stranding the user
+  // on a "no words" screen with only a back button.
+  useEffect(() => {
+    if (!isLoading && state.questions.length === 0 && onComplete) {
+      onComplete(0);
+    }
+  }, [isLoading, state.questions.length, onComplete]);
+
   useAutoAdvance(state.isAnswered, state.isCorrect, next);
 
   // TTS engine not installed

@@ -1,3 +1,5 @@
+import type { PluralForms } from './pluralize';
+
 export interface Translations {
   nav: {
     home: string;
@@ -9,6 +11,13 @@ export interface Translations {
     appSubtitle: string;
     learned: string;
     wordCount: string; // '{learned}/{total} learned'
+    myDecks: string;
+    deckWords: string; // '{count} words'
+    studyNow: {
+      title: string;
+      courseDue: PluralForms; // '{count} course words due'
+      localDue: PluralForms; // '{count} words due in your decks'
+    };
   };
 
   deckCard: {
@@ -28,6 +37,11 @@ export interface Translations {
     repeat: string;
     learned: string;
     flipFirst: string;
+    bucket: {
+      new: string;
+      learning: string;
+      learned: string;
+    };
   };
 
   settings: {
@@ -88,6 +102,15 @@ export interface Translations {
     statusDone: string;
     statusActive: string;
     statusLocked: string;
+    mastery: string;
+    skillVocabulary: string;
+    skillGrammar: string;
+    skillReading: string;
+    skillListening: string;
+    skillSpeaking: string;
+    skillWriting: string;
+    reviewsDue: PluralForms; // '{count} reviews due'
+    startReview: string;
   };
 
   unitContents: {
@@ -101,6 +124,7 @@ export interface Translations {
     statusInProgress: string;
     statusAvailable: string;
     statusLocked: string;
+    masteryPercent: string; // 'Mastery: {percent}%'
   };
 
   lessonReader: {
@@ -110,6 +134,15 @@ export interface Translations {
     unsupportedKind: string;
     noTranslation: string;
     markAsRead: string;
+  };
+
+  grammarRuleReader: {
+    title: string;
+    loadError: string;
+    noContent: string;
+    goToPractice: string;
+    noPracticeExercises: string;
+    practiceLoadError: string;
   };
 
   vocabulary: {
@@ -151,10 +184,10 @@ export interface Translations {
     check: string;
     continue: string;
     finish: string;
+    tryAgain: string;
     correct: string;
     incorrect: string;
     submittedForReview: string;
-    expectedAnswer: string;
     setComplete: string;
     setCompleteDesc: string;
     done: string;
@@ -183,6 +216,46 @@ export interface Translations {
     resultsNeedsReview: string;
   };
 
+  review: {
+    title: string;
+    showAnswer: string;
+    again: string;
+    hard: string;
+    good: string;
+    easy: string;
+    noTranslation: string;
+    sessionDone: string;
+    nothingDue: string;
+    reviewedCount: string; // '{count} words reviewed'
+    pendingSync: string; // '{count} answers waiting to sync'
+    loadError: string;
+    offlineLoad: string;
+    submitting: string;
+    stillDue: string; // '{count} words left for next time'
+    notImported: string; // '{count} due words are not in a saved list'
+    phasePreview: string;
+    phaseListening: string;
+    phaseQuiz: string;
+    phaseSpelling: string;
+  };
+
+  audioLesson: {
+    stageListen: string;
+    stageGapFill: string;
+    stageComprehension: string;
+    listenHeading: string;
+    listenBody: string;
+    listenCta: string;
+    playError: string;
+    gapFillHeading: string;
+    gapFillBody: string;
+    comprehensionHeading: string;
+    comprehensionBody: string;
+    doneTitle: string;
+    doneBody: string;
+    doneCta: string;
+  };
+
   stats: {
     decks: string;
     words: string;
@@ -195,5 +268,6 @@ export interface Translations {
     cancel: string;
     save: string;
     close: string;
+    offline: string;
   };
 }

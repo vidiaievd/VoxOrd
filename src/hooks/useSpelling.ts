@@ -1,9 +1,12 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { progressRepository } from '../repositories/ProgressRepository';
 import { sessionRepository } from '../repositories/SessionRepository';
 import { spellingRepository } from '../repositories/SpellingRepository';
 import { wordModeStrengthRepository } from '../repositories/WordModeStrengthRepository';
 import { settingsStore, SpellingHintMode } from '../store/settingsStore';
+import type { ExerciseTracking } from './exerciseTracking';
+import { wordSetKey } from './wordSetKey';
+import type { AttemptResult } from '../lib/sessionGrader';
+import { classifyAnswer } from '../lib/answerMatching';
 
 export interface SpellingQuestion {
   wordId: number;
@@ -24,6 +27,10 @@ export interface SpellingState {
   mistakeCount: number;
   showHint: boolean;
   showSkip: boolean;
+  /** The full correct word is on screen (after two mistakes). */
+  isRevealed: boolean;
+  /** The last answer was accepted as a near-miss, not an exact match. */
+  wasTypo: boolean;
   isComplete: boolean;
   totalWords: number;
 }
@@ -41,10 +48,12 @@ export interface UseSpellingResult {
 const MISTAKES_BEFORE_HINT = 2;
 const MISTAKES_BEFORE_SKIP = 3;
 const SKIP_PENALTY_MISTAKES = 3;
-
-function normalizeAnswer(value: string): string {
-  return value.trim().toLowerCase();
-}
+/**
+ * After this many mistakes the full word is shown. Previously the only way to
+ * ever see it was pressing skip, which itself needed three mistakes — so a word
+ * you could not guess was a dead end.
+ */
+const MISTAKES_BEFORE_REVEAL = 2;
 
 function resolveInitialHint(): boolean {
   const spellingHintMode = settingsStore.get(
@@ -57,12 +66,25 @@ export function useSpelling(
   deckId: number,
   overrideWordIds?: number[],
   onComplete?: (correctCount: number) => void,
+  tracking?: ExerciseTracking,
 ): UseSpellingResult {
   const [isLoading, setIsLoading] = useState(true);
   const [sessionId, setSessionId] = useState<number | null>(null);
   // Mutable queue — wrong answers get appended to end, no re-render on mutation
   const queueRef = useRef<SpellingQuestion[]>([]);
   const shownAtRef = useRef<number>(Date.now());
+  // Unlike quiz/listening (one attempt per presentation, then locked until
+  // `next`), spelling lets the user keep retrying the same question without
+  // advancing — "Try again" and "Next" are both available on a wrong answer.
+  // Without this flag, every one of those retries would push another copy of
+  // the word onto the retry queue, so a handful of mistyped attempts on one
+  // word could demand it be typed correctly several more times later in the
+  // session. One requeue per presentation, no matter how many wrong attempts.
+  const requeuedThisPresentationRef = useRef(false);
+  // Read through a ref so an inline tracking object does not destabilise
+  // submit/skip.
+  const trackingRef = useRef(tracking);
+  trackingRef.current = tracking;
 
   const [state, setState] = useState<SpellingState>({
     questions: [],
@@ -76,6 +98,8 @@ export function useSpelling(
     mistakeCount: 0,
     showHint: resolveInitialHint(),
     showSkip: false,
+    isRevealed: false,
+    wasTypo: false,
     isComplete: false,
     totalWords: 0,
   });
@@ -90,6 +114,7 @@ export function useSpelling(
       ]);
       if (!cancelled) {
         queueRef.current = [...questions];
+        requeuedThisPresentationRef.current = false;
         setSessionId(sid);
         setState(prev => ({
           ...prev,
@@ -105,7 +130,7 @@ export function useSpelling(
       cancelled = true;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deckId, JSON.stringify(overrideWordIds)]);
+  }, [deckId, wordSetKey(overrideWordIds)]);
 
   const setInput = useCallback((value: string) => {
     setState(prev => {
@@ -115,14 +140,20 @@ export function useSpelling(
   }, []);
 
   const submit = useCallback(() => {
+    let answered: { wordId: number; result: AttemptResult } | null = null;
+
     setState(prev => {
       if (prev.isAnswered || prev.isSkipped || prev.input.trim() === '') {
         return prev;
       }
 
       const question = prev.questions[prev.currentIndex];
-      const isCorrect =
-        normalizeAnswer(prev.input) === normalizeAnswer(question.word);
+      // A near-miss is accepted so a slipped keystroke is not read as "did not
+      // know the word", but it is reported as a typo so the grader can hold it
+      // to HARD instead of a clean success.
+      const verdict = classifyAnswer(prev.input, question.word);
+      const isCorrect = verdict !== 'wrong';
+      const isTypo = verdict === 'typo';
       const responseTimeMs = Date.now() - shownAtRef.current;
       const newMistakeCount = isCorrect
         ? prev.mistakeCount
@@ -138,7 +169,19 @@ export function useSpelling(
 
       const showSkip = newMistakeCount >= MISTAKES_BEFORE_SKIP;
 
-      progressRepository.recordAnswer(question.wordId, deckId, isCorrect);
+      // Only an *earned* hint counts as help: under `always` the hint is on
+      // screen for every word, so it carries no information about this word and
+      // would otherwise cap every course card at HARD forever (decided with the
+      // user, 2026-07-27). Mistakes still drive the grading in that mode.
+      answered = {
+        wordId: question.wordId,
+        result: {
+          correct: isCorrect,
+          hintUsed: spellingHintMode === 'after_mistake' && prev.showHint,
+          typo: isTypo,
+        },
+      };
+
       wordModeStrengthRepository.recordAnswer(
         question.wordId,
         deckId,
@@ -156,9 +199,11 @@ export function useSpelling(
         });
       }
 
-      // If wrong — push to end of queue for retry
-      if (!isCorrect) {
+      // If wrong — push to end of queue for retry, but only once per
+      // presentation (see the ref's comment above).
+      if (!isCorrect && !requeuedThisPresentationRef.current) {
         queueRef.current.push(question);
+        requeuedThisPresentationRef.current = true;
       }
 
       if (isCorrect) {
@@ -166,6 +211,9 @@ export function useSpelling(
           ...prev,
           isAnswered: true,
           isCorrect: true,
+          wasTypo: isTypo,
+          // A typo still shows the correct form, so the right spelling is seen.
+          isRevealed: prev.isRevealed || isTypo,
           correctCount: prev.correctCount + 1,
           mistakeCount: newMistakeCount,
           showHint,
@@ -177,21 +225,31 @@ export function useSpelling(
         ...prev,
         input: '',
         isCorrect: false,
+        wasTypo: false,
+        isRevealed: prev.isRevealed || newMistakeCount >= MISTAKES_BEFORE_REVEAL,
         mistakeCount: newMistakeCount,
         showHint,
         showSkip,
       };
     });
+
+    // Outside the updater — a re-invoked reducer must not double-count.
+    if (answered) {
+      const { wordId, result } = answered;
+      trackingRef.current?.onAnswer?.(wordId, result);
+    }
   }, [deckId, sessionId]);
 
   const skip = useCallback(() => {
+    let skipped: number | null = null;
+
     setState(prev => {
       if (prev.isAnswered || prev.isSkipped) return prev;
 
       const question = prev.questions[prev.currentIndex];
+      skipped = question.wordId;
 
       for (let i = 0; i < SKIP_PENALTY_MISTAKES; i++) {
-        progressRepository.recordAnswer(question.wordId, deckId, false);
         wordModeStrengthRepository.recordAnswer(
           question.wordId,
           deckId,
@@ -215,8 +273,15 @@ export function useSpelling(
         isSkipped: true,
         skippedCount: prev.skippedCount + 1,
         showHint: true,
+        isRevealed: true,
       };
     });
+
+    // One attempt, not three: the local engine takes a triple penalty, but for
+    // grading this is a single event — the user gave up on this word.
+    if (skipped !== null) {
+      trackingRef.current?.onAnswer?.(skipped, { correct: false, gaveUp: true });
+    }
   }, [deckId, sessionId]);
 
   const next = useCallback(() => {
@@ -239,6 +304,7 @@ export function useSpelling(
       }
 
       shownAtRef.current = Date.now();
+      requeuedThisPresentationRef.current = false;
 
       const spellingHintMode = settingsStore.get(
         'spellingHintMode',
@@ -255,6 +321,8 @@ export function useSpelling(
         mistakeCount: 0,
         showHint: spellingHintMode === 'always',
         showSkip: false,
+        isRevealed: false,
+        wasTypo: false,
         isComplete,
       };
     });

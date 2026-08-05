@@ -23,6 +23,8 @@ import { UnitContentsScreen } from '../screens/UnitContentsScreen';
 import { LessonReaderScreen } from '../screens/LessonReaderScreen';
 import { ExerciseRunnerScreen } from '../screens/ExerciseRunner';
 import { VocabularyListScreen } from '../screens/VocabularyListScreen';
+import { GrammarRuleReaderScreen } from '../screens/GrammarRuleReaderScreen';
+import { ReviewSessionScreen } from '../screens/ReviewSessionScreen';
 
 type Tab = 'Home' | 'Courses' | 'Settings';
 
@@ -43,6 +45,8 @@ type Screen =
   | { name: 'UnitContents'; unitId: string; courseId: string }
   | { name: 'LessonReader'; lessonId: string; unitId: string; courseId: string }
   | { name: 'VocabularyList'; listId: string; unitId: string; courseId: string }
+  | { name: 'GrammarRuleReader'; ruleId: string; unitId: string; courseId: string }
+  | { name: 'ReviewSession'; courseId?: string }
   | {
       name: 'ExerciseRunner';
       exerciseIds: string[];
@@ -245,6 +249,9 @@ export function RootNavigator() {
             onUnitPress={unitId =>
               navigateTo({ name: 'UnitContents', unitId, courseId: screen.courseId })
             }
+            onReviewPress={() =>
+              navigateTo({ name: 'ReviewSession', courseId: screen.courseId })
+            }
           />
         );
 
@@ -278,6 +285,14 @@ export function RootNavigator() {
                 courseId: screen.courseId,
               })
             }
+            onGrammarRulePress={ruleId =>
+              navigateTo({
+                name: 'GrammarRuleReader',
+                ruleId,
+                unitId: screen.unitId,
+                courseId: screen.courseId,
+              })
+            }
           />
         );
 
@@ -297,6 +312,19 @@ export function RootNavigator() {
           />
         );
       }
+
+      case 'ReviewSession':
+        return (
+          <ReviewSessionScreen
+            onBack={() =>
+              setScreen(
+                screen.courseId
+                  ? { name: 'CourseHome', courseId: screen.courseId }
+                  : { name: 'Home' },
+              )
+            }
+          />
+        );
 
       case 'VocabularyList':
         return (
@@ -319,6 +347,26 @@ export function RootNavigator() {
           />
         );
 
+      case 'GrammarRuleReader':
+        return (
+          <GrammarRuleReaderScreen
+            ruleId={screen.ruleId}
+            courseId={screen.courseId}
+            onBack={() =>
+              setScreen({ name: 'UnitContents', unitId: screen.unitId, courseId: screen.courseId })
+            }
+            onPracticePress={exerciseIds =>
+              navigateTo({
+                name: 'ExerciseRunner',
+                exerciseIds,
+                startIndex: 0,
+                unitId: screen.unitId,
+                courseId: screen.courseId,
+              })
+            }
+          />
+        );
+
       case 'Settings':
         return <SettingsScreen />;
 
@@ -335,6 +383,7 @@ export function RootNavigator() {
                 deck: { id: deckId } as Deck,
               });
             }}
+            onStartCourseReview={() => navigateTo({ name: 'ReviewSession' })}
           />
         );
     }
@@ -353,6 +402,9 @@ export function RootNavigator() {
     screen.name !== 'CourseHome' &&
     screen.name !== 'UnitContents' &&
     screen.name !== 'LessonReader' &&
+    screen.name !== 'VocabularyList' &&
+    screen.name !== 'GrammarRuleReader' &&
+    screen.name !== 'ReviewSession' &&
     screen.name !== 'ExerciseRunner';
 
   return (

@@ -9,6 +9,8 @@ import { useMyCourses } from '../../hooks/useMyCourses';
 import { LoginForm } from './LoginForm';
 import { CourseCard } from './CourseCard';
 import { CourseListItem } from '../../api/courses';
+import { OfflineBanner } from '../../components/OfflineBanner';
+import { isNetworkError } from '../../api/isNetworkError';
 
 interface CoursesScreenProps {
   onCoursePress: (courseId: string) => void;
@@ -19,13 +21,15 @@ export function CoursesScreen({ onCoursePress }: CoursesScreenProps) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const { status } = useAuth();
-  const { status: coursesStatus, courses, error, refreshing, refresh } = useMyCourses();
+  const { status: coursesStatus, courses, error, refreshing, stale, refresh } = useMyCourses();
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>{t('courses.title')}</Text>
       </View>
+
+      {status === 'signedIn' && stale && isNetworkError(error) && <OfflineBanner />}
 
       {status === 'restoring' && (
         <View style={styles.centerFill}>

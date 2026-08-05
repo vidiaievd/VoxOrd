@@ -1,8 +1,9 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { progressRepository } from '../repositories/ProgressRepository';
 import { sessionRepository } from '../repositories/SessionRepository';
 import { wordModeStrengthRepository } from '../repositories/WordModeStrengthRepository';
 import { quizRepository } from '../repositories/QuizRepository';
+import type { ExerciseTracking } from './exerciseTracking';
+import { wordSetKey } from './wordSetKey';
 
 export interface QuizQuestion {
   wordId: number;
@@ -34,11 +35,16 @@ export function useQuiz(
   deckId: number,
   overrideWordIds?: number[],
   onComplete?: (correctCount: number) => void,
+  tracking?: ExerciseTracking,
 ): UseQuizResult {
   const [isLoading, setIsLoading] = useState(true);
   const [sessionId, setSessionId] = useState<number | null>(null);
   // Mutable queue — wrong answers get appended to end, no re-render on mutation
   const queueRef = useRef<QuizQuestion[]>([]);
+  // Read through a ref so a caller passing an inline object does not need to
+  // memoize it just to keep selectOption stable.
+  const trackingRef = useRef(tracking);
+  trackingRef.current = tracking;
   const [state, setState] = useState<QuizState>({
     questions: [],
     currentIndex: 0,
@@ -73,17 +79,19 @@ export function useQuiz(
       cancelled = true;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deckId, JSON.stringify(overrideWordIds)]);
+  }, [deckId, wordSetKey(overrideWordIds)]);
 
   const selectOption = useCallback(
     (option: string) => {
+      let answered: { wordId: number; isCorrect: boolean } | null = null;
+
       setState(prev => {
         if (prev.isAnswered) return prev;
 
         const question = prev.questions[prev.currentIndex];
         const isCorrect = option === question.correctAnswer;
+        answered = { wordId: question.wordId, isCorrect };
 
-        progressRepository.recordAnswer(question.wordId, deckId, isCorrect);
         wordModeStrengthRepository.recordAnswer(
           question.wordId,
           deckId,
@@ -114,6 +122,13 @@ export function useQuiz(
           correctCount: isCorrect ? prev.correctCount + 1 : prev.correctCount,
         };
       });
+
+      // Outside the updater, matching how `next` reports onComplete — a
+      // re-invoked reducer must not double-count an attempt.
+      if (answered) {
+        const { wordId, isCorrect } = answered;
+        trackingRef.current?.onAnswer?.(wordId, { correct: isCorrect });
+      }
     },
     [deckId, sessionId],
   );

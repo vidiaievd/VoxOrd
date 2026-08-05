@@ -27,6 +27,8 @@ interface UnitContentsScreenProps {
   onExercisePress: (exerciseIds: string[], startIndex: number) => void;
   /** Opens the read-only vocabulary list reader (Phase 5). */
   onVocabularyPress: (listId: string) => void;
+  /** Opens the read-only grammar rule explanation reader. */
+  onGrammarRulePress: (ruleId: string) => void;
 }
 
 interface Section {
@@ -41,6 +43,7 @@ export function UnitContentsScreen({
   onLessonPress,
   onExercisePress,
   onVocabularyPress,
+  onGrammarRulePress,
 }: UnitContentsScreenProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -73,6 +76,9 @@ export function UnitContentsScreen({
     }
     if (item.contentType === 'vocabulary_list') {
       return () => onVocabularyPress(item.contentId);
+    }
+    if (item.contentType === 'grammar_rule') {
+      return () => onGrammarRulePress(item.contentId);
     }
     return undefined;
   };

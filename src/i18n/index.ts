@@ -3,6 +3,7 @@ import { Translations } from './types';
 import { ru } from './ru';
 import { uk } from './uk';
 import { en } from './en';
+import { isPluralForms, pickPlural } from './pluralize';
 
 const TRANSLATIONS: Record<string, Translations> = { ru, uk, en };
 
@@ -32,11 +33,19 @@ export function useTranslation() {
         console.warn(`[i18n] Missing key: ${path} for language: ${uiLanguage}`);
         let fallback: any = ru;
         for (const k of keys) fallback = fallback?.[k];
-        return interpolate(fallback ?? path, vars);
+        value = fallback;
+        break;
       }
     }
 
-    return interpolate(value, vars);
+    // A `{ one, few, many }` entry needs `vars.count` to pick the right
+    // grammatical form before the usual `{count}` interpolation runs.
+    if (isPluralForms(value)) {
+      const count = Number(vars?.count ?? 0);
+      value = pickPlural(count, value, uiLanguage);
+    }
+
+    return interpolate(value ?? path, vars);
   }
 
   return { t, language: uiLanguage };

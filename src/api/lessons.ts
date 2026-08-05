@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { DifficultyLevel, LessonKind, LessonParagraph } from './types';
+import type { DifficultyLevel, ExerciseTemplateCode, LessonKind, LessonParagraph } from './types';
 
 const LESSON_READER_PATH = (id: string) => `/api/v1/lessons/${id}/reader`;
 
@@ -27,10 +27,10 @@ export interface LessonReaderQuery {
  * limitation the web reader has (inflected forms aren't recognized unless
  * they equal the stored lemma).
  *
- * Only the fields TEXT-kind lessons use are modeled for now (title,
- * bodyMarkdown, paragraphs, glossary). Video/audio/live fields exist on the
- * wire (`cues`, `transcript`, `listeningStages`, `live`) but are out of scope
- * until Phase 7.
+ * TEXT and AUDIO-kind fields are modeled (title, bodyMarkdown/paragraphs for
+ * TEXT; mediaIds/transcript/listeningStages for AUDIO). VIDEO's `cues` and
+ * LIVE's `live` block are still out of scope (no VIDEO/LIVE screen exists
+ * yet).
  */
 export interface ReaderGlossaryTranslation {
   language: string;
@@ -46,13 +46,46 @@ export interface ReaderGlossaryEntry {
   translation: ReaderGlossaryTranslation | null;
 }
 
+/**
+ * One step of an AUDIO-kind lesson's staged listening flow (Phase 7).
+ * `stageType` is author-defined (e.g. `listen`, `gap_fill`, `comprehension`)
+ * and not modeled as a closed enum here — mirrors how `templateCode` inside
+ * `exercise` is server-open too. `exercise` is null for a pure listen-only
+ * stage with no attached exercise.
+ */
+export interface ListeningStageExercise {
+  id: string;
+  templateCode: ExerciseTemplateCode;
+  content: Record<string, unknown>;
+  instructions: { language: string; text: string; hint: string | null }[];
+}
+
+export interface ListeningStage {
+  position: number;
+  stageType: string;
+  exercise: ListeningStageExercise | null;
+}
+
 export interface LessonReaderContent {
   lessonId: string;
   kind: LessonKind;
   title: string;
   displayTitle: string | null;
   bodyMarkdown: string | null;
+  /**
+   * Media asset ids attached to the selected variant (`lesson_variant_media_ref`
+   * rows), resolved via `GET /media/assets/:id` (see `src/api/media.ts`) —
+   * confirmed against `get-lesson-reader-content.handler.ts`: for an
+   * AUDIO-kind lesson this is where the narration track's id lives; it is NOT
+   * embedded as a `[audio:id]` token in any field this DTO exposes (that
+   * token only appears in the raw variant body the web authoring UI edits).
+   */
+  mediaIds: string[];
   paragraphs: LessonParagraph[] | null;
+  /** Plain-text narration script, AUDIO-kind lessons only; null otherwise. */
+  transcript: string | null;
+  /** AUDIO-kind lessons only; null otherwise. */
+  listeningStages: ListeningStage[] | null;
   glossary: ReaderGlossaryEntry[];
 }
 

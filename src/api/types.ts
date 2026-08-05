@@ -271,14 +271,20 @@ export interface ProgressRecord {
 export interface SkillMastery {
   skill: string;
   masteryPercent: number;
-  successCount: number;
-  attemptCount: number;
 }
 
 export interface CourseMastery {
   courseId: string;
   overallMastery: number;
   bySkill: SkillMastery[];
+}
+
+export type GrammarRuleMasteryStatus = 'NOT_STARTED' | 'LEARNING' | 'MASTERED';
+
+export interface GrammarRuleMastery {
+  grammarRuleId: string;
+  masteryPercent: number;
+  status: GrammarRuleMasteryStatus;
 }
 
 export type CanDoState = 'locked' | 'in-progress' | 'unlocked';
@@ -299,15 +305,29 @@ export interface CanDoResponse {
 
 export type UnitContentsItemStatus = 'locked' | 'available' | 'in_progress' | 'completed';
 
+/**
+ * Normalized (lowercase) content type used across the app's UI layer.
+ * The wire value from learning-service is UPPERCASE — see
+ * `normalizeContentType` in `unitContents.ts`, which converts at the boundary.
+ */
+export type UnitContentsItemType =
+  | 'container'
+  | 'lesson'
+  | 'vocabulary_list'
+  | 'grammar_rule'
+  | 'exercise';
+
 export interface UnitContentsItem {
   id: string;
-  contentType: string;
+  contentType: UnitContentsItemType;
   contentId: string;
   title: string | null;
   lessonKind: string | null;
   durationMinutes: number | null;
   xpReward: number | null;
   status: UnitContentsItemStatus;
+  /** Grammar rules only — mastery %, fetched separately per-item. */
+  masteryPercent: number | null;
 }
 
 export interface UnitContentsSection {
@@ -368,17 +388,14 @@ export interface CourseHomePayload {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
- * SRS (Phase 8, optional)
- * Source: ssz-platform-web/src/features/learning/types.ts
+ * SRS — see src/api/srs.ts
+ *
+ * The shapes that used to live here were copied from
+ * ssz-platform-web/src/features/learning/types.ts, which turned out to
+ * describe an API that does not exist (numeric ratings, a front/back the
+ * server never returned). They are gone; the verified contract lives next
+ * to its calls in src/api/srs.ts.
  * ────────────────────────────────────────────────────────────────────── */
-
-export type ReviewRating = 1 | 2 | 3 | 4;
-
-export interface SrsDueResponse {
-  dueCount: number;
-  dailyLimit: number;
-  reviewedToday: number;
-}
 
 /* ─────────────────────────────────────────────────────────────────────────
  * Auth

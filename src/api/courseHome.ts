@@ -1,9 +1,12 @@
 import { apiClient } from './client';
+import { getCourseMastery } from './mastery';
+import { getSrsStats } from './srs';
 import type {
   Container,
   ContainerItem,
   CourseHomePayload,
   CourseInfo,
+  CourseMastery,
   CourseProgress,
   ModuleProgress,
   UnitStatus,
@@ -118,14 +121,26 @@ function toModuleProgressStatus(
 
 /**
  * Client-side recomposition of the web BFF's course-home route (no single
- * gateway endpoint covers this). Mastery, SRS-due, and can-do blocks are
- * intentionally left as stubs — Phase 6 fills them in once the gateway gap
- * for those controllers is fixed (see plan's "Gateway gap found" note).
+ * gateway endpoint covers this). Mastery and SRS-due are real (Phase 6).
+ * `canDo` is deliberately left as a stub: the platform has no content-relation
+ * data yet linking can-do descriptors to courses/modules, so it would always
+ * render empty regardless of client work — see the plan's Phase 6 notes.
+ * Mastery/SRS-due failures are non-fatal (matches the existing `items` fetch
+ * pattern below) — a stat block failing to load shouldn't block the rest of
+ * the course-home screen.
  */
 export async function getCourseHome(courseId: string): Promise<CourseHomePayload> {
-  const [overlay, container] = await Promise.all([
+  const [overlay, container, mastery, srsStats] = await Promise.all([
     apiClient.get<CourseProgressOverlay>(PROGRESS_OVERLAY_PATH(courseId)),
     apiClient.get<Container>(CONTAINER_PATH(courseId)),
+    getCourseMastery(courseId).catch((e): CourseMastery => {
+      console.warn(`[CourseHome] Failed to load mastery for ${courseId}:`, e);
+      return { courseId, overallMastery: 0, bySkill: [] };
+    }),
+    getSrsStats().catch((e) => {
+      console.warn('[CourseHome] Failed to load SRS stats:', e);
+      return null;
+    }),
   ]);
 
   let items: ContainerItem[] = [];
@@ -190,9 +205,13 @@ export async function getCourseHome(courseId: string): Promise<CourseHomePayload
     units,
     levels: [],
     progress,
-    mastery: { courseId: container.id, overallMastery: 0, bySkill: [] },
-    srsDueCount: 0,
-    srsReviewedToday: 0,
+    mastery,
+    // /srs/stats/me has no courseId filter — this is the user's total due
+    // count across all content, not scoped to this course. The web BFF has
+    // the same limitation (its /srs/due call is unfiltered too). Label this
+    // in the UI as a general "reviews due" stat, not a per-course one.
+    srsDueCount: srsStats?.dueNowCount ?? 0,
+    srsReviewedToday: srsStats?.reviewedTodayCount ?? 0,
     canDo: { items: [] },
   };
 }

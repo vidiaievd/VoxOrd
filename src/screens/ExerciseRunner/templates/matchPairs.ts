@@ -61,20 +61,26 @@ export function buildMatchPairsAnswer(
   };
 }
 
-/** Reads `{left_id,right_id}[]` back out of an opaque `feedback.correctAnswer`. */
+/**
+ * Reads `{left_id,right_id}[]` back out of an opaque `feedback.correctAnswer`.
+ * Despite `expectedAnswers` being stored server-side as `{pairs: [{left_id,
+ * right_id}]}` (match-pairs.validator.ts), `RuleBasedFeedbackGenerator`
+ * collapses it to a single display string before it reaches the wire —
+ * `"l1 → r2, l2 → r4"` (entries joined by ", ", each `"${left_id} → ${right_id}"`)
+ * — so this parses that string back, rather than reading a `pairs` array.
+ */
 export function extractExpectedPairs(
   correctAnswer: unknown,
 ): { left_id: string; right_id: string }[] | null {
-  if (
-    !correctAnswer ||
-    typeof correctAnswer !== 'object' ||
-    !Array.isArray((correctAnswer as { pairs?: unknown }).pairs)
-  ) {
-    return null;
-  }
-  const pairs = (correctAnswer as MatchPairsAnswer).pairs;
+  if (typeof correctAnswer !== 'string' || correctAnswer.length === 0) return null;
+  const pairs = correctAnswer.split(', ').map((entry) => {
+    const [left_id, right_id] = entry.split(' → ');
+    return { left_id, right_id };
+  });
   const valid = pairs.every(
-    (p) => p && typeof p.left_id === 'string' && typeof p.right_id === 'string',
+    (p): p is { left_id: string; right_id: string } =>
+      typeof p.left_id === 'string' && p.left_id.length > 0 &&
+      typeof p.right_id === 'string' && p.right_id.length > 0,
   );
   return valid ? pairs : null;
 }

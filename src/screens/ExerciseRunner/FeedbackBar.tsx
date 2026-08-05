@@ -18,23 +18,6 @@ function toneFor(verdict: SubmitAttemptResponse): FeedbackTone {
   return verdict.correct ? 'correct' : 'incorrect';
 }
 
-/**
- * Renders the expected answer from the server's PRACTICE-mode feedback.
- * `correctAnswer` is opaque (template-specific), so this stringifies it
- * generically; per-template pretty rendering can be added alongside each body
- * in later steps.
- */
-function formatCorrectAnswer(value: unknown): string | null {
-  if (value == null) return null;
-  if (typeof value === 'string') return value;
-  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return null;
-  }
-}
-
 export function FeedbackBar({ verdict }: FeedbackBarProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -50,18 +33,11 @@ export function FeedbackBar({ verdict }: FeedbackBarProps) {
         ? t('exerciseRunner.incorrect')
         : t('exerciseRunner.submittedForReview');
 
-  const expected = tone === 'incorrect' ? formatCorrectAnswer(verdict.feedback.correctAnswer) : null;
-
   return (
     <View style={[styles.bar, { backgroundColor: `${toneColor}1A`, borderColor: toneColor }]}>
       <Text style={[styles.title, { color: toneColor }]}>{title}</Text>
       {verdict.feedback.summary ? (
         <Text style={styles.summary}>{verdict.feedback.summary}</Text>
-      ) : null}
-      {expected ? (
-        <Text style={styles.expected}>
-          {t('exerciseRunner.expectedAnswer')}: <Text style={styles.expectedValue}>{expected}</Text>
-        </Text>
       ) : null}
     </View>
   );
@@ -85,14 +61,5 @@ const makeStyles = (colors: ColorScheme) =>
       fontSize: 13,
       color: colors.textSecondary,
       lineHeight: 18,
-    },
-    expected: {
-      fontSize: 13,
-      color: colors.textSecondary,
-      marginTop: 6,
-    },
-    expectedValue: {
-      fontWeight: '700',
-      color: colors.textPrimary,
     },
   });

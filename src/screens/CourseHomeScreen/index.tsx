@@ -13,20 +13,37 @@ import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
 import { useCourseHome } from '../../hooks/useCourseHome';
+import { useCourseReviewSets } from '../../hooks/useCourseReviewSets';
 import { UnitRow } from './UnitRow';
+import { CourseStatsSection } from './CourseStatsSection';
+import { OfflineBanner } from '../../components/OfflineBanner';
+import { isNetworkError } from '../../api/isNetworkError';
 import type { UnitSummary } from '../../api/types';
 
 interface CourseHomeScreenProps {
   courseId: string;
   onBack: () => void;
   onUnitPress: (unitId: string) => void;
+  onReviewPress: () => void;
 }
 
-export function CourseHomeScreen({ courseId, onBack, onUnitPress }: CourseHomeScreenProps) {
+export function CourseHomeScreen({
+  courseId,
+  onBack,
+  onUnitPress,
+  onReviewPress,
+}: CourseHomeScreenProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const { status, data, error, refreshing, refresh } = useCourseHome(courseId);
+  const { status, data, error, refreshing, stale, refresh } = useCourseHome(courseId);
+  // `data.srsDueCount` comes from the global, unfiltered `/srs/stats/me` stat
+  // (see the caveat in `src/api/courseHome.ts`) and can be nonzero while the
+  // "Повторить" screen has nothing runnable — it also counts EXERCISE cards
+  // and VOCABULARY_WORD cards whose list was never imported locally. Use the
+  // same resolved-against-local-decks count the review screen itself runs on,
+  // so the counter never promises a session that turns out empty.
+  const { overview: reviewOverview } = useCourseReviewSets();
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -46,6 +63,8 @@ export function CourseHomeScreen({ courseId, onBack, onUnitPress }: CourseHomeSc
           )}
         </View>
       </View>
+
+      {stale && isNetworkError(error) && <OfflineBanner />}
 
       {status === 'loading' && (
         <View style={styles.centerFill}>
@@ -74,6 +93,13 @@ export function CourseHomeScreen({ courseId, onBack, onUnitPress }: CourseHomeSc
           data={data.units}
           keyExtractor={(unit: UnitSummary) => unit.id}
           renderItem={({ item }) => <UnitRow unit={item} onPress={() => onUnitPress(item.id)} />}
+          ListHeaderComponent={
+            <CourseStatsSection
+              mastery={data.mastery}
+              srsDueCount={reviewOverview?.totalDue ?? 0}
+              onReviewPress={onReviewPress}
+            />
+          }
           contentContainerStyle={styles.list}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />

@@ -159,9 +159,7 @@ export function FlipCard({
             <Text style={styles.label}>{t('card.translation')}</Text>
             <Text style={styles.word}>{word.translation}</Text>
             <Text style={styles.stageBadge}>
-              {word.memoryStage !== undefined
-                ? `Stage ${word.memoryStage}`
-                : word.status}
+              {t(`card.bucket.${word.bucket}`)}
             </Text>
           </Animated.View>
         </Pressable>
