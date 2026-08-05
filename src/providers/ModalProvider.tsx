@@ -1,6 +1,7 @@
 import { createContext, ReactNode, useCallback, useContext, useState } from 'react';
 import { ModalRenderer } from '../components/modal/ModalRenderer';
 import { PickerOption } from '../components/modal/sheets/BottomSheetPicker';
+import type { ReaderGlossaryEntry } from '../api/lessons';
 
 export type ModalConfig =
   | {
@@ -18,6 +19,10 @@ export type ModalConfig =
       confirmLabel?: string;
       cancelLabel?: string;
       onConfirm: () => void;
+    }
+  | {
+      type: 'glossary';
+      entry: ReaderGlossaryEntry;
     };
 
 export interface ModalContextValue {

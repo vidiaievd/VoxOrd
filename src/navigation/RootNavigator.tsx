@@ -17,8 +17,14 @@ import { SessionResultsScreen } from '../screens/LearningScreen/SessionResultsSc
 import { ContextExercise } from '../screens/LearningScreen/exercises/ContextExercise';
 import { DeepSessionScreen } from '../screens/LearningScreen/DeepSessionScreen';
 import { PronunciationExercise } from '../screens/LearningScreen/exercises/pronunciation/PronunciationExercise';
+import { CoursesScreen } from '../screens/CoursesScreen';
+import { CourseHomeScreen } from '../screens/CourseHomeScreen';
+import { UnitContentsScreen } from '../screens/UnitContentsScreen';
+import { LessonReaderScreen } from '../screens/LessonReaderScreen';
+import { ExerciseRunnerScreen } from '../screens/ExerciseRunner';
+import { VocabularyListScreen } from '../screens/VocabularyListScreen';
 
-type Tab = 'Home' | 'Settings';
+type Tab = 'Home' | 'Courses' | 'Settings';
 
 type Screen =
   | { name: 'Home' }
@@ -32,7 +38,25 @@ type Screen =
   | { name: 'Context'; deckId: number }
   | { name: 'DeepSession'; deck: Deck }
   | { name: 'SessionResults'; sessionId: number; deckId: number }
+  | { name: 'Courses' }
+  | { name: 'CourseHome'; courseId: string }
+  | { name: 'UnitContents'; unitId: string; courseId: string }
+  | { name: 'LessonReader'; lessonId: string; unitId: string; courseId: string }
+  | { name: 'VocabularyList'; listId: string; unitId: string; courseId: string }
+  | {
+      name: 'ExerciseRunner';
+      exerciseIds: string[];
+      startIndex: number;
+      unitId: string;
+      courseId: string;
+    }
   | { name: 'Settings' };
+
+const SCREEN_FOR_TAB: Record<Tab, Screen> = {
+  Home: { name: 'Home' },
+  Courses: { name: 'Courses' },
+  Settings: { name: 'Settings' },
+};
 
 export function RootNavigator() {
   const { t } = useTranslation();
@@ -63,7 +87,7 @@ export function RootNavigator() {
 
   const handleTabPress = useCallback((tab: Tab) => {
     setActiveTab(tab);
-    setScreen(tab === 'Settings' ? { name: 'Settings' } : { name: 'Home' });
+    setScreen(SCREEN_FOR_TAB[tab]);
   }, []);
 
   const handleModeSelect = useCallback(
@@ -206,6 +230,95 @@ export function RootNavigator() {
           />
         );
 
+      case 'Courses':
+        return (
+          <CoursesScreen
+            onCoursePress={courseId => navigateTo({ name: 'CourseHome', courseId })}
+          />
+        );
+
+      case 'CourseHome':
+        return (
+          <CourseHomeScreen
+            courseId={screen.courseId}
+            onBack={() => setScreen({ name: 'Courses' })}
+            onUnitPress={unitId =>
+              navigateTo({ name: 'UnitContents', unitId, courseId: screen.courseId })
+            }
+          />
+        );
+
+      case 'UnitContents':
+        return (
+          <UnitContentsScreen
+            unitId={screen.unitId}
+            onBack={() => setScreen({ name: 'CourseHome', courseId: screen.courseId })}
+            onLessonPress={lessonId =>
+              navigateTo({
+                name: 'LessonReader',
+                lessonId,
+                unitId: screen.unitId,
+                courseId: screen.courseId,
+              })
+            }
+            onExercisePress={(exerciseIds, startIndex) =>
+              navigateTo({
+                name: 'ExerciseRunner',
+                exerciseIds,
+                startIndex,
+                unitId: screen.unitId,
+                courseId: screen.courseId,
+              })
+            }
+            onVocabularyPress={listId =>
+              navigateTo({
+                name: 'VocabularyList',
+                listId,
+                unitId: screen.unitId,
+                courseId: screen.courseId,
+              })
+            }
+          />
+        );
+
+      case 'ExerciseRunner': {
+        const backToUnit = () =>
+          setScreen({
+            name: 'UnitContents',
+            unitId: screen.unitId,
+            courseId: screen.courseId,
+          });
+        return (
+          <ExerciseRunnerScreen
+            exerciseIds={screen.exerciseIds}
+            startIndex={screen.startIndex}
+            onBack={backToUnit}
+            onComplete={backToUnit}
+          />
+        );
+      }
+
+      case 'VocabularyList':
+        return (
+          <VocabularyListScreen
+            listId={screen.listId}
+            onBack={() =>
+              setScreen({ name: 'UnitContents', unitId: screen.unitId, courseId: screen.courseId })
+            }
+          />
+        );
+
+      case 'LessonReader':
+        return (
+          <LessonReaderScreen
+            lessonId={screen.lessonId}
+            courseId={screen.courseId}
+            onBack={() =>
+              setScreen({ name: 'UnitContents', unitId: screen.unitId, courseId: screen.courseId })
+            }
+          />
+        );
+
       case 'Settings':
         return <SettingsScreen />;
 
@@ -236,7 +349,11 @@ export function RootNavigator() {
     screen.name !== 'SessionResults' &&
     screen.name !== 'DeepSession' &&
     screen.name !== 'Pronunciation' &&
-    screen.name !== 'Listening';
+    screen.name !== 'Listening' &&
+    screen.name !== 'CourseHome' &&
+    screen.name !== 'UnitContents' &&
+    screen.name !== 'LessonReader' &&
+    screen.name !== 'ExerciseRunner';
 
   return (
     <View style={styles.root}>
@@ -248,6 +365,13 @@ export function RootNavigator() {
             label={t('nav.home')}
             isActive={activeTab === 'Home'}
             onPress={() => handleTabPress('Home')}
+            colors={colors}
+          />
+          <TabItem
+            icon="🎓"
+            label={t('nav.courses')}
+            isActive={activeTab === 'Courses'}
+            onPress={() => handleTabPress('Courses')}
             colors={colors}
           />
           <TabItem

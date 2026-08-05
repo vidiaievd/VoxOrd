@@ -5,6 +5,8 @@ import { LanguageSection } from './sections/LanguageSection';
 import { AppearanceSection } from './sections/AppearanceSection';
 import { LearningSection } from './sections/LearningSection';
 import { StatisticsSection } from './sections/StatisticsSection';
+import { AccountSection } from './sections/AccountSection';
+import { DeveloperSection } from './sections/DeveloperSection';
 import { SettingsSection } from './components/SettingsSection';
 import { SettingsRow } from './components/SettingsRow';
 import { useTranslation } from '../../i18n';
@@ -31,6 +33,8 @@ export function SettingsScreen() {
         <LanguageSection />
         <AppearanceSection />
         <LearningSection />
+        <AccountSection />
+        <DeveloperSection />
 
         <SettingsSection title={t('settings.about')}>
           <SettingsRow

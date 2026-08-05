@@ -282,4 +282,48 @@ export const migrations: Migration[] = [
     `);
     },
   },
+  {
+    version: 8,
+    up: async db => {
+      // Linkage columns for importing a platform vocabulary list into a local
+      // deck (course-integration plan, Phase 5.2). They are the only thing
+      // connecting course content to the offline word database: a row with a
+      // NULL platform id is a personal row the importer never touches.
+      //
+      // The migration runner has no transaction around `up()`, and SQLite
+      // rejects a duplicate ADD COLUMN, so each step checks first — a partially
+      // applied v8 can be re-run safely.
+      await addColumnIfMissing(db, 'decks', 'platformListId', 'TEXT');
+      await addColumnIfMissing(db, 'words', 'platformItemId', 'TEXT');
+      await addColumnIfMissing(db, 'deck_groups', 'systemKey', 'TEXT');
+
+      // Partial unique indexes: one deck per platform list, one word row per
+      // platform vocabulary item, one group per system key — while leaving the
+      // many existing NULL rows unconstrained.
+      await db.execute(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_decks_platform_list
+        ON decks(platformListId) WHERE platformListId IS NOT NULL;
+    `);
+      await db.execute(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_words_platform_item
+        ON words(platformItemId) WHERE platformItemId IS NOT NULL;
+    `);
+      await db.execute(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_deck_groups_system_key
+        ON deck_groups(systemKey) WHERE systemKey IS NOT NULL;
+    `);
+    },
+  },
 ];
+
+async function addColumnIfMissing(
+  db: DB,
+  table: string,
+  column: string,
+  definition: string,
+): Promise<void> {
+  const info = await db.execute(`PRAGMA table_info(${table});`);
+  const exists = (info.rows ?? []).some(row => row.name === column);
+  if (exists) return;
+  await db.execute(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition};`);
+}

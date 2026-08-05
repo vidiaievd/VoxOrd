@@ -4,6 +4,8 @@ import { getDatabase } from './src/db/database';
 import { runMigrations } from './src/db/migrationRunner';
 import { seedIfEmpty } from './src/db/seed';
 import { settingsStore } from './src/store/settingsStore';
+import { apiSettingsStore } from './src/store/apiSettingsStore';
+import { authService } from './src/api/auth';
 import { debugPrintAllWords } from './src/db/words';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { AppProviders } from './src/providers/AppProviders';
@@ -34,7 +36,16 @@ export default function App() {
         console.log('[Test] all translations:', translations.length);
         //TODO: end of testing block, remove later
         await settingsStore.load();
+        await apiSettingsStore.load();
         await debugPrintAllWords();
+
+        // Platform session restore is deliberately NOT awaited: it performs a
+        // network call, and word learning is offline-first — a slow or
+        // unreachable backend must never delay app start. Course screens read
+        // authStore and render their own 'restoring' state until it settles.
+        authService.install();
+        void authService.restore();
+
         setReady(true);
       } catch (e) {
         setError(String(e));
