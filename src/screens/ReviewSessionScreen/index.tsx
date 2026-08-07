@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -49,6 +49,7 @@ export function ReviewSessionScreen({ onBack }: ReviewSessionScreenProps) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const { loading, error, offline, overview, decks, reload } = useCourseReviewSets();
+  const [carryOnPastLimit, setCarryOnPastLimit] = useState(false);
 
   const set = primarySet(overview);
   const deck = set ? decks.get(set.deckId) ?? null : null;
@@ -105,12 +106,54 @@ export function ReviewSessionScreen({ onBack }: ReviewSessionScreenProps) {
     );
   }
 
-  return <RunningSession set={set} deck={deck} onBack={onBack} onDone={onBack} />;
+  // The day's quota is met. On mobile this used to be invisible: the learner
+  // drilled a whole multi-phase set and every rating it produced then sat in the
+  // queue until tomorrow, unsent and unmentioned. So the question is asked before
+  // the work, not after it — and it is a question, because the material is
+  // already due and only the person feeling tired can weigh that cost.
+  //
+  // Finishing is the primary action; carrying on is the quiet one. No streak, no
+  // over-quota tally: in spaced repetition the extra work is paid for later.
+  const quotaMet =
+    !!overview && overview.dailyLimit > 0 && overview.reviewedToday >= overview.dailyLimit;
+
+  if (quotaMet && !carryOnPastLimit) {
+    return (
+      <Frame onBack={onBack} styles={styles} title={t('review.title')}>
+        <View style={styles.centered}>
+          <Text style={styles.doneTitle}>{t('review.quotaMetTitle')}</Text>
+          <Text style={styles.message}>{t('review.quotaMetBody')}</Text>
+          <TouchableOpacity style={styles.primaryButton} onPress={onBack} activeOpacity={0.8}>
+            <Text style={styles.primaryButtonText}>{t('review.quotaMetFinish')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={() => setCarryOnPastLimit(true)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.secondaryButtonText}>{t('review.quotaMetCarryOn')}</Text>
+          </TouchableOpacity>
+        </View>
+      </Frame>
+    );
+  }
+
+  return (
+    <RunningSession
+      set={set}
+      deck={deck}
+      carryOnPastLimit={carryOnPastLimit}
+      onBack={onBack}
+      onDone={onBack}
+    />
+  );
 }
 
 interface RunningSessionProps {
   set: DeckReviewSet;
   deck: Deck;
+  /** The learner chose to keep going past today's quota; rides on every rating. */
+  carryOnPastLimit: boolean;
   onBack: () => void;
   onDone: () => void;
 }
@@ -120,11 +163,19 @@ interface RunningSessionProps {
  * phase plan off the word list, and mounting it with an empty set would plan an
  * empty session.
  */
-function RunningSession({ set, deck, onBack, onDone }: RunningSessionProps) {
+function RunningSession({
+  set,
+  deck,
+  carryOnPastLimit,
+  onBack,
+  onDone,
+}: RunningSessionProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const { state, tracking, wordIds, advance } = useCourseReviewSession(set);
+  const { state, tracking, wordIds, advance } = useCourseReviewSession(set, {
+    carryOnPastLimit,
+  });
 
   // Every exercise reports a correct count we do not use: the rating comes from
   // the accumulated per-answer evidence, not from a phase score.
@@ -321,5 +372,17 @@ const makeStyles = (colors: ColorScheme) =>
       color: colors.textInverted,
       fontSize: 16,
       fontWeight: '600',
+    },
+    secondaryButton: {
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingVertical: 12,
+      paddingHorizontal: 28,
+    },
+    secondaryButtonText: {
+      color: colors.textPrimary,
+      fontSize: 16,
+      fontWeight: '500',
     },
   });

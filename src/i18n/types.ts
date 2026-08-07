@@ -233,6 +233,10 @@ export interface Translations {
     submitting: string;
     stillDue: string; // '{count} words left for next time'
     notImported: string; // '{count} due words are not in a saved list'
+    quotaMetTitle: string;
+    quotaMetBody: string;
+    quotaMetFinish: string;
+    quotaMetCarryOn: string;
     phasePreview: string;
     phaseListening: string;
     phaseQuiz: string;

@@ -69,8 +69,17 @@ export interface UseCourseReviewSessionResult {
   finishEarly: () => void;
 }
 
+export interface CourseReviewSessionOptions {
+  /**
+   * The learner was told the day's quota was met and chose to keep going. Sent
+   * with every rating this session posts, since the cap is checked per review.
+   */
+  carryOnPastLimit?: boolean;
+}
+
 export function useCourseReviewSession(
   set: DeckReviewSet,
+  options: CourseReviewSessionOptions = {},
 ): UseCourseReviewSessionResult {
   const [previewWords, setPreviewWords] = useState<DeepSessionWord[]>([]);
   const [phases, setPhases] = useState<CourseReviewPhase[] | null>(null);
@@ -109,6 +118,11 @@ export function useCourseReviewSession(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [set.deckId, JSON.stringify(set.wordIds)]);
 
+  // Read through a ref so `submitAll` does not have to be rebuilt — and so a
+  // session that started as a carry-on keeps that permission to its last rating.
+  const carryOnRef = useRef(options.carryOnPastLimit ?? false);
+  carryOnRef.current = options.carryOnPastLimit ?? false;
+
   const submitAll = useCallback(async () => {
     if (submittingRef.current) return;
     submittingRef.current = true;
@@ -124,7 +138,9 @@ export function useCourseReviewSession(
       if (!cardId) continue;
       // The queue persists the review before sending and replays it later if
       // the network is down, so a failure here is not lost work.
-      await reviewQueueStore.submit(cardId, rating);
+      await reviewQueueStore.submit(cardId, rating, new Date(), {
+        carryOnPastLimit: carryOnRef.current,
+      });
       posted.push({ wordId, rating });
     }
 
