@@ -135,11 +135,23 @@ export function MatchPairsBody({ display, disabled, verdict, onAnswerChange }: E
               activeOpacity={0.8}
             >
               <Text style={styles.slotLeft}>{slot.left}</Text>
-              <Text style={attached ? styles.slotFilledText : styles.slotEmptyText}>
-                {attached
-                  ? (poolText.get(attached) ?? attached)
-                  : t('exerciseRunner.matchPairsEmptySlot')}
-              </Text>
+              <View style={styles.slotValueRow}>
+                <Text style={attached ? styles.slotFilledText : styles.slotEmptyText}>
+                  {attached
+                    ? (poolText.get(attached) ?? attached)
+                    : t('exerciseRunner.matchPairsEmptySlot')}
+                </Text>
+                {/* Never colour alone: a correct slot has no explanation under it to
+                    carry the verdict, so the green border would otherwise be the whole
+                    signal — invisible to anyone who cannot separate it from the red. */}
+                {result ? (
+                  <Text style={result.correct ? styles.stateCorrect : styles.stateWrong}>
+                    {result.correct
+                      ? t('exerciseRunner.matchPairsCorrect')
+                      : t('exerciseRunner.matchPairsWrong')}
+                  </Text>
+                ) : null}
+              </View>
             </TouchableOpacity>
             {result && !result.correct && result.explanation ? (
               <Text style={styles.explanation}>{result.explanation}</Text>
@@ -221,6 +233,29 @@ const makeStyles = (colors: ColorScheme) => {
       color: colors.textMuted,
       fontStyle: 'italic',
       lineHeight: 20,
+      marginTop: 4,
+    },
+    slotValueRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+    },
+    stateCorrect: {
+      fontSize: 11,
+      fontWeight: '800',
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
+      color: colors.success,
+      marginLeft: 8,
+      marginTop: 4,
+    },
+    stateWrong: {
+      fontSize: 11,
+      fontWeight: '800',
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
+      color: colors.danger,
+      marginLeft: 8,
       marginTop: 4,
     },
     explanation: {

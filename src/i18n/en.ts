@@ -202,6 +202,8 @@ export const en: Translations = {
     matchPairsHint: 'Tap a line, then tap the half that completes it',
     matchPairsRemaining: '{count} left',
     matchPairsEmptySlot: 'Tap a half below',
+    matchPairsCorrect: 'Correct',
+    matchPairsWrong: 'Not right',
     shortAnswerPlaceholder: 'Type your answer…',
     modelAnswer: 'Model answer',
     writingTaskPlaceholder: 'Write your text…',

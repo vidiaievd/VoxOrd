@@ -202,6 +202,8 @@ export const ru: Translations = {
     matchPairsHint: 'Нажмите на строку, затем на половину, которая её завершает',
     matchPairsRemaining: 'осталось: {count}',
     matchPairsEmptySlot: 'Выберите половину ниже',
+    matchPairsCorrect: 'Верно',
+    matchPairsWrong: 'Неверно',
     shortAnswerPlaceholder: 'Введите ответ…',
     modelAnswer: 'Образец ответа',
     writingTaskPlaceholder: 'Напишите текст…',

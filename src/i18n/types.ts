@@ -200,6 +200,8 @@ export interface Translations {
     matchPairsHint: string;
     matchPairsRemaining: string; // '{count}'
     matchPairsEmptySlot: string;
+    matchPairsCorrect: string;
+    matchPairsWrong: string;
     shortAnswerPlaceholder: string;
     modelAnswer: string;
     writingTaskPlaceholder: string;

@@ -202,6 +202,8 @@ export const uk: Translations = {
     matchPairsHint: 'Натисніть на рядок, потім на половину, яка його завершує',
     matchPairsRemaining: 'залишилось: {count}',
     matchPairsEmptySlot: 'Оберіть половину нижче',
+    matchPairsCorrect: 'Правильно',
+    matchPairsWrong: 'Неправильно',
     shortAnswerPlaceholder: 'Введіть відповідь…',
     modelAnswer: 'Зразок відповіді',
     writingTaskPlaceholder: 'Напишіть текст…',
