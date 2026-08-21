@@ -1,222 +1,255 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
 import type { ExerciseBodyProps } from './ExerciseBody';
 import {
   buildMatchPairsAnswer,
-  extractExpectedPairs,
-  isLinkExpected,
   matchPairsCanSubmit,
+  readMatchPairsResults,
   toggleLink,
   type Links,
   type MatchPairsContent,
+  type MatchPairsResult,
 } from './templates/matchPairs';
-
-function shuffled<T>(items: T[]): T[] {
-  const copy = [...items];
-  for (let i = copy.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy;
-}
 
 function invert(links: Links): Links {
   const out: Links = {};
-  for (const [left, right] of Object.entries(links)) out[right] = left;
+  for (const [slot, item] of Object.entries(links)) out[item] = slot;
   return out;
 }
 
 /**
- * `match_pairs` body. Two-column tap-to-select-then-link interaction adapted
- * from MatchingExercise.tsx (visual language only — that screen auto-grades
- * each pair locally and removes matched items; this one accumulates a full
- * set of links and submits them together for server grading, since an
- * attempt covers the whole exercise, not one pair at a time).
+ * `match_pairs` body — slots stacked above a pool of right halves.
  *
- * Server response has no per-pair correctness (only the item-level `correct`
- * flag/score), but PRACTICE mode's `feedback.correctAnswer` carries the full
- * expected pair set, so feedback highlighting IS possible here — reusing that
- * value to recolor each link, the same way MultipleChoiceBody does.
+ * **Not two columns.** The previous layout put left items and right items in two
+ * `flex: 1` columns, which worked only while the two sides were the same length and
+ * the same shape. Neither holds any more: the pool carries distractors, so it is
+ * strictly longer than the list of slots (8 halves for 5 slots in the seeded content),
+ * and `variant: 'halves'` puts a clause on each side, so the text is far too long for
+ * half a phone's width. Rows across the full width, with the pool wrapping into chips
+ * underneath, takes both.
  *
- * `verdict.correct` is checked first (available in both PRACTICE and GRADED):
- * if the whole attempt is correct, every linked pair is green regardless of
- * `expectedPairs`. Only a wrong attempt falls back to `expectedPairs` (PRACTICE
- * only) to tell which individual links were right vs wrong; in GRADED mode a
- * wrong attempt still can't distinguish per-pair, so every link reds out —
- * same limitation MultipleChoiceBody has for its own GRADED wrong case.
+ * The pool arrives shuffled — server-side, per attempt, from a CSPRNG
+ * (`studentSafeContent` in content-service). There is deliberately no second shuffle
+ * here: it would add nothing over the first and would make a report of what the student
+ * saw impossible to reproduce.
+ *
+ * Grading is entirely server-side, as for every template in this runner. In the feedback
+ * phase each filled slot is coloured from `verdict.details.pairs[]`, and a wrong one
+ * shows the explanation the teacher wrote for the half the student actually attached.
+ * The correct half is never revealed — that is a separate, recorded action, and the
+ * mobile runner does not offer it yet (plan 49, phase 10).
  */
 export function MatchPairsBody({ display, disabled, verdict, onAnswerChange }: ExerciseBodyProps) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const content = display.content as unknown as MatchPairsContent;
+  // Memoised, not just defaulted: `?? []` is a fresh array every render, which would
+  // re-run the `poolText` map on each keystroke of the parent's state.
+  const slots = useMemo(() => content.slots ?? [], [content.slots]);
+  const pool = useMemo(() => content.pool ?? [], [content.pool]);
 
-  const [rightOrder] = useState(() => shuffled(content.right_items));
   const [links, setLinks] = useState<Links>({});
-  const [selectedLeftId, setSelectedLeftId] = useState<string | null>(null);
+  const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
 
   useEffect(() => {
-    onAnswerChange(
-      buildMatchPairsAnswer(links, content.left_items),
-      matchPairsCanSubmit(links, content.left_items),
-    );
+    onAnswerChange(buildMatchPairsAnswer(links, slots), matchPairsCanSubmit(links, slots));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [links]);
 
-  const rightToLeft = useMemo(() => invert(links), [links]);
+  const itemToSlot = useMemo(() => invert(links), [links]);
+  const poolText = useMemo(
+    () => new Map(pool.map((item) => [item.itemId, item.text])),
+    [pool],
+  );
 
   const showFeedback = disabled && verdict !== null;
-  const expectedPairs = showFeedback ? extractExpectedPairs(verdict!.feedback.correctAnswer) : null;
+  const results = useMemo(
+    () => (showFeedback ? readMatchPairsResults(verdict!.details) : null),
+    [showFeedback, verdict],
+  );
+  const resultFor = (slotId: string): MatchPairsResult | undefined =>
+    results?.find((r) => r.pairId === slotId);
 
-  const handleLeftPress = (id: string) => {
-    if (disabled) return;
-    setSelectedLeftId((prev) => (prev === id ? null : id));
-  };
+  const remaining = slots.filter((slot) => links[slot.slotId] === undefined).length;
 
-  const handleRightPress = (rightId: string) => {
+  const handleSlotPress = (slotId: string) => {
     if (disabled) return;
-    if (selectedLeftId) {
-      setLinks((prev) => toggleLink(prev, selectedLeftId, rightId));
-      setSelectedLeftId(null);
+    // Tapping a filled slot empties it; the half returns to the pool.
+    if (links[slotId] !== undefined) {
+      setLinks((prev) => toggleLink(prev, slotId, prev[slotId]));
+      setSelectedSlotId(null);
       return;
     }
-    // No left selected: tapping an already-linked right re-selects its
-    // partner, so tapping the same right again unlinks it.
-    const partnerLeft = rightToLeft[rightId];
-    if (partnerLeft) setSelectedLeftId(partnerLeft);
+    setSelectedSlotId((prev) => (prev === slotId ? null : slotId));
   };
 
-  const leftStyle = (id: string) => {
-    const linkedRight = links[id];
-    if (showFeedback) {
-      if (!linkedRight) return styles.item;
-      if (verdict!.correct) return styles.itemCorrect;
-      if (expectedPairs && isLinkExpected(expectedPairs, id, linkedRight)) return styles.itemCorrect;
-      return styles.itemWrong;
+  const handlePoolPress = (itemId: string) => {
+    if (disabled) return;
+    // A half already placed somewhere: tapping it selects its slot, so the next tap
+    // moves it. Otherwise it needs a selected slot to go into.
+    const owningSlot = itemToSlot[itemId];
+    if (owningSlot && !selectedSlotId) {
+      setSelectedSlotId(owningSlot);
+      return;
     }
-    if (selectedLeftId === id) return styles.itemSelected;
-    if (linkedRight) return styles.itemLinked;
-    return styles.item;
+    if (!selectedSlotId) return;
+    setLinks((prev) => toggleLink(prev, selectedSlotId, itemId));
+    setSelectedSlotId(null);
   };
 
-  const rightStyle = (id: string) => {
-    const partnerLeft = rightToLeft[id];
+  const slotStyle = (slotId: string) => {
     if (showFeedback) {
-      if (!partnerLeft) return styles.item;
-      if (verdict!.correct) return styles.itemCorrect;
-      if (expectedPairs && isLinkExpected(expectedPairs, partnerLeft, id)) return styles.itemCorrect;
-      return styles.itemWrong;
+      const result = resultFor(slotId);
+      // A slot with no verdict was left empty — unanswered, which is not wrong.
+      if (!result) return styles.slot;
+      return result.correct ? styles.slotCorrect : styles.slotWrong;
     }
-    if (selectedLeftId && links[selectedLeftId] === id) return styles.itemSelected;
-    if (partnerLeft) return styles.itemLinked;
-    return styles.item;
+    if (selectedSlotId === slotId) return styles.slotSelected;
+    if (links[slotId] !== undefined) return styles.slotFilled;
+    return styles.slot;
+  };
+
+  const chipStyle = (itemId: string) => {
+    if (itemToSlot[itemId]) return styles.chipUsed;
+    if (selectedSlotId) return styles.chipSelectable;
+    return styles.chip;
   };
 
   return (
     <View>
-      {content.context ? <Text style={styles.context}>{content.context}</Text> : null}
-      <View style={styles.columns}>
-        <View style={styles.column}>
-          {content.left_items.map((item) => (
+      {!disabled ? <Text style={styles.hint}>{t('exerciseRunner.matchPairsHint')}</Text> : null}
+
+      {slots.map((slot) => {
+        const attached = links[slot.slotId];
+        const result = showFeedback ? resultFor(slot.slotId) : undefined;
+        return (
+          <View key={slot.slotId}>
             <TouchableOpacity
-              key={item.id}
-              style={leftStyle(item.id)}
-              onPress={() => handleLeftPress(item.id)}
+              style={slotStyle(slot.slotId)}
+              onPress={() => handleSlotPress(slot.slotId)}
               disabled={disabled}
               activeOpacity={0.8}
             >
-              <Text style={styles.itemText}>{item.text}</Text>
+              <Text style={styles.slotLeft}>{slot.left}</Text>
+              <Text style={attached ? styles.slotFilledText : styles.slotEmptyText}>
+                {attached
+                  ? (poolText.get(attached) ?? attached)
+                  : t('exerciseRunner.matchPairsEmptySlot')}
+              </Text>
             </TouchableOpacity>
-          ))}
-        </View>
-        <View style={styles.column}>
-          {rightOrder.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={rightStyle(item.id)}
-              onPress={() => handleRightPress(item.id)}
-              disabled={disabled}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.itemText}>{item.text}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+            {result && !result.correct && result.explanation ? (
+              <Text style={styles.explanation}>{result.explanation}</Text>
+            ) : null}
+          </View>
+        );
+      })}
+
+      {content.settings?.showRemaining && !disabled ? (
+        <Text style={styles.remaining}>
+          {t('exerciseRunner.matchPairsRemaining', { count: String(remaining) })}
+        </Text>
+      ) : null}
+
+      <View style={styles.pool}>
+        {pool.map((item) => (
+          <TouchableOpacity
+            key={item.itemId}
+            style={chipStyle(item.itemId)}
+            onPress={() => handlePoolPress(item.itemId)}
+            disabled={disabled}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.chipText}>{item.text}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
     </View>
   );
 }
 
-const makeStyles = (colors: ColorScheme) =>
-  StyleSheet.create({
-    context: {
+const makeStyles = (colors: ColorScheme) => {
+  const slotBase = {
+    backgroundColor: colors.backgroundCard,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 10,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  } as const;
+  const chipBase = {
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginRight: 8,
+    marginBottom: 8,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    backgroundColor: colors.backgroundCard,
+  } as const;
+
+  return StyleSheet.create({
+    hint: {
       fontSize: 13,
       color: colors.textMuted,
       marginBottom: 14,
       lineHeight: 18,
     },
-    columns: {
+    slot: slotBase,
+    slotSelected: { ...slotBase, backgroundColor: colors.accentLight, borderColor: colors.accent },
+    slotFilled: { ...slotBase, borderColor: colors.textSecondary },
+    slotCorrect: { ...slotBase, backgroundColor: 'rgba(52, 199, 89, 0.12)', borderColor: colors.success },
+    slotWrong: { ...slotBase, backgroundColor: 'rgba(255, 59, 48, 0.10)', borderColor: colors.danger },
+    slotLeft: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.textPrimary,
+      lineHeight: 21,
+    },
+    slotFilledText: {
+      fontSize: 15,
+      color: colors.textPrimary,
+      lineHeight: 21,
+      marginTop: 4,
+    },
+    slotEmptyText: {
+      fontSize: 14,
+      color: colors.textMuted,
+      fontStyle: 'italic',
+      lineHeight: 20,
+      marginTop: 4,
+    },
+    explanation: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      lineHeight: 18,
+      marginTop: -4,
+      marginBottom: 12,
+      paddingHorizontal: 14,
+    },
+    remaining: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.textMuted,
+      marginTop: 6,
+      marginBottom: 8,
+    },
+    pool: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
+      marginTop: 6,
     },
-    column: {
-      flex: 1,
-      marginRight: 8,
-    },
-    item: {
-      backgroundColor: colors.backgroundCard,
-      borderRadius: 14,
-      paddingVertical: 14,
-      paddingHorizontal: 10,
-      marginBottom: 10,
-      alignItems: 'center',
-      borderWidth: 2,
-      borderColor: 'transparent',
-    },
-    itemSelected: {
-      backgroundColor: colors.accentLight,
-      borderRadius: 14,
-      paddingVertical: 14,
-      paddingHorizontal: 10,
-      marginBottom: 10,
-      alignItems: 'center',
-      borderWidth: 2,
-      borderColor: colors.accent,
-    },
-    itemLinked: {
-      backgroundColor: colors.backgroundCard,
-      borderRadius: 14,
-      paddingVertical: 14,
-      paddingHorizontal: 10,
-      marginBottom: 10,
-      alignItems: 'center',
-      borderWidth: 2,
-      borderColor: colors.textSecondary,
-    },
-    itemCorrect: {
-      backgroundColor: 'rgba(52, 199, 89, 0.12)',
-      borderRadius: 14,
-      paddingVertical: 14,
-      paddingHorizontal: 10,
-      marginBottom: 10,
-      alignItems: 'center',
-      borderWidth: 2,
-      borderColor: colors.success,
-    },
-    itemWrong: {
-      backgroundColor: 'rgba(255, 59, 48, 0.10)',
-      borderRadius: 14,
-      paddingVertical: 14,
-      paddingHorizontal: 10,
-      marginBottom: 10,
-      alignItems: 'center',
-      borderWidth: 2,
-      borderColor: colors.danger,
-    },
-    itemText: {
+    chip: chipBase,
+    chipSelectable: { ...chipBase, borderColor: colors.accent },
+    chipUsed: { ...chipBase, opacity: 0.4, borderColor: colors.textSecondary },
+    chipText: {
       fontSize: 14,
       fontWeight: '600',
       color: colors.textPrimary,
-      textAlign: 'center',
     },
   });
+};

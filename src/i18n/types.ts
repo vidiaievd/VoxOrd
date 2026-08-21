@@ -197,6 +197,9 @@ export interface Translations {
     translateFromTargetLabel: string; // '{language}'
     translatePlaceholder: string;
     sentenceSchemaHint: string;
+    matchPairsHint: string;
+    matchPairsRemaining: string; // '{count}'
+    matchPairsEmptySlot: string;
     shortAnswerPlaceholder: string;
     modelAnswer: string;
     writingTaskPlaceholder: string;

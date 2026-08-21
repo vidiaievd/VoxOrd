@@ -112,6 +112,18 @@ export interface SubmitAttemptResponse {
   score: number | null;
   requiresReview: boolean;
   feedback: AttemptFeedback;
+  /**
+   * Per-item verdicts, for the templates graded item by item and only where the
+   * validator's output is meant for the learner (`learnerFacingDetails` in
+   * exercise-engine's `submit-answer.handler.ts` — a per-template allowance, not a
+   * forwarded field, because several validators put the answer in here).
+   *
+   * Shape depends on `templateCode` and is read by the body that understands it —
+   * `match_pairs` gets `{ totalPairs, correctPairs, pairs: [{ pairId, correct,
+   * explanation }] }`. Absent for most templates, so every reader must tolerate
+   * `undefined`.
+   */
+  details?: unknown;
 }
 
 /** `POST /exercises/:exerciseId/attempts` — start (create) an attempt. */
