@@ -102,9 +102,10 @@ export interface AttemptFeedback {
 }
 
 /**
- * Response of the submit endpoint (SubmitAnswerResponseDto). Free-form
- * templates (translate_*, writing_task) route to human review:
- * `correct=false`, `score=null`, `requiresReview=true`.
+ * Response of the submit endpoint (SubmitAnswerResponseDto). The templates that
+ * route to human review (translate_*, writing_task) come back
+ * `correct=false`, `score=null`, `requiresReview=true`; the teacher's mark arrives
+ * later, in the review queue, which the app has no screen for.
  */
 export interface SubmitAttemptResponse {
   attemptId: string;
