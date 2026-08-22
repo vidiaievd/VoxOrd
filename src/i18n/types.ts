@@ -205,7 +205,33 @@ export interface Translations {
     shortAnswerPlaceholder: string;
     modelAnswer: string;
     writingTaskPlaceholder: string;
-    writingTaskWordCount: string; // '{count}', '{min}', '{max}'
+    /** Which kind of text this is — the badge above the task. */
+    writingTaskMode: {
+      letter: string;
+      essay: string;
+      picture: string;
+      retell: string;
+      free: string;
+    };
+    writingTaskRegister: {
+      formal: string;
+      informal: string;
+    };
+    writingTaskLetterLine: string; // '{recipient}', '{register}'
+    writingTaskImageMissing: string;
+    writingTaskChecklist: string;
+    writingTaskRubric: string;
+    writingTaskPassLine: string; // '{pass}', '{max}'
+    writingTaskTopLevel: string; // '{descriptor}'
+    writingTaskPhrases: string;
+    writingTaskWordRange: string; // '{count}', '{min}', '{max}'
+    writingTaskWordRangeOpen: string; // '{count}', '{min}'
+    writingTaskPasteOff: string;
+    /** Why Check is still greyed out. */
+    writingTaskNeedMore: PluralForms; // '{count}'
+    writingTaskTooLong: string; // '{max}'
+    writingTaskUnavailable: string;
+    writingTaskUnavailableDesc: string;
     resultsExcellentTitle: string;
     resultsExcellentMessage: string;
     resultsGoodTitle: string;
