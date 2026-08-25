@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { ApiError } from '../../api/client';
+import { findOpenAttempt, type AnsweredQuestion } from '../../api/exercises';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
@@ -14,6 +15,7 @@ import {
   isShortAnswerDocument,
   readShortAnswerResult,
   readShortAnswerSet,
+  readVerdict,
   type ShortAnswerAnswer,
   type ShortAnswerResult,
   type ShortAnswerSet as Set,
@@ -114,6 +116,8 @@ function ShortAnswerSet({
   const [tally, setTally] = useState<ShortAnswerTally>(EMPTY_TALLY);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** True until the server has been asked what is already in — see the effect below. */
+  const [resuming, setResuming] = useState(true);
 
   /** Every answer handed in, in order — what the closing aggregate carries. */
   const answers = useRef<ShortAnswerAnswer[]>([]);
@@ -121,6 +125,61 @@ function ShortAnswerSet({
   const total = set.questions.length;
   const question = set.questions[index];
   const last = index + 1 >= total;
+
+  /**
+   * Pick the set up where it was left (plan 51 §8 Q6).
+   *
+   * An answer is handed in for good, and the attempt stays open until the set is closed,
+   * so an app killed mid-set leaves questions the engine considers answered. Walking
+   * from the top would mean pressing `Lever svaret` on a question it refuses — and the
+   * answers already in would never reach the closing aggregate.
+   *
+   * The attempt is read, never started: opening an exercise and leaving must still
+   * create nothing. Nothing open, or nothing answered, and the set plays from the top.
+   * Answers to questions the set no longer holds are dropped — a key can be edited
+   * between sittings.
+   */
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      const open = await findOpenAttempt(display.id);
+      if (cancelled) return;
+
+      const known = (open?.answeredQuestions ?? []).filter((a: AnsweredQuestion) =>
+        set.questions.some(q => q.id === a.questionId),
+      );
+      if (known.length > 0) {
+        answers.current = known.map(({ questionId, text }) => ({ questionId, text }));
+        setTally(
+          known.reduce((counts, a) => {
+            const verdict = readVerdict(a.verdict);
+            return verdict === null ? counts : countVerdict(counts, verdict);
+          }, EMPTY_TALLY),
+        );
+
+        const handedIn = known.map(a => a.questionId);
+        const nextIndex = set.questions.findIndex(q => !handedIn.includes(q.id));
+        if (nextIndex === -1) {
+          // Every question is in and the attempt was never closed: the footer's Check is
+          // all that is left, so the set arrives on its own completion screen.
+          setIndex(total - 1);
+          setPhase('done');
+          onAnswerChange(buildShortAnswerSubmission(answers.current), true);
+        } else {
+          setIndex(nextIndex);
+        }
+      }
+
+      setResuming(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // The set and the exercise are what this reads; the rest is written, not read.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [display.id, set]);
 
   // Nothing to check until the last answer is in: the footer's button closes the set, and
   // it must not be able to close one that is still being written.
@@ -173,6 +232,14 @@ function ShortAnswerSet({
     setPhase('done');
     onAnswerChange(buildShortAnswerSubmission(answers.current), true);
   }, [last, onAnswerChange]);
+
+  if (resuming) {
+    return (
+      <View style={styles.unavailable}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
 
   if (total === 0) {
     return (

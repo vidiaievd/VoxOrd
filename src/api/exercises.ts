@@ -211,3 +211,57 @@ export function answerQuestion(
 ): Promise<AnswerQuestionResponse> {
   return apiClient.post<AnswerQuestionResponse>(ANSWERS_PATH(exerciseId, attemptId), body);
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Picking a set back up (plan 51 §8 Q6).
+ *
+ * A `short_answer` answer is handed in for good, and the engine keeps the
+ * attempt open until the set is closed. So an app killed mid-set leaves
+ * questions that are answered on the server and unanswered on the device, and
+ * walking the set again would mean pressing `Lever svaret` on a question the
+ * engine refuses.
+ *
+ * The attempt is read rather than started: opening an exercise and leaving must
+ * still create nothing (`useExerciseRunner.openAttempt`), so this is a GET, and
+ * a set with nothing answered simply comes back with nothing in it.
+ * ────────────────────────────────────────────────────────────────────── */
+
+/** One question of a set already handed in on an open attempt. */
+export interface AnsweredQuestion {
+  questionId: string;
+  text: string;
+  verdict: string;
+}
+
+/** The open attempt at this exercise, as far as a resuming runner needs it. */
+export interface OpenAttempt {
+  attemptId: string;
+  answeredQuestions: AnsweredQuestion[];
+}
+
+interface AttemptListRow {
+  id: string;
+  status: string;
+  answeredQuestions?: AnsweredQuestion[] | null;
+}
+
+/**
+ * `GET /exercises/:exerciseId/attempts?status=IN_PROGRESS` — the attempt this
+ * learner has open at this exercise, or `null`.
+ *
+ * Fails soft on purpose: a set that cannot be resumed is played from the top,
+ * which is what happened before there was anything to resume. Losing the
+ * network on the way in must not cost the exercise.
+ */
+export async function findOpenAttempt(exerciseId: string): Promise<OpenAttempt | null> {
+  try {
+    const page = await apiClient.get<{ items: AttemptListRow[] }>(ATTEMPTS_PATH(exerciseId), {
+      query: { status: 'IN_PROGRESS', limit: 1 },
+    });
+    const open = page.items?.[0];
+    if (!open) return null;
+    return { attemptId: open.id, answeredQuestions: open.answeredQuestions ?? [] };
+  } catch {
+    return null;
+  }
+}

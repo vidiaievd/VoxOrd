@@ -283,6 +283,15 @@ export interface ShortAnswerTally {
 
 export const EMPTY_TALLY: ShortAnswerTally = { pass: 0, partial: 0, fail: 0 };
 
+/**
+ * The verdict, if it is one of the three. Used where a verdict arrives as a bare string —
+ * a resumed attempt reads its answers back from the attempt record, and a word this
+ * runner does not know is a word it must not count.
+ */
+export function readVerdict(value: unknown): ShortAnswerVerdict | null {
+  return value === 'pass' || value === 'partial' || value === 'fail' ? value : null;
+}
+
 export function countVerdict(tally: ShortAnswerTally, verdict: ShortAnswerVerdict): ShortAnswerTally {
   return { ...tally, [verdict]: tally[verdict] + 1 };
 }

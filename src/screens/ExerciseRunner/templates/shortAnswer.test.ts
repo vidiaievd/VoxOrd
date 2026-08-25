@@ -8,6 +8,7 @@ import {
   isShortAnswerDocument,
   readShortAnswerResult,
   readShortAnswerSet,
+  readVerdict,
   shortAnswerCanSubmit,
 } from './shortAnswer';
 
@@ -145,6 +146,22 @@ describe('countVerdict', () => {
   it('never mutates the tally it was given', () => {
     countVerdict(EMPTY_TALLY, 'pass');
     expect(EMPTY_TALLY).toEqual({ pass: 0, partial: 0, fail: 0 });
+  });
+});
+
+describe('readVerdict', () => {
+  it('accepts the three verdicts the engine speaks', () => {
+    expect(readVerdict('pass')).toBe('pass');
+    expect(readVerdict('partial')).toBe('partial');
+    expect(readVerdict('fail')).toBe('fail');
+  });
+
+  // A resumed attempt reads its verdicts back as bare strings, and a word this runner
+  // does not know must not be counted into the tally (plan 51 §8 Q6).
+  it('refuses anything else', () => {
+    expect(readVerdict('auto')).toBeNull();
+    expect(readVerdict(undefined)).toBeNull();
+    expect(readVerdict(1)).toBeNull();
   });
 });
 
