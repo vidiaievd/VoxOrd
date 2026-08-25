@@ -44,7 +44,7 @@ export function ExerciseStage({
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const { state, progress, isLast, setAnswer, check, advance, retry } = useExerciseRunner(
+  const { state, progress, isLast, setAnswer, answerQuestion, check, advance, retry } = useExerciseRunner(
     exerciseIds,
     0,
   );
@@ -93,6 +93,7 @@ export function ExerciseStage({
               disabled={state.phase !== 'answering'}
               verdict={state.verdict}
               onAnswerChange={setAnswer}
+              answerQuestion={answerQuestion}
             />
 
             {state.phase === 'feedback' && state.verdict ? (

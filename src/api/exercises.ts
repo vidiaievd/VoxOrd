@@ -31,6 +31,8 @@ const EXERCISE_DISPLAY_PATH = (id: string) => `/api/v1/exercises/${id}/display`;
 const ATTEMPTS_PATH = (exerciseId: string) => `/api/v1/exercises/${exerciseId}/attempts`;
 const SUBMIT_PATH = (exerciseId: string, attemptId: string) =>
   `/api/v1/exercises/${exerciseId}/attempts/${attemptId}/submit`;
+const ANSWERS_PATH = (exerciseId: string, attemptId: string) =>
+  `/api/v1/exercises/${exerciseId}/attempts/${attemptId}/answers`;
 
 /**
  * `GET /exercises/:id/display` (content-service). Returns the exercise
@@ -146,4 +148,66 @@ export function submitAttempt(
   body: SubmitAttemptRequest,
 ): Promise<SubmitAttemptResponse> {
   return apiClient.post<SubmitAttemptResponse>(SUBMIT_PATH(exerciseId, attemptId), body);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Answering one question of a `short_answer` set (plan 51 §3.3).
+ *
+ * The attempt is still one attempt — everything else (progress, SRS, the
+ * review queue, the locks, the notifications) is built on "one attempt, one
+ * submission, one thing a teacher marks". What changes is that a set of open
+ * questions is handed in a question at a time: each answer is a command onto
+ * the attempt that already exists, is graded on the server at once, and is
+ * refused the second time. The last one closes the attempt with the ordinary
+ * `submit`, carrying every answer in one aggregate, which the engine regrades
+ * from scratch — nothing this device was told is trusted at the close.
+ *
+ * Grading has to be server-side here: the key is a set of anchor phrases, and
+ * an anchor phrase is the answer written in the words the student is being
+ * asked to find. So the text goes up and the verdict comes down; the app never
+ * sees what the answer was matched against.
+ *
+ * Contract read 2026-08-25 from exercise-engine's attempts.controller.ts
+ * (`@Post(':attemptId/answers')`), answer-question.handler.ts and
+ * short-answer/projection.ts in @ssz/shared-kernel.
+ * ────────────────────────────────────────────────────────────────────── */
+
+/** Body for `POST /exercises/:exerciseId/attempts/:attemptId/answers`. */
+export interface AnswerQuestionRequest {
+  /** Id of the question in the projected set. */
+  questionId: string;
+  /** The student's answer. Refused empty, server-side and here. */
+  text: string;
+}
+
+/**
+ * Response of the answers endpoint (AnswerQuestionResponseDto). `result` is the
+ * kernel's student projection of the grade — the verdict, the coverage counts,
+ * the element labels with a hit flag, the teacher's explanation, and the model
+ * answer only where `showModel` allows it. It is typed as `unknown` here and
+ * read by `readShortAnswerResult`, the same way display content is: this module
+ * knows the envelope, the template module knows the shape.
+ */
+export interface AnswerQuestionResponse {
+  attemptId: string;
+  /** How many of the set have been handed in, including this one. */
+  answered: number;
+  /** How many there are to answer. */
+  total: number;
+  result: unknown;
+  /** Whether this answer is on its way to a teacher, for the routing line. */
+  routedForReview: boolean;
+}
+
+/**
+ * `POST /exercises/:exerciseId/attempts/:attemptId/answers` — hand in one
+ * question and get its verdict. Final: the engine refuses a second answer to
+ * the same question (422), as it refuses one on a closed attempt.
+ */
+export function answerQuestion(
+  exerciseId: string,
+  attemptId: string,
+  body: AnswerQuestionRequest,
+): Promise<AnswerQuestionResponse> {
+  return apiClient.post<AnswerQuestionResponse>(ANSWERS_PATH(exerciseId, attemptId), body);
 }

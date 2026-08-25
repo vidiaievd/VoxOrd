@@ -232,6 +232,40 @@ export interface Translations {
     writingTaskTooLong: string; // '{max}'
     writingTaskUnavailable: string;
     writingTaskUnavailableDesc: string;
+    /**
+     * The new plan-51 form: a set of open questions, handed in one at a time and
+     * graded on the server (the anchors it is matched against are the answer).
+     */
+    shortAnswer: {
+      position: string; // '{n}', '{total}'
+      placeholder: string;
+      handIn: string;
+      sending: string;
+      irreversible: string;
+      next: string;
+      last: string;
+      covered: string; // '{covered}', '{total}'
+      tooShort: string;
+      modelLabel: string;
+      /** `wait` is a handed-in answer with no readable verdict — never a fourth outcome. */
+      verdict: {
+        pass: string;
+        partial: string;
+        fail: string;
+        wait: string;
+      };
+      routing: string;
+      routingIfUnclear: string;
+      doneTitle: string;
+      doneTally: string; // '{pass}', '{partial}', '{fail}'
+      doneTeacher: string;
+      doneHint: string;
+      sendFailed: string;
+      handedInAlready: string;
+      empty: string;
+      unavailable: string;
+      unavailableDesc: string;
+    };
     resultsExcellentTitle: string;
     resultsExcellentMessage: string;
     resultsGoodTitle: string;

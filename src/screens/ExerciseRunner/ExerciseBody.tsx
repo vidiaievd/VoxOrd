@@ -4,7 +4,7 @@ import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
 import type { ExerciseDisplay } from '../../api/types';
-import type { SubmitAttemptResponse } from '../../api/exercises';
+import type { AnswerQuestionResponse, SubmitAttemptResponse } from '../../api/exercises';
 import type { RunnerPhase } from './runnerMachine';
 import { MultipleChoiceBody } from './MultipleChoiceBody';
 import { FillInBlankBody } from './FillInBlankBody';
@@ -40,6 +40,22 @@ export interface ExerciseBodyProps {
    * @param canSubmit whether the answer is complete enough to Check.
    */
   onAnswerChange: (answer: unknown, canSubmit: boolean) => void;
+  /**
+   * Hand in one question of a set that is answered a question at a time, and
+   * get the server's verdict for it (`short_answer`, plan 51 §3.3).
+   *
+   * The one thing a body may do to the attempt besides describing its answer,
+   * and it exists because this template cannot be checked once: each answer is
+   * final the moment it is given, and the verdict has to come from the server —
+   * the phrases it is matched against are the answer written in the words the
+   * student is being asked to find, so they never reach the device. It opens
+   * the attempt on first use; the footer's Check then closes that same attempt
+   * with every answer in one aggregate.
+   *
+   * Every other body ignores it and keeps grading where it belongs: nowhere on
+   * this side.
+   */
+  answerQuestion: (questionId: string, text: string) => Promise<AnswerQuestionResponse>;
 }
 
 /**
