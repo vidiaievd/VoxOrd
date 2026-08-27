@@ -33,6 +33,8 @@ const SUBMIT_PATH = (exerciseId: string, attemptId: string) =>
   `/api/v1/exercises/${exerciseId}/attempts/${attemptId}/submit`;
 const ANSWERS_PATH = (exerciseId: string, attemptId: string) =>
   `/api/v1/exercises/${exerciseId}/attempts/${attemptId}/answers`;
+const ROWS_PATH = (exerciseId: string, attemptId: string) =>
+  `/api/v1/exercises/${exerciseId}/attempts/${attemptId}/rows`;
 
 /**
  * `GET /exercises/:id/display` (content-service). Returns the exercise
@@ -213,6 +215,66 @@ export function answerQuestion(
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
+ * Checking one sentence of a `sentence_schema` set (plan 52 §3.3).
+ *
+ * The attempt is still one attempt, and the set is worked through a sentence
+ * at a time — but unlike `short_answer`, whose answers are final, a sentence
+ * here may be checked as often as the learner likes: being wrong is a step in
+ * solving it, not a verdict. `Sjekk`, then `Rett opp` keeping what was right,
+ * then `Sjekk` again. What ends a sentence is solving it or asking to be shown
+ * it (`reveal`), and a shown sentence scores nothing.
+ *
+ * Grading has to be server-side here: the key is which field each chunk
+ * belongs in, and the note under the board is resolved from the author's
+ * per-chunk notes and the sentence's rule — all of it key. So the board goes
+ * up and the marks come down; the app never holds what the board is judged
+ * against.
+ *
+ * Contract read 2026-08-27 from exercise-engine's attempts.controller.ts
+ * (`@Post(':attemptId/rows')`), check-row.dto.ts and check-row.handler.ts, and
+ * sentence-schema/projection.ts in @ssz/shared-kernel.
+ * ────────────────────────────────────────────────────────────────────── */
+
+/** Body for `POST /exercises/:exerciseId/attempts/:attemptId/rows`. */
+export interface CheckRowRequest {
+  /** Which sentence of the set is being checked. */
+  rowId: string;
+  /** field id → the ids stacked in it, in the order they were placed. */
+  placement: Record<string, string[]>;
+  /** «Vis riktig skjema»: close the sentence with the answer shown, scoring nothing. */
+  reveal?: boolean;
+}
+
+/**
+ * Response of the rows endpoint (CheckRowResponseDto). `result` is the kernel's student
+ * projection of the marks — per piece, per field, the attempt number, the resolved note,
+ * and the key itself (`text`, `why`, `solution`) only once the sentence is closed. Typed
+ * as `unknown` here and read by `readSentenceSchemaResult`, the same way display content
+ * is: this module knows the envelope, the template module knows the shape.
+ */
+export interface CheckRowResponse {
+  attemptId: string;
+  /** Sentences closed — solved or revealed — including this one. */
+  closed: number;
+  total: number;
+  result: unknown;
+}
+
+/**
+ * `POST /exercises/:exerciseId/attempts/:attemptId/rows` — check one sentence.
+ *
+ * Repeatable, unlike the answers endpoint: only a sentence already solved or revealed is
+ * refused (422), as is a board with nothing on it (400).
+ */
+export function checkRow(
+  exerciseId: string,
+  attemptId: string,
+  body: CheckRowRequest,
+): Promise<CheckRowResponse> {
+  return apiClient.post<CheckRowResponse>(ROWS_PATH(exerciseId, attemptId), body);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
  * Picking a set back up (plan 51 §8 Q6).
  *
  * A `short_answer` answer is handed in for good, and the engine keeps the
@@ -233,16 +295,33 @@ export interface AnsweredQuestion {
   verdict: string;
 }
 
+/**
+ * One sentence of a `sentence_schema` set already worked on in the open attempt.
+ *
+ * `revealed` is the one that has to survive being killed and reopened: the learner was
+ * shown that sentence, so it is closed and scores nothing. Reopening it would make
+ * force-quitting the app the cheapest way to a full mark.
+ */
+export interface CheckedRow {
+  rowId: string;
+  attempts: number;
+  placement: Record<string, string[]>;
+  solved: boolean;
+  revealed: boolean;
+}
+
 /** The open attempt at this exercise, as far as a resuming runner needs it. */
 export interface OpenAttempt {
   attemptId: string;
   answeredQuestions: AnsweredQuestion[];
+  checkedRows: CheckedRow[];
 }
 
 interface AttemptListRow {
   id: string;
   status: string;
   answeredQuestions?: AnsweredQuestion[] | null;
+  checkedRows?: CheckedRow[] | null;
 }
 
 /**
@@ -260,7 +339,11 @@ export async function findOpenAttempt(exerciseId: string): Promise<OpenAttempt |
     });
     const open = page.items?.[0];
     if (!open) return null;
-    return { attemptId: open.id, answeredQuestions: open.answeredQuestions ?? [] };
+    return {
+      attemptId: open.id,
+      answeredQuestions: open.answeredQuestions ?? [],
+      checkedRows: open.checkedRows ?? [],
+    };
   } catch {
     return null;
   }

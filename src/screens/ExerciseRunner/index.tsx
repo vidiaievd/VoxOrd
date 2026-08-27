@@ -35,8 +35,18 @@ export function ExerciseRunnerScreen({
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const { state, progress, isLast, setAnswer, answerQuestion, check, advance, retry, retryAttempt } =
-    useExerciseRunner(exerciseIds, startIndex);
+  const {
+    state,
+    progress,
+    isLast,
+    setAnswer,
+    answerQuestion,
+    checkRow,
+    check,
+    advance,
+    retry,
+    retryAttempt,
+  } = useExerciseRunner(exerciseIds, startIndex);
 
   const progressRatio = progress.total > 0 ? progress.current / progress.total : 0;
 
@@ -111,6 +121,7 @@ export function ExerciseRunnerScreen({
                 verdict={state.verdict}
                 onAnswerChange={setAnswer}
                 answerQuestion={answerQuestion}
+                checkRow={checkRow}
               />
             </ScrollView>
 

@@ -196,7 +196,6 @@ export interface Translations {
     translateToTargetLabel: string; // '{language}'
     translateFromTargetLabel: string; // '{language}'
     translatePlaceholder: string;
-    sentenceSchemaHint: string;
     matchPairsHint: string;
     matchPairsRemaining: string; // '{count}'
     matchPairsEmptySlot: string;
@@ -265,6 +264,48 @@ export interface Translations {
       empty: string;
       unavailable: string;
       unavailableDesc: string;
+    };
+    /**
+     * The plan-52 form: a set of sentences over one field schema, checked a sentence at a
+     * time on the server — which field a piece belongs in is the answer key.
+     */
+    sentenceSchema: {
+      defaultInstruction: string;
+      bankLabel: string;
+      /** What the one nameless slot of a sequence-only set is called out loud. */
+      slot: string;
+      fieldDropLabel: string; // '{field}'
+      takeBack: string; // '{word}'
+      sourceLabel: string;
+      remaining: string; // '{count}'
+      position: string; // '{index}', '{total}'
+      attemptNo: string; // '{count}'
+      check: string; // '{placed}', '{total}'
+      fix: string; // '{count}'
+      reveal: string;
+      skip: string;
+      skippedEarlier: string;
+      nextSentence: string;
+      finishSet: string;
+      /** The defaults the kernel sends as a code rather than as prose (plan 52 §5). */
+      wrongOrder: string;
+      notInSentence: string;
+      setDone: string; // '{count}'
+      setTally: string; // '{solved}', '{revealed}'
+      setTallySkipped: string; // '{solved}', '{revealed}', '{skipped}'
+      doneHint: string;
+      nothingToSolve: string;
+      checkFailed: string;
+      closedAlready: string;
+      unavailable: string;
+      unavailableDesc: string;
+      clause: {
+        main: string;
+        sub: string;
+        yesno: string;
+        hv: string;
+        imp: string;
+      };
     };
     resultsExcellentTitle: string;
     resultsExcellentMessage: string;

@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import {
   answerQuestion as answerQuestionRequest,
+  checkRow as checkRowRequest,
   getExerciseDisplay,
   startAttempt,
   submitAttempt,
   type AnswerQuestionResponse,
+  type CheckRowResponse,
 } from '../api/exercises';
 import { buildExerciseCompletionRequest, upsertProgress } from '../api/progress';
 import type { ExerciseDisplay } from '../api/types';
@@ -43,6 +45,16 @@ export interface ExerciseRunnerController {
    * the same attempt.
    */
   answerQuestion: (questionId: string, text: string) => Promise<AnswerQuestionResponse>;
+  /**
+   * Check one sentence of a `sentence_schema` set (plan 52 §3.3) and get its marks.
+   * Repeatable, unlike `answerQuestion`; opens the attempt the same way, so the
+   * sentences and the Check that closes the set land on the same attempt.
+   */
+  checkRow: (
+    rowId: string,
+    placement: Record<string, string[]>,
+    reveal: boolean,
+  ) => Promise<CheckRowResponse>;
   /** Footer "Check": start + submit an attempt and grade server-side. */
   check: () => void;
   /** Footer "Continue": advance to the next item (or complete the set). */
@@ -201,6 +213,21 @@ export function useExerciseRunner(
     [openExerciseId, openDisplay, openAttempt],
   );
 
+  const checkRow = useCallback(
+    async (
+      rowId: string,
+      placement: Record<string, string[]>,
+      reveal: boolean,
+    ): Promise<CheckRowResponse> => {
+      if (!openExerciseId || !openDisplay) {
+        throw new Error('No exercise is open');
+      }
+      const attemptId = await openAttempt(openExerciseId, openDisplay);
+      return checkRowRequest(openExerciseId, attemptId, { rowId, placement, reveal });
+    },
+    [openExerciseId, openDisplay, openAttempt],
+  );
+
   const check = useCallback(async () => {
     if (state.phase !== 'answering' || !state.canSubmit) return;
     if (checkInFlightRef.current) return;
@@ -296,6 +323,7 @@ export function useExerciseRunner(
     isLast: isLastExercise(state),
     setAnswer,
     answerQuestion,
+    checkRow,
     check,
     advance,
     retry,

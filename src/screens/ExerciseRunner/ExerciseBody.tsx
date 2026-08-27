@@ -4,7 +4,11 @@ import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
 import type { ExerciseDisplay } from '../../api/types';
-import type { AnswerQuestionResponse, SubmitAttemptResponse } from '../../api/exercises';
+import type {
+  AnswerQuestionResponse,
+  CheckRowResponse,
+  SubmitAttemptResponse,
+} from '../../api/exercises';
 import type { RunnerPhase } from './runnerMachine';
 import { MultipleChoiceBody } from './MultipleChoiceBody';
 import { FillInBlankBody } from './FillInBlankBody';
@@ -56,6 +60,25 @@ export interface ExerciseBodyProps {
    * this side.
    */
   answerQuestion: (questionId: string, text: string) => Promise<AnswerQuestionResponse>;
+  /**
+   * Check one sentence of a `sentence_schema` set and get the server's marks for it
+   * (plan 52 §3.3).
+   *
+   * The second thing a body may do to the attempt, and it exists for the same reason as
+   * `answerQuestion`: this template cannot be checked once. Which field a piece belongs in
+   * is the answer key, so the marks have to come from the server — and a sentence may be
+   * checked as often as the learner likes, because being wrong is a step in solving it
+   * rather than a verdict. `reveal` closes the sentence with the answer shown instead, and
+   * it scores nothing.
+   *
+   * It opens the attempt on first use; the footer's Check then closes that same attempt
+   * with every board in one aggregate. Every other body ignores it.
+   */
+  checkRow: (
+    rowId: string,
+    placement: Record<string, string[]>,
+    reveal: boolean,
+  ) => Promise<CheckRowResponse>;
 }
 
 /**
