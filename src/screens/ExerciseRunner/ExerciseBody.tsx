@@ -5,6 +5,7 @@ import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
 import type { ExerciseDisplay } from '../../api/types';
 import type {
+  AnswerQuestionAnswer,
   AnswerQuestionResponse,
   CheckRowResponse,
   SubmitAttemptResponse,
@@ -46,20 +47,30 @@ export interface ExerciseBodyProps {
   onAnswerChange: (answer: unknown, canSubmit: boolean) => void;
   /**
    * Hand in one question of a set that is answered a question at a time, and
-   * get the server's verdict for it (`short_answer`, plan 51 §3.3).
+   * get the server's verdict for it (`short_answer`, plan 51 §3.3;
+   * `multiple_choice`, plan 53 §3.3).
    *
    * The one thing a body may do to the attempt besides describing its answer,
-   * and it exists because this template cannot be checked once: each answer is
-   * final the moment it is given, and the verdict has to come from the server —
-   * the phrases it is matched against are the answer written in the words the
-   * student is being asked to find, so they never reach the device. It opens
-   * the attempt on first use; the footer's Check then closes that same attempt
-   * with every answer in one aggregate.
+   * and it exists because these templates cannot be checked once. For
+   * `short_answer` each answer is final the moment it is given and the phrases
+   * it is matched against are the answer itself, so they never reach the
+   * device. For `multiple_choice` the key is only an id — but the type is built
+   * on dosing it: a second try and a 50/50 offered by a device that already
+   * holds the key are decoration, so the pick goes up and `keyOptionId` comes
+   * back only once the question is closed.
+   *
+   * It opens the attempt on first use; the footer's Check then closes that same
+   * attempt with one aggregate. What the answer carries — written text, or a
+   * picked option — is read on the server according to the attempt's own
+   * template, which is why it travels whole rather than as a string.
    *
    * Every other body ignores it and keeps grading where it belongs: nowhere on
    * this side.
    */
-  answerQuestion: (questionId: string, text: string) => Promise<AnswerQuestionResponse>;
+  answerQuestion: (
+    questionId: string,
+    answer: AnswerQuestionAnswer,
+  ) => Promise<AnswerQuestionResponse>;
   /**
    * Check one sentence of a `sentence_schema` set and get the server's marks for it
    * (plan 52 §3.3).

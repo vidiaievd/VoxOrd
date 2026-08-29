@@ -5,6 +5,7 @@ import {
   getExerciseDisplay,
   startAttempt,
   submitAttempt,
+  type AnswerQuestionAnswer,
   type AnswerQuestionResponse,
   type CheckRowResponse,
 } from '../api/exercises';
@@ -40,11 +41,19 @@ export interface ExerciseRunnerController {
   setAnswer: (answer: unknown, canSubmit: boolean) => void;
   /**
    * Hand in one question of a set that is answered a question at a time
-   * (`short_answer`, plan 51 §3.3) and get its verdict. Opens the attempt if it
-   * is not open yet, so the answers and the Check that closes the set land on
-   * the same attempt.
+   * (`short_answer`, plan 51 §3.3; `multiple_choice`, plan 53 §3.3) and get its
+   * verdict. Opens the attempt if it is not open yet, so the answers and the
+   * Check that closes the set land on the same attempt.
+   *
+   * The answer is passed whole rather than as a string: the two templates hand
+   * in different things — written text, or a picked option — and which one is
+   * read is decided by the attempt's own template on the server, never named
+   * here.
    */
-  answerQuestion: (questionId: string, text: string) => Promise<AnswerQuestionResponse>;
+  answerQuestion: (
+    questionId: string,
+    answer: AnswerQuestionAnswer,
+  ) => Promise<AnswerQuestionResponse>;
   /**
    * Check one sentence of a `sentence_schema` set (plan 52 §3.3) and get its marks.
    * Repeatable, unlike `answerQuestion`; opens the attempt the same way, so the
@@ -203,12 +212,15 @@ export function useExerciseRunner(
   const openExerciseId = state.exerciseIds[state.idx];
   const openDisplay = state.display;
   const answerQuestion = useCallback(
-    async (questionId: string, text: string): Promise<AnswerQuestionResponse> => {
+    async (
+      questionId: string,
+      answer: AnswerQuestionAnswer,
+    ): Promise<AnswerQuestionResponse> => {
       if (!openExerciseId || !openDisplay) {
         throw new Error('No exercise is open');
       }
       const attemptId = await openAttempt(openExerciseId, openDisplay);
-      return answerQuestionRequest(openExerciseId, attemptId, { questionId, text });
+      return answerQuestionRequest(openExerciseId, attemptId, { questionId, ...answer });
     },
     [openExerciseId, openDisplay, openAttempt],
   );

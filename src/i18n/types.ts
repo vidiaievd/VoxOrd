@@ -307,6 +307,34 @@ export interface Translations {
         imp: string;
       };
     };
+    /**
+     * The plan-53 form: a set of questions answered one at a time, each with its own
+     * budget of tries, judged on the server so the key can be dosed — `keyOptionId` and
+     * the rule behind it arrive only once a question is closed.
+     */
+    multipleChoice: {
+      position: string; // '{n}', '{total}'
+      check: string;
+      /** Shown instead of a Check button when the author made the tap the hand-in. */
+      tapAnswer: string;
+      tryAgain: string;
+      showAnswer: string;
+      next: string;
+      finish: string;
+      attempt: string; // '{n}'
+      right: string;
+      /** Stands in when a wrong pick has no rebuttal written against it. */
+      generic: string;
+      sendFailed: string;
+      closedAlready: string;
+      doneTitle: string;
+      doneScore: string; // '{score}', '{total}'
+      doneHint: string;
+      empty: string;
+      emptyDesc: string;
+      unavailable: string;
+      unavailableDesc: string;
+    };
     resultsExcellentTitle: string;
     resultsExcellentMessage: string;
     resultsGoodTitle: string;

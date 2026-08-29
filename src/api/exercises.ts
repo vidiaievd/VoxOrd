@@ -169,18 +169,41 @@ export function submitAttempt(
  * asked to find. So the text goes up and the verdict comes down; the app never
  * sees what the answer was matched against.
  *
+ * `multiple_choice` answers on the same route since plan 53 §3.3, and for a reason of
+ * its own. Its key is only an option id, so leaking it would teach nobody anything — but
+ * the type is built on *dosing*: a second try and a 50/50 offered by a device that
+ * already holds the key are decoration. So a pick goes up and the verdict comes down with
+ * `keyOptionId` and the rule withheld until the question is closed. The command is the
+ * same one, generalised rather than copied.
+ *
  * Contract read 2026-08-25 from exercise-engine's attempts.controller.ts
  * (`@Post(':attemptId/answers')`), answer-question.handler.ts and
- * short-answer/projection.ts in @ssz/shared-kernel.
+ * short-answer/projection.ts in @ssz/shared-kernel; re-read 2026-08-29 for the
+ * multiple-choice payload (`answer-question.dto.ts`, `readPayload`).
  * ────────────────────────────────────────────────────────────────────── */
 
-/** Body for `POST /exercises/:exerciseId/attempts/:attemptId/answers`. */
+/**
+ * Body for `POST /exercises/:exerciseId/attempts/:attemptId/answers`.
+ *
+ * Two templates hand a set in a question at a time and they hand in different things, so
+ * the body carries `text` **or** `optionId`, and the attempt's own template decides which
+ * is read — a client that could name the kind would be naming which judge runs. `reveal`
+ * is the one multiple-choice action that hands in nothing: it closes the question with
+ * the key shown, spends no try and scores nothing.
+ */
 export interface AnswerQuestionRequest {
   /** Id of the question in the projected set. */
   questionId: string;
-  /** The student's answer. Refused empty, server-side and here. */
-  text: string;
+  /** `short_answer`: what the student wrote. Refused empty, server-side and here. */
+  text?: string;
+  /** `multiple_choice`: the option picked. Null only alongside `reveal`. */
+  optionId?: string | null;
+  /** `multiple_choice`: «Vis svaret» instead of another try. */
+  reveal?: boolean;
 }
+
+/** The answer half of the body — what a runner hands in, without saying which question. */
+export type AnswerQuestionAnswer = Omit<AnswerQuestionRequest, 'questionId'>;
 
 /**
  * Response of the answers endpoint (AnswerQuestionResponseDto). `result` is the
@@ -192,6 +215,11 @@ export interface AnswerQuestionRequest {
  */
 export interface AnswerQuestionResponse {
   attemptId: string;
+  /**
+   * Which shape `result` came back in. Two templates answer on this route with different
+   * verdicts, and the envelope says which rather than leaving it to be guessed.
+   */
+  templateCode: ExerciseTemplateCode;
   /** How many of the set have been handed in, including this one. */
   answered: number;
   /** How many there are to answer. */
@@ -310,11 +338,29 @@ export interface CheckedRow {
   revealed: boolean;
 }
 
+/**
+ * One question of a `multiple_choice` set already picked at in the open attempt.
+ *
+ * `picks` is the score, not a history: only a first-attempt hit counts, so a set replayed
+ * from the top would hand out a fresh first try at every question — the cheapest possible
+ * full mark. `eliminated` is what a 50/50 has already spent there, and it survives for
+ * the same reason.
+ */
+export interface PickedOption {
+  questionId: string;
+  picks: string[];
+  eliminated: string[];
+  correct: boolean;
+  closed: boolean;
+  revealed: boolean;
+}
+
 /** The open attempt at this exercise, as far as a resuming runner needs it. */
 export interface OpenAttempt {
   attemptId: string;
   answeredQuestions: AnsweredQuestion[];
   checkedRows: CheckedRow[];
+  pickedOptions: PickedOption[];
 }
 
 interface AttemptListRow {
@@ -322,6 +368,7 @@ interface AttemptListRow {
   status: string;
   answeredQuestions?: AnsweredQuestion[] | null;
   checkedRows?: CheckedRow[] | null;
+  pickedOptions?: PickedOption[] | null;
 }
 
 /**
@@ -343,6 +390,7 @@ export async function findOpenAttempt(exerciseId: string): Promise<OpenAttempt |
       attemptId: open.id,
       answeredQuestions: open.answeredQuestions ?? [],
       checkedRows: open.checkedRows ?? [],
+      pickedOptions: open.pickedOptions ?? [],
     };
   } catch {
     return null;

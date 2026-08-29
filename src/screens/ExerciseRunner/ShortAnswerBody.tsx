@@ -193,7 +193,7 @@ function ShortAnswerSet({
     setSending(true);
     setError(null);
     try {
-      const response = await answerQuestion(question.id, value.trim());
+      const response = await answerQuestion(question.id, { text: value.trim() });
       answers.current = [...answers.current, { questionId: question.id, text: value.trim() }];
       const read = readShortAnswerResult(response.result);
       setResult(read);

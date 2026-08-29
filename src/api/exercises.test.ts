@@ -1,4 +1,4 @@
-import { checkRow, findOpenAttempt } from './exercises';
+import { answerQuestion, checkRow, findOpenAttempt } from './exercises';
 import { apiClient } from './client';
 
 jest.mock('./client', () => ({
@@ -14,9 +14,10 @@ beforeEach(() => {
 });
 
 /**
- * `findOpenAttempt` is how a `short_answer` set picks itself back up (plan 51 §8 Q6), and
- * a `sentence_schema` set with it (plan 52): both take work onto the attempt before it
- * closes, so both leave something to come back to.
+ * `findOpenAttempt` is how a `short_answer` set picks itself back up (plan 51 §8 Q6), a
+ * `sentence_schema` set with it (plan 52) and a `multiple_choice` set after them (plan
+ * 53): all three take work onto the attempt before it closes, so all three leave
+ * something to come back to.
  * It reads and never writes: opening an exercise and walking away must still create
  * nothing, so a set with nothing open is not an error but an empty answer.
  */
@@ -46,6 +47,7 @@ describe('findOpenAttempt', () => {
       attemptId: 'att-1',
       answeredQuestions: [{ questionId: 'q1', text: 'I tre år.', verdict: 'pass' }],
       checkedRows: [],
+      pickedOptions: [],
     });
   });
 
@@ -65,6 +67,28 @@ describe('findOpenAttempt', () => {
       attemptId: 'att-1',
       answeredQuestions: [],
       checkedRows: [checked],
+      pickedOptions: [],
+    });
+  });
+
+  it('returns the questions already picked at, with the tries they cost', async () => {
+    const picked = {
+      questionId: 'q1',
+      picks: ['o2', 'o1'],
+      eliminated: ['o3'],
+      correct: true,
+      closed: true,
+      revealed: false,
+    };
+    mockGet.mockResolvedValue({
+      items: [{ id: 'att-1', status: 'IN_PROGRESS', pickedOptions: [picked] }],
+    });
+
+    await expect(findOpenAttempt('ex-1')).resolves.toEqual({
+      attemptId: 'att-1',
+      answeredQuestions: [],
+      checkedRows: [],
+      pickedOptions: [picked],
     });
   });
 
@@ -75,6 +99,7 @@ describe('findOpenAttempt', () => {
       attemptId: 'att-1',
       answeredQuestions: [],
       checkedRows: [],
+      pickedOptions: [],
     });
   });
 
@@ -111,6 +136,49 @@ describe('checkRow', () => {
       rowId: 'r1',
       placement: { forfelt: ['c1'], verbal: ['c2'] },
       reveal: false,
+    });
+  });
+});
+
+/**
+ * Handing in one item of a set. One route, two templates: what the body carries is what
+ * decides which judge runs on the server, and this module sends it through untouched
+ * rather than naming the kind itself (plan 53 §3.3).
+ */
+describe('answerQuestion', () => {
+  it('posts a written answer onto the open attempt', async () => {
+    mockPost.mockResolvedValue({ attemptId: 'att-1', answered: 1, total: 4, result: {} });
+
+    await answerQuestion('ex-1', 'att-1', { questionId: 'q1', text: 'I tre år.' });
+
+    expect(mockPost).toHaveBeenCalledWith('/api/v1/exercises/ex-1/attempts/att-1/answers', {
+      questionId: 'q1',
+      text: 'I tre år.',
+    });
+  });
+
+  it('posts a picked option the same way', async () => {
+    mockPost.mockResolvedValue({ attemptId: 'att-1', answered: 1, total: 5, result: {} });
+
+    await answerQuestion('ex-1', 'att-1', { questionId: 'q1', optionId: 'o2' });
+
+    expect(mockPost).toHaveBeenCalledWith('/api/v1/exercises/ex-1/attempts/att-1/answers', {
+      questionId: 'q1',
+      optionId: 'o2',
+    });
+  });
+
+  // «Vis svaret» hands in nothing, and says so: without `reveal` the engine refuses an
+  // empty pick rather than guessing that the learner meant to close the question.
+  it('sends «show the answer» as a pick of nothing', async () => {
+    mockPost.mockResolvedValue({ attemptId: 'att-1', answered: 1, total: 5, result: {} });
+
+    await answerQuestion('ex-1', 'att-1', { questionId: 'q1', optionId: null, reveal: true });
+
+    expect(mockPost).toHaveBeenCalledWith('/api/v1/exercises/ex-1/attempts/att-1/answers', {
+      questionId: 'q1',
+      optionId: null,
+      reveal: true,
     });
   });
 });
