@@ -254,3 +254,62 @@ describe('retry transitions', () => {
     expect(s.results).toEqual([{ exerciseId: 'e1', verdict: verdict(true), timeSpentSeconds: 6 }]);
   });
 });
+
+describe('BODY_SUBMITTED', () => {
+  // `multiple_choice_group` only: its body runs its own checks against the server and the
+  // check that closes the table is also the submit that closes the item (plan 54 §8 Q6).
+  it('records the result and moves to feedback without passing through checking', () => {
+    let s = toAnswering(['e1', 'e2']);
+    s = runnerReducer(s, {
+      type: 'BODY_SUBMITTED',
+      verdict: verdict(true),
+      timeSpentSeconds: 12,
+    });
+
+    expect(s.phase).toBe('feedback');
+    expect(s.verdict).toEqual(verdict(true));
+    expect(s.results).toEqual([
+      { exerciseId: 'e1', verdict: verdict(true), timeSpentSeconds: 12 },
+    ]);
+  });
+
+  it('clears a submit error left by an earlier failure', () => {
+    let s = toAnswering(['e1']);
+    s = runnerReducer(s, { type: 'ANSWER_CHANGE', answer: null, canSubmit: true });
+    s = runnerReducer(s, { type: 'CHECK_START' });
+    s = runnerReducer(s, { type: 'CHECK_FAILURE', message: 'offline' });
+    expect(s.submitError).toBe('offline');
+
+    s = runnerReducer(s, { type: 'BODY_SUBMITTED', verdict: verdict(false), timeSpentSeconds: 4 });
+    expect(s.phase).toBe('feedback');
+    expect(s.submitError).toBeNull();
+  });
+
+  // A second report for the same item would record the result twice, and the shell's own
+  // Check path must stay the only way out of 'checking'.
+  it.each(['feedback', 'checking'] as const)('is ignored from %s', phase => {
+    let s = toAnswering(['e1']);
+    s = runnerReducer(s, { type: 'ANSWER_CHANGE', answer: null, canSubmit: true });
+    s = runnerReducer(s, { type: 'CHECK_START' });
+    if (phase === 'feedback') {
+      s = runnerReducer(s, { type: 'CHECK_SUCCESS', verdict: verdict(true), timeSpentSeconds: 1 });
+    }
+
+    const after = runnerReducer(s, {
+      type: 'BODY_SUBMITTED',
+      verdict: verdict(false),
+      timeSpentSeconds: 9,
+    });
+    expect(after).toBe(s);
+  });
+
+  it('advances to the next item exactly as a footer check does', () => {
+    let s = toAnswering(['e1', 'e2']);
+    s = runnerReducer(s, { type: 'BODY_SUBMITTED', verdict: verdict(true), timeSpentSeconds: 7 });
+    s = runnerReducer(s, { type: 'ADVANCE' });
+
+    expect(s.phase).toBe('loading');
+    expect(currentExerciseId(s)).toBe('e2');
+    expect(s.results).toHaveLength(1);
+  });
+});

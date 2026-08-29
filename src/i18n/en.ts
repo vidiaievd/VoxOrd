@@ -332,6 +332,31 @@ export const en: Translations = {
       unavailableDesc:
         'It arrived with its answer key. Ask your teacher to update the app or the course.',
     },
+    /** The plan-54 form: a table of statements sharing one set of answer columns. */
+    multipleChoiceGroup: {
+      answered: '{n}/{total} answered',
+      check: 'Check the answers',
+      remaining: '{n} left',
+      retryWrong: 'Try the wrong ones again',
+      showKey: 'Show the answers',
+      attempt: 'Check {n}',
+      wrongCount: '{n} statements are wrong',
+      allRight: 'Every statement is right',
+      lookAgain: 'Look at them once more.',
+      passed: 'Passed',
+      notPassed: 'Not passed',
+      scoreLine: '{pct}% right — {threshold}% required.',
+      doneHint: 'Tap Continue below to move on.',
+      sendFailed: "The table couldn't be sent. Try again.",
+      closedAlready: 'This table is already finished.',
+      empty: 'This table has no statements yet',
+      emptyDesc: 'A statement needs text and an answer before a student can see it.',
+      unavailable: 'This exercise cannot be shown yet',
+      unavailableDesc:
+        'It arrived with its answer key. Ask your teacher to update the app or the course.',
+      unavailableLegacyDesc:
+        'It is written in an older shape this app cannot read. Open it on the web, or ask your teacher.',
+    },
     resultsExcellentTitle: 'Excellent!',
     resultsExcellentMessage: 'You nailed this set.',
     resultsGoodTitle: 'Well done!',

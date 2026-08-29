@@ -141,8 +141,17 @@ export function startAttempt(
 
 /**
  * `POST /exercises/:exerciseId/attempts/:attemptId/submit` — submit the
- * answer and get the server's verdict. Single-shot per attempt: the server
- * rejects a second submit on an already-submitted attempt.
+ * answer and get the server's verdict. Single-shot per attempt for almost
+ * every template: the server rejects a second submit on an already-submitted
+ * attempt.
+ *
+ * The exception is a re-check, which is deliberately this same call. A scored
+ * *practice* attempt is reopened rather than refused — `word_bank_gap_fill`
+ * unlimited, `multiple_choice_group` against the author's `retry` budget — and
+ * what the engine refuses instead is a check of a table it has already closed:
+ * all rows right, «Vis fasit», or the budget spent. So a caller must draw its
+ * buttons from the last verdict's `closed`, never from a count it keeps
+ * itself (plan 54 §3.3).
  */
 export function submitAttempt(
   exerciseId: string,

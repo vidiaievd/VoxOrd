@@ -4,7 +4,7 @@ import { useTranslation } from '../../../i18n';
 import { useTheme } from '../../../providers/ThemeProvider';
 import { ColorScheme } from '../../../theme/colors';
 import { useExerciseRunner } from '../../../hooks/useExerciseRunner';
-import { ExerciseBody } from '../../ExerciseRunner/ExerciseBody';
+import { bodyOwnsCheck, ExerciseBody } from '../../ExerciseRunner/ExerciseBody';
 import { FeedbackBar } from '../../ExerciseRunner/FeedbackBar';
 import { AudioPlayer } from './AudioPlayer';
 
@@ -44,8 +44,19 @@ export function ExerciseStage({
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const { state, progress, isLast, setAnswer, answerQuestion, checkRow, check, advance, retry } =
-    useExerciseRunner(exerciseIds, 0);
+  const {
+    state,
+    progress,
+    isLast,
+    setAnswer,
+    answerQuestion,
+    checkRow,
+    checkTable,
+    finishTable,
+    check,
+    advance,
+    retry,
+  } = useExerciseRunner(exerciseIds, 0);
 
   useEffect(() => {
     if (state.phase === 'complete') onComplete();
@@ -93,6 +104,8 @@ export function ExerciseStage({
               onAnswerChange={setAnswer}
               answerQuestion={answerQuestion}
               checkRow={checkRow}
+              checkTable={checkTable}
+              finishTable={finishTable}
             />
 
             {state.phase === 'feedback' && state.verdict ? (
@@ -104,7 +117,7 @@ export function ExerciseStage({
                   </Text>
                 </TouchableOpacity>
               </>
-            ) : (
+            ) : bodyOwnsCheck(state.display.templateCode) ? null : (
               <>
                 {state.submitError ? <Text style={styles.errorDesc}>{state.submitError}</Text> : null}
                 <TouchableOpacity

@@ -18,6 +18,7 @@ import { MatchPairsBody } from './MatchPairsBody';
 import { SentenceSchemaBody } from './SentenceSchemaBody';
 import { ShortAnswerBody } from './ShortAnswerBody';
 import { WritingTaskBody } from './WritingTaskBody';
+import { MultipleChoiceGroupBody } from './MultipleChoiceGroupBody';
 
 /**
  * Contract every per-template body implements (Phase 4.2+). A body is a
@@ -90,6 +91,40 @@ export interface ExerciseBodyProps {
     placement: Record<string, string[]>,
     reveal: boolean,
   ) => Promise<CheckRowResponse>;
+  /**
+   * Check the whole table of a `multiple_choice_group` and get the server's verdict
+   * (plan 54 §8 Q6, variant D).
+   *
+   * The third thing a body may do to the attempt, and the first that is the submit
+   * itself. This template is answered and judged as one block, and its retry is a second
+   * submit onto the same attempt: the engine reopens the scored attempt, spends one of
+   * the author's `retry` budget, and doses the key — which statements are wrong on every
+   * pass, the right column and the author's line only once the table is closed.
+   *
+   * Because the check *is* the submit, there is no footer Check left to close the item
+   * with. The check that closes the table is reported through `finishTable`, which is why
+   * these two arrive together. Every other body ignores both and closes through the
+   * footer as before.
+   */
+  checkTable: (
+    answers: Record<string, string>,
+    reveal: boolean,
+  ) => Promise<SubmitAttemptResponse>;
+  /** Record the check that closed the table; the runner moves to feedback. */
+  finishTable: (verdict: SubmitAttemptResponse) => void;
+}
+
+/**
+ * Whether this template's body runs its own checks against the server and closes the item
+ * itself, so the shell must not draw a Check button of its own.
+ *
+ * One template, and the reason is structural rather than stylistic: for
+ * `multiple_choice_group` the round-by-round check and the closing submit are the same
+ * call, so a footer Check under the table's own «Check answers» would either be dead or
+ * be a second check the engine refuses (plan 54 §8 Q6).
+ */
+export function bodyOwnsCheck(templateCode: string): boolean {
+  return templateCode === 'multiple_choice_group';
 }
 
 /**
@@ -140,6 +175,8 @@ export function ExerciseBody(props: ExerciseBodyProps) {
       return <ShortAnswerBody {...props} />;
     case 'writing_task':
       return <WritingTaskBody {...props} />;
+    case 'multiple_choice_group':
+      return <MultipleChoiceGroupBody {...props} />;
     default:
       return <UnsupportedTemplateBody {...props} />;
   }

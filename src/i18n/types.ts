@@ -335,6 +335,31 @@ export interface Translations {
       unavailable: string;
       unavailableDesc: string;
     };
+    /** The plan-54 form: a table of statements sharing one set of answer columns. */
+    multipleChoiceGroup: {
+      answered: string; // '{n}', '{total}'
+      check: string;
+      remaining: string; // '{n}'
+      retryWrong: string;
+      showKey: string;
+      attempt: string; // '{n}'
+      /** The heading of the score card while checks are left. */
+      wrongCount: string; // '{n}'
+      allRight: string;
+      lookAgain: string;
+      passed: string;
+      notPassed: string;
+      scoreLine: string; // '{pct}', '{threshold}'
+      doneHint: string;
+      sendFailed: string;
+      closedAlready: string;
+      empty: string;
+      emptyDesc: string;
+      unavailable: string;
+      unavailableDesc: string;
+      /** The old `items[]` form, which this app has never been able to play. */
+      unavailableLegacyDesc: string;
+    };
     resultsExcellentTitle: string;
     resultsExcellentMessage: string;
     resultsGoodTitle: string;

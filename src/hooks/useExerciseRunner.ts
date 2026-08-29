@@ -8,6 +8,7 @@ import {
   type AnswerQuestionAnswer,
   type AnswerQuestionResponse,
   type CheckRowResponse,
+  type SubmitAttemptResponse,
 } from '../api/exercises';
 import { buildExerciseCompletionRequest, upsertProgress } from '../api/progress';
 import type { ExerciseDisplay } from '../api/types';
@@ -24,6 +25,7 @@ import {
   runnerReducer,
   type RunnerState,
 } from '../screens/ExerciseRunner/runnerMachine';
+import { buildMultipleChoiceGroupSubmission } from '../screens/ExerciseRunner/templates/multipleChoiceGroup';
 import { useSettings } from './useSettings';
 
 export type ProgressPostStatus = 'idle' | 'posting' | 'done' | 'error';
@@ -64,6 +66,32 @@ export interface ExerciseRunnerController {
     placement: Record<string, string[]>,
     reveal: boolean,
   ) => Promise<CheckRowResponse>;
+  /**
+   * Check the whole table of a `multiple_choice_group` and get the server's verdict
+   * (plan 54 §8 Q6, variant D). Opens the attempt the same way its two siblings do.
+   *
+   * Repeatable, and that is the type: a check reports which statements are wrong, the
+   * learner fixes them, and the next check goes onto the very same attempt — the engine
+   * reopens a scored practice attempt and spends one of the author's `retry` budget on
+   * it. `reveal` is «Vis fasit», closing the table with the score it already had.
+   *
+   * Unlike `checkRow`, this *is* the submit: there is no separate endpoint, and the
+   * engine refuses a further check once the table is closed. So there is no footer Check
+   * left to close the item with, and the body reports the closing verdict through
+   * `finishTable` instead. Every other body ignores both.
+   */
+  checkTable: (
+    answers: Record<string, string>,
+    reveal: boolean,
+  ) => Promise<SubmitAttemptResponse>;
+  /**
+   * Record the check that closed the table and move the runner to feedback.
+   *
+   * The other half of `checkTable`, and separate from it because closedness is a fact
+   * about a template's own verdict: this hook does not read `details`, and the body that
+   * understands them decides. The time is taken here, where the answering clock lives.
+   */
+  finishTable: (verdict: SubmitAttemptResponse) => void;
   /** Footer "Check": start + submit an attempt and grade server-side. */
   check: () => void;
   /** Footer "Continue": advance to the next item (or complete the set). */
@@ -240,6 +268,35 @@ export function useExerciseRunner(
     [openExerciseId, openDisplay, openAttempt],
   );
 
+  const checkTable = useCallback(
+    async (answers: Record<string, string>, reveal: boolean): Promise<SubmitAttemptResponse> => {
+      if (!openExerciseId || !openDisplay) {
+        throw new Error('No exercise is open');
+      }
+      const attemptId = await openAttempt(openExerciseId, openDisplay);
+      return submitAttempt(openExerciseId, attemptId, {
+        submittedAnswer: buildMultipleChoiceGroupSubmission(answers, reveal),
+        timeSpentSeconds: Math.max(
+          0,
+          Math.round((Date.now() - answeringStartedAtRef.current) / 1000),
+        ),
+        locale: uiLanguage,
+      });
+    },
+    [openExerciseId, openDisplay, openAttempt, uiLanguage],
+  );
+
+  const finishTable = useCallback((verdict: SubmitAttemptResponse) => {
+    dispatch({
+      type: 'BODY_SUBMITTED',
+      verdict,
+      timeSpentSeconds: Math.max(
+        0,
+        Math.round((Date.now() - answeringStartedAtRef.current) / 1000),
+      ),
+    });
+  }, []);
+
   const check = useCallback(async () => {
     if (state.phase !== 'answering' || !state.canSubmit) return;
     if (checkInFlightRef.current) return;
@@ -336,6 +393,8 @@ export function useExerciseRunner(
     setAnswer,
     answerQuestion,
     checkRow,
+    checkTable,
+    finishTable,
     check,
     advance,
     retry,

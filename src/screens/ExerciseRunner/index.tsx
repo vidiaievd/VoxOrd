@@ -12,7 +12,7 @@ import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
 import { useExerciseRunner } from '../../hooks/useExerciseRunner';
-import { ExerciseBody } from './ExerciseBody';
+import { bodyOwnsCheck, ExerciseBody } from './ExerciseBody';
 import { FeedbackBar } from './FeedbackBar';
 import { SetResultsScreen } from './SetResultsScreen';
 
@@ -42,6 +42,8 @@ export function ExerciseRunnerScreen({
     setAnswer,
     answerQuestion,
     checkRow,
+    checkTable,
+    finishTable,
     check,
     advance,
     retry,
@@ -122,46 +124,54 @@ export function ExerciseRunnerScreen({
                 onAnswerChange={setAnswer}
                 answerQuestion={answerQuestion}
                 checkRow={checkRow}
+                checkTable={checkTable}
+                finishTable={finishTable}
               />
             </ScrollView>
 
-            <View style={styles.footer}>
-              {state.phase === 'feedback' && state.verdict ? (
-                <>
-                  <FeedbackBar verdict={state.verdict} />
-                  {!state.verdict.correct && !state.verdict.requiresReview ? (
-                    <TouchableOpacity style={styles.secondaryBtn} onPress={retryAttempt}>
-                      <Text style={styles.secondaryBtnText}>{t('exerciseRunner.tryAgain')}</Text>
+            {/* A body that runs its own checks draws its own controls, so while
+                answering the footer bar would be an empty strip with a border. It
+                comes back for the verdict, where Continue is «Fullfør» (plan 54
+                §8 Q6). */}
+            {state.phase === 'feedback' || !bodyOwnsCheck(state.display.templateCode) ? (
+              <View style={styles.footer}>
+                {state.phase === 'feedback' && state.verdict ? (
+                  <>
+                    <FeedbackBar verdict={state.verdict} />
+                    {!state.verdict.correct && !state.verdict.requiresReview ? (
+                      <TouchableOpacity style={styles.secondaryBtn} onPress={retryAttempt}>
+                        <Text style={styles.secondaryBtnText}>{t('exerciseRunner.tryAgain')}</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                    <TouchableOpacity style={styles.primaryBtn} onPress={advance}>
+                      <Text style={styles.primaryBtnText}>
+                        {isLast ? t('exerciseRunner.finish') : t('exerciseRunner.continue')}
+                      </Text>
                     </TouchableOpacity>
-                  ) : null}
-                  <TouchableOpacity style={styles.primaryBtn} onPress={advance}>
-                    <Text style={styles.primaryBtnText}>
-                      {isLast ? t('exerciseRunner.finish') : t('exerciseRunner.continue')}
-                    </Text>
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <>
-                  {state.submitError ? (
-                    <Text style={styles.footerError}>{state.submitError}</Text>
-                  ) : null}
-                  <TouchableOpacity
-                    style={[
-                      styles.primaryBtn,
-                      (!state.canSubmit || state.phase === 'checking') && styles.primaryBtnDisabled,
-                    ]}
-                    onPress={check}
-                    disabled={!state.canSubmit || state.phase === 'checking'}
-                  >
-                    {state.phase === 'checking' ? (
-                      <ActivityIndicator size="small" color={colors.textInverted} />
-                    ) : (
-                      <Text style={styles.primaryBtnText}>{t('exerciseRunner.check')}</Text>
-                    )}
-                  </TouchableOpacity>
-                </>
-              )}
-            </View>
+                  </>
+                ) : (
+                  <>
+                    {state.submitError ? (
+                      <Text style={styles.footerError}>{state.submitError}</Text>
+                    ) : null}
+                    <TouchableOpacity
+                      style={[
+                        styles.primaryBtn,
+                        (!state.canSubmit || state.phase === 'checking') && styles.primaryBtnDisabled,
+                      ]}
+                      onPress={check}
+                      disabled={!state.canSubmit || state.phase === 'checking'}
+                    >
+                      {state.phase === 'checking' ? (
+                        <ActivityIndicator size="small" color={colors.textInverted} />
+                      ) : (
+                        <Text style={styles.primaryBtnText}>{t('exerciseRunner.check')}</Text>
+                      )}
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
+            ) : null}
           </>
         )}
     </SafeAreaView>

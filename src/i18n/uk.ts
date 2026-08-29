@@ -327,6 +327,31 @@ export const uk: Translations = {
       unavailableDesc:
         'Він надійшов разом із ключем до відповідей. Попросіть викладача оновити застосунок або курс.',
     },
+    /** The plan-54 form: a table of statements sharing one set of answer columns. */
+    multipleChoiceGroup: {
+      answered: 'Відповіді: {n}/{total}',
+      check: 'Перевірити відповіді',
+      remaining: 'Залишилось {n}',
+      retryWrong: 'Ще раз по хибних',
+      showKey: 'Показати відповіді',
+      attempt: 'Перевірка {n}',
+      wrongCount: 'Хибних тверджень: {n}',
+      allRight: 'Усі твердження правильні',
+      lookAgain: 'Погляньте на них ще раз.',
+      passed: 'Зараховано',
+      notPassed: 'Не зараховано',
+      scoreLine: 'Правильно {pct}% — потрібно {threshold}%.',
+      doneHint: 'Натисніть «Продовжити» внизу, щоб рухатися далі.',
+      sendFailed: 'Не вдалося надіслати таблицю. Спробуйте ще раз.',
+      closedAlready: 'Цю таблицю вже завершено.',
+      empty: 'У цій таблиці ще немає тверджень',
+      emptyDesc: 'Твердженню потрібен текст і відповідь, інакше учень його не побачить.',
+      unavailable: 'Цю вправу поки не можна показати',
+      unavailableDesc:
+        'Вона надійшла разом із ключем до відповідей. Попросіть викладача оновити застосунок або курс.',
+      unavailableLegacyDesc:
+        'Вона записана у старому форматі, який застосунок не читає. Відкрийте її у вебі або зверніться до викладача.',
+    },
     resultsExcellentTitle: 'Відмінно!',
     resultsExcellentMessage: 'Ви чудово впорались із цим набором.',
     resultsGoodTitle: 'Гарна робота!',

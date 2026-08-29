@@ -327,6 +327,31 @@ export const ru: Translations = {
       unavailableDesc:
         'Он пришёл вместе с ключом к ответам. Попросите преподавателя обновить приложение или курс.',
     },
+    /** The plan-54 form: a table of statements sharing one set of answer columns. */
+    multipleChoiceGroup: {
+      answered: 'Отвечено {n}/{total}',
+      check: 'Проверить ответы',
+      remaining: 'Осталось {n}',
+      retryWrong: 'Ещё раз по неверным',
+      showKey: 'Показать ответы',
+      attempt: 'Проверка {n}',
+      wrongCount: 'Неверных утверждений: {n}',
+      allRight: 'Все утверждения верны',
+      lookAgain: 'Посмотрите на них ещё раз.',
+      passed: 'Зачтено',
+      notPassed: 'Не зачтено',
+      scoreLine: 'Верно {pct}% — нужно {threshold}%.',
+      doneHint: 'Нажмите «Продолжить» внизу, чтобы идти дальше.',
+      sendFailed: 'Не удалось отправить таблицу. Попробуйте ещё раз.',
+      closedAlready: 'Эта таблица уже завершена.',
+      empty: 'В этой таблице пока нет утверждений',
+      emptyDesc: 'Утверждению нужен текст и ответ, иначе ученик его не увидит.',
+      unavailable: 'Это упражнение пока нельзя показать',
+      unavailableDesc:
+        'Оно пришло вместе с ключом к ответам. Попросите преподавателя обновить приложение или курс.',
+      unavailableLegacyDesc:
+        'Оно записано в старом формате, который приложение не читает. Откройте его в вебе или обратитесь к преподавателю.',
+    },
     resultsExcellentTitle: 'Отлично!',
     resultsExcellentMessage: 'Вы прекрасно справились с этим набором.',
     resultsGoodTitle: 'Хорошая работа!',
