@@ -330,6 +330,7 @@ export const ru: Translations = {
     /** The plan-54 form: a table of statements sharing one set of answer columns. */
     multipleChoiceGroup: {
       answered: 'Отвечено {n}/{total}',
+      toText: 'К тексту',
       check: 'Проверить ответы',
       remaining: 'Осталось {n}',
       retryWrong: 'Ещё раз по неверным',

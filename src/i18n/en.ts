@@ -335,6 +335,7 @@ export const en: Translations = {
     /** The plan-54 form: a table of statements sharing one set of answer columns. */
     multipleChoiceGroup: {
       answered: '{n}/{total} answered',
+      toText: 'Go to the text',
       check: 'Check the answers',
       remaining: '{n} left',
       retryWrong: 'Try the wrong ones again',

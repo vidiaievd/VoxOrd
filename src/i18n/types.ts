@@ -338,6 +338,8 @@ export interface Translations {
     /** The plan-54 form: a table of statements sharing one set of answer columns. */
     multipleChoiceGroup: {
       answered: string; // '{n}', '{total}'
+      /** The way back to the lesson the statements are about, in `link` mode. */
+      toText: string;
       check: string;
       remaining: string; // '{n}'
       retryWrong: string;

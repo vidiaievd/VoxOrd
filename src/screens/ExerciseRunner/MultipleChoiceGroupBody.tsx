@@ -123,6 +123,7 @@ function MultipleChoiceGroupTableBody({
   onAnswerChange,
   checkTable,
   finishTable,
+  onOpenSourceLesson,
   table,
 }: ExerciseBodyProps & { table: MultipleChoiceGroupTable }) {
   const { t } = useTranslation();
@@ -274,6 +275,16 @@ function MultipleChoiceGroupTableBody({
 
   const answered = total - remaining;
   const passage = settings.showText && table.source.mode === 'inline' ? table.source.text : undefined;
+  /**
+   * «To the text» — the way back to the lesson the statements are about (README §Setup).
+   *
+   * Offered only when the screen that opened the runner said where that is: the document
+   * carries no lesson id, because the builder never writes one (plan 54 Q5). A `link`
+   * table opened from anywhere else still says nothing at all, label included — a heading
+   * naming a lesson with no way to reach it is worse than no heading.
+   */
+  const backToText = table.source.mode === 'link' ? onOpenSourceLesson : undefined;
+  const sourceLabel = table.source.label.trim();
 
   return (
     <View>
@@ -292,10 +303,23 @@ function MultipleChoiceGroupTableBody({
 
       {table.instruction.trim() !== '' && <Text style={styles.instruction}>{table.instruction}</Text>}
 
-      {/* `link` draws nothing at all, label included: «To the text» is a place to go, and
-          where it goes is Q5's answer — the parent lesson, which only the page around an
-          exercise knows. A heading naming a lesson with no way to reach it is worse than
-          no heading, and every seeded table is written as `inline` for that reason. */}
+      {backToText !== undefined && (
+        <TouchableOpacity
+          style={styles.sourceLink}
+          onPress={backToText}
+          accessibilityRole="link"
+          accessibilityLabel={
+            sourceLabel === ''
+              ? t('exerciseRunner.multipleChoiceGroup.toText')
+              : `${t('exerciseRunner.multipleChoiceGroup.toText')}: ${sourceLabel}`
+          }
+        >
+          <Text style={styles.sourceLinkText}>
+            {sourceLabel === '' ? t('exerciseRunner.multipleChoiceGroup.toText') : sourceLabel} →
+          </Text>
+        </TouchableOpacity>
+      )}
+
       {passage !== undefined && (
         <View style={styles.passage}>
           {table.source.label.trim() !== '' && (
@@ -602,6 +626,20 @@ const makeStyles = (colors: ColorScheme) =>
       paddingHorizontal: 14,
       paddingVertical: 12,
       marginBottom: 16,
+    },
+    sourceLink: {
+      alignSelf: 'flex-start',
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      marginBottom: 16,
+    },
+    sourceLinkText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colors.textSecondary,
     },
     passageLabel: {
       fontSize: 12,

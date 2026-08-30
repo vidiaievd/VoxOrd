@@ -24,6 +24,12 @@ interface ExerciseRunnerScreenProps {
   onBack: () => void;
   /** Called when the user leaves the results screen (or an empty set completes immediately). Navigating back to UnitContents remounts it, which refetches contents — no explicit refresh call needed. */
   onComplete: () => void;
+  /**
+   * Open the lesson this unit's exercises were set on — `multiple_choice_group`'s «To the
+   * text» (plan 54 Q5). Absent for a unit with no text of its own, and then the link is
+   * not drawn at all.
+   */
+  onOpenSourceLesson?: () => void;
 }
 
 export function ExerciseRunnerScreen({
@@ -31,6 +37,7 @@ export function ExerciseRunnerScreen({
   startIndex,
   onBack,
   onComplete,
+  onOpenSourceLesson,
 }: ExerciseRunnerScreenProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -126,6 +133,7 @@ export function ExerciseRunnerScreen({
                 checkRow={checkRow}
                 checkTable={checkTable}
                 finishTable={finishTable}
+                onOpenSourceLesson={onOpenSourceLesson}
               />
             </ScrollView>
 

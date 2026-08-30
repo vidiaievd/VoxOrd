@@ -112,6 +112,15 @@ export interface ExerciseBodyProps {
   ) => Promise<SubmitAttemptResponse>;
   /** Record the check that closed the table; the runner moves to feedback. */
   finishTable: (verdict: SubmitAttemptResponse) => void;
+  /**
+   * Leave the runner for the lesson this exercise was set on — `multiple_choice_group`'s
+   * «To the text» in `link` mode (plan 54 Q5).
+   *
+   * Absent unless the screen that opened the runner knew of one: the exercise itself
+   * carries no lesson id, and the unit is what says which text its exercises are about.
+   * Every other body ignores it.
+   */
+  onOpenSourceLesson?: () => void;
 }
 
 /**

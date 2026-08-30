@@ -53,6 +53,12 @@ type Screen =
       startIndex: number;
       unitId: string;
       courseId: string;
+      /**
+       * The unit's own text lesson, when it has one — what `multiple_choice_group`'s «To
+       * the text» opens (plan 54 Q5). Carried on the route because the unit screen is
+       * where it is known; the runner is handed a set of exercise ids and nothing else.
+       */
+      sourceLessonId?: string;
     }
   | { name: 'Settings' };
 
@@ -268,13 +274,14 @@ export function RootNavigator() {
                 courseId: screen.courseId,
               })
             }
-            onExercisePress={(exerciseIds, startIndex) =>
+            onExercisePress={(exerciseIds, startIndex, sourceLessonId) =>
               navigateTo({
                 name: 'ExerciseRunner',
                 exerciseIds,
                 startIndex,
                 unitId: screen.unitId,
                 courseId: screen.courseId,
+                ...(sourceLessonId === null ? {} : { sourceLessonId }),
               })
             }
             onVocabularyPress={listId =>
@@ -303,12 +310,28 @@ export function RootNavigator() {
             unitId: screen.unitId,
             courseId: screen.courseId,
           });
+        // The text these exercises are about, when the unit has one. This navigator holds
+        // one screen and no stack, so opening the lesson leaves the runner exactly as
+        // tapping Back would — and the way back from the lesson is the unit, which is
+        // also the way back from the runner (plan 54 phase 7).
+        const sourceLessonId = screen.sourceLessonId;
+        const openSourceLesson =
+          sourceLessonId === undefined
+            ? undefined
+            : () =>
+                navigateTo({
+                  name: 'LessonReader',
+                  lessonId: sourceLessonId,
+                  unitId: screen.unitId,
+                  courseId: screen.courseId,
+                });
         return (
           <ExerciseRunnerScreen
             exerciseIds={screen.exerciseIds}
             startIndex={screen.startIndex}
             onBack={backToUnit}
             onComplete={backToUnit}
+            onOpenSourceLesson={openSourceLesson}
           />
         );
       }
