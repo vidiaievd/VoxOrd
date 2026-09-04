@@ -5,6 +5,15 @@ import { findOpenAttempt, type AnsweredQuestion } from '../../api/exercises';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
+import { useExerciseAudio } from '../../hooks/useExerciseAudio';
+import {
+  AudioGateScreen,
+  AudioLockNote,
+  AudioSegmentButton,
+  AudioTranscript,
+  ExerciseAudioPlayer,
+} from './audio';
+import type { AudioTranscript as AudioTranscriptWords } from '../../api/exercises';
 import type { ExerciseBodyProps } from './ExerciseBody';
 import { ShortAnswerLegacyBody } from './ShortAnswerLegacyBody';
 import {
@@ -118,6 +127,17 @@ function ShortAnswerSet({
   const [error, setError] = useState<string | null>(null);
   /** True until the server has been asked what is already in — see the effect below. */
   const [resuming, setResuming] = useState(true);
+  /**
+   * The listening layer, if this set has one — plan 56 phase 7. One engine for the whole
+   * set: the allowance and the gate belong to the exercise, not to a question.
+   */
+  const audio = useExerciseAudio(display.content);
+  const audioOn = audio.audio.enabled;
+  const locked = audioOn && audio.gated;
+  /** The listen-first screen has been passed — state of this reading of the set (§4). */
+  const [entered, setEntered] = useState(false);
+  /** The clip's words, once the last verdict has earned them (plan 56 §3.3). */
+  const [transcript, setTranscript] = useState<AudioTranscriptWords | null>(null);
 
   /** Every answer handed in, in order — what the closing aggregate carries. */
   const answers = useRef<ShortAnswerAnswer[]>([]);
@@ -200,6 +220,9 @@ function ShortAnswerSet({
       // A verdict that could not be read is not counted as any of the three: the answer is
       // in, and the card says so with the `wait` chip rather than inventing an outcome.
       if (read) setTally(counts => countVerdict(counts, read.verdict));
+      // The last question is in, so the clip has nothing left to give away and the engine
+      // hands over what it said (plan 56 §3.3).
+      if (response.audioTranscript) setTranscript(response.audioTranscript);
       setPhase('submitted');
     } catch (e) {
       // A refusal the engine will keep making (this question is already in, the attempt is
@@ -273,6 +296,17 @@ function ShortAnswerSet({
     );
   }
 
+  /*
+    `layout: 'gate'` fills the body with the listen-first screen instead of the questions.
+    After the last answer it is a finished set rather than a clip to hear again, so the
+    `done` screen above wins — which is why this stands below it.
+  */
+  if (audioOn && audio.audio.settings.layout === 'gate' && !entered) {
+    return (
+      <AudioGateScreen eng={audio} interactive={!disabled} onStart={() => setEntered(true)} />
+    );
+  }
+
   if (!question) return null;
 
   const submitted = phase === 'submitted';
@@ -302,11 +336,28 @@ function ShortAnswerSet({
         <Text style={styles.instruction}>{instructionOf(display, set)}</Text>
       ) : null}
 
+      {audioOn ? (
+        <View style={styles.audio}>
+          <ExerciseAudioPlayer eng={audio} interactive={!disabled} />
+          {locked ? (
+            <AudioLockNote itemNoun={t('exerciseRunner.audio.itemNoun.questions')} />
+          ) : null}
+        </View>
+      ) : null}
+
       {/* `reading` only. A `listening` transcript is the author's own and the projection
           never sends it; an `opinion` question has no passage to send. */}
       {question.passage ? <Text style={styles.passage}>{question.passage}</Text> : null}
 
       <Text style={styles.prompt}>{question.prompt}</Text>
+
+      {audioOn ? (
+        <AudioSegmentButton
+          eng={audio}
+          segment={audio.segments[question.id] ?? null}
+          disabled={disabled || locked}
+        />
+      ) : null}
 
       <TextInput
         style={[
@@ -318,7 +369,7 @@ function ShortAnswerSet({
         onChangeText={setValue}
         // Read-only rather than disabled once handed in: the answer stays selectable and
         // stays readable to assistive technology.
-        editable={!submitted && !disabled && !sending}
+        editable={!submitted && !disabled && !sending && !locked}
         multiline
         autoCapitalize="sentences"
         placeholder={t('exerciseRunner.shortAnswer.placeholder')}
@@ -381,6 +432,14 @@ function ShortAnswerSet({
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
+      {audioOn ? (
+        <AudioTranscript
+          audio={audio.audio}
+          revealed={transcript !== null}
+          delivered={transcript}
+        />
+      ) : null}
+
       {submitted ? (
         <TouchableOpacity style={styles.button} onPress={next}>
           <Text style={styles.buttonText}>
@@ -390,9 +449,12 @@ function ShortAnswerSet({
       ) : (
         <>
           <TouchableOpacity
-            style={[styles.button, (!canHandIn(value) || sending) && styles.buttonDisabled]}
+            style={[
+              styles.button,
+              (!canHandIn(value) || sending || locked) && styles.buttonDisabled,
+            ]}
             onPress={handIn}
-            disabled={!canHandIn(value) || sending || disabled}
+            disabled={!canHandIn(value) || sending || disabled || locked}
           >
             {sending ? (
               <ActivityIndicator size="small" color={colors.textInverted} />
@@ -452,6 +514,9 @@ const makeStyles = (colors: ColorScheme) =>
       fontSize: 12,
       fontWeight: '700',
       color: colors.textMuted,
+    },
+    audio: {
+      marginBottom: 12,
     },
     instruction: {
       fontSize: 13,

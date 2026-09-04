@@ -319,6 +319,8 @@ export interface CheckRowResponse {
   closed: number;
   total: number;
   result: unknown;
+  /** The clip's words, on the check that closes the last sentence (plan 56 §3.3). */
+  audioTranscript?: AudioTranscript;
 }
 
 /**

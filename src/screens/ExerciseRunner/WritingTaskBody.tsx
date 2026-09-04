@@ -4,6 +4,8 @@ import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
 import { getMediaAsset } from '../../api/media';
+import { useExerciseAudio, type ExerciseAudioEngine } from '../../hooks/useExerciseAudio';
+import { ExerciseAudioPlayer } from './audio';
 import type { ExerciseBodyProps } from './ExerciseBody';
 import {
   appendPhrase,
@@ -44,6 +46,15 @@ export function WritingTaskBody({ display, disabled, onAnswerChange }: ExerciseB
   const styles = makeStyles(colors);
 
   const task = useMemo(() => readWritingTaskContent(display.content), [display.content]);
+  /**
+   * The listening layer, if this task has one — plan 56 phase 7.
+   *
+   * The player and nothing else: a writing task has no items to lock and no timecodes to
+   * hang on them, so the clip here is stimulus — something to write about — rather than
+   * something to be tested on. That is why the author's control for it is a switch and a
+   * source, and why there is no gate on this screen (plan 56 phase 6).
+   */
+  const audio = useExerciseAudio(display.content);
 
   if (task === null) {
     return <UnreadableTask onAnswerChange={onAnswerChange} />;
@@ -51,6 +62,7 @@ export function WritingTaskBody({ display, disabled, onAnswerChange }: ExerciseB
   return (
     <WritingTask
       task={task}
+      audio={audio}
       instruction={display.instructions?.[0]?.instructionText ?? task.instruction}
       disabled={disabled}
       onAnswerChange={onAnswerChange}
@@ -88,6 +100,7 @@ function UnreadableTask({ onAnswerChange }: Pick<ExerciseBodyProps, 'onAnswerCha
 
 interface WritingTaskProps {
   task: WritingTaskContent;
+  audio: ExerciseAudioEngine;
   instruction: string;
   disabled: boolean;
   onAnswerChange: ExerciseBodyProps['onAnswerChange'];
@@ -98,6 +111,7 @@ interface WritingTaskProps {
 
 function WritingTask({
   task,
+  audio,
   instruction,
   disabled,
   onAnswerChange,
@@ -177,6 +191,12 @@ function WritingTask({
       </View>
 
       {instruction ? <Text style={styles.instructions}>{instruction}</Text> : null}
+
+      {audio.audio.enabled ? (
+        <View style={styles.audio}>
+          <ExerciseAudioPlayer eng={audio} interactive={!disabled} />
+        </View>
+      ) : null}
 
       {task.mode === 'picture' ? (
         <View style={styles.figure}>
@@ -391,6 +411,9 @@ const makeStyles = (colors: ColorScheme) =>
       paddingVertical: 4,
       borderRadius: 999,
       overflow: 'hidden',
+    },
+    audio: {
+      marginBottom: 12,
     },
     instructions: {
       fontSize: 13,

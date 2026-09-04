@@ -5,6 +5,9 @@ import type { SubmitAttemptResponse } from '../../api/exercises';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
+import { useExerciseAudio } from '../../hooks/useExerciseAudio';
+import { AudioLockNote, AudioTranscript, ExerciseAudioPlayer } from './audio';
+import type { AudioTranscript as AudioTranscriptWords } from '../../api/exercises';
 import type { ExerciseBodyProps } from './ExerciseBody';
 import {
   isMultipleChoiceGroupDocument,
@@ -119,6 +122,7 @@ type RowMark = 'ok' | 'bad' | 'todo';
  * shell's Try again — a fresh attempt, which is what that button has always meant here.
  */
 function MultipleChoiceGroupTableBody({
+  display,
   disabled,
   onAnswerChange,
   checkTable,
@@ -144,6 +148,18 @@ function MultipleChoiceGroupTableBody({
   const [locked, setLocked] = useState<string[]>([]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /**
+   * The listening layer, if this table has one — plan 56 phase 7.
+   *
+   * There is no listen-first screen here even when the author asked for one: the table is
+   * checked as a block and its material sits above it, so a `gate` layout is the same
+   * player with the pills locked until the clip has been heard.
+   */
+  const audio = useExerciseAudio(display.content);
+  const audioOn = audio.audio.enabled;
+  const audioLocked = audioOn && audio.gated;
+  /** The clip's words, once the check that closed the table earned them (§3.3). */
+  const [transcript, setTranscript] = useState<AudioTranscriptWords | null>(null);
 
   // The footer's Check is not drawn for this template (`bodyOwnsCheck`), and the shell
   // must never think there is an answer of its own to submit: the table is handed in from
@@ -190,6 +206,9 @@ function MultipleChoiceGroupTableBody({
         setVerdict(details);
         setLocked(details.locked);
         setPhase('checked');
+        // The table is closed, so the clip has nothing left to give away and the engine
+        // hands over what it said (plan 56 §3.3).
+        if (response.audioTranscript) setTranscript(response.audioTranscript);
         if (details.closed) finishTable(response);
       } catch (e) {
         // A refusal the engine will keep making — this table is closed, the budget is
@@ -215,10 +234,13 @@ function MultipleChoiceGroupTableBody({
    */
   const pick = useCallback(
     (rowId: string, columnId: string) => {
-      if (disabled || sending || phase !== 'answering' || locked.includes(rowId)) return;
+      // `audioLocked` joins the expression that was already here rather than adding a
+      // second lock: two mechanisms are how the two drift apart (INTEGRATION.md).
+      if (disabled || sending || audioLocked || phase !== 'answering' || locked.includes(rowId))
+        return;
       setAnswers(current => ({ ...current, [rowId]: columnId }));
     },
-    [disabled, sending, phase, locked],
+    [disabled, sending, audioLocked, phase, locked],
   );
 
   /** «Try the wrong ones again» — R15. What survives is `keepOnRetry`; see it for why. */
@@ -302,6 +324,15 @@ function MultipleChoiceGroupTableBody({
       )}
 
       {table.instruction.trim() !== '' && <Text style={styles.instruction}>{table.instruction}</Text>}
+
+      {audioOn && (
+        <View style={styles.audio}>
+          <ExerciseAudioPlayer eng={audio} interactive={!disabled} />
+          {audioLocked && (
+            <AudioLockNote itemNoun={t('exerciseRunner.audio.itemNoun.statements')} />
+          )}
+        </View>
+      )}
 
       {backToText !== undefined && (
         <TouchableOpacity
@@ -408,6 +439,14 @@ function MultipleChoiceGroupTableBody({
 
       {error !== null && <Text style={styles.error}>{error}</Text>}
 
+      {audioOn && (
+        <AudioTranscript
+          audio={audio.audio}
+          revealed={transcript !== null}
+          delivered={transcript}
+        />
+      )}
+
       {/* The controls belong to the table, not to the shell's footer: for this template
           they are the check itself, and what they say depends on how the last check left
           the table (plan 54 §8 Q6). */}
@@ -415,9 +454,12 @@ function MultipleChoiceGroupTableBody({
         {!checked && (
           <>
             <TouchableOpacity
-              style={[styles.primaryBtn, (remaining > 0 || disabled || sending) && styles.btnDim]}
+              style={[
+                styles.primaryBtn,
+                (remaining > 0 || disabled || sending || audioLocked) && styles.btnDim,
+              ]}
               onPress={() => void send(false)}
-              disabled={remaining > 0 || disabled || sending}
+              disabled={remaining > 0 || disabled || sending || audioLocked}
               accessibilityRole="button"
             >
               {sending ? (
@@ -609,6 +651,9 @@ const makeStyles = (colors: ColorScheme) =>
       fontSize: 12,
       fontWeight: '700',
       color: colors.textMuted,
+    },
+    audio: {
+      marginBottom: 12,
     },
     instruction: {
       fontSize: 15,

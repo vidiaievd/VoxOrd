@@ -5,6 +5,14 @@ import { findOpenAttempt, type CheckedRow } from '../../api/exercises';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
+import { useExerciseAudio } from '../../hooks/useExerciseAudio';
+import {
+  AudioLockNote,
+  AudioSegmentButton,
+  AudioTranscript,
+  ExerciseAudioPlayer,
+} from './audio';
+import type { AudioTranscript as AudioTranscriptWords } from '../../api/exercises';
 import type { ExerciseBodyProps } from './ExerciseBody';
 import { SchemaBoard, WordBank } from './SentenceSchemaBoard';
 import {
@@ -143,6 +151,16 @@ function SentenceSchemaSetBody({
   const [error, setError] = useState<string | null>(null);
   /** True until the server has been asked what is already on this exercise. */
   const [resuming, setResuming] = useState(true);
+  /**
+   * The listening layer, if this set has one — plan 56 phase 7. One engine for the set,
+   * because the allowance and the gate belong to the exercise and not to a sentence.
+   * No listen-first screen: a sentence board is not something to enter, and `gate` is
+   * served by holding the board read-only until the clip has been heard.
+   */
+  const audio = useExerciseAudio(display.content);
+  const audioOn = audio.audio.enabled;
+  /** The clip's words, once the check that closed the last sentence earned them (§3.3). */
+  const [transcript, setTranscript] = useState<AudioTranscriptWords | null>(null);
 
   const total = set.rows.length;
 
@@ -239,6 +257,9 @@ function SentenceSchemaSetBody({
       try {
         const response = await checkRow(row.id, state.placement, reveal);
         const marks = readSentenceSchemaResult(response.result);
+        // The set is closed, so the clip has nothing left to give away and the engine
+        // hands over what it said (plan 56 §3.3).
+        if (response.audioTranscript) setTranscript(response.audioTranscript);
         update(row.id, {
           result: marks,
           attempt: marks?.attempt ?? state.attempt,
@@ -425,7 +446,9 @@ function SentenceSchemaSetBody({
 
   if (!row) return null;
 
-  const locked = state.phase === 'closed' || disabled;
+  // The gate joins the expression that was already here rather than adding a second lock:
+  // it reaches the board, the bank and every control the type owns (INTEGRATION.md).
+  const locked = state.phase === 'closed' || disabled || (audioOn && audio.gated);
   const used = placedItems(state.placement);
   const textOf = (itemId: string) => row.bank.find((item) => item.id === itemId)?.text ?? '';
   const marks =
@@ -458,6 +481,21 @@ function SentenceSchemaSetBody({
       </View>
 
       <Text style={styles.instruction}>{instruction}</Text>
+
+      {audioOn ? (
+        <View style={styles.audio}>
+          <ExerciseAudioPlayer eng={audio} interactive={!disabled} />
+          {audio.gated ? (
+            <AudioLockNote itemNoun={t('exerciseRunner.audio.itemNoun.pieces')} />
+          ) : null}
+          {/* This sentence's line of the clip, when the author timed it. */}
+          <AudioSegmentButton
+            eng={audio}
+            segment={audio.segments[row.id] ?? null}
+            disabled={disabled || audio.gated}
+          />
+        </View>
+      ) : null}
 
       {/* Which clause type this sentence is — the only thing on screen that says why the
           fields are these fields. A sequence-only set has no fields to explain, so the
@@ -526,6 +564,14 @@ function SentenceSchemaSetBody({
       ) : null}
 
       {error !== null ? <Text style={styles.error}>{error}</Text> : null}
+
+      {audioOn ? (
+        <AudioTranscript
+          audio={audio.audio}
+          revealed={transcript !== null}
+          delivered={transcript}
+        />
+      ) : null}
 
       <View style={styles.actions}>
         {state.phase === 'placing' ? (
@@ -657,6 +703,9 @@ const makeStyles = (colors: ColorScheme) =>
     attemptNo: {
       fontSize: 12,
       color: colors.textMuted,
+    },
+    audio: {
+      marginBottom: 12,
     },
     instruction: {
       fontSize: 14,

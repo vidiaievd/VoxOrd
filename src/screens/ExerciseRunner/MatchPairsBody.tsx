@@ -3,6 +3,13 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
+import { useExerciseAudio } from '../../hooks/useExerciseAudio';
+import {
+  AudioLockNote,
+  AudioSegmentButton,
+  AudioTranscript,
+  ExerciseAudioPlayer,
+} from './audio';
 import type { ExerciseBodyProps } from './ExerciseBody';
 import {
   buildMatchPairsAnswer,
@@ -54,6 +61,17 @@ export function MatchPairsBody({ display, disabled, verdict, onAnswerChange }: E
 
   const [links, setLinks] = useState<Links>({});
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
+  /**
+   * The listening layer, if this exercise has one — plan 56 phase 7.
+   *
+   * No listen-first screen here: this template is checked once through the footer, and a
+   * `gate` layout is served by locking the halves until the clip has been heard. The
+   * clip's words, when the author dosed them `after`, ride in on the verdict the footer
+   * already receives — so there is nothing to remember here (plan 56 §3.3).
+   */
+  const audio = useExerciseAudio(display.content);
+  const audioOn = audio.audio.enabled;
+  const gateShut = audioOn && audio.gated;
 
   useEffect(() => {
     onAnswerChange(buildMatchPairsAnswer(links, slots), matchPairsCanSubmit(links, slots));
@@ -77,7 +95,8 @@ export function MatchPairsBody({ display, disabled, verdict, onAnswerChange }: E
   const remaining = slots.filter((slot) => links[slot.slotId] === undefined).length;
 
   const handleSlotPress = (slotId: string) => {
-    if (disabled) return;
+    // `gateShut` joins the guard that was already here rather than adding a second lock.
+    if (disabled || gateShut) return;
     // Tapping a filled slot empties it; the half returns to the pool.
     if (links[slotId] !== undefined) {
       setLinks((prev) => toggleLink(prev, slotId, prev[slotId]));
@@ -88,7 +107,7 @@ export function MatchPairsBody({ display, disabled, verdict, onAnswerChange }: E
   };
 
   const handlePoolPress = (itemId: string) => {
-    if (disabled) return;
+    if (disabled || gateShut) return;
     // A half already placed somewhere: tapping it selects its slot, so the next tap
     // moves it. Otherwise it needs a selected slot to go into.
     const owningSlot = itemToSlot[itemId];
@@ -121,6 +140,13 @@ export function MatchPairsBody({ display, disabled, verdict, onAnswerChange }: E
 
   return (
     <View>
+      {audioOn ? (
+        <View style={styles.audio}>
+          <ExerciseAudioPlayer eng={audio} interactive={!disabled} />
+          {gateShut ? <AudioLockNote itemNoun={t('exerciseRunner.audio.itemNoun.pairs')} /> : null}
+        </View>
+      ) : null}
+
       {!disabled ? <Text style={styles.hint}>{t('exerciseRunner.matchPairsHint')}</Text> : null}
 
       {slots.map((slot) => {
@@ -128,10 +154,19 @@ export function MatchPairsBody({ display, disabled, verdict, onAnswerChange }: E
         const result = showFeedback ? resultFor(slot.slotId) : undefined;
         return (
           <View key={slot.slotId}>
+            {/* This pair's line of the clip, when the author timed it. Free to replay: a
+                fragment spends no listen (BEHAVIOR §8). */}
+            {audioOn ? (
+              <AudioSegmentButton
+                eng={audio}
+                segment={audio.segments[slot.slotId] ?? null}
+                disabled={disabled || gateShut}
+              />
+            ) : null}
             <TouchableOpacity
               style={slotStyle(slot.slotId)}
               onPress={() => handleSlotPress(slot.slotId)}
-              disabled={disabled}
+              disabled={disabled || gateShut}
               activeOpacity={0.8}
             >
               <Text style={styles.slotLeft}>{slot.left}</Text>
@@ -172,13 +207,21 @@ export function MatchPairsBody({ display, disabled, verdict, onAnswerChange }: E
             key={item.itemId}
             style={chipStyle(item.itemId)}
             onPress={() => handlePoolPress(item.itemId)}
-            disabled={disabled}
+            disabled={disabled || gateShut}
             activeOpacity={0.8}
           >
             <Text style={styles.chipText}>{item.text}</Text>
           </TouchableOpacity>
         ))}
       </View>
+
+      {audioOn ? (
+        <AudioTranscript
+          audio={audio.audio}
+          revealed={verdict?.audioTranscript !== undefined}
+          delivered={verdict?.audioTranscript ?? null}
+        />
+      ) : null}
     </View>
   );
 }
@@ -205,6 +248,9 @@ const makeStyles = (colors: ColorScheme) => {
   } as const;
 
   return StyleSheet.create({
+    audio: {
+      marginBottom: 12,
+    },
     hint: {
       fontSize: 13,
       color: colors.textMuted,
