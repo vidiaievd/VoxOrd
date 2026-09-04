@@ -5,6 +5,15 @@ import { findOpenAttempt } from '../../api/exercises';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
+import { useExerciseAudio } from '../../hooks/useExerciseAudio';
+import {
+  AudioGateScreen,
+  AudioLockNote,
+  AudioSegmentButton,
+  AudioTranscript,
+  ExerciseAudioPlayer,
+} from './audio';
+import type { AudioTranscript as AudioTranscriptWords } from '../../api/exercises';
 import type { ExerciseBodyProps } from './ExerciseBody';
 import { MultipleChoiceLegacyBody } from './MultipleChoiceLegacyBody';
 import {
@@ -125,8 +134,28 @@ function MultipleChoiceSet({
   const [error, setError] = useState<string | null>(null);
   /** True until the server has been asked what is already on the attempt. */
   const [resuming, setResuming] = useState(true);
+  /**
+   * The listening layer, if this set has one — plan 56 phase 7.
+   *
+   * One engine for the whole set, not one per question: the allowance, the gate and the
+   * playthrough belong to the exercise, and an engine per question would hand out one
+   * listen per question (INTEGRATION.md). It reads the document the projection dealt, so
+   * a set without audio gets a switched-off block and nothing renders.
+   */
+  const audio = useExerciseAudio(display.content);
+  /**
+   * The listen-first screen has been passed. State of the body rather than of the engine:
+   * it is about this reading of the set, and it is entered once (BEHAVIOR §4).
+   */
+  const [entered, setEntered] = useState(false);
+  /** The clip's words, once the last verdict has earned them (plan 56 §3.3). */
+  const [transcript, setTranscript] = useState<AudioTranscriptWords | null>(null);
 
   const settings = set.settings;
+  const audioOn = audio.audio.enabled;
+  // Reaches every control the type owns by extending the expressions that were already
+  // there. A second lock mechanism is how the two drift apart (INTEGRATION.md).
+  const locked = audioOn && audio.gated;
   const total = set.questions.length;
   const question = set.questions[index];
   const last = index + 1 >= total;
@@ -206,6 +235,9 @@ function MultipleChoiceSet({
         setAttempt(verdict.attempt);
         if (verdict.eliminated) setEliminated(verdict.eliminated);
         if (verdict.correct && verdict.attempt === 1) setScore(n => n + 1);
+        // The last question closed, so the clip has nothing left to give away and the
+        // engine hands over what it said (plan 56 §3.3).
+        if (response.audioTranscript) setTranscript(response.audioTranscript);
         setPhase('judged');
       } catch (e) {
         // A refusal the engine will keep making (this question is closed, the attempt is
@@ -236,7 +268,7 @@ function MultipleChoiceSet({
    * that — only «Prøv igjen» spends one.
    */
   const pick = (optionId: string) => {
-    if (closed || disabled || sending) return;
+    if (closed || disabled || sending || locked) return;
     if (settings.instant) {
       setPicked(optionId);
       send(optionId);
@@ -308,6 +340,17 @@ function MultipleChoiceSet({
     );
   }
 
+  /*
+    `layout: 'gate'` fills the body with the listen-first screen instead of the items.
+    After the last question it is a finished set rather than a clip to hear again, so the
+    `done` screen above wins — which is why this stands below it.
+  */
+  if (audioOn && audio.audio.settings.layout === 'gate' && !entered) {
+    return (
+      <AudioGateScreen eng={audio} interactive={!disabled} onStart={() => setEntered(true)} />
+    );
+  }
+
   if (!question) return null;
 
   /**
@@ -350,11 +393,28 @@ function MultipleChoiceSet({
           learned. One or the other, never both above every question (plan 53 §5). */}
       {instruction.trim() !== '' ? <Text style={styles.instruction}>{instruction}</Text> : null}
 
+      {audioOn ? (
+        <View style={styles.audio}>
+          <ExerciseAudioPlayer eng={audio} interactive={!disabled} />
+          {locked ? (
+            <AudioLockNote itemNoun={t('exerciseRunner.audio.itemNoun.questions')} />
+          ) : null}
+        </View>
+      ) : null}
+
       {/* `grammar`, `vocab`, `reading`. A `listening` transcript is the author's own and
           the projection never sends it (plan 53 §3.8). */}
       {question.context ? <Text style={styles.context}>{question.context}</Text> : null}
 
       <Text style={styles.stem}>{question.stem}</Text>
+
+      {audioOn ? (
+        <AudioSegmentButton
+          eng={audio}
+          segment={audio.segments[question.id] ?? null}
+          disabled={disabled || locked}
+        />
+      ) : null}
 
       {/* Always a list. The handoff offers a two-column `grid` on wide screens and
           collapses it under 560px — which is every phone, so `settings.layout` has
@@ -378,12 +438,12 @@ function MultipleChoiceSet({
                 gone && styles.optionGone,
               ]}
               onPress={() => pick(option.id)}
-              disabled={gone || closed || disabled || sending}
+              disabled={gone || closed || disabled || sending || locked}
               activeOpacity={0.8}
               accessibilityRole="button"
               accessibilityState={{
                 selected: picked === option.id,
-                disabled: gone || closed || disabled,
+                disabled: gone || closed || disabled || locked,
               }}
             >
               {settings.letters ? (
@@ -424,13 +484,21 @@ function MultipleChoiceSet({
 
       {judged ? <Feedback result={result} colors={colors} /> : null}
 
+      {audioOn ? (
+        <AudioTranscript
+          audio={audio.audio}
+          revealed={transcript !== null}
+          delivered={transcript}
+        />
+      ) : null}
+
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       {!judged && !settings.instant ? (
         <TouchableOpacity
           style={[styles.button, (picked === null || sending) && styles.buttonDisabled]}
           onPress={() => send(picked)}
-          disabled={picked === null || sending || disabled}
+          disabled={picked === null || sending || disabled || locked}
         >
           {sending ? (
             <ActivityIndicator size="small" color={colors.textInverted} />
@@ -546,6 +614,9 @@ function toneFor(
 
 const makeStyles = (colors: ColorScheme) =>
   StyleSheet.create({
+    audio: {
+      marginBottom: 12,
+    },
     progressRow: {
       flexDirection: 'row',
       alignItems: 'center',

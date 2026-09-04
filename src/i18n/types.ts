@@ -179,6 +179,50 @@ export interface Translations {
   };
 
   exerciseRunner: {
+    /**
+     * The listening layer — plan 56 phase 7. One player, one gate and one transcript,
+     * shared by every template that carries a clip, so the strings live here rather
+     * than under any one type.
+     */
+    audio: {
+      play: string;
+      pause: string;
+      back10: string;
+      speed: string; // '{rate}×'
+      speedLabel: string;
+      position: string;
+      playsLeft: string; // '{left} of {limit} left'
+      playsNone: string;
+      transcript: string;
+      fragment: string; // 'Play {from}–{to}'
+      lockNote: string;
+      lockNoteNamed: string; // '{items}'
+      lockNoteOwn: string; // '{item}'
+      status: {
+        idle: string;
+        playing: string;
+        paused: string;
+        spent: string;
+        failed: string;
+      };
+      gate: {
+        title: string;
+        ledeLocked: string;
+        ledeOpen: string;
+        listenFirst: string;
+        toItems: string;
+      };
+      itemNoun: {
+        questions: string;
+        gaps: string;
+        statements: string;
+        sentence: string;
+        sentences: string;
+        pairs: string;
+        pieces: string;
+        lines: string;
+      };
+    };
     loadError: string;
     progress: string; // '{current} / {total}'
     check: string;

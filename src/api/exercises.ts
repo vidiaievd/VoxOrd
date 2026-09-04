@@ -111,6 +111,20 @@ export interface AttemptFeedback {
  * `correct=false`, `score=null`, `requiresReview=true`; the teacher's mark arrives
  * later, in the review queue, which the app has no screen for.
  */
+/**
+ * What a listening exercise's clip said, delivered with the key — plan 56 §3.3.
+ *
+ * The transcript of a listening exercise *is* the answer, so it is dosed by the same
+ * channel as the key rather than shipped with the projection: it arrives here, once, on
+ * the verdict that closes the set, and only when the author chose `transcriptWhen:
+ * 'after'`. Absent under every other policy — `always` travelled with the document, and
+ * `never` is never.
+ */
+export interface AudioTranscript {
+  transcript: string;
+  translation: string;
+}
+
 export interface SubmitAttemptResponse {
   attemptId: string;
   correct: boolean;
@@ -129,6 +143,8 @@ export interface SubmitAttemptResponse {
    * `undefined`.
    */
   details?: unknown;
+  /** The clip's words, when this verdict is the one that earns them (plan 56 §3.3). */
+  audioTranscript?: AudioTranscript;
 }
 
 /** `POST /exercises/:exerciseId/attempts` — start (create) an attempt. */
@@ -236,6 +252,14 @@ export interface AnswerQuestionResponse {
   result: unknown;
   /** Whether this answer is on its way to a teacher, for the routing line. */
   routedForReview: boolean;
+  /**
+   * The clip's words, on the verdict that closes the last question of the set.
+   *
+   * One clip serves the whole set, so the engine hands the transcript over only with the
+   * last verdict — there is nothing left for it to give away by then. The body shows what
+   * it is given and decides nothing (plan 56 §3.3).
+   */
+  audioTranscript?: AudioTranscript;
 }
 
 /**
