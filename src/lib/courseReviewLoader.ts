@@ -35,6 +35,14 @@ export interface CourseReviewOverview {
   unresolvedCardIds: string[];
   /** The lists behind `unresolvedCardIds`, deduped — what the import CTA offers. */
   unresolvedListIds: string[];
+  /**
+   * Today's review count and the cap it is measured against, straight from the
+   * due envelope. Carried through so the screen can say "that's the day's quota"
+   * *before* a session, rather than letting the learner drill a full set and only
+   * then discover the server refuses every rating it produced.
+   */
+  reviewedToday: number;
+  dailyLimit: number;
 }
 
 export interface LoadCourseReviewOptions {
@@ -62,13 +70,17 @@ export async function loadCourseReviewSets(
     courseReviewRepository.getLinkedWords(),
   ]);
 
-  return composeReviewSets(envelope.cards, linkedWords);
+  return composeReviewSets(envelope.cards, linkedWords, {
+    reviewedToday: envelope.reviewedToday,
+    dailyLimit: envelope.dailyLimit,
+  });
 }
 
 /** Split out from the fetch so a caller with cards in hand can reuse it. */
 async function composeReviewSets(
   cards: SrsCard[],
   linkedWords: Awaited<ReturnType<typeof courseReviewRepository.getLinkedWords>>,
+  quota: { reviewedToday: number; dailyLimit: number },
 ): Promise<CourseReviewOverview> {
   const { resolved, unresolvedCardIds, unresolvedListIds } = resolveDueWords(cards, linkedWords);
   const byDeck = groupByDeck(resolved);
@@ -95,5 +107,12 @@ async function composeReviewSets(
     });
   }
 
-  return { sets, totalDue: resolved.length, unresolvedCardIds, unresolvedListIds };
+  return {
+    sets,
+    totalDue: resolved.length,
+    unresolvedCardIds,
+    unresolvedListIds,
+    reviewedToday: quota.reviewedToday,
+    dailyLimit: quota.dailyLimit,
+  };
 }

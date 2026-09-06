@@ -3,10 +3,10 @@
  * `translate_from_target` — identical wire shape, confirmed against
  * content-service's seeded templates (seed.ts ~132-193).
  *
- * Both are in exercise-engine's FREE_FORM_CODES set
- * (schema-based-answer-validator.ts) — they always come back
- * `requiresReview: true, correct: false, score: 0` once the answer passes
- * AJV; there is no auto-scoring path at all. AJV still enforces the shape
+ * Both go to a person: `translate.validator.ts` in exercise-engine returns
+ * `requiresReview: true, correct: false, score: 0` once the answer passes AJV, and
+ * there is no auto-scoring path at all. (The `FREE_FORM_CODES` set this used to name
+ * is gone — every template that routes to review now says so in its own validator.) AJV still enforces the shape
  * below (confirmed by the engine's own unit test), so the client can't send
  * a bare string.
  */

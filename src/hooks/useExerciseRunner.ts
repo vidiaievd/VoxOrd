@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import {
+  answerQuestion as answerQuestionRequest,
+  checkRow as checkRowRequest,
   getExerciseDisplay,
   startAttempt,
   submitAttempt,
+  type AnswerQuestionAnswer,
+  type AnswerQuestionResponse,
+  type CheckRowResponse,
+  type SubmitAttemptResponse,
 } from '../api/exercises';
 import { buildExerciseCompletionRequest, upsertProgress } from '../api/progress';
 import type { ExerciseDisplay } from '../api/types';
@@ -19,6 +25,7 @@ import {
   runnerReducer,
   type RunnerState,
 } from '../screens/ExerciseRunner/runnerMachine';
+import { buildMultipleChoiceGroupSubmission } from '../screens/ExerciseRunner/templates/multipleChoiceGroup';
 import { useSettings } from './useSettings';
 
 export type ProgressPostStatus = 'idle' | 'posting' | 'done' | 'error';
@@ -34,6 +41,57 @@ export interface ExerciseRunnerController {
   isLast: boolean;
   /** Called by the body component when its answer / submittability changes. */
   setAnswer: (answer: unknown, canSubmit: boolean) => void;
+  /**
+   * Hand in one question of a set that is answered a question at a time
+   * (`short_answer`, plan 51 §3.3; `multiple_choice`, plan 53 §3.3) and get its
+   * verdict. Opens the attempt if it is not open yet, so the answers and the
+   * Check that closes the set land on the same attempt.
+   *
+   * The answer is passed whole rather than as a string: the two templates hand
+   * in different things — written text, or a picked option — and which one is
+   * read is decided by the attempt's own template on the server, never named
+   * here.
+   */
+  answerQuestion: (
+    questionId: string,
+    answer: AnswerQuestionAnswer,
+  ) => Promise<AnswerQuestionResponse>;
+  /**
+   * Check one sentence of a `sentence_schema` set (plan 52 §3.3) and get its marks.
+   * Repeatable, unlike `answerQuestion`; opens the attempt the same way, so the
+   * sentences and the Check that closes the set land on the same attempt.
+   */
+  checkRow: (
+    rowId: string,
+    placement: Record<string, string[]>,
+    reveal: boolean,
+  ) => Promise<CheckRowResponse>;
+  /**
+   * Check the whole table of a `multiple_choice_group` and get the server's verdict
+   * (plan 54 §8 Q6, variant D). Opens the attempt the same way its two siblings do.
+   *
+   * Repeatable, and that is the type: a check reports which statements are wrong, the
+   * learner fixes them, and the next check goes onto the very same attempt — the engine
+   * reopens a scored practice attempt and spends one of the author's `retry` budget on
+   * it. `reveal` is «Vis fasit», closing the table with the score it already had.
+   *
+   * Unlike `checkRow`, this *is* the submit: there is no separate endpoint, and the
+   * engine refuses a further check once the table is closed. So there is no footer Check
+   * left to close the item with, and the body reports the closing verdict through
+   * `finishTable` instead. Every other body ignores both.
+   */
+  checkTable: (
+    answers: Record<string, string>,
+    reveal: boolean,
+  ) => Promise<SubmitAttemptResponse>;
+  /**
+   * Record the check that closed the table and move the runner to feedback.
+   *
+   * The other half of `checkTable`, and separate from it because closedness is a fact
+   * about a template's own verdict: this hook does not read `details`, and the body that
+   * understands them decides. The time is taken here, where the answering clock lives.
+   */
+  finishTable: (verdict: SubmitAttemptResponse) => void;
   /** Footer "Check": start + submit an attempt and grade server-side. */
   check: () => void;
   /** Footer "Continue": advance to the next item (or complete the set). */
@@ -53,9 +111,13 @@ export interface ExerciseRunnerController {
  * passes the body's opaque answer straight to the submit endpoint and never
  * inspects it.
  *
- * The attempt is created lazily on Check (not on open), so opening an
- * exercise and leaving without answering creates no server-side attempt and
- * cannot leave a dangling IN_PROGRESS attempt (which would 409 a later start).
+ * The attempt is created lazily on first use rather than when the exercise
+ * opens, so opening an exercise and leaving without answering creates no
+ * server-side attempt and cannot leave a dangling IN_PROGRESS attempt (which
+ * would 409 a later start). First use is Check for every template that is
+ * checked once, and the first question handed in for a `short_answer` set —
+ * which is answered a question at a time onto the very same attempt that Check
+ * then closes (plan 51 §3.3).
  */
 export function useExerciseRunner(
   exerciseIds: string[],
@@ -73,6 +135,14 @@ export function useExerciseRunner(
   const answeringStartedAtRef = useRef(Date.now());
   // Single-flight guard for the start+submit round-trip.
   const checkInFlightRef = useRef(false);
+  // The attempt this item is being answered on, once there is one. Held here
+  // rather than created inside `check`, because a set answered a question at a
+  // time opens it earlier: the answers and the closing submit have to be the
+  // same attempt, or the questions already handed in would be left on an
+  // abandoned row (plan 51 §3.3). Cleared when a fresh item loads and on a retry.
+  const attemptIdRef = useRef<string | null>(null);
+  // Serialises the lazy open, so two quick taps cannot start two attempts.
+  const openingRef = useRef<Promise<string> | null>(null);
 
   useEffect(() => {
     mounted.current = true;
@@ -92,6 +162,9 @@ export function useExerciseRunner(
     if (state.phase !== 'loading') return;
     const exerciseId = currentExerciseId(state);
     if (!exerciseId) return;
+    // A fresh item is a fresh attempt; the previous one is closed or abandoned.
+    attemptIdRef.current = null;
+    openingRef.current = null;
     const cacheKey = `exercise-display:${exerciseId}:${uiLanguage}`;
 
     let cancelled = false;
@@ -128,6 +201,102 @@ export function useExerciseRunner(
     dispatch({ type: 'ANSWER_CHANGE', answer, canSubmit });
   }, []);
 
+  /**
+   * The attempt for the item on screen, opened on first use.
+   *
+   * Still lazy, for the reason it always was: opening an exercise and leaving
+   * without answering must create nothing, or the next start would 409 against
+   * a dangling IN_PROGRESS attempt. What changed is who may trigger it — Check,
+   * as before, and a body handing in its first question.
+   */
+  const openAttempt = useCallback(
+    (exerciseId: string, display: ExerciseDisplay): Promise<string> => {
+      const open = attemptIdRef.current;
+      if (open !== null) return Promise.resolve(open);
+      if (openingRef.current !== null) return openingRef.current;
+
+      // PRACTICE so the feedback reveals the correct answer; grading is done
+      // by the server regardless of mode.
+      const pending = startAttempt(exerciseId, {
+        language: display.targetLanguage,
+        mode: 'PRACTICE',
+      })
+        .then(attempt => {
+          attemptIdRef.current = attempt.attemptId;
+          return attempt.attemptId;
+        })
+        .finally(() => {
+          openingRef.current = null;
+        });
+
+      openingRef.current = pending;
+      return pending;
+    },
+    [],
+  );
+
+  // Read off the state rather than through `currentExerciseId(state)`, so the
+  // callback's dependencies are the two things it actually uses.
+  const openExerciseId = state.exerciseIds[state.idx];
+  const openDisplay = state.display;
+  const answerQuestion = useCallback(
+    async (
+      questionId: string,
+      answer: AnswerQuestionAnswer,
+    ): Promise<AnswerQuestionResponse> => {
+      if (!openExerciseId || !openDisplay) {
+        throw new Error('No exercise is open');
+      }
+      const attemptId = await openAttempt(openExerciseId, openDisplay);
+      return answerQuestionRequest(openExerciseId, attemptId, { questionId, ...answer });
+    },
+    [openExerciseId, openDisplay, openAttempt],
+  );
+
+  const checkRow = useCallback(
+    async (
+      rowId: string,
+      placement: Record<string, string[]>,
+      reveal: boolean,
+    ): Promise<CheckRowResponse> => {
+      if (!openExerciseId || !openDisplay) {
+        throw new Error('No exercise is open');
+      }
+      const attemptId = await openAttempt(openExerciseId, openDisplay);
+      return checkRowRequest(openExerciseId, attemptId, { rowId, placement, reveal });
+    },
+    [openExerciseId, openDisplay, openAttempt],
+  );
+
+  const checkTable = useCallback(
+    async (answers: Record<string, string>, reveal: boolean): Promise<SubmitAttemptResponse> => {
+      if (!openExerciseId || !openDisplay) {
+        throw new Error('No exercise is open');
+      }
+      const attemptId = await openAttempt(openExerciseId, openDisplay);
+      return submitAttempt(openExerciseId, attemptId, {
+        submittedAnswer: buildMultipleChoiceGroupSubmission(answers, reveal),
+        timeSpentSeconds: Math.max(
+          0,
+          Math.round((Date.now() - answeringStartedAtRef.current) / 1000),
+        ),
+        locale: uiLanguage,
+      });
+    },
+    [openExerciseId, openDisplay, openAttempt, uiLanguage],
+  );
+
+  const finishTable = useCallback((verdict: SubmitAttemptResponse) => {
+    dispatch({
+      type: 'BODY_SUBMITTED',
+      verdict,
+      timeSpentSeconds: Math.max(
+        0,
+        Math.round((Date.now() - answeringStartedAtRef.current) / 1000),
+      ),
+    });
+  }, []);
+
   const check = useCallback(async () => {
     if (state.phase !== 'answering' || !state.canSubmit) return;
     if (checkInFlightRef.current) return;
@@ -142,13 +311,11 @@ export function useExerciseRunner(
       Math.round((Date.now() - answeringStartedAtRef.current) / 1000),
     );
     try {
-      // PRACTICE so the feedback reveals the correct answer; grading is done
-      // by the server regardless of mode.
-      const attempt = await startAttempt(exerciseId, {
-        language: display.targetLanguage,
-        mode: 'PRACTICE',
-      });
-      const verdict = await submitAttempt(exerciseId, attempt.attemptId, {
+      // Whatever the body already opened — a set answered a question at a time
+      // has its answers on this attempt, and closing a different one would
+      // leave them unread.
+      const attemptId = await openAttempt(exerciseId, display);
+      const verdict = await submitAttempt(exerciseId, attemptId, {
         submittedAnswer: state.answer,
         timeSpentSeconds,
         locale: uiLanguage,
@@ -161,7 +328,7 @@ export function useExerciseRunner(
     } finally {
       checkInFlightRef.current = false;
     }
-  }, [state.phase, state.canSubmit, state.display, state.answer, state.idx, uiLanguage]);
+  }, [state.phase, state.canSubmit, state.display, state.answer, state.idx, uiLanguage, openAttempt]);
 
   const advance = useCallback(() => {
     dispatch({ type: 'ADVANCE' });
@@ -207,6 +374,10 @@ export function useExerciseRunner(
     // Timer restarts here: the retry's timeSpentSeconds should measure the
     // second attempt, not include time spent reading the first verdict.
     answeringStartedAtRef.current = Date.now();
+    // A retry is a new attempt: the one just submitted is closed, and reusing
+    // its id would be submitting twice.
+    attemptIdRef.current = null;
+    openingRef.current = null;
     dispatch({ type: 'RETRY_ITEM' });
   }, []);
 
@@ -220,6 +391,10 @@ export function useExerciseRunner(
     progress,
     isLast: isLastExercise(state),
     setAnswer,
+    answerQuestion,
+    checkRow,
+    checkTable,
+    finishTable,
     check,
     advance,
     retry,

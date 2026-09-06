@@ -17,6 +17,12 @@ import type { SubmitAttemptResponse } from '../../api/exercises';
  * Answers are graded SERVER-SIDE (see src/api/exercises.ts). This machine
  * never inspects `answer` — it only carries it from the body to the submit
  * call. The mobile app holds no answer-checking logic for platform exercises.
+ *
+ * One template hands the attempt in without passing through 'checking':
+ * `multiple_choice_group` is checked and re-checked as a whole table on the
+ * same attempt, so its body owns that cycle and reports only the check that
+ * closed the table, through BODY_SUBMITTED (plan 54 §8 Q6). Everything after
+ * that — the verdict, Continue, the results summary — is the ordinary path.
  */
 export type RunnerPhase =
   | 'loading'
@@ -68,6 +74,21 @@ export type RunnerAction =
   | { type: 'CHECK_START' }
   | { type: 'CHECK_SUCCESS'; verdict: SubmitAttemptResponse; timeSpentSeconds: number }
   | { type: 'CHECK_FAILURE'; message: string }
+  /**
+   * A body handed the attempt in by itself and it came back closed.
+   *
+   * `multiple_choice_group` only, and it exists because for that template the round-by-
+   * round check and the closing submit are the same call: the table is checked, and if
+   * the engine leaves it open the body offers a retry and checks again — all of it while
+   * this machine is still in 'answering'. There is no footer Check left to close the
+   * item with, so the check that closes the table reports itself here instead (plan 54
+   * §8 Q6, variant D).
+   *
+   * Deliberately not folded into CHECK_SUCCESS: that path is guarded on 'checking', the
+   * phase the footer's Check puts us in, and relaxing it would let a lost round-trip
+   * record a result for a template that never entered it.
+   */
+  | { type: 'BODY_SUBMITTED'; verdict: SubmitAttemptResponse; timeSpentSeconds: number }
   | { type: 'ADVANCE' }
   | { type: 'RETRY_ITEM' };
 
@@ -152,6 +173,20 @@ export function runnerReducer(state: RunnerState, action: RunnerAction): RunnerS
       // Keep the answer so the user can just retry the Check.
       if (state.phase !== 'checking') return state;
       return { ...state, phase: 'answering', submitError: action.message };
+
+    case 'BODY_SUBMITTED': {
+      // From 'answering' alone: a body that runs its own checks never leaves it, and a
+      // second report for the same item would record the result twice.
+      if (state.phase !== 'answering') return state;
+      const exerciseId = currentExerciseId(state);
+      const results: ItemResult[] = exerciseId
+        ? [
+            ...state.results,
+            { exerciseId, verdict: action.verdict, timeSpentSeconds: action.timeSpentSeconds },
+          ]
+        : state.results;
+      return { ...state, phase: 'feedback', verdict: action.verdict, results, submitError: null };
+    }
 
     case 'ADVANCE': {
       // Only advance from feedback. Last item → complete; else load the next.

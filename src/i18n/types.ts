@@ -179,6 +179,50 @@ export interface Translations {
   };
 
   exerciseRunner: {
+    /**
+     * The listening layer — plan 56 phase 7. One player, one gate and one transcript,
+     * shared by every template that carries a clip, so the strings live here rather
+     * than under any one type.
+     */
+    audio: {
+      play: string;
+      pause: string;
+      back10: string;
+      speed: string; // '{rate}×'
+      speedLabel: string;
+      position: string;
+      playsLeft: string; // '{left} of {limit} left'
+      playsNone: string;
+      transcript: string;
+      fragment: string; // 'Play {from}–{to}'
+      lockNote: string;
+      lockNoteNamed: string; // '{items}'
+      lockNoteOwn: string; // '{item}'
+      status: {
+        idle: string;
+        playing: string;
+        paused: string;
+        spent: string;
+        failed: string;
+      };
+      gate: {
+        title: string;
+        ledeLocked: string;
+        ledeOpen: string;
+        listenFirst: string;
+        toItems: string;
+      };
+      itemNoun: {
+        questions: string;
+        gaps: string;
+        statements: string;
+        sentence: string;
+        sentences: string;
+        pairs: string;
+        pieces: string;
+        lines: string;
+      };
+    };
     loadError: string;
     progress: string; // '{current} / {total}'
     check: string;
@@ -196,11 +240,172 @@ export interface Translations {
     translateToTargetLabel: string; // '{language}'
     translateFromTargetLabel: string; // '{language}'
     translatePlaceholder: string;
-    sentenceSchemaHint: string;
+    matchPairsHint: string;
+    matchPairsRemaining: string; // '{count}'
+    matchPairsEmptySlot: string;
+    matchPairsCorrect: string;
+    matchPairsWrong: string;
     shortAnswerPlaceholder: string;
     modelAnswer: string;
     writingTaskPlaceholder: string;
-    writingTaskWordCount: string; // '{count}', '{min}', '{max}'
+    /** Which kind of text this is — the badge above the task. */
+    writingTaskMode: {
+      letter: string;
+      essay: string;
+      picture: string;
+      retell: string;
+      free: string;
+    };
+    writingTaskRegister: {
+      formal: string;
+      informal: string;
+    };
+    writingTaskLetterLine: string; // '{recipient}', '{register}'
+    writingTaskImageMissing: string;
+    writingTaskChecklist: string;
+    writingTaskRubric: string;
+    writingTaskPassLine: string; // '{pass}', '{max}'
+    writingTaskTopLevel: string; // '{descriptor}'
+    writingTaskPhrases: string;
+    writingTaskWordRange: string; // '{count}', '{min}', '{max}'
+    writingTaskWordRangeOpen: string; // '{count}', '{min}'
+    writingTaskPasteOff: string;
+    /** Why Check is still greyed out. */
+    writingTaskNeedMore: PluralForms; // '{count}'
+    writingTaskTooLong: string; // '{max}'
+    writingTaskUnavailable: string;
+    writingTaskUnavailableDesc: string;
+    /**
+     * The new plan-51 form: a set of open questions, handed in one at a time and
+     * graded on the server (the anchors it is matched against are the answer).
+     */
+    shortAnswer: {
+      position: string; // '{n}', '{total}'
+      placeholder: string;
+      handIn: string;
+      sending: string;
+      irreversible: string;
+      next: string;
+      last: string;
+      covered: string; // '{covered}', '{total}'
+      tooShort: string;
+      modelLabel: string;
+      /** `wait` is a handed-in answer with no readable verdict — never a fourth outcome. */
+      verdict: {
+        pass: string;
+        partial: string;
+        fail: string;
+        wait: string;
+      };
+      routing: string;
+      routingIfUnclear: string;
+      doneTitle: string;
+      doneTally: string; // '{pass}', '{partial}', '{fail}'
+      doneTeacher: string;
+      doneHint: string;
+      sendFailed: string;
+      handedInAlready: string;
+      empty: string;
+      unavailable: string;
+      unavailableDesc: string;
+    };
+    /**
+     * The plan-52 form: a set of sentences over one field schema, checked a sentence at a
+     * time on the server — which field a piece belongs in is the answer key.
+     */
+    sentenceSchema: {
+      defaultInstruction: string;
+      bankLabel: string;
+      /** What the one nameless slot of a sequence-only set is called out loud. */
+      slot: string;
+      fieldDropLabel: string; // '{field}'
+      takeBack: string; // '{word}'
+      sourceLabel: string;
+      remaining: string; // '{count}'
+      position: string; // '{index}', '{total}'
+      attemptNo: string; // '{count}'
+      check: string; // '{placed}', '{total}'
+      fix: string; // '{count}'
+      reveal: string;
+      skip: string;
+      skippedEarlier: string;
+      nextSentence: string;
+      finishSet: string;
+      /** The defaults the kernel sends as a code rather than as prose (plan 52 §5). */
+      wrongOrder: string;
+      notInSentence: string;
+      setDone: string; // '{count}'
+      setTally: string; // '{solved}', '{revealed}'
+      setTallySkipped: string; // '{solved}', '{revealed}', '{skipped}'
+      doneHint: string;
+      nothingToSolve: string;
+      checkFailed: string;
+      closedAlready: string;
+      unavailable: string;
+      unavailableDesc: string;
+      clause: {
+        main: string;
+        sub: string;
+        yesno: string;
+        hv: string;
+        imp: string;
+      };
+    };
+    /**
+     * The plan-53 form: a set of questions answered one at a time, each with its own
+     * budget of tries, judged on the server so the key can be dosed — `keyOptionId` and
+     * the rule behind it arrive only once a question is closed.
+     */
+    multipleChoice: {
+      position: string; // '{n}', '{total}'
+      check: string;
+      /** Shown instead of a Check button when the author made the tap the hand-in. */
+      tapAnswer: string;
+      tryAgain: string;
+      showAnswer: string;
+      next: string;
+      finish: string;
+      attempt: string; // '{n}'
+      right: string;
+      /** Stands in when a wrong pick has no rebuttal written against it. */
+      generic: string;
+      sendFailed: string;
+      closedAlready: string;
+      doneTitle: string;
+      doneScore: string; // '{score}', '{total}'
+      doneHint: string;
+      empty: string;
+      emptyDesc: string;
+      unavailable: string;
+      unavailableDesc: string;
+    };
+    /** The plan-54 form: a table of statements sharing one set of answer columns. */
+    multipleChoiceGroup: {
+      answered: string; // '{n}', '{total}'
+      /** The way back to the lesson the statements are about, in `link` mode. */
+      toText: string;
+      check: string;
+      remaining: string; // '{n}'
+      retryWrong: string;
+      showKey: string;
+      attempt: string; // '{n}'
+      /** The heading of the score card while checks are left. */
+      wrongCount: string; // '{n}'
+      allRight: string;
+      lookAgain: string;
+      passed: string;
+      notPassed: string;
+      scoreLine: string; // '{pct}', '{threshold}'
+      doneHint: string;
+      sendFailed: string;
+      closedAlready: string;
+      empty: string;
+      emptyDesc: string;
+      unavailable: string;
+      unavailableDesc: string;
+      /** The old `items[]` form, which this app has never been able to play. */
+      unavailableLegacyDesc: string;
+    };
     resultsExcellentTitle: string;
     resultsExcellentMessage: string;
     resultsGoodTitle: string;
@@ -233,6 +438,10 @@ export interface Translations {
     submitting: string;
     stillDue: string; // '{count} words left for next time'
     notImported: string; // '{count} due words are not in a saved list'
+    quotaMetTitle: string;
+    quotaMetBody: string;
+    quotaMetFinish: string;
+    quotaMetCarryOn: string;
     phasePreview: string;
     phaseListening: string;
     phaseQuiz: string;

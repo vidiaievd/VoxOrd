@@ -13,6 +13,7 @@ import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
 import { useUnitContents } from '../../hooks/useUnitContents';
+import { findSourceLessonId } from '../../lib/sourceLesson';
 import { ContentItemRow } from './ContentItemRow';
 import type { UnitContentsItem } from '../../api/types';
 
@@ -23,8 +24,16 @@ interface UnitContentsScreenProps {
   /**
    * Launch the exercise runner over the unit's exercises as a set, starting
    * at the tapped one. `exerciseIds` are content ids in display order.
+   *
+   * `sourceLessonId` is the unit's own text lesson, when it has one: an exercise carries
+   * no lesson id, so the screen that knows the unit is the one that can say which text
+   * its tasks are about (plan 54 Q5). Null for a unit with no text.
    */
-  onExercisePress: (exerciseIds: string[], startIndex: number) => void;
+  onExercisePress: (
+    exerciseIds: string[],
+    startIndex: number,
+    sourceLessonId: string | null,
+  ) => void;
   /** Opens the read-only vocabulary list reader (Phase 5). */
   onVocabularyPress: (listId: string) => void;
   /** Opens the read-only grammar rule explanation reader. */
@@ -66,13 +75,16 @@ export function UnitContentsScreen({
     .filter((i) => i.contentType === 'exercise')
     .map((i) => i.contentId);
 
+  /** The text these exercises are about, for the runners that offer a way back to it. */
+  const sourceLessonId = data ? findSourceLessonId(data) : null;
+
   const handleItemPress = (item: UnitContentsItem): (() => void) | undefined => {
     if (item.contentType === 'lesson') {
       return () => onLessonPress(item.contentId);
     }
     if (item.contentType === 'exercise') {
       const startIndex = exerciseIds.indexOf(item.contentId);
-      return () => onExercisePress(exerciseIds, Math.max(0, startIndex));
+      return () => onExercisePress(exerciseIds, Math.max(0, startIndex), sourceLessonId);
     }
     if (item.contentType === 'vocabulary_list') {
       return () => onVocabularyPress(item.contentId);

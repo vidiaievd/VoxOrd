@@ -172,7 +172,8 @@ export type ExerciseTemplateCode =
   | 'match_pairs'
   | 'short_answer'
   | 'writing_task'
-  | 'sentence_schema';
+  | 'sentence_schema'
+  | 'multiple_choice_group';
 
 export interface ExerciseInstruction {
   id: string;

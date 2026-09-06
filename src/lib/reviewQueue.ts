@@ -15,6 +15,12 @@ export interface QueuedReview {
   reviewedAt: string;
   /** Sent to the server so a replay is a no-op instead of a second review. */
   idempotencyKey: string;
+  /**
+   * The learner chose to carry on past today's quota before answering this.
+   * Persisted with the review because a queued answer may only reach the server
+   * hours later, and it has to arrive with the same permission it was given.
+   */
+  carryOnPastLimit?: boolean;
 }
 
 /**
@@ -47,7 +53,8 @@ export function removeReviews(queue: QueuedReview[], keys: string[]): QueuedRevi
  * - no status (network error / timeout) → keep, that's the whole point.
  * - 401 → keep: the api client already tried a token refresh, and a signed-out
  *   user may sign back in.
- * - 429 (daily review cap) → keep, tomorrow it will go through.
+ * - 429 (daily review cap) → keep: either the learner carries on and a resend
+ *   goes through today, or tomorrow's reset takes it.
  * - 5xx → keep, the server may recover.
  * - other 4xx (404 card deleted, 403 someone else's card, 422 suspended) →
  *   drop: replaying it forever would block the queue on an answer that can

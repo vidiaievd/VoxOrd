@@ -31,6 +31,10 @@ const EXERCISE_DISPLAY_PATH = (id: string) => `/api/v1/exercises/${id}/display`;
 const ATTEMPTS_PATH = (exerciseId: string) => `/api/v1/exercises/${exerciseId}/attempts`;
 const SUBMIT_PATH = (exerciseId: string, attemptId: string) =>
   `/api/v1/exercises/${exerciseId}/attempts/${attemptId}/submit`;
+const ANSWERS_PATH = (exerciseId: string, attemptId: string) =>
+  `/api/v1/exercises/${exerciseId}/attempts/${attemptId}/answers`;
+const ROWS_PATH = (exerciseId: string, attemptId: string) =>
+  `/api/v1/exercises/${exerciseId}/attempts/${attemptId}/rows`;
 
 /**
  * `GET /exercises/:id/display` (content-service). Returns the exercise
@@ -102,16 +106,45 @@ export interface AttemptFeedback {
 }
 
 /**
- * Response of the submit endpoint (SubmitAnswerResponseDto). Free-form
- * templates (translate_*, writing_task) route to human review:
- * `correct=false`, `score=null`, `requiresReview=true`.
+ * Response of the submit endpoint (SubmitAnswerResponseDto). The templates that
+ * route to human review (translate_*, writing_task) come back
+ * `correct=false`, `score=null`, `requiresReview=true`; the teacher's mark arrives
+ * later, in the review queue, which the app has no screen for.
  */
+/**
+ * What a listening exercise's clip said, delivered with the key — plan 56 §3.3.
+ *
+ * The transcript of a listening exercise *is* the answer, so it is dosed by the same
+ * channel as the key rather than shipped with the projection: it arrives here, once, on
+ * the verdict that closes the set, and only when the author chose `transcriptWhen:
+ * 'after'`. Absent under every other policy — `always` travelled with the document, and
+ * `never` is never.
+ */
+export interface AudioTranscript {
+  transcript: string;
+  translation: string;
+}
+
 export interface SubmitAttemptResponse {
   attemptId: string;
   correct: boolean;
   score: number | null;
   requiresReview: boolean;
   feedback: AttemptFeedback;
+  /**
+   * Per-item verdicts, for the templates graded item by item and only where the
+   * validator's output is meant for the learner (`learnerFacingDetails` in
+   * exercise-engine's `submit-answer.handler.ts` — a per-template allowance, not a
+   * forwarded field, because several validators put the answer in here).
+   *
+   * Shape depends on `templateCode` and is read by the body that understands it —
+   * `match_pairs` gets `{ totalPairs, correctPairs, pairs: [{ pairId, correct,
+   * explanation }] }`. Absent for most templates, so every reader must tolerate
+   * `undefined`.
+   */
+  details?: unknown;
+  /** The clip's words, when this verdict is the one that earns them (plan 56 §3.3). */
+  audioTranscript?: AudioTranscript;
 }
 
 /** `POST /exercises/:exerciseId/attempts` — start (create) an attempt. */
@@ -124,8 +157,17 @@ export function startAttempt(
 
 /**
  * `POST /exercises/:exerciseId/attempts/:attemptId/submit` — submit the
- * answer and get the server's verdict. Single-shot per attempt: the server
- * rejects a second submit on an already-submitted attempt.
+ * answer and get the server's verdict. Single-shot per attempt for almost
+ * every template: the server rejects a second submit on an already-submitted
+ * attempt.
+ *
+ * The exception is a re-check, which is deliberately this same call. A scored
+ * *practice* attempt is reopened rather than refused — `word_bank_gap_fill`
+ * unlimited, `multiple_choice_group` against the author's `retry` budget — and
+ * what the engine refuses instead is a check of a table it has already closed:
+ * all rows right, «Vis fasit», or the budget spent. So a caller must draw its
+ * buttons from the last verdict's `closed`, never from a count it keeps
+ * itself (plan 54 §3.3).
  */
 export function submitAttempt(
   exerciseId: string,
@@ -133,4 +175,259 @@ export function submitAttempt(
   body: SubmitAttemptRequest,
 ): Promise<SubmitAttemptResponse> {
   return apiClient.post<SubmitAttemptResponse>(SUBMIT_PATH(exerciseId, attemptId), body);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Answering one question of a `short_answer` set (plan 51 §3.3).
+ *
+ * The attempt is still one attempt — everything else (progress, SRS, the
+ * review queue, the locks, the notifications) is built on "one attempt, one
+ * submission, one thing a teacher marks". What changes is that a set of open
+ * questions is handed in a question at a time: each answer is a command onto
+ * the attempt that already exists, is graded on the server at once, and is
+ * refused the second time. The last one closes the attempt with the ordinary
+ * `submit`, carrying every answer in one aggregate, which the engine regrades
+ * from scratch — nothing this device was told is trusted at the close.
+ *
+ * Grading has to be server-side here: the key is a set of anchor phrases, and
+ * an anchor phrase is the answer written in the words the student is being
+ * asked to find. So the text goes up and the verdict comes down; the app never
+ * sees what the answer was matched against.
+ *
+ * `multiple_choice` answers on the same route since plan 53 §3.3, and for a reason of
+ * its own. Its key is only an option id, so leaking it would teach nobody anything — but
+ * the type is built on *dosing*: a second try and a 50/50 offered by a device that
+ * already holds the key are decoration. So a pick goes up and the verdict comes down with
+ * `keyOptionId` and the rule withheld until the question is closed. The command is the
+ * same one, generalised rather than copied.
+ *
+ * Contract read 2026-08-25 from exercise-engine's attempts.controller.ts
+ * (`@Post(':attemptId/answers')`), answer-question.handler.ts and
+ * short-answer/projection.ts in @ssz/shared-kernel; re-read 2026-08-29 for the
+ * multiple-choice payload (`answer-question.dto.ts`, `readPayload`).
+ * ────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Body for `POST /exercises/:exerciseId/attempts/:attemptId/answers`.
+ *
+ * Two templates hand a set in a question at a time and they hand in different things, so
+ * the body carries `text` **or** `optionId`, and the attempt's own template decides which
+ * is read — a client that could name the kind would be naming which judge runs. `reveal`
+ * is the one multiple-choice action that hands in nothing: it closes the question with
+ * the key shown, spends no try and scores nothing.
+ */
+export interface AnswerQuestionRequest {
+  /** Id of the question in the projected set. */
+  questionId: string;
+  /** `short_answer`: what the student wrote. Refused empty, server-side and here. */
+  text?: string;
+  /** `multiple_choice`: the option picked. Null only alongside `reveal`. */
+  optionId?: string | null;
+  /** `multiple_choice`: «Vis svaret» instead of another try. */
+  reveal?: boolean;
+}
+
+/** The answer half of the body — what a runner hands in, without saying which question. */
+export type AnswerQuestionAnswer = Omit<AnswerQuestionRequest, 'questionId'>;
+
+/**
+ * Response of the answers endpoint (AnswerQuestionResponseDto). `result` is the
+ * kernel's student projection of the grade — the verdict, the coverage counts,
+ * the element labels with a hit flag, the teacher's explanation, and the model
+ * answer only where `showModel` allows it. It is typed as `unknown` here and
+ * read by `readShortAnswerResult`, the same way display content is: this module
+ * knows the envelope, the template module knows the shape.
+ */
+export interface AnswerQuestionResponse {
+  attemptId: string;
+  /**
+   * Which shape `result` came back in. Two templates answer on this route with different
+   * verdicts, and the envelope says which rather than leaving it to be guessed.
+   */
+  templateCode: ExerciseTemplateCode;
+  /** How many of the set have been handed in, including this one. */
+  answered: number;
+  /** How many there are to answer. */
+  total: number;
+  result: unknown;
+  /** Whether this answer is on its way to a teacher, for the routing line. */
+  routedForReview: boolean;
+  /**
+   * The clip's words, on the verdict that closes the last question of the set.
+   *
+   * One clip serves the whole set, so the engine hands the transcript over only with the
+   * last verdict — there is nothing left for it to give away by then. The body shows what
+   * it is given and decides nothing (plan 56 §3.3).
+   */
+  audioTranscript?: AudioTranscript;
+}
+
+/**
+ * `POST /exercises/:exerciseId/attempts/:attemptId/answers` — hand in one
+ * question and get its verdict. Final: the engine refuses a second answer to
+ * the same question (422), as it refuses one on a closed attempt.
+ */
+export function answerQuestion(
+  exerciseId: string,
+  attemptId: string,
+  body: AnswerQuestionRequest,
+): Promise<AnswerQuestionResponse> {
+  return apiClient.post<AnswerQuestionResponse>(ANSWERS_PATH(exerciseId, attemptId), body);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Checking one sentence of a `sentence_schema` set (plan 52 §3.3).
+ *
+ * The attempt is still one attempt, and the set is worked through a sentence
+ * at a time — but unlike `short_answer`, whose answers are final, a sentence
+ * here may be checked as often as the learner likes: being wrong is a step in
+ * solving it, not a verdict. `Sjekk`, then `Rett opp` keeping what was right,
+ * then `Sjekk` again. What ends a sentence is solving it or asking to be shown
+ * it (`reveal`), and a shown sentence scores nothing.
+ *
+ * Grading has to be server-side here: the key is which field each chunk
+ * belongs in, and the note under the board is resolved from the author's
+ * per-chunk notes and the sentence's rule — all of it key. So the board goes
+ * up and the marks come down; the app never holds what the board is judged
+ * against.
+ *
+ * Contract read 2026-08-27 from exercise-engine's attempts.controller.ts
+ * (`@Post(':attemptId/rows')`), check-row.dto.ts and check-row.handler.ts, and
+ * sentence-schema/projection.ts in @ssz/shared-kernel.
+ * ────────────────────────────────────────────────────────────────────── */
+
+/** Body for `POST /exercises/:exerciseId/attempts/:attemptId/rows`. */
+export interface CheckRowRequest {
+  /** Which sentence of the set is being checked. */
+  rowId: string;
+  /** field id → the ids stacked in it, in the order they were placed. */
+  placement: Record<string, string[]>;
+  /** «Vis riktig skjema»: close the sentence with the answer shown, scoring nothing. */
+  reveal?: boolean;
+}
+
+/**
+ * Response of the rows endpoint (CheckRowResponseDto). `result` is the kernel's student
+ * projection of the marks — per piece, per field, the attempt number, the resolved note,
+ * and the key itself (`text`, `why`, `solution`) only once the sentence is closed. Typed
+ * as `unknown` here and read by `readSentenceSchemaResult`, the same way display content
+ * is: this module knows the envelope, the template module knows the shape.
+ */
+export interface CheckRowResponse {
+  attemptId: string;
+  /** Sentences closed — solved or revealed — including this one. */
+  closed: number;
+  total: number;
+  result: unknown;
+  /** The clip's words, on the check that closes the last sentence (plan 56 §3.3). */
+  audioTranscript?: AudioTranscript;
+}
+
+/**
+ * `POST /exercises/:exerciseId/attempts/:attemptId/rows` — check one sentence.
+ *
+ * Repeatable, unlike the answers endpoint: only a sentence already solved or revealed is
+ * refused (422), as is a board with nothing on it (400).
+ */
+export function checkRow(
+  exerciseId: string,
+  attemptId: string,
+  body: CheckRowRequest,
+): Promise<CheckRowResponse> {
+  return apiClient.post<CheckRowResponse>(ROWS_PATH(exerciseId, attemptId), body);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Picking a set back up (plan 51 §8 Q6).
+ *
+ * A `short_answer` answer is handed in for good, and the engine keeps the
+ * attempt open until the set is closed. So an app killed mid-set leaves
+ * questions that are answered on the server and unanswered on the device, and
+ * walking the set again would mean pressing `Lever svaret` on a question the
+ * engine refuses.
+ *
+ * The attempt is read rather than started: opening an exercise and leaving must
+ * still create nothing (`useExerciseRunner.openAttempt`), so this is a GET, and
+ * a set with nothing answered simply comes back with nothing in it.
+ * ────────────────────────────────────────────────────────────────────── */
+
+/** One question of a set already handed in on an open attempt. */
+export interface AnsweredQuestion {
+  questionId: string;
+  text: string;
+  verdict: string;
+}
+
+/**
+ * One sentence of a `sentence_schema` set already worked on in the open attempt.
+ *
+ * `revealed` is the one that has to survive being killed and reopened: the learner was
+ * shown that sentence, so it is closed and scores nothing. Reopening it would make
+ * force-quitting the app the cheapest way to a full mark.
+ */
+export interface CheckedRow {
+  rowId: string;
+  attempts: number;
+  placement: Record<string, string[]>;
+  solved: boolean;
+  revealed: boolean;
+}
+
+/**
+ * One question of a `multiple_choice` set already picked at in the open attempt.
+ *
+ * `picks` is the score, not a history: only a first-attempt hit counts, so a set replayed
+ * from the top would hand out a fresh first try at every question — the cheapest possible
+ * full mark. `eliminated` is what a 50/50 has already spent there, and it survives for
+ * the same reason.
+ */
+export interface PickedOption {
+  questionId: string;
+  picks: string[];
+  eliminated: string[];
+  correct: boolean;
+  closed: boolean;
+  revealed: boolean;
+}
+
+/** The open attempt at this exercise, as far as a resuming runner needs it. */
+export interface OpenAttempt {
+  attemptId: string;
+  answeredQuestions: AnsweredQuestion[];
+  checkedRows: CheckedRow[];
+  pickedOptions: PickedOption[];
+}
+
+interface AttemptListRow {
+  id: string;
+  status: string;
+  answeredQuestions?: AnsweredQuestion[] | null;
+  checkedRows?: CheckedRow[] | null;
+  pickedOptions?: PickedOption[] | null;
+}
+
+/**
+ * `GET /exercises/:exerciseId/attempts?status=IN_PROGRESS` — the attempt this
+ * learner has open at this exercise, or `null`.
+ *
+ * Fails soft on purpose: a set that cannot be resumed is played from the top,
+ * which is what happened before there was anything to resume. Losing the
+ * network on the way in must not cost the exercise.
+ */
+export async function findOpenAttempt(exerciseId: string): Promise<OpenAttempt | null> {
+  try {
+    const page = await apiClient.get<{ items: AttemptListRow[] }>(ATTEMPTS_PATH(exerciseId), {
+      query: { status: 'IN_PROGRESS', limit: 1 },
+    });
+    const open = page.items?.[0];
+    if (!open) return null;
+    return {
+      attemptId: open.id,
+      answeredQuestions: open.answeredQuestions ?? [],
+      checkedRows: open.checkedRows ?? [],
+      pickedOptions: open.pickedOptions ?? [],
+    };
+  } catch {
+    return null;
+  }
 }

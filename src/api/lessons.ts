@@ -100,3 +100,27 @@ export async function getLessonReaderContent(
     },
   });
 }
+
+const LESSON_VARIANT_PATH = (lessonId: string, variantId: string) =>
+  `/api/v1/lessons/${lessonId}/variants/${variantId}`;
+
+/**
+ * One variant of a lesson, fetched whole — plan 56 §3.8.
+ *
+ * Only the listening layer asks for this, and only for one thing: an exercise whose
+ * clip is `source: 'lesson'` borrows the narration of a Read & Listen lesson **by
+ * reference**, and the recording lives in the variant's body as an `[audio:id]` token.
+ * `/reader` cannot answer it — that endpoint picks the variant it thinks best for the
+ * learner, while the reference names the one the author chose.
+ */
+export interface LessonVariantContent {
+  id: string;
+  bodyMarkdown: string;
+}
+
+export function getLessonVariant(
+  lessonId: string,
+  variantId: string,
+): Promise<LessonVariantContent> {
+  return apiClient.get<LessonVariantContent>(LESSON_VARIANT_PATH(lessonId, variantId));
+}

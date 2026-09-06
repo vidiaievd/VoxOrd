@@ -12,7 +12,7 @@ import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
 import { useExerciseRunner } from '../../hooks/useExerciseRunner';
-import { ExerciseBody } from './ExerciseBody';
+import { bodyOwnsCheck, ExerciseBody } from './ExerciseBody';
 import { FeedbackBar } from './FeedbackBar';
 import { SetResultsScreen } from './SetResultsScreen';
 
@@ -24,6 +24,12 @@ interface ExerciseRunnerScreenProps {
   onBack: () => void;
   /** Called when the user leaves the results screen (or an empty set completes immediately). Navigating back to UnitContents remounts it, which refetches contents — no explicit refresh call needed. */
   onComplete: () => void;
+  /**
+   * Open the lesson this unit's exercises were set on — `multiple_choice_group`'s «To the
+   * text» (plan 54 Q5). Absent for a unit with no text of its own, and then the link is
+   * not drawn at all.
+   */
+  onOpenSourceLesson?: () => void;
 }
 
 export function ExerciseRunnerScreen({
@@ -31,12 +37,25 @@ export function ExerciseRunnerScreen({
   startIndex,
   onBack,
   onComplete,
+  onOpenSourceLesson,
 }: ExerciseRunnerScreenProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const { state, progress, isLast, setAnswer, check, advance, retry, retryAttempt } =
-    useExerciseRunner(exerciseIds, startIndex);
+  const {
+    state,
+    progress,
+    isLast,
+    setAnswer,
+    answerQuestion,
+    checkRow,
+    checkTable,
+    finishTable,
+    check,
+    advance,
+    retry,
+    retryAttempt,
+  } = useExerciseRunner(exerciseIds, startIndex);
 
   const progressRatio = progress.total > 0 ? progress.current / progress.total : 0;
 
@@ -110,46 +129,57 @@ export function ExerciseRunnerScreen({
                 disabled={state.phase !== 'answering'}
                 verdict={state.verdict}
                 onAnswerChange={setAnswer}
+                answerQuestion={answerQuestion}
+                checkRow={checkRow}
+                checkTable={checkTable}
+                finishTable={finishTable}
+                onOpenSourceLesson={onOpenSourceLesson}
               />
             </ScrollView>
 
-            <View style={styles.footer}>
-              {state.phase === 'feedback' && state.verdict ? (
-                <>
-                  <FeedbackBar verdict={state.verdict} />
-                  {!state.verdict.correct && !state.verdict.requiresReview ? (
-                    <TouchableOpacity style={styles.secondaryBtn} onPress={retryAttempt}>
-                      <Text style={styles.secondaryBtnText}>{t('exerciseRunner.tryAgain')}</Text>
+            {/* A body that runs its own checks draws its own controls, so while
+                answering the footer bar would be an empty strip with a border. It
+                comes back for the verdict, where Continue is «Fullfør» (plan 54
+                §8 Q6). */}
+            {state.phase === 'feedback' || !bodyOwnsCheck(state.display.templateCode) ? (
+              <View style={styles.footer}>
+                {state.phase === 'feedback' && state.verdict ? (
+                  <>
+                    <FeedbackBar verdict={state.verdict} />
+                    {!state.verdict.correct && !state.verdict.requiresReview ? (
+                      <TouchableOpacity style={styles.secondaryBtn} onPress={retryAttempt}>
+                        <Text style={styles.secondaryBtnText}>{t('exerciseRunner.tryAgain')}</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                    <TouchableOpacity style={styles.primaryBtn} onPress={advance}>
+                      <Text style={styles.primaryBtnText}>
+                        {isLast ? t('exerciseRunner.finish') : t('exerciseRunner.continue')}
+                      </Text>
                     </TouchableOpacity>
-                  ) : null}
-                  <TouchableOpacity style={styles.primaryBtn} onPress={advance}>
-                    <Text style={styles.primaryBtnText}>
-                      {isLast ? t('exerciseRunner.finish') : t('exerciseRunner.continue')}
-                    </Text>
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <>
-                  {state.submitError ? (
-                    <Text style={styles.footerError}>{state.submitError}</Text>
-                  ) : null}
-                  <TouchableOpacity
-                    style={[
-                      styles.primaryBtn,
-                      (!state.canSubmit || state.phase === 'checking') && styles.primaryBtnDisabled,
-                    ]}
-                    onPress={check}
-                    disabled={!state.canSubmit || state.phase === 'checking'}
-                  >
-                    {state.phase === 'checking' ? (
-                      <ActivityIndicator size="small" color={colors.textInverted} />
-                    ) : (
-                      <Text style={styles.primaryBtnText}>{t('exerciseRunner.check')}</Text>
-                    )}
-                  </TouchableOpacity>
-                </>
-              )}
-            </View>
+                  </>
+                ) : (
+                  <>
+                    {state.submitError ? (
+                      <Text style={styles.footerError}>{state.submitError}</Text>
+                    ) : null}
+                    <TouchableOpacity
+                      style={[
+                        styles.primaryBtn,
+                        (!state.canSubmit || state.phase === 'checking') && styles.primaryBtnDisabled,
+                      ]}
+                      onPress={check}
+                      disabled={!state.canSubmit || state.phase === 'checking'}
+                    >
+                      {state.phase === 'checking' ? (
+                        <ActivityIndicator size="small" color={colors.textInverted} />
+                      ) : (
+                        <Text style={styles.primaryBtnText}>{t('exerciseRunner.check')}</Text>
+                      )}
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
+            ) : null}
           </>
         )}
     </SafeAreaView>
