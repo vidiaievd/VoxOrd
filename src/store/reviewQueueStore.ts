@@ -55,6 +55,7 @@ class ReviewQueueStore {
     cardId: string,
     rating: ReviewRating,
     reviewedAt: Date = new Date(),
+    options: { carryOnPastLimit?: boolean } = {},
   ): Promise<SrsCard | null> {
     await this.load();
 
@@ -63,6 +64,7 @@ class ReviewQueueStore {
       rating,
       reviewedAt: reviewedAt.toISOString(),
       idempotencyKey: makeIdempotencyKey(cardId, reviewedAt.toISOString(), randomNonce()),
+      ...(options.carryOnPastLimit ? { carryOnPastLimit: true } : {}),
     };
 
     this.queue = enqueueReview(this.queue, review);
@@ -132,6 +134,9 @@ class ReviewQueueStore {
         rating: review.rating,
         reviewedAt: review.reviewedAt,
         idempotencyKey: review.idempotencyKey,
+        // Only sent when it was actually chosen: a default `false` on every
+        // review would blur a deliberate answer into a routine field.
+        ...(review.carryOnPastLimit ? { carryOnPastLimit: true } : {}),
       });
     } catch (e) {
       const status = e instanceof ApiError ? e.status : null;

@@ -8,8 +8,8 @@ import { buildTranslateAnswer, translateCanSubmit, type TranslateContent } from 
 
 /**
  * Shared body for `translate_to_target` and `translate_from_target` — same
- * content/answer shape, only the direction label differs. Both templates are
- * server-side "free-form" (exercise-engine's FREE_FORM_CODES): they always
+ * content/answer shape, only the direction label differs. Both route to human
+ * review (`translate.validator.ts` in exercise-engine): they always
  * come back `requiresReview: true`, never auto-scored, so there's nothing
  * template-specific to highlight in feedback — FeedbackBar's generic
  * "submitted for review" tone covers it.

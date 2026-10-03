@@ -4,7 +4,7 @@ import { useTranslation } from '../../../i18n';
 import { useTheme } from '../../../providers/ThemeProvider';
 import { ColorScheme } from '../../../theme/colors';
 import { useExerciseRunner } from '../../../hooks/useExerciseRunner';
-import { ExerciseBody } from '../../ExerciseRunner/ExerciseBody';
+import { bodyOwnsCheck, ExerciseBody } from '../../ExerciseRunner/ExerciseBody';
 import { FeedbackBar } from '../../ExerciseRunner/FeedbackBar';
 import { AudioPlayer } from './AudioPlayer';
 
@@ -44,10 +44,19 @@ export function ExerciseStage({
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const { state, progress, isLast, setAnswer, check, advance, retry } = useExerciseRunner(
-    exerciseIds,
-    0,
-  );
+  const {
+    state,
+    progress,
+    isLast,
+    setAnswer,
+    answerQuestion,
+    checkRow,
+    checkTable,
+    finishTable,
+    check,
+    advance,
+    retry,
+  } = useExerciseRunner(exerciseIds, 0);
 
   useEffect(() => {
     if (state.phase === 'complete') onComplete();
@@ -93,18 +102,26 @@ export function ExerciseStage({
               disabled={state.phase !== 'answering'}
               verdict={state.verdict}
               onAnswerChange={setAnswer}
+              answerQuestion={answerQuestion}
+              checkRow={checkRow}
+              checkTable={checkTable}
+              finishTable={finishTable}
             />
 
             {state.phase === 'feedback' && state.verdict ? (
               <>
-                <FeedbackBar verdict={state.verdict} />
+                {/* The body states the verdict against the pass mark itself; `correct`
+                    there means «every item right» (see ExerciseRunner). */}
+                {bodyOwnsCheck(state.display.templateCode) ? null : (
+                  <FeedbackBar verdict={state.verdict} />
+                )}
                 <TouchableOpacity style={styles.primaryBtn} onPress={advance}>
                   <Text style={styles.primaryBtnText}>
                     {isLast ? t('exerciseRunner.finish') : t('exerciseRunner.continue')}
                   </Text>
                 </TouchableOpacity>
               </>
-            ) : (
+            ) : bodyOwnsCheck(state.display.templateCode) ? null : (
               <>
                 {state.submitError ? <Text style={styles.errorDesc}>{state.submitError}</Text> : null}
                 <TouchableOpacity

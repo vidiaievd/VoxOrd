@@ -141,6 +141,14 @@ export interface ReviewCardRequest {
    * without a key a retry reschedules the card a second time.
    */
   idempotencyKey?: string;
+  /**
+   * The learner was shown that today's review quota is met and chose to keep
+   * going, which lifts the daily review cap for this submission (ssz-platform
+   * plan 37 §B.1). Send it only in answer to that choice — the server reads it
+   * as "the learner was asked and said yes". It has no effect on the daily
+   * new-card cap, which is not the learner's call to make.
+   */
+  carryOnPastLimit?: boolean;
 }
 
 /**

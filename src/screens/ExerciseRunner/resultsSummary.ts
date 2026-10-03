@@ -8,8 +8,8 @@ export interface ResultsSummary {
   /** 0..1, correct-only (needsReview items aren't a pass or a fail yet). */
   accuracy: number;
   /**
-   * 0..1, (correct + needsReview) / total — for tone/emoji. Free-form
-   * templates (translate_*, writing_task) always come back `requiresReview`
+   * 0..1, (correct + needsReview) / total — for tone/emoji. The templates that
+   * go to a teacher (translate_*, writing_task) always come back `requiresReview`
    * and never `correct`, so scoring the hero purely on `accuracy` would make
    * a perfectly-completed writing set look like a failure; being routed for
    * review is a successful completion, not a wrong answer.
@@ -20,8 +20,8 @@ export interface ResultsSummary {
 
 /**
  * Buckets each item's verdict into exactly one outcome. `requiresReview`
- * items are never auto-correct (exercise-engine's free-form templates
- * always return `correct: false` alongside `requiresReview: true`), so
+ * items are never auto-correct (the validators that route to review always
+ * return `correct: false` alongside `requiresReview: true`), so
  * checking `correct` first is enough to keep the buckets disjoint.
  */
 export function buildResultsSummary(results: ItemResult[]): ResultsSummary {

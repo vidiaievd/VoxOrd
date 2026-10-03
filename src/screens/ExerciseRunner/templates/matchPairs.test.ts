@@ -1,99 +1,118 @@
 import {
   buildMatchPairsAnswer,
-  extractExpectedPairs,
-  isLinkExpected,
   matchPairsCanSubmit,
+  readMatchPairsResults,
   toggleLink,
-  type MatchPairItem,
+  type MatchPairsSlot,
 } from './matchPairs';
 
-const leftItems: MatchPairItem[] = [
-  { id: 'l1', text: 'frokost' },
-  { id: 'l2', text: 'lekser' },
+const slots: MatchPairsSlot[] = [
+  { slotId: 'p1', left: 'Kari tar imot Bartek' },
+  { slotId: 'p2', left: 'Han vil bytte jobb fordi' },
 ];
 
 describe('toggleLink', () => {
-  it('creates a new link', () => {
-    expect(toggleLink({}, 'l1', 'r2')).toEqual({ l1: 'r2' });
+  it('places a half into a slot', () => {
+    expect(toggleLink({}, 'p1', 'r2')).toEqual({ p1: 'r2' });
   });
 
-  it('unlinks when tapping the right item already linked to this left', () => {
-    expect(toggleLink({ l1: 'r2' }, 'l1', 'r2')).toEqual({});
+  it('empties the slot when tapping the half already in it', () => {
+    expect(toggleLink({ p1: 'r2' }, 'p1', 'r2')).toEqual({});
   });
 
-  it('re-links to a different right item, replacing the old link', () => {
-    expect(toggleLink({ l1: 'r2' }, 'l1', 'r4')).toEqual({ l1: 'r4' });
+  it('replaces the half in a slot with a different one', () => {
+    expect(toggleLink({ p1: 'r2' }, 'p1', 'r5')).toEqual({ p1: 'r5' });
   });
 
-  it('steals a right item from another left, unlinking the other left', () => {
-    const links = { l1: 'r2', l2: 'r4' };
-    expect(toggleLink(links, 'l1', 'r4')).toEqual({ l1: 'r4' });
+  it('takes a half from another slot, leaving that slot empty', () => {
+    // A half lives in at most one slot — this is what makes distractors work: with
+    // eight halves for five slots, moving one must not silently duplicate it.
+    expect(toggleLink({ p1: 'r2' }, 'p2', 'r2')).toEqual({ p2: 'r2' });
   });
 
-  it('leaves unrelated links untouched', () => {
-    const links = { l1: 'r2', l2: 'r4' };
-    expect(toggleLink(links, 'l1', 'r1')).toEqual({ l1: 'r1', l2: 'r4' });
+  it('leaves unrelated slots untouched', () => {
+    expect(toggleLink({ p1: 'r2', p2: 'r4' }, 'p3', 'r7')).toEqual({
+      p1: 'r2',
+      p2: 'r4',
+      p3: 'r7',
+    });
   });
 
   it('never mutates the input object', () => {
-    const links = { l1: 'r2' };
-    const snapshot = { ...links };
-    toggleLink(links, 'l1', 'r4');
-    expect(links).toEqual(snapshot);
+    const links = { p1: 'r2' };
+    toggleLink(links, 'p2', 'r4');
+    expect(links).toEqual({ p1: 'r2' });
   });
 });
 
 describe('matchPairsCanSubmit / buildMatchPairsAnswer', () => {
-  it('cannot submit until every left item has a link', () => {
-    expect(matchPairsCanSubmit({ l1: 'r2' }, leftItems)).toBe(false);
-    expect(matchPairsCanSubmit({ l1: 'r2', l2: 'r4' }, leftItems)).toBe(true);
+  it('can submit with a single filled slot — partial checking is legal (AC-S7)', () => {
+    expect(matchPairsCanSubmit({ p1: 'r2' }, slots)).toBe(true);
+    expect(matchPairsCanSubmit({ p1: 'r2', p2: 'r4' }, slots)).toBe(true);
   });
 
-  it('is false for an empty left_items set', () => {
+  it('cannot submit with nothing placed', () => {
+    expect(matchPairsCanSubmit({}, slots)).toBe(false);
     expect(matchPairsCanSubmit({}, [])).toBe(false);
   });
 
-  it('builds one pair entry per left item', () => {
-    const answer = buildMatchPairsAnswer({ l1: 'r2', l2: 'r4' }, leftItems);
-    expect(answer).toEqual({
-      pairs: [
-        { left_id: 'l1', right_id: 'r2' },
-        { left_id: 'l2', right_id: 'r4' },
+  it('sends only the filled slots, as placements', () => {
+    // The empty slot is absent rather than sent empty: the server scores an absent
+    // slot as unanswered, and an empty one would score as wrong.
+    expect(buildMatchPairsAnswer({ p2: 'r4' }, slots)).toEqual({
+      placements: [{ pairId: 'p2', rightId: 'r4' }],
+    });
+  });
+
+  it('keeps slot order so the verdict lines up with the screen', () => {
+    expect(buildMatchPairsAnswer({ p2: 'r4', p1: 'r2' }, slots)).toEqual({
+      placements: [
+        { pairId: 'p1', rightId: 'r2' },
+        { pairId: 'p2', rightId: 'r4' },
       ],
     });
   });
 
-  it('returns null when not fully linked', () => {
-    expect(buildMatchPairsAnswer({ l1: 'r2' }, leftItems)).toBeNull();
+  it('returns null when nothing is placed', () => {
+    expect(buildMatchPairsAnswer({}, slots)).toBeNull();
   });
 });
 
-describe('extractExpectedPairs / isLinkExpected', () => {
-  // Wire shape: RuleBasedFeedbackGenerator collapses the stored
-  // `{pairs: [{left_id, right_id}]}` into a single display string before it
-  // reaches the client — see matchPairs.ts's doc comment on the function.
-  const correctAnswer = 'l1 → r2, l2 → r4';
-  const expectedPairs = [
-    { left_id: 'l1', right_id: 'r2' },
-    { left_id: 'l2', right_id: 'r4' },
-  ];
-
-  it('parses the "left → right" display string back into pairs', () => {
-    expect(extractExpectedPairs(correctAnswer)).toEqual(expectedPairs);
+describe('readMatchPairsResults', () => {
+  it('reads the per-slot verdicts out of the submit response details', () => {
+    expect(
+      readMatchPairsResults({
+        totalPairs: 2,
+        correctPairs: 1,
+        pairs: [
+          { pairId: 'p1', correct: true, explanation: null },
+          { pairId: 'p2', correct: false, explanation: 'Etter «fordi» star verbet etter subjektet.' },
+        ],
+      }),
+    ).toEqual([
+      { pairId: 'p1', correct: true, explanation: null },
+      { pairId: 'p2', correct: false, explanation: 'Etter «fordi» star verbet etter subjektet.' },
+    ]);
   });
 
-  it('returns null for malformed shapes', () => {
-    expect(extractExpectedPairs(null)).toBeNull();
-    expect(extractExpectedPairs(undefined)).toBeNull();
-    expect(extractExpectedPairs('')).toBeNull();
-    expect(extractExpectedPairs({ pairs: expectedPairs })).toBeNull();
-    expect(extractExpectedPairs('l1 r2')).toBeNull();
-    expect(extractExpectedPairs('l1 → ')).toBeNull();
+  it('normalises a missing or empty explanation to null', () => {
+    // The teacher may have written none: `FB_NO_DEFAULT` is only a blocker for the
+    // `halves` variant, so a `pairs` exercise can publish without one.
+    expect(readMatchPairsResults({ pairs: [{ pairId: 'p1', correct: false, explanation: '' }] }))
+      .toEqual([{ pairId: 'p1', correct: false, explanation: null }]);
+    expect(readMatchPairsResults({ pairs: [{ pairId: 'p1', correct: false }] })).toEqual([
+      { pairId: 'p1', correct: false, explanation: null },
+    ]);
   });
 
-  it('checks membership of a submitted link in the expected set', () => {
-    const pairs = extractExpectedPairs(correctAnswer)!;
-    expect(isLinkExpected(pairs, 'l1', 'r2')).toBe(true);
-    expect(isLinkExpected(pairs, 'l1', 'r4')).toBe(false);
+  it('returns null rather than throwing when details are absent or malformed', () => {
+    // GRADED mode, an older server, or a template that reports nothing: the body must
+    // keep rendering without per-slot colouring, not crash.
+    expect(readMatchPairsResults(undefined)).toBeNull();
+    expect(readMatchPairsResults(null)).toBeNull();
+    expect(readMatchPairsResults({})).toBeNull();
+    expect(readMatchPairsResults({ pairs: 'nope' })).toBeNull();
+    expect(readMatchPairsResults({ pairs: [{ pairId: 'p1' }] })).toBeNull();
+    expect(readMatchPairsResults({ pairs: [null] })).toBeNull();
   });
 });

@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView } from 
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
+import { useExerciseAudio } from '../../hooks/useExerciseAudio';
+import { AudioLockNote, AudioTranscript, ExerciseAudioPlayer } from './audio';
 import type { ExerciseBodyProps } from './ExerciseBody';
 import {
   blankIdsFromSegments,
@@ -34,6 +36,17 @@ export function FillInBlankBody({ display, disabled, verdict, onAnswerChange }: 
 
   const [values, setValues] = useState<Record<number, string>>({});
   const [activeBlankId, setActiveBlankId] = useState<number | null>(blankIds[0] ?? null);
+  /**
+   * The listening layer, if this exercise has one — plan 56 phase 7.
+   *
+   * This template has no builder of its own: an author gives it a clip through the shared
+   * block, and the runner is the only side of it that changed. There are no timecodes
+   * either — the blanks are positions in one sentence, not items to time — so no fragment
+   * chip is drawn. The clip's words ride in on the footer's verdict.
+   */
+  const audio = useExerciseAudio(display.content);
+  const audioOn = audio.audio.enabled;
+  const locked = audioOn && audio.gated;
 
   useEffect(() => {
     onAnswerChange(buildFillInBlankAnswer(values, blankIds), fillInBlankCanSubmit(values, blankIds));
@@ -61,6 +74,13 @@ export function FillInBlankBody({ display, disabled, verdict, onAnswerChange }: 
 
   return (
     <View>
+      {audioOn ? (
+        <View style={styles.audio}>
+          <ExerciseAudioPlayer eng={audio} interactive={!disabled} />
+          {locked ? <AudioLockNote itemNoun={t('exerciseRunner.audio.itemNoun.gaps')} /> : null}
+        </View>
+      ) : null}
+
       {content.context ? <Text style={styles.context}>{content.context}</Text> : null}
 
       <View style={styles.sentence}>
@@ -76,7 +96,7 @@ export function FillInBlankBody({ display, disabled, verdict, onAnswerChange }: 
                 value={values[segment.id] ?? ''}
                 onChangeText={(v) => setBlankValue(segment.id, v)}
                 onFocus={() => setActiveBlankId(segment.id)}
-                editable={!disabled}
+                editable={!disabled && !locked}
                 autoCapitalize="none"
                 autoCorrect={false}
                 placeholder="…"
@@ -90,7 +110,7 @@ export function FillInBlankBody({ display, disabled, verdict, onAnswerChange }: 
         )}
       </View>
 
-      {content.word_bank && content.word_bank.length > 0 && !disabled ? (
+      {content.word_bank && content.word_bank.length > 0 && !disabled && !locked ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.wordBank}>
           {content.word_bank.map((word) => (
             <TouchableOpacity
@@ -104,12 +124,23 @@ export function FillInBlankBody({ display, disabled, verdict, onAnswerChange }: 
           ))}
         </ScrollView>
       ) : null}
+
+      {audioOn ? (
+        <AudioTranscript
+          audio={audio.audio}
+          revealed={verdict?.audioTranscript !== undefined}
+          delivered={verdict?.audioTranscript ?? null}
+        />
+      ) : null}
     </View>
   );
 }
 
 const makeStyles = (colors: ColorScheme) =>
   StyleSheet.create({
+    audio: {
+      marginBottom: 14,
+    },
     context: {
       fontSize: 13,
       color: colors.textMuted,
