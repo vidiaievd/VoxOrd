@@ -110,7 +110,11 @@ export function ExerciseStage({
 
             {state.phase === 'feedback' && state.verdict ? (
               <>
-                <FeedbackBar verdict={state.verdict} />
+                {/* The body states the verdict against the pass mark itself; `correct`
+                    there means «every item right» (see ExerciseRunner). */}
+                {bodyOwnsCheck(state.display.templateCode) ? null : (
+                  <FeedbackBar verdict={state.verdict} />
+                )}
                 <TouchableOpacity style={styles.primaryBtn} onPress={advance}>
                   <Text style={styles.primaryBtnText}>
                     {isLast ? t('exerciseRunner.finish') : t('exerciseRunner.continue')}
