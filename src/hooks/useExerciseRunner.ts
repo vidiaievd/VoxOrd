@@ -25,7 +25,6 @@ import {
   runnerReducer,
   type RunnerState,
 } from '../screens/ExerciseRunner/runnerMachine';
-import { buildMultipleChoiceGroupSubmission } from '../screens/ExerciseRunner/templates/multipleChoiceGroup';
 import { useSettings } from './useSettings';
 
 export type ProgressPostStatus = 'idle' | 'posting' | 'done' | 'error';
@@ -67,23 +66,24 @@ export interface ExerciseRunnerController {
     reveal: boolean,
   ) => Promise<CheckRowResponse>;
   /**
-   * Check the whole table of a `multiple_choice_group` and get the server's verdict
-   * (plan 54 §8 Q6, variant D). Opens the attempt the same way its two siblings do.
+   * Check the whole block — a `multiple_choice_group` table (plan 54 §8 Q6, variant D) or
+   * a `sort_into_buckets` board (plan 66 §3.1) — and get the server's verdict. Opens the
+   * attempt the same way its two siblings do.
    *
-   * Repeatable, and that is the type: a check reports which statements are wrong, the
-   * learner fixes them, and the next check goes onto the very same attempt — the engine
-   * reopens a scored practice attempt and spends one of the author's `retry` budget on
-   * it. `reveal` is «Vis fasit», closing the table with the score it already had.
+   * Repeatable, and that is the type: a check reports which parts are wrong, the learner
+   * fixes them, and the next check goes onto the very same attempt — the engine reopens a
+   * scored practice attempt and spends one of the author's budget on it. A reveal closes
+   * the block with the score it already had.
    *
    * Unlike `checkRow`, this *is* the submit: there is no separate endpoint, and the
-   * engine refuses a further check once the table is closed. So there is no footer Check
+   * engine refuses a further check once the block is closed. So there is no footer Check
    * left to close the item with, and the body reports the closing verdict through
    * `finishTable` instead. Every other body ignores both.
+   *
+   * The answer travels as the body built it, like the footer's: what a check carries is
+   * the template's business, and this hook never reads it.
    */
-  checkTable: (
-    answers: Record<string, string>,
-    reveal: boolean,
-  ) => Promise<SubmitAttemptResponse>;
+  checkTable: (submittedAnswer: unknown) => Promise<SubmitAttemptResponse>;
   /**
    * Record the check that closed the table and move the runner to feedback.
    *
@@ -269,13 +269,13 @@ export function useExerciseRunner(
   );
 
   const checkTable = useCallback(
-    async (answers: Record<string, string>, reveal: boolean): Promise<SubmitAttemptResponse> => {
+    async (submittedAnswer: unknown): Promise<SubmitAttemptResponse> => {
       if (!openExerciseId || !openDisplay) {
         throw new Error('No exercise is open');
       }
       const attemptId = await openAttempt(openExerciseId, openDisplay);
       return submitAttempt(openExerciseId, attemptId, {
-        submittedAnswer: buildMultipleChoiceGroupSubmission(answers, reveal),
+        submittedAnswer,
         timeSpentSeconds: Math.max(
           0,
           Math.round((Date.now() - answeringStartedAtRef.current) / 1000),

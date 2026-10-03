@@ -221,6 +221,7 @@ export interface Translations {
         pairs: string;
         pieces: string;
         lines: string;
+        items: string;
       };
     };
     loadError: string;
@@ -405,6 +406,42 @@ export interface Translations {
       unavailableDesc: string;
       /** The old `items[]` form, which this app has never been able to play. */
       unavailableLegacyDesc: string;
+    };
+    /** Plan 66: tiles put into zones, the whole board checked as one block. */
+    sortIntoBuckets: {
+      check: string;
+      checkCount: string; // '{n}'
+      checking: string;
+      retryWrong: string; // '{n}'
+      showKey: string;
+      attempt: string; // '{n}'
+      attemptOf: string; // '{n}', '{max}'
+      score: string; // '{correct}', '{total}'
+      remaining: string; // '{n}'
+      poolTitle: string;
+      zoneLabel: string; // '{label}', '{n}'
+      zoneIdle: string;
+      zoneTap: string;
+      /** Shown, and announced, while a tile is in hand. */
+      selected: string; // '{text}'
+      putBack: string;
+      tilePlaced: string; // '{text}', '{bucket}'
+      tileLocked: string; // '{text}', '{bucket}'
+      tileWrong: string; // '{text}', '{bucket}'
+      tileKey: string; // '{text}', '{bucket}'
+      rule: string;
+      /** The tile's own recording, under the per-item audio source. */
+      listen: string; // '{text}'
+      passed: string;
+      notPassed: string;
+      firstScore: string; // '{score}', '{total}', '{threshold}'
+      doneHint: string;
+      sendFailed: string;
+      closedAlready: string;
+      empty: string;
+      emptyDesc: string;
+      unavailable: string;
+      unavailableDesc: string;
     };
     resultsExcellentTitle: string;
     resultsExcellentMessage: string;
