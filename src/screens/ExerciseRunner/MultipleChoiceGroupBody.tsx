@@ -10,6 +10,7 @@ import { AudioLockNote, AudioTranscript, ExerciseAudioPlayer } from './audio';
 import type { AudioTranscript as AudioTranscriptWords } from '../../api/exercises';
 import type { ExerciseBodyProps } from './ExerciseBody';
 import {
+  buildMultipleChoiceGroupSubmission,
   isMultipleChoiceGroupDocument,
   keepOnRetry,
   readMultipleChoiceGroupTable,
@@ -196,7 +197,9 @@ function MultipleChoiceGroupTableBody({
       setSending(true);
       setError(null);
       try {
-        const response: SubmitAttemptResponse = await checkTable(answers, reveal);
+        const response: SubmitAttemptResponse = await checkTable(
+          buildMultipleChoiceGroupSubmission(answers, reveal),
+        );
         const details = readMultipleChoiceGroupVerdict(response.details);
         if (details === null) {
           setError(t('exerciseRunner.multipleChoiceGroup.sendFailed'));

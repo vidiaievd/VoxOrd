@@ -19,6 +19,7 @@ import { SentenceSchemaBody } from './SentenceSchemaBody';
 import { ShortAnswerBody } from './ShortAnswerBody';
 import { WritingTaskBody } from './WritingTaskBody';
 import { MultipleChoiceGroupBody } from './MultipleChoiceGroupBody';
+import { SortIntoBucketsBody } from './SortIntoBucketsBody';
 
 /**
  * Contract every per-template body implements (Phase 4.2+). A body is a
@@ -92,25 +93,25 @@ export interface ExerciseBodyProps {
     reveal: boolean,
   ) => Promise<CheckRowResponse>;
   /**
-   * Check the whole table of a `multiple_choice_group` and get the server's verdict
-   * (plan 54 §8 Q6, variant D).
+   * Check the whole block and get the server's verdict — a `multiple_choice_group` table
+   * (plan 54 §8 Q6, variant D) or a `sort_into_buckets` board (plan 66 §3.1).
    *
    * The third thing a body may do to the attempt, and the first that is the submit
-   * itself. This template is answered and judged as one block, and its retry is a second
+   * itself. These templates are answered and judged as one block, and a retry is a second
    * submit onto the same attempt: the engine reopens the scored attempt, spends one of
-   * the author's `retry` budget, and doses the key — which statements are wrong on every
-   * pass, the right column and the author's line only once the table is closed.
+   * the author's budget, and doses the key — which parts are wrong on every pass, the
+   * right answer and the author's reasons only once the block is closed.
+   *
+   * The body builds `submittedAnswer` itself, as it does for the footer's Check: its
+   * shape is the template's, and the shell never reads it.
    *
    * Because the check *is* the submit, there is no footer Check left to close the item
-   * with. The check that closes the table is reported through `finishTable`, which is why
+   * with. The check that closes the block is reported through `finishTable`, which is why
    * these two arrive together. Every other body ignores both and closes through the
    * footer as before.
    */
-  checkTable: (
-    answers: Record<string, string>,
-    reveal: boolean,
-  ) => Promise<SubmitAttemptResponse>;
-  /** Record the check that closed the table; the runner moves to feedback. */
+  checkTable: (submittedAnswer: unknown) => Promise<SubmitAttemptResponse>;
+  /** Record the check that closed the block; the runner moves to feedback. */
   finishTable: (verdict: SubmitAttemptResponse) => void;
   /**
    * Leave the runner for the lesson this exercise was set on — `multiple_choice_group`'s
@@ -124,16 +125,21 @@ export interface ExerciseBodyProps {
 }
 
 /**
- * Whether this template's body runs its own checks against the server and closes the item
+ * The templates whose body runs its own checks against the server and closes the item
  * itself, so the shell must not draw a Check button of its own.
  *
- * One template, and the reason is structural rather than stylistic: for
- * `multiple_choice_group` the round-by-round check and the closing submit are the same
- * call, so a footer Check under the table's own «Check answers» would either be dead or
- * be a second check the engine refuses (plan 54 §8 Q6).
+ * The reason is structural rather than stylistic: for these the round-by-round check and
+ * the closing submit are the same call, so a footer Check under the block's own Check
+ * would either be dead or be a second check the engine refuses (plan 54 §8 Q6). The
+ * engine's own name for the set is `WHOLE_BOARD_CHECKS` (plan 66 phase 4).
  */
+const BODY_OWNS_CHECK: ReadonlySet<string> = new Set([
+  'multiple_choice_group',
+  'sort_into_buckets',
+]);
+
 export function bodyOwnsCheck(templateCode: string): boolean {
-  return templateCode === 'multiple_choice_group';
+  return BODY_OWNS_CHECK.has(templateCode);
 }
 
 /**
@@ -164,7 +170,8 @@ function UnsupportedTemplateBody({ display, onAnswerChange }: ExerciseBodyProps)
 /**
  * Dispatches to the body component for a template. Steps 4.2–4.5 add cases
  * here (multiple_choice, fill_in_blank, translate_*, match_pairs,
- * sentence_schema, short_answer, writing_task); everything else falls
+ * sentence_schema, short_answer, writing_task, multiple_choice_group,
+ * sort_into_buckets); everything else falls
  * through to the placeholder.
  */
 export function ExerciseBody(props: ExerciseBodyProps) {
@@ -186,6 +193,8 @@ export function ExerciseBody(props: ExerciseBodyProps) {
       return <WritingTaskBody {...props} />;
     case 'multiple_choice_group':
       return <MultipleChoiceGroupBody {...props} />;
+    case 'sort_into_buckets':
+      return <SortIntoBucketsBody {...props} />;
     default:
       return <UnsupportedTemplateBody {...props} />;
   }

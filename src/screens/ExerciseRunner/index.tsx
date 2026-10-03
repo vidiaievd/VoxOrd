@@ -145,7 +145,12 @@ export function ExerciseRunnerScreen({
               <View style={styles.footer}>
                 {state.phase === 'feedback' && state.verdict ? (
                   <>
-                    <FeedbackBar verdict={state.verdict} />
+                    {/* A body that owns its check states the verdict itself, against the
+                        pass mark. `verdict.correct` there means «every item right», so the
+                        generic bar would say «Incorrect» over a passed board. */}
+                    {bodyOwnsCheck(state.display.templateCode) ? null : (
+                      <FeedbackBar verdict={state.verdict} />
+                    )}
                     {!state.verdict.correct && !state.verdict.requiresReview ? (
                       <TouchableOpacity style={styles.secondaryBtn} onPress={retryAttempt}>
                         <Text style={styles.secondaryBtnText}>{t('exerciseRunner.tryAgain')}</Text>

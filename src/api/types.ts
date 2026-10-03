@@ -173,7 +173,8 @@ export type ExerciseTemplateCode =
   | 'short_answer'
   | 'writing_task'
   | 'sentence_schema'
-  | 'multiple_choice_group';
+  | 'multiple_choice_group'
+  | 'sort_into_buckets';
 
 export interface ExerciseInstruction {
   id: string;
