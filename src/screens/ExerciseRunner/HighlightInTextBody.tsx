@@ -690,6 +690,12 @@ function MarkablePassage({
   /** The passage's place on screen, taken when a drag starts — the page may have scrolled. */
   const origin = useRef<{ pageX: number; pageY: number } | null>(null);
   const dragging = useRef<{ origin: number; end: number } | null>(null);
+  /**
+   * Where the finger first touched. `gestureState.x0` is the point at the moment the drag is
+   * granted — after the finger has already crossed the start threshold — so on a short word
+   * ("I") the anchor would land on the neighbour.
+   */
+  const touchDown = useRef<{ x: number; y: number } | null>(null);
 
   // The responder is made once; what it reads changes, so it reads it through a ref.
   const latest = useRef({ live, unit, onRange, onDrag, paragraphOf });
@@ -710,6 +716,10 @@ function MarkablePassage({
   const responder = useRef<PanResponderInstance | null>(null);
   responder.current ??= PanResponder.create({
     onStartShouldSetPanResponder: () => false,
+    onStartShouldSetPanResponderCapture: (e) => {
+      touchDown.current = { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY };
+      return false;
+    },
     onMoveShouldSetPanResponder: (_e, g) =>
       latest.current.live &&
       latest.current.unit === 'phrase' &&
@@ -718,8 +728,8 @@ function MarkablePassage({
     onPanResponderGrant: (_e, g) => {
       origin.current = null;
       dragging.current = null;
-      const x0 = g.x0;
-      const y0 = g.y0;
+      const x0 = touchDown.current?.x ?? g.x0;
+      const y0 = touchDown.current?.y ?? g.y0;
       container.current?.measure((_x, _y, _w, _h, pageX, pageY) => {
         origin.current = { pageX, pageY };
         const from = hit(x0, y0);
