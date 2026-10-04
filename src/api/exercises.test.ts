@@ -48,6 +48,7 @@ describe('findOpenAttempt', () => {
       answeredQuestions: [{ questionId: 'q1', text: 'I tre år.', verdict: 'pass' }],
       checkedRows: [],
       pickedOptions: [],
+      questionStates: [],
     });
   });
 
@@ -68,6 +69,7 @@ describe('findOpenAttempt', () => {
       answeredQuestions: [],
       checkedRows: [checked],
       pickedOptions: [],
+      questionStates: [],
     });
   });
 
@@ -89,6 +91,30 @@ describe('findOpenAttempt', () => {
       answeredQuestions: [],
       checkedRows: [],
       pickedOptions: [picked],
+      questionStates: [],
+    });
+  });
+
+  it('returns the highlight_in_text questions already checked (plan 67)', async () => {
+    const question = {
+      questionId: 'q1',
+      checks: 2,
+      firstScore: 0.5,
+      firstPassed: false,
+      passed: true,
+      revealed: false,
+      closed: true,
+    };
+    mockGet.mockResolvedValue({
+      items: [{ id: 'att-1', status: 'IN_PROGRESS', questionStates: [question] }],
+    });
+
+    await expect(findOpenAttempt('ex-1')).resolves.toEqual({
+      attemptId: 'att-1',
+      answeredQuestions: [],
+      checkedRows: [],
+      pickedOptions: [],
+      questionStates: [question],
     });
   });
 
@@ -100,6 +126,7 @@ describe('findOpenAttempt', () => {
       answeredQuestions: [],
       checkedRows: [],
       pickedOptions: [],
+      questionStates: [],
     });
   });
 
