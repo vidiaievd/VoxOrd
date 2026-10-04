@@ -49,6 +49,7 @@ describe('findOpenAttempt', () => {
       checkedRows: [],
       pickedOptions: [],
       questionStates: [],
+      segmentStates: [],
     });
   });
 
@@ -70,6 +71,7 @@ describe('findOpenAttempt', () => {
       checkedRows: [checked],
       pickedOptions: [],
       questionStates: [],
+      segmentStates: [],
     });
   });
 
@@ -92,6 +94,7 @@ describe('findOpenAttempt', () => {
       checkedRows: [],
       pickedOptions: [picked],
       questionStates: [],
+      segmentStates: [],
     });
   });
 
@@ -115,6 +118,32 @@ describe('findOpenAttempt', () => {
       checkedRows: [],
       pickedOptions: [],
       questionStates: [question],
+      segmentStates: [],
+    });
+  });
+
+  it('returns the dictation sentences already checked (plan 68)', async () => {
+    const sentence = {
+      segmentId: 's1',
+      checks: 1,
+      firstScore: 0.8,
+      firstPassed: false,
+      passed: false,
+      revealed: false,
+      closed: false,
+      lastText: 'Jeg bor i en lilen leilighet.',
+    };
+    mockGet.mockResolvedValue({
+      items: [{ id: 'att-1', status: 'IN_PROGRESS', segmentStates: [sentence] }],
+    });
+
+    await expect(findOpenAttempt('ex-1')).resolves.toEqual({
+      attemptId: 'att-1',
+      answeredQuestions: [],
+      checkedRows: [],
+      pickedOptions: [],
+      questionStates: [],
+      segmentStates: [sentence],
     });
   });
 
@@ -127,6 +156,7 @@ describe('findOpenAttempt', () => {
       checkedRows: [],
       pickedOptions: [],
       questionStates: [],
+      segmentStates: [],
     });
   });
 

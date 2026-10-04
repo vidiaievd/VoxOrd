@@ -18,7 +18,15 @@ export type {
   PlayLimit,
   TranscriptPolicy,
 } from './model';
-export { AUDIO_DEFAULT, audioOf, audioOn, formatDuration, hasClip, segmentOf } from './model';
+export {
+  AUDIO_DEFAULT,
+  audioOf,
+  audioOn,
+  formatDuration,
+  formatTimecode,
+  hasClip,
+  segmentOf,
+} from './model';
 
 export type {
   AllowanceContext,

@@ -17,39 +17,16 @@
  * retry keeps or what a token shows.
  */
 
+import { tokenize, type Token } from '../../../lib/text/words';
+
 /* ── The tokenizer ─────────────────────────────────────────────────────────── */
 
 /**
- * A word as the grader sees it — SPEC_data_model §2.
- *
- * **A copy of the kernel's expression** (`shared-kernel/src/highlight-in-text/tokenize.ts`),
- * because this app does not consume the kernel. It must stay character for character the
- * same: a device that tokenized differently from the engine would send marks one token off,
- * and the engine refuses a mark that covers no token at all (`HT_MARK_UNSNAPPABLE`). The test
- * runs the kernel's own fixture (`TOKENIZER_FIXTURE`, AC-M1), and the engine's suite runs it
- * too — change one side and the other fails.
+ * A word as the grader sees it — SPEC_data_model §2. The one copy of the kernel's expression
+ * in this app lives in `lib/text/words.ts` (plan 68, Q1-A); re-exported here so this
+ * template's callers and its fixture test read it where they always have.
  */
-const WORD = /[\p{L}\p{N}]+(?:[-'’][\p{L}\p{N}]+)*/gu;
-
-export interface Token {
-  /** Position in the passage, from 0. */
-  i: number;
-  /** The word as written. */
-  w: string;
-  /** Character offset of its first character. */
-  s: number;
-  /** Character offset one past its last character. */
-  e: number;
-}
-
-export function tokenize(text: string): Token[] {
-  const out: Token[] = [];
-  for (const m of (text ?? '').matchAll(WORD)) {
-    const s = m.index ?? 0;
-    out.push({ i: out.length, w: m[0], s, e: s + m[0].length });
-  }
-  return out;
-}
+export { tokenize, type Token };
 
 /** Inclusive token indices. */
 export interface TokenRun {

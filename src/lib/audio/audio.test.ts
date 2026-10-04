@@ -14,6 +14,7 @@ import {
   canPlay,
   deliveredSegments,
   formatDuration,
+  formatTimecode,
   hasHeard,
   INITIAL_STATE,
   isExhausted,
@@ -172,5 +173,11 @@ describe('what the wire carries', () => {
   it('prints the one time format the player and the fragment chip share', () => {
     expect(formatDuration(96)).toBe('1:36');
     expect(formatDuration(0)).toBe('0:00');
+  });
+
+  it('prints a tenth on a fragment chip only where there is one', () => {
+    expect(formatTimecode(5)).toBe('0:05');
+    expect(formatTimecode(5.46)).toBe('0:05.5');
+    expect(formatTimecode(96.4)).toBe('1:36.4');
   });
 });
