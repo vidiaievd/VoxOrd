@@ -175,7 +175,8 @@ export type ExerciseTemplateCode =
   | 'sentence_schema'
   | 'multiple_choice_group'
   | 'sort_into_buckets'
-  | 'highlight_in_text';
+  | 'highlight_in_text'
+  | 'dictation';
 
 export interface ExerciseInstruction {
   id: string;

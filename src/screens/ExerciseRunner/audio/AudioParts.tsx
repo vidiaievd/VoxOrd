@@ -63,8 +63,21 @@ export function AudioGateScreen({
   );
 }
 
-/** Why the items are not answering yet — BEHAVIOR.md §7. */
-export function AudioLockNote({ itemNoun, own = false }: { itemNoun?: string; own?: boolean }) {
+/**
+ * Why the items are not answering yet — BEHAVIOR.md §7.
+ *
+ * `message` replaces the sentence outright, for a body whose locked thing is not "items" at
+ * all — `dictation` locks its field (plan 68, as the web's `AudioLockNote` does).
+ */
+export function AudioLockNote({
+  itemNoun,
+  own = false,
+  message,
+}: {
+  itemNoun?: string;
+  own?: boolean;
+  message?: string;
+}) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
@@ -72,7 +85,9 @@ export function AudioLockNote({ itemNoun, own = false }: { itemNoun?: string; ow
   // `own` is the per-item source (plan 56 phase 6): the clip belongs to this one item,
   // so the sentence is about it and not about "the clip" of the exercise.
   const text =
-    itemNoun === undefined
+    message !== undefined
+      ? message
+      : itemNoun === undefined
       ? t('exerciseRunner.audio.lockNote')
       : own
       ? t('exerciseRunner.audio.lockNoteOwn', { item: itemNoun })

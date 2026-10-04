@@ -483,6 +483,62 @@ export interface Translations {
       unavailable: string;
       unavailableDesc: string;
     };
+    /** `dictation` — a recording written down a sentence at a time (plan 68). */
+    dictation: {
+      check: string;
+      retry: string;
+      showKey: string;
+      next: string;
+      finish: string;
+      attempt: string; // '{n}'
+      attemptOf: string; // '{n}', '{max}'
+      fieldSentence: string; // '{n}'
+      fieldWhole: string;
+      words: PluralForms; // '{count}'
+      /** Typed of expected, under `showWordCount`. */
+      wordsOf: PluralForms; // '{n}', '{count}'
+      placeholder: string;
+      placeholderGated: string;
+      corrected: string;
+      key: string;
+      passed: string;
+      /** The verdict's head; the typo count and the half-credit note follow it. */
+      verdictHead: PluralForms; // '{correct}', '{count}'
+      typos: PluralForms; // '{count}'
+      halfCredit: string;
+      focusDefault: string;
+      lockNote: string;
+      rail: string; // '{n}', '{total}'
+      summaryCount: PluralForms; // '{n}', '{count}'
+      summarySub: string;
+      tally: {
+        eq: string; // '{n}'
+        near: string; // '{n}'
+        wrong: string; // '{n}'
+        missing: string; // '{n}'
+        extra: string; // '{n}'
+      };
+      legend: {
+        eq: string;
+        near: string;
+        wrong: string;
+        missing: string;
+        extra: string;
+      };
+      /** Read out for one deviation in the corrected line (AC-X11). */
+      sr: {
+        sub: string; // '{wrote}', '{expected}'
+        missing: string; // '{expected}'
+        extra: string; // '{wrote}'
+      };
+      sendFailed: string;
+      closedAlready: string;
+      tooFast: string;
+      empty: string;
+      emptyDesc: string;
+      unavailable: string;
+      unavailableDesc: string;
+    };
     resultsExcellentTitle: string;
     resultsExcellentMessage: string;
     resultsGoodTitle: string;

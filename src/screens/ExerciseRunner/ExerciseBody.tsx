@@ -21,6 +21,7 @@ import { WritingTaskBody } from './WritingTaskBody';
 import { MultipleChoiceGroupBody } from './MultipleChoiceGroupBody';
 import { SortIntoBucketsBody } from './SortIntoBucketsBody';
 import { HighlightInTextBody } from './HighlightInTextBody';
+import { DictationBody } from './DictationBody';
 
 /**
  * Contract every per-template body implements (Phase 4.2+). A body is a
@@ -136,12 +137,13 @@ export interface ExerciseBodyProps {
  *
  * `highlight_in_text` (plan 67) is here for the same reason a question at a time: each
  * question is checked by a submit onto the one attempt, and the submit that closes the last
- * question closes the item.
+ * question closes the item. `dictation` (plan 68) is the same mechanism a sentence at a time.
  */
 const BODY_OWNS_CHECK: ReadonlySet<string> = new Set([
   'multiple_choice_group',
   'sort_into_buckets',
   'highlight_in_text',
+  'dictation',
 ]);
 
 export function bodyOwnsCheck(templateCode: string): boolean {
@@ -177,7 +179,7 @@ function UnsupportedTemplateBody({ display, onAnswerChange }: ExerciseBodyProps)
  * Dispatches to the body component for a template. Steps 4.2–4.5 add cases
  * here (multiple_choice, fill_in_blank, translate_*, match_pairs,
  * sentence_schema, short_answer, writing_task, multiple_choice_group,
- * sort_into_buckets, highlight_in_text); everything else falls
+ * sort_into_buckets, highlight_in_text, dictation); everything else falls
  * through to the placeholder.
  */
 export function ExerciseBody(props: ExerciseBodyProps) {
@@ -203,6 +205,8 @@ export function ExerciseBody(props: ExerciseBodyProps) {
       return <SortIntoBucketsBody {...props} />;
     case 'highlight_in_text':
       return <HighlightInTextBody {...props} />;
+    case 'dictation':
+      return <DictationBody {...props} />;
     default:
       return <UnsupportedTemplateBody {...props} />;
   }

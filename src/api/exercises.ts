@@ -401,6 +401,15 @@ export interface PickedOption {
  */
 export type QuestionStateRow = unknown;
 
+/**
+ * One sentence of a `dictation` exercise already checked or revealed in the open attempt
+ * (plan 68, phase 4). Its own field beside `questionStates`, as the engine names it: the
+ * shapes differ — a sentence carries the last checked text, the corrected line the learner
+ * was shown, and the sentence once revealed. Read as `unknown` and parsed by the template
+ * module, which owns the shape.
+ */
+export type SegmentStateRow = unknown;
+
 /** The open attempt at this exercise, as far as a resuming runner needs it. */
 export interface OpenAttempt {
   attemptId: string;
@@ -408,6 +417,7 @@ export interface OpenAttempt {
   checkedRows: CheckedRow[];
   pickedOptions: PickedOption[];
   questionStates: QuestionStateRow[];
+  segmentStates: SegmentStateRow[];
 }
 
 interface AttemptListRow {
@@ -417,6 +427,7 @@ interface AttemptListRow {
   checkedRows?: CheckedRow[] | null;
   pickedOptions?: PickedOption[] | null;
   questionStates?: QuestionStateRow[] | null;
+  segmentStates?: SegmentStateRow[] | null;
 }
 
 /**
@@ -440,6 +451,7 @@ export async function findOpenAttempt(exerciseId: string): Promise<OpenAttempt |
       checkedRows: open.checkedRows ?? [],
       pickedOptions: open.pickedOptions ?? [],
       questionStates: open.questionStates ?? [],
+      segmentStates: open.segmentStates ?? [],
     };
   } catch {
     return null;
