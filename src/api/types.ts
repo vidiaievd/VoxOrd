@@ -174,7 +174,8 @@ export type ExerciseTemplateCode =
   | 'writing_task'
   | 'sentence_schema'
   | 'multiple_choice_group'
-  | 'sort_into_buckets';
+  | 'sort_into_buckets'
+  | 'highlight_in_text';
 
 export interface ExerciseInstruction {
   id: string;

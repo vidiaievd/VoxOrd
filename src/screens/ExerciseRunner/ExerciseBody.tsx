@@ -20,6 +20,7 @@ import { ShortAnswerBody } from './ShortAnswerBody';
 import { WritingTaskBody } from './WritingTaskBody';
 import { MultipleChoiceGroupBody } from './MultipleChoiceGroupBody';
 import { SortIntoBucketsBody } from './SortIntoBucketsBody';
+import { HighlightInTextBody } from './HighlightInTextBody';
 
 /**
  * Contract every per-template body implements (Phase 4.2+). A body is a
@@ -132,10 +133,15 @@ export interface ExerciseBodyProps {
  * the closing submit are the same call, so a footer Check under the block's own Check
  * would either be dead or be a second check the engine refuses (plan 54 §8 Q6). The
  * engine's own name for the set is `WHOLE_BOARD_CHECKS` (plan 66 phase 4).
+ *
+ * `highlight_in_text` (plan 67) is here for the same reason a question at a time: each
+ * question is checked by a submit onto the one attempt, and the submit that closes the last
+ * question closes the item.
  */
 const BODY_OWNS_CHECK: ReadonlySet<string> = new Set([
   'multiple_choice_group',
   'sort_into_buckets',
+  'highlight_in_text',
 ]);
 
 export function bodyOwnsCheck(templateCode: string): boolean {
@@ -171,7 +177,7 @@ function UnsupportedTemplateBody({ display, onAnswerChange }: ExerciseBodyProps)
  * Dispatches to the body component for a template. Steps 4.2–4.5 add cases
  * here (multiple_choice, fill_in_blank, translate_*, match_pairs,
  * sentence_schema, short_answer, writing_task, multiple_choice_group,
- * sort_into_buckets); everything else falls
+ * sort_into_buckets, highlight_in_text); everything else falls
  * through to the placeholder.
  */
 export function ExerciseBody(props: ExerciseBodyProps) {
@@ -195,6 +201,8 @@ export function ExerciseBody(props: ExerciseBodyProps) {
       return <MultipleChoiceGroupBody {...props} />;
     case 'sort_into_buckets':
       return <SortIntoBucketsBody {...props} />;
+    case 'highlight_in_text':
+      return <HighlightInTextBody {...props} />;
     default:
       return <UnsupportedTemplateBody {...props} />;
   }

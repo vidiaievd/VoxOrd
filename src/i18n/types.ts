@@ -443,6 +443,46 @@ export interface Translations {
       unavailable: string;
       unavailableDesc: string;
     };
+    /** Plan 67: words marked in a passage, a question at a time on one attempt. */
+    highlightInText: {
+      check: string;
+      checkCount: string; // '{n}'
+      retry: string;
+      showKey: string;
+      next: string;
+      clear: string;
+      attempt: string; // '{n}'
+      attemptOf: string; // '{n}', '{max}'
+      tapWords: string;
+      tapOrDrag: string;
+      count: string; // '{n}'
+      marked: string; // '{n}'
+      markedOf: string; // '{n}', '{total}'
+      verdict: string; // '{correct}', '{total}'
+      verdictExtra: string; // '{correct}', '{total}', '{fp}'
+      score: string; // '{pct}'
+      /** When extra marks cost something and the percentage is after the deduction. */
+      scoreAfter: string; // '{pct}'
+      near: PluralForms; // '{count}'
+      /** The live region: counts first and alone (AC-X8). */
+      announce: string; // '{correct}', '{total}'
+      announceExtra: string; // '{correct}', '{total}', '{fp}'
+      rail: string; // '{n}', '{total}', '{done}'
+      legendRight: string;
+      legendExtra: string;
+      legendMissed: string;
+      legendKey: string;
+      /** Read out on a word the student has marked. */
+      stateMarked: string;
+      /** Read out on a word of a partial hit. */
+      stateNear: string;
+      sendFailed: string;
+      closedAlready: string;
+      empty: string;
+      emptyDesc: string;
+      unavailable: string;
+      unavailableDesc: string;
+    };
     resultsExcellentTitle: string;
     resultsExcellentMessage: string;
     resultsGoodTitle: string;

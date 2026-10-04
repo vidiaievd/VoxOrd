@@ -390,12 +390,24 @@ export interface PickedOption {
   revealed: boolean;
 }
 
+/**
+ * One question of a `highlight_in_text` exercise already checked in the open attempt
+ * (plan 67, §8 caveat 7).
+ *
+ * `checks` and `closed` are what must survive a reload: the first check of each question is
+ * the evidence and its budget is per question, so an exercise replayed from the top would
+ * hand out a fresh first try. Read as `unknown` and parsed by the template module, which owns
+ * the shape.
+ */
+export type QuestionStateRow = unknown;
+
 /** The open attempt at this exercise, as far as a resuming runner needs it. */
 export interface OpenAttempt {
   attemptId: string;
   answeredQuestions: AnsweredQuestion[];
   checkedRows: CheckedRow[];
   pickedOptions: PickedOption[];
+  questionStates: QuestionStateRow[];
 }
 
 interface AttemptListRow {
@@ -404,6 +416,7 @@ interface AttemptListRow {
   answeredQuestions?: AnsweredQuestion[] | null;
   checkedRows?: CheckedRow[] | null;
   pickedOptions?: PickedOption[] | null;
+  questionStates?: QuestionStateRow[] | null;
 }
 
 /**
@@ -426,6 +439,7 @@ export async function findOpenAttempt(exerciseId: string): Promise<OpenAttempt |
       answeredQuestions: open.answeredQuestions ?? [],
       checkedRows: open.checkedRows ?? [],
       pickedOptions: open.pickedOptions ?? [],
+      questionStates: open.questionStates ?? [],
     };
   } catch {
     return null;
