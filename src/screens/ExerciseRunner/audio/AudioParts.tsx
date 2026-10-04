@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTranslation } from '../../../i18n';
 import { useTheme } from '../../../providers/ThemeProvider';
 import { ColorScheme } from '../../../theme/colors';
-import { formatDuration, type ExerciseAudio, type ItemAudio } from '../../../lib/audio';
+import { formatTimecode, type ExerciseAudio, type ItemAudio } from '../../../lib/audio';
 import type { ExerciseAudioEngine } from '../../../hooks/useExerciseAudio';
 import { ExerciseAudioPlayer } from './ExerciseAudioPlayer';
 
@@ -141,8 +141,8 @@ export function AudioSegmentButton({
       <Text style={[styles.fragmentText, active && styles.fragmentTextActive]}>
         {active && eng.playing ? '■ ' : '▶ '}
         {t('exerciseRunner.audio.fragment', {
-          from: formatDuration(segment.start),
-          to: formatDuration(segment.end),
+          from: formatTimecode(segment.start),
+          to: formatTimecode(segment.end),
         })}
       </Text>
     </TouchableOpacity>
