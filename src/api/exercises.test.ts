@@ -1,4 +1,9 @@
-import { answerQuestion, checkRow, findOpenAttempt } from './exercises';
+import {
+  answerQuestion,
+  checkRow,
+  findOpenAttempt,
+  findOpenBoardCheck,
+} from './exercises';
 import { apiClient } from './client';
 
 jest.mock('./client', () => ({
@@ -237,5 +242,63 @@ describe('answerQuestion', () => {
       optionId: null,
       reveal: true,
     });
+  });
+});
+
+/**
+ * A whole table is scored by its first check and never sits IN_PROGRESS between checks, so the
+ * engine resumes it from its scored row (plan 69, phase 9) and this is how the phone sees it.
+ */
+describe('findOpenBoardCheck', () => {
+  const open = { closed: false, checksLeft: 1, items: [] };
+  const board = (overrides: Record<string, unknown> = {}) => ({
+    id: 'att-1',
+    status: 'SCORED',
+    templateCode: 'inflection_table',
+    validationDetails: open,
+    ...overrides,
+  });
+
+  it('returns the last check of a table the engine left open', async () => {
+    mockGet.mockResolvedValue({ items: [board()] });
+
+    await expect(findOpenBoardCheck('ex-1')).resolves.toEqual(open);
+  });
+
+  it('is null once the table is closed', async () => {
+    mockGet.mockResolvedValue({
+      items: [board({ validationDetails: { closed: true, items: [] } })],
+    });
+
+    await expect(findOpenBoardCheck('ex-1')).resolves.toBeNull();
+  });
+
+  it('is null when a newer attempt has taken over', async () => {
+    mockGet.mockResolvedValue({
+      items: [
+        board({ id: 'att-2', validationDetails: { closed: true, items: [] } }),
+        board(),
+      ],
+    });
+
+    await expect(findOpenBoardCheck('ex-1')).resolves.toBeNull();
+  });
+
+  it('ignores another template and an attempt still opening', async () => {
+    mockGet.mockResolvedValue({
+      items: [board({ templateCode: 'sort_into_buckets' })],
+    });
+    await expect(findOpenBoardCheck('ex-1')).resolves.toBeNull();
+
+    mockGet.mockResolvedValue({
+      items: [board({ id: 'att-0', status: 'IN_PROGRESS' }), board()],
+    });
+    await expect(findOpenBoardCheck('ex-1')).resolves.toEqual(open);
+  });
+
+  it('fails soft: a lost request plays the table from the top', async () => {
+    mockGet.mockRejectedValue(new Error('offline'));
+
+    await expect(findOpenBoardCheck('ex-1')).resolves.toBeNull();
   });
 });

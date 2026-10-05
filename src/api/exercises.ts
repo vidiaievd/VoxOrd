@@ -431,6 +431,37 @@ interface AttemptListRow {
 }
 
 /**
+ * The last check of an `inflection_table` that was scored but left open, or `null` (plan 69,
+ * phase 9).
+ *
+ * A whole table is scored by its first check, so unlike a question-by-question set it is never
+ * `IN_PROGRESS` between checks and `findOpenAttempt` cannot see it. It is the newest attempt
+ * that is not still opening, and only when its last check left the table open — the engine's
+ * own rule for what it will resume, so that a start made afterwards joins this very attempt.
+ * The details are returned as the engine stored them, for the template module to parse.
+ *
+ * Fails soft, as `findOpenAttempt` does: a table that cannot be resumed is played from the top.
+ */
+export async function findOpenBoardCheck(exerciseId: string): Promise<unknown> {
+  try {
+    const page = await apiClient.get<{
+      items: Array<{
+        status: string;
+        templateCode?: string;
+        validationDetails?: unknown;
+      }>;
+    }>(ATTEMPTS_PATH(exerciseId), { query: { limit: 5 } });
+    const newest = (page.items ?? []).find(a => a.status !== 'IN_PROGRESS');
+    if (!newest || newest.status !== 'SCORED') return null;
+    if (newest.templateCode !== 'inflection_table') return null;
+    const details = newest.validationDetails as { closed?: unknown } | null;
+    return details?.closed === false ? details : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * `GET /exercises/:exerciseId/attempts?status=IN_PROGRESS` — the attempt this
  * learner has open at this exercise, or `null`.
  *

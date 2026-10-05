@@ -22,6 +22,7 @@ import { MultipleChoiceGroupBody } from './MultipleChoiceGroupBody';
 import { SortIntoBucketsBody } from './SortIntoBucketsBody';
 import { HighlightInTextBody } from './HighlightInTextBody';
 import { DictationBody } from './DictationBody';
+import { InflectionTableBody } from './InflectionTableBody';
 
 /**
  * Contract every per-template body implements (Phase 4.2+). A body is a
@@ -144,6 +145,7 @@ const BODY_OWNS_CHECK: ReadonlySet<string> = new Set([
   'sort_into_buckets',
   'highlight_in_text',
   'dictation',
+  'inflection_table',
 ]);
 
 export function bodyOwnsCheck(templateCode: string): boolean {
@@ -179,7 +181,7 @@ function UnsupportedTemplateBody({ display, onAnswerChange }: ExerciseBodyProps)
  * Dispatches to the body component for a template. Steps 4.2–4.5 add cases
  * here (multiple_choice, fill_in_blank, translate_*, match_pairs,
  * sentence_schema, short_answer, writing_task, multiple_choice_group,
- * sort_into_buckets, highlight_in_text, dictation); everything else falls
+ * sort_into_buckets, highlight_in_text, dictation, inflection_table); everything else falls
  * through to the placeholder.
  */
 export function ExerciseBody(props: ExerciseBodyProps) {
@@ -207,6 +209,8 @@ export function ExerciseBody(props: ExerciseBodyProps) {
       return <HighlightInTextBody {...props} />;
     case 'dictation':
       return <DictationBody {...props} />;
+    case 'inflection_table':
+      return <InflectionTableBody {...props} />;
     default:
       return <UnsupportedTemplateBody {...props} />;
   }

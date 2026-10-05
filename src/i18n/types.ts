@@ -222,6 +222,7 @@ export interface Translations {
         pieces: string;
         lines: string;
         items: string;
+        cells: string;
       };
     };
     loadError: string;
@@ -476,6 +477,38 @@ export interface Translations {
       stateMarked: string;
       /** Read out on a word of a partial hit. */
       stateNear: string;
+      sendFailed: string;
+      closedAlready: string;
+      empty: string;
+      emptyDesc: string;
+      unavailable: string;
+      unavailableDesc: string;
+    };
+    /** Plan 69: a paradigm table of lemmas × forms, checked as one block. */
+    inflectionTable: {
+      defaultInstruction: string;
+      check: string;
+      retryWrong: string; // '{n}', '{max}'
+      progress: string;
+      bankLabel: string;
+      bankHint: string;
+      bankSelected: string; // '{form}'
+      cellFor: string; // '{lemma}', '{slot}'
+      cellRight: string;
+      cellWrong: string;
+      /** Bank mode: a filled cell with nothing in hand. */
+      cellClear: string;
+      rowAll: string;
+      rowPart: string; // '{ok}', '{n}'
+      score: PluralForms; // '{k}', '{count}'
+      passed: string;
+      below: string; // '{pct}'
+      wrote: string;
+      blank: string;
+      allRight: PluralForms; // '{count}'
+      nearDiacritic: string;
+      nearEnding: string;
+      doneHint: string;
       sendFailed: string;
       closedAlready: string;
       empty: string;

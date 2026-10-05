@@ -176,7 +176,8 @@ export type ExerciseTemplateCode =
   | 'multiple_choice_group'
   | 'sort_into_buckets'
   | 'highlight_in_text'
-  | 'dictation';
+  | 'dictation'
+  | 'inflection_table';
 
 export interface ExerciseInstruction {
   id: string;
