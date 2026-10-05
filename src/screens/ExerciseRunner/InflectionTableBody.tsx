@@ -14,7 +14,10 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { ApiError } from '../../api/client';
-import type { AudioTranscript as AudioTranscriptWords } from '../../api/exercises';
+import {
+  findOpenBoardCheck,
+  type AudioTranscript as AudioTranscriptWords,
+} from '../../api/exercises';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
@@ -155,6 +158,39 @@ function InflectionTableRun({
     onAnswerChange(null, false);
   }, [onAnswerChange]);
 
+  /**
+   * Pick up a table this learner left after a check with checks to spare: the cells as they
+   * were written, the verdict that came with them, the frozen set and the budget already
+   * spent. The first check is the evidence and its budget is the author's, so replaying from
+   * an empty table would hand out a fresh first try. Read rather than started — the engine
+   * joins this very attempt when the next check opens one — so that opening a table and
+   * leaving creates nothing.
+   */
+  const [resuming, setResuming] = useState(true);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const back = readInflectionTableVerdict(await findOpenBoardCheck(display.id));
+      if (cancelled) return;
+      if (back !== null && !back.closed) {
+        setValues(
+          Object.fromEntries(
+            back.items
+              .filter(item => item.value !== '')
+              .map(item => [item.itemId, item.value]),
+          ),
+        );
+        setVerdict(back);
+        setLocked(back.locked);
+        setAttempt(back.attempt);
+      }
+      setResuming(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [display.id]);
+
   const { rows, slots, settings } = table;
   const bank = settings.input === 'bank';
   const keys = useMemo(() => askedKeys(table), [table]);
@@ -242,6 +278,14 @@ function InflectionTableRun({
     setHeld(null);
     setError(null);
   }, [locked, verdict]);
+
+  if (resuming) {
+    return (
+      <View style={styles.notice}>
+        <ActivityIndicator color={colors.accent} />
+      </View>
+    );
+  }
 
   if (rows.length === 0 || total === 0) {
     return (
