@@ -113,6 +113,7 @@ export function ReadAloudBody({
   checkTable,
   finishTable,
   openAttempt,
+  openedContent,
   createPort = createNativeRecorder,
 }: ReadAloudBodyProps) {
   const { t } = useTranslation();
@@ -136,7 +137,13 @@ export function ReadAloudBody({
     | { kind: 'card'; opening: Opening }
     | { kind: 'opening'; opening: Opening }
     | { kind: 'error'; opening: Opening }
-    | { kind: 'run'; attemptId: string; draft: Draft | null }
+    | {
+        kind: 'run';
+        attemptId: string;
+        draft: Draft | null;
+        /** The projection the attempt's start answered — it knows the carried prompts. */
+        content: ReadAloudContent;
+      }
     | { kind: 'sent'; recordings: SubmittedRecording[] }
     | {
         kind: 'graded';
@@ -212,7 +219,10 @@ export function ReadAloudBody({
           );
           draft = verifiedDraft(opening.draft, attemptId, assets);
         }
-        setStage({ kind: 'run', attemptId, draft });
+        // The start knows what the display does not: the prompts carried from the try before.
+        const used = readReadAloudContent(openedContent?.()) ?? content;
+        if (used === null) throw new Error('No content');
+        setStage({ kind: 'run', attemptId, draft, content: used });
       } catch {
         setStage({ kind: 'error', opening });
       }
@@ -332,7 +342,7 @@ export function ReadAloudBody({
           key={stage.attemptId}
           exerciseId={exerciseId}
           attemptId={stage.attemptId}
-          content={content}
+          content={stage.content}
           title={title}
           instruction={instruction}
           initialDraft={stage.draft}

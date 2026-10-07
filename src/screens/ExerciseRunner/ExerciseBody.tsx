@@ -130,6 +130,11 @@ export interface ExerciseBodyProps {
    */
   openAttempt: () => Promise<string>;
   /**
+   * What the start of that attempt answered as the exercise's content — `read_aloud` reads from
+   * it the prompts carried from the try before, which the plain display does not know.
+   */
+  openedContent?: () => Record<string, unknown> | null;
+  /**
    * Leave the runner for the lesson this exercise was set on — `multiple_choice_group`'s
    * «To the text» in `link` mode (plan 54 Q5).
    *

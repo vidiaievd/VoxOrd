@@ -255,25 +255,30 @@ describe('ReadAloudBody', () => {
 
   it('records only the prompts still to do and lists the carried ones (plan 70, phase 11b)', async () => {
     const base = content();
-    const withCarried = {
-      ...display(),
-      content: {
-        ...base,
-        prompts: [
-          {
-            id: 'p0',
-            label: 'Avsnitt 0',
-            minSeconds: 5,
-            maxSeconds: 30,
-            prepSeconds: 0,
-            text: 'Hei.',
-          },
-          ...base.prompts,
-        ],
-        carried: [{ itemId: 'p0', attempt: 1 }],
+    const prompts = [
+      {
+        id: 'p0',
+        label: 'Avsnitt 0',
+        minSeconds: 5,
+        maxSeconds: 30,
+        prepSeconds: 0,
+        text: 'Hei.',
       },
+      ...base.prompts,
+    ];
+    // The display (`/display`) knows nothing of a return; only the attempt's start does.
+    const plain = {
+      ...display(),
+      content: { ...base, prompts },
     } as unknown as ExerciseDisplay;
-    const m = await mount({ overrides: { display: withCarried } });
+    const started = {
+      ...base,
+      prompts,
+      carried: [{ itemId: 'p0', attempt: 1 }],
+    };
+    const m = await mount({
+      overrides: { display: plain, openedContent: () => started },
+    });
     await m.press('readAloud.card.start');
 
     expect(m.texts()).toContain('readAloud.carried.title {"count":1}');

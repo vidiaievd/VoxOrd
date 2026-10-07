@@ -102,6 +102,12 @@ export interface ExerciseRunnerController {
    * attempt they were made for. `checkTable` then submits onto this same attempt.
    */
   openAttempt: () => Promise<string>;
+  /**
+   * The exercise as the attempt's start answered it — the projection with what only an attempt
+   * knows (`read_aloud`: the prompts carried from the try before). Null until an attempt was
+   * opened through `openAttempt`.
+   */
+  openedContent: () => Record<string, unknown> | null;
   /** Footer "Check": start + submit an attempt and grade server-side. */
   check: () => void;
   /** Footer "Continue": advance to the next item (or complete the set). */
@@ -151,6 +157,7 @@ export function useExerciseRunner(
   // same attempt, or the questions already handed in would be left on an
   // abandoned row (plan 51 §3.3). Cleared when a fresh item loads and on a retry.
   const attemptIdRef = useRef<string | null>(null);
+  const startedContentRef = useRef<Record<string, unknown> | null>(null);
   // Serialises the lazy open, so two quick taps cannot start two attempts.
   const openingRef = useRef<Promise<string> | null>(null);
 
@@ -230,12 +237,14 @@ export function useExerciseRunner(
       // asked for only by a body that keeps work on it between sessions — everywhere else
       // a 409 stays what it was.
       const start = join ? startOrJoinAttempt : startAttempt;
+      startedContentRef.current = null;
       const pending = start(exerciseId, {
         language: display.targetLanguage,
         mode: 'PRACTICE',
       })
         .then(attempt => {
           attemptIdRef.current = attempt.attemptId;
+          startedContentRef.current = attempt.exerciseContent ?? null;
           return attempt.attemptId;
         })
         .finally(() => {
@@ -298,6 +307,8 @@ export function useExerciseRunner(
     },
     [openExerciseId, openDisplay, openAttempt, uiLanguage],
   );
+
+  const openedContent = useCallback(() => startedContentRef.current, []);
 
   const openForBody = useCallback(async (): Promise<string> => {
     if (!openExerciseId || !openDisplay) {
@@ -416,6 +427,7 @@ export function useExerciseRunner(
     checkTable,
     finishTable,
     openAttempt: openForBody,
+    openedContent,
     check,
     advance,
     retry,
