@@ -253,6 +253,47 @@ describe('ReadAloudBody', () => {
     expect(m.texts()).toContain('readAloud.sentTitle');
   });
 
+  it('records only the prompts still to do and lists the carried ones (plan 70, phase 11b)', async () => {
+    const base = content();
+    const withCarried = {
+      ...display(),
+      content: {
+        ...base,
+        prompts: [
+          {
+            id: 'p0',
+            label: 'Avsnitt 0',
+            minSeconds: 5,
+            maxSeconds: 30,
+            prepSeconds: 0,
+            text: 'Hei.',
+          },
+          ...base.prompts,
+        ],
+        carried: [{ itemId: 'p0', attempt: 1 }],
+      },
+    } as unknown as ExerciseDisplay;
+    const m = await mount({ overrides: { display: withCarried } });
+    await m.press('readAloud.card.start');
+
+    expect(m.texts()).toContain('readAloud.carried.title {"count":1}');
+    expect(m.texts()).toContain('readAloud.carried.inAttempt {"attempt":1}');
+    expect(m.texts()).toContain('readAloud.progress {"n":1,"total":1}');
+
+    await recordTake(m);
+    m.checkTable.mockResolvedValue({
+      attemptId: 'att-1',
+      correct: false,
+      score: null,
+      requiresReview: true,
+      feedback: { summary: '' },
+    });
+    await m.press('readAloud.submit');
+    expect(m.checkTable).toHaveBeenCalledWith({
+      recordings: [{ itemId: 'p1', assetId: 'asset-1', seconds: 20, takes: 1 }],
+    });
+  });
+
   it('keeps the hand-in off while a take is short, and says which', async () => {
     const m = await mount();
     await m.press('readAloud.card.start');

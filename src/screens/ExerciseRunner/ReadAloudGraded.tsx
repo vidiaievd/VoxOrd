@@ -6,7 +6,7 @@ import { ColorScheme } from '../../theme/colors';
 import {
   readMarks,
   readSpeakingSnapshot,
-  scorePrompts,
+  scoreSubmission,
   type ShowModelPolicy,
   type ShowRubricPolicy,
   type SubmittedRecording,
@@ -39,7 +39,7 @@ export interface ReadAloudGradedProps {
  * and the teacher's comment. The head says how the whole went — the outcome, and for more than
  * one prompt how many passed.
  *
- * The points are added up with the function the server used (`scorePrompts`, mirrored from the
+ * The points are added up with the function the server used (`scoreSubmission`, mirrored from the
  * kernel), against the snapshot it froze — so the number and the chip cannot come apart. The
  * verdict itself is the server's (`passed`, `approved` per prompt): nothing here decides it.
  */
@@ -65,7 +65,7 @@ export function ReadAloudGraded({
   const marks = readMarks(verdict.marks);
   const itemIds = recordings.map(r => r.itemId);
   const score =
-    snapshot === null ? null : scorePrompts(snapshot, marks, itemIds);
+    snapshot === null ? null : scoreSubmission(snapshot, marks, recordings);
   const byItem = new Map(verdict.decisions.map(d => [d.itemId, d]));
   const criteria =
     showRubric === 'never' || snapshot === null
@@ -147,7 +147,11 @@ export function ReadAloudGraded({
                         },
                       ]}
                     >
-                      {decision.approved
+                      {r.carried
+                        ? t('exerciseRunner.readAloud.carried.inAttempt', {
+                            attempt: r.carried.attempt,
+                          })
+                        : decision.approved
                         ? t('exerciseRunner.readAloud.graded.promptPassed')
                         : t('exerciseRunner.readAloud.graded.promptAgain')}
                     </Text>

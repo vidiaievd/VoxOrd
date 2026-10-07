@@ -579,6 +579,10 @@ export const ru: Translations = {
       },
       sentTitle: 'Сдано.',
       sentBody: 'Преподаватель прослушает запись и ответит в течение 48 часов. Вы получите уведомление.',
+      carried: {
+        title: 'Уже зачтено ({count})',
+        inAttempt: 'зачтено в попытке {attempt}',
+      },
       submittedTake: 'Сданная запись: {label}',
       refused: {
         retake: 'Запись для «{labels}» не принята — запишите её заново.',

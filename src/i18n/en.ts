@@ -584,6 +584,10 @@ export const en: Translations = {
       },
       sentTitle: 'Handed in.',
       sentBody: "The teacher listens to the recording and answers within 48 hours. You'll be notified.",
+      carried: {
+        title: 'Already passed ({count})',
+        inAttempt: 'passed in attempt {attempt}',
+      },
       submittedTake: 'Handed-in recording: {label}',
       refused: {
         retake: 'The recording for {labels} was not accepted — record it again.',

@@ -443,7 +443,7 @@ interface SessionProps {
 function ReadAloudSession({
   exerciseId,
   attemptId,
-  content,
+  content: whole,
   title,
   instruction,
   initialDraft,
@@ -456,6 +456,34 @@ function ReadAloudSession({
   colors,
 }: SessionProps) {
   const [port] = useState(createPort);
+  /*
+   * Prompts passed on an earlier try are not recorded again (phase 11b): the recorder, its
+   * counter and the hand-in hold only the prompts still to do, and the passed ones are listed
+   * above it. The server glues them back on, so the submission carries the new ones alone.
+   */
+  const { content, carried } = useMemo(() => {
+    const passed = new Map((whole.carried ?? []).map(c => [c.itemId, c.attempt]));
+    return {
+      content: {
+        ...whole,
+        prompts: whole.prompts.filter(p => !passed.has(p.id)),
+      },
+      carried: whole.prompts.flatMap((p, i) => {
+        const attempt = passed.get(p.id);
+        return attempt === undefined
+          ? []
+          : [
+              {
+                itemId: p.id,
+                label:
+                  p.label.trim() ||
+                  t('exerciseRunner.readAloud.promptN', { n: i + 1 }),
+                attempt,
+              },
+            ];
+      }),
+    };
+  }, [whole, t]);
   const config = useMemo<RecorderConfig>(
     () => ({ prompts: content.prompts, recording: content.recording }),
     [content],
@@ -473,9 +501,9 @@ function ReadAloudSession({
   const playback = useTakePlayback();
 
   const labelOf = (itemId: string) => {
-    const i = content.prompts.findIndex(p => p.id === itemId);
+    const i = whole.prompts.findIndex(p => p.id === itemId);
     return (
-      content.prompts[i]?.label.trim() ||
+      whole.prompts[i]?.label.trim() ||
       t('exerciseRunner.readAloud.promptN', { n: i + 1 })
     );
   };
@@ -714,6 +742,24 @@ function ReadAloudSession({
             <Text key={c.id} style={styles.sub}>
               <Text style={styles.bold}>{c.name}</Text>
               {c.levels[3] || c.desc ? ` — ${c.levels[3] || c.desc}` : ''}
+            </Text>
+          ))}
+        </View>
+      ) : null}
+
+      {carried.length > 0 ? (
+        <View style={styles.carried}>
+          <Text style={styles.carriedTitle}>
+            {t('exerciseRunner.readAloud.carried.title', {
+              count: carried.length,
+            })}
+          </Text>
+          {carried.map(c => (
+            <Text key={c.itemId} style={styles.carriedRow}>
+              ✓ {c.label} —{' '}
+              {t('exerciseRunner.readAloud.carried.inAttempt', {
+                attempt: c.attempt,
+              })}
             </Text>
           ))}
         </View>
@@ -1382,6 +1428,16 @@ const makeStyles = (colors: ColorScheme) =>
       borderRadius: 10,
       backgroundColor: colors.backgroundInput,
     },
+    carried: {
+      gap: 4,
+      padding: 12,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.success,
+      backgroundColor: colors.backgroundInput,
+    },
+    carriedTitle: { fontWeight: '700', color: colors.success },
+    carriedRow: { fontSize: 13, color: colors.success },
     promptLabel: {
       fontSize: 13,
       fontWeight: '700',

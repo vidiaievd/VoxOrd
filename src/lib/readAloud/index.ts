@@ -82,3 +82,6 @@ export type {
   SpeakingSnapshot,
 } from './rubric';
 export { readMarks, readSpeakingSnapshot, scorePrompts } from './rubric';
+
+export type { CarriedPrompt, CarriedRuling } from './carry';
+export { scoreSubmission } from './carry';

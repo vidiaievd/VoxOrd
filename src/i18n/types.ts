@@ -580,6 +580,7 @@ export interface Translations {
       };
       sentTitle: string;
       sentBody: string;
+      carried: { title: string; inAttempt: string }; // '{count}' / '{attempt}'
       submittedTake: string; // '{label}'
       refused: {
         retake: string; // '{labels}'

@@ -56,6 +56,19 @@ describe('readReadAloudContent', () => {
     expect(c?.recording.micCheck).toBe(false);
   });
 
+  it('reads the carried prompts and ignores entries the exercise does not have (phase 11b)', () => {
+    const c = readReadAloudContent({
+      ...PROJECTION,
+      carried: [
+        { itemId: 'p1', attempt: 1 },
+        { itemId: 'gone', attempt: 1 },
+        { itemId: 'p1', attempt: 0 },
+      ],
+    });
+    expect(c?.carried).toEqual([{ itemId: 'p1', attempt: 1 }]);
+    expect(readReadAloudContent(PROJECTION)?.carried).toBeUndefined();
+  });
+
   it('refuses a document carrying the key — never strips it (RA-M5)', () => {
     expect(readReadAloudContent({ ...PROJECTION, review: {} })).toBeNull();
     expect(

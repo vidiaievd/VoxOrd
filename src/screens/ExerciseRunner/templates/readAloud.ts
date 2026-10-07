@@ -74,6 +74,11 @@ export interface ReadAloudContent {
   };
   /** Only under `showRubric: 'always'`, and only the criteria the student may see. */
   rubric?: ReadAloudCriterion[];
+  /**
+   * Prompts passed in an earlier try, which this one does not record again (phase 11b). Set by
+   * the engine on a try that follows a return.
+   */
+  carried?: { itemId: string; attempt: number }[];
 }
 
 /**
@@ -122,6 +127,8 @@ export function readReadAloudContent(value: unknown): ReadAloudContent | null {
     }
   }
 
+  const carried = readCarried(value.carried, prompts);
+
   return {
     title: str(value.title),
     instruction: str(value.instruction),
@@ -131,7 +138,27 @@ export function readReadAloudContent(value: unknown): ReadAloudContent | null {
     recording: readRecording(value.recording),
     settings,
     ...(rubric === undefined ? {} : { rubric }),
+    ...(carried.length === 0 ? {} : { carried }),
   };
+}
+
+/** The web's `readCarried`: an entry for a prompt the exercise does not have is not one. */
+function readCarried(
+  raw: unknown,
+  prompts: readonly ReadAloudPrompt[],
+): { itemId: string; attempt: number }[] {
+  if (!Array.isArray(raw)) return [];
+  const known = new Set(prompts.map(p => p.id));
+  return raw.flatMap(c =>
+    isRecord(c) &&
+    typeof c.itemId === 'string' &&
+    known.has(c.itemId) &&
+    typeof c.attempt === 'number' &&
+    Number.isInteger(c.attempt) &&
+    c.attempt >= 1
+      ? [{ itemId: c.itemId, attempt: c.attempt }]
+      : [],
+  );
 }
 
 function readPrompt(raw: unknown): ReadAloudPrompt | null {

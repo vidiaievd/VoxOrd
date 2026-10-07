@@ -579,6 +579,10 @@ export const uk: Translations = {
       },
       sentTitle: 'Здано.',
       sentBody: 'Викладач прослухає запис і відповість протягом 48 годин. Ви отримаєте сповіщення.',
+      carried: {
+        title: 'Вже зараховано ({count})',
+        inAttempt: 'зараховано в спробі {attempt}',
+      },
       submittedTake: 'Зданий запис: {label}',
       refused: {
         retake: 'Запис для «{labels}» не прийнято — запишіть його знову.',
