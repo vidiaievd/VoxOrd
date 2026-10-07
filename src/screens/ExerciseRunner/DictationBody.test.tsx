@@ -138,6 +138,7 @@ async function mount(overrides: Partial<ExerciseBodyProps> = {}) {
     checkRow: jest.fn(),
     checkTable,
     finishTable,
+    openAttempt: jest.fn(),
     ...overrides,
   };
   let renderer!: ReactTestRenderer.ReactTestRenderer;

@@ -177,7 +177,8 @@ export type ExerciseTemplateCode =
   | 'sort_into_buckets'
   | 'highlight_in_text'
   | 'dictation'
-  | 'inflection_table';
+  | 'inflection_table'
+  | 'read_aloud';
 
 export interface ExerciseInstruction {
   id: string;

@@ -516,6 +516,104 @@ export interface Translations {
       unavailable: string;
       unavailableDesc: string;
     };
+    /** `read_aloud` — speech, recorded on the phone and graded by a teacher (plan 70). */
+    readAloud: {
+      defaultTitle: string;
+      unavailable: string;
+      unavailableDesc: string;
+      loadFailed: string;
+      noPrompts: string;
+      promptN: string; // '{n}'
+      imagePlaceholder: string;
+      rubricGuide: string;
+      progress: string; // '{n}', '{total}'
+      mic: {
+        head: string;
+        hint: string;
+        ok: string;
+        silent: string;
+        ready: string;
+        denied: string;
+        noDevice: string;
+      };
+      retry: string;
+      prep: {
+        head: string;
+        subRead: string;
+        subMonologue: string;
+        subDialogue: string;
+        startNow: string;
+      };
+      countSub: string;
+      rec: {
+        head: string;
+        max: string; // '{time}'
+        stop: string;
+      };
+      idle: {
+        head: string; // '{n}', '{total}'
+        range: string; // '{min}', '{max}'
+      };
+      interrupted: string;
+      takeLabel: string; // '{n}'
+      play: string; // '{label}'
+      pause: string;
+      uploadingTake: string;
+      uploadFailed: string;
+      noListenBack: string;
+      short: string; // '{min}'
+      start: string;
+      again: string; // '{left}'
+      spent: PluralForms; // '{count}'
+      chosenNote: string;
+      prev: string;
+      next: string;
+      submit: string;
+      sending: string;
+      left: PluralForms; // '{count}'
+      tooShort: string; // '{labels}'
+      uploading: string;
+      readByTeacher: string;
+      steps: {
+        atTeacher: string;
+        graded: string;
+      };
+      sentTitle: string;
+      sentBody: string;
+      submittedTake: string; // '{label}'
+      refused: {
+        retake: string; // '{labels}'
+        notReady: string; // '{labels}'
+        length: string; // '{labels}'
+      };
+      mediaUnavailable: string;
+      sendFailed: string;
+      graded: {
+        outcome: {
+          passed: string;
+          rewrite: string;
+          failed: string;
+        };
+        points: string; // '{score}', '{max}'
+        passedCount: string; // '{k}', '{n}'
+        promptPassed: string;
+        promptAgain: string;
+        hidden: string;
+        mark: string; // '{mark}'
+        model: string;
+        redo: string;
+        skip: string;
+      };
+      card: {
+        facts: PluralForms; // '{mode}', '{count}'
+        modeRead: string;
+        modeMonologue: string;
+        modeDialogue: string;
+        rules: PluralForms; // '{count}'
+        rulesListen: PluralForms; // '{count}'
+        start: string;
+      };
+    };
     /** `dictation` — a recording written down a sentence at a time (plan 68). */
     dictation: {
       check: string;

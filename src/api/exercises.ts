@@ -1,4 +1,4 @@
-import { apiClient } from './client';
+import { ApiError, apiClient } from './client';
 import type { DifficultyLevel, ExerciseDisplay, ExerciseTemplateCode } from './types';
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -35,6 +35,10 @@ const ANSWERS_PATH = (exerciseId: string, attemptId: string) =>
   `/api/v1/exercises/${exerciseId}/attempts/${attemptId}/answers`;
 const ROWS_PATH = (exerciseId: string, attemptId: string) =>
   `/api/v1/exercises/${exerciseId}/attempts/${attemptId}/rows`;
+const ATTEMPT_PATH = (exerciseId: string, attemptId: string) =>
+  `/api/v1/exercises/${exerciseId}/attempts/${attemptId}`;
+const DRAFT_PATH = (exerciseId: string, attemptId: string) =>
+  `/api/v1/exercises/${exerciseId}/attempts/${attemptId}/draft`;
 
 /**
  * `GET /exercises/:id/display` (content-service). Returns the exercise
@@ -64,6 +68,13 @@ export interface StartAttemptRequest {
   mode?: AttemptCheckMode;
   assignmentId?: string;
   enrollmentId?: string;
+  /**
+   * The attempt already in progress that this start should hand back instead of refusing with
+   * 409 — the id the 409 itself named. `read_aloud` joins its own open attempt this way: the
+   * takes on its draft are assets of that attempt, and a new one would make every one of them
+   * someone else's (plan 70, Q2-A).
+   */
+  joinAttemptId?: string;
 }
 
 /**
@@ -486,5 +497,102 @@ export async function findOpenAttempt(exerciseId: string): Promise<OpenAttempt |
     };
   } catch {
     return null;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * A `read_aloud` attempt: recorded over time, handed in once (plan 70, phase 10).
+ *
+ * A spoken answer is not made in one go. Each take is uploaded the moment it is recorded, as
+ * an asset of the attempt it answers — so the attempt has to exist before the first upload,
+ * and a phone killed between takes must find the same attempt again, or every take already
+ * uploaded would belong to an attempt nobody can hand in. Hence three things the other
+ * templates do not need: a start that *joins* the attempt already in progress, the draft
+ * that keeps the uploaded takes on it, and a read of the past to know whether the work is
+ * already with a teacher.
+ *
+ * Contract read 2026-10-07 from exercise-engine's attempts.controller.ts (`@Post()` with
+ * `joinAttemptId`, `@Put(':attemptId/draft')`, `@Get(':attemptId')`, `@Get()`) and
+ * start-attempt.handler.ts (a 409 names the attempt in `attemptId`).
+ * ────────────────────────────────────────────────────────────────────── */
+
+/** One of this learner's attempts at an exercise, as far as `read_aloud` needs it. */
+export interface AttemptRow {
+  id: string;
+  status: string;
+  templateCode: string;
+  submittedAnswer: unknown;
+  draftAnswer: unknown;
+  /** The teacher's verdict on the whole submission; null until there is one. */
+  passed?: boolean | null;
+  /** A word on the submission as a whole, when the teacher left one. */
+  reviewComment?: string | null;
+  /** Per prompt for `read_aloud`: whether it passed, and the teacher's comment on it. */
+  reviewDecisions?: unknown;
+  /** `itemId:criterionId` → 0–3, only once a verdict is delivered. */
+  rubricMarks?: unknown;
+  /** The rubric frozen when the work was queued, only once a verdict is delivered. */
+  rubricSnapshot?: unknown;
+}
+
+/**
+ * The attempt for this exercise that the learner may record into: a new one, or the one
+ * already in progress.
+ *
+ * A start refused with 409 names the open attempt, and the start is made again naming it —
+ * the engine's own way to hand back an attempt a caller already knows of. Only a 409 that
+ * carries the id is answered like this; every other refusal is the caller's.
+ */
+export async function startOrJoinAttempt(
+  exerciseId: string,
+  body: StartAttemptRequest,
+): Promise<StartAttemptResponse> {
+  try {
+    return await startAttempt(exerciseId, body);
+  } catch (e) {
+    const open = conflictAttemptId(e);
+    if (open === null) throw e;
+    return startAttempt(exerciseId, { ...body, joinAttemptId: open });
+  }
+}
+
+function conflictAttemptId(e: unknown): string | null {
+  if (!(e instanceof ApiError) || e.status !== 409) return null;
+  const body = e.body as { attemptId?: unknown } | null;
+  return typeof body?.attemptId === 'string' && body.attemptId !== '' ? body.attemptId : null;
+}
+
+/**
+ * `PUT /exercises/:exerciseId/attempts/:attemptId/draft` — keep the work in progress. Stored as
+ * it arrives and never read by the submit: for `read_aloud`, the uploaded takes and the choice
+ * between them (the kernel's `toDraft`).
+ */
+export function saveDraft(
+  exerciseId: string,
+  attemptId: string,
+  draftAnswer: unknown,
+): Promise<{ savedAt: string }> {
+  return apiClient.put<{ savedAt: string }>(DRAFT_PATH(exerciseId, attemptId), { draftAnswer });
+}
+
+/** `GET /exercises/:exerciseId/attempts/:attemptId` — one attempt, to see how a failed submit left it. */
+export function getAttempt(exerciseId: string, attemptId: string): Promise<AttemptRow> {
+  return apiClient.get<AttemptRow>(ATTEMPT_PATH(exerciseId, attemptId));
+}
+
+/**
+ * The learner's most recent attempts at this exercise, newest first.
+ *
+ * Fails soft, like `findOpenAttempt`: a history that cannot be read leaves the learner at a
+ * fresh recorder, which is where they would have been anyway.
+ */
+export async function recentAttempts(exerciseId: string, limit = 5): Promise<AttemptRow[]> {
+  try {
+    const page = await apiClient.get<{ items: AttemptRow[] }>(ATTEMPTS_PATH(exerciseId), {
+      query: { limit },
+    });
+    return page.items ?? [];
+  } catch {
+    return [];
   }
 }

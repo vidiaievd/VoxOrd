@@ -4,6 +4,7 @@ import {
   checkRow as checkRowRequest,
   getExerciseDisplay,
   startAttempt,
+  startOrJoinAttempt,
   submitAttempt,
   type AnswerQuestionAnswer,
   type AnswerQuestionResponse,
@@ -92,6 +93,15 @@ export interface ExerciseRunnerController {
    * understands them decides. The time is taken here, where the answering clock lives.
    */
   finishTable: (verdict: SubmitAttemptResponse) => void;
+  /**
+   * The attempt for the item on screen, opened — or joined, when one is already in progress —
+   * and its id handed to the body (`read_aloud`, plan 70 phase 10).
+   *
+   * A recording is uploaded as an asset of the attempt it answers, so the attempt must exist
+   * before the first take goes up, and the takes of a phone killed mid-way must stay on the
+   * attempt they were made for. `checkTable` then submits onto this same attempt.
+   */
+  openAttempt: () => Promise<string>;
   /** Footer "Check": start + submit an attempt and grade server-side. */
   check: () => void;
   /** Footer "Continue": advance to the next item (or complete the set). */
@@ -210,14 +220,17 @@ export function useExerciseRunner(
    * as before, and a body handing in its first question.
    */
   const openAttempt = useCallback(
-    (exerciseId: string, display: ExerciseDisplay): Promise<string> => {
+    (exerciseId: string, display: ExerciseDisplay, join = false): Promise<string> => {
       const open = attemptIdRef.current;
       if (open !== null) return Promise.resolve(open);
       if (openingRef.current !== null) return openingRef.current;
 
       // PRACTICE so the feedback reveals the correct answer; grading is done
-      // by the server regardless of mode.
-      const pending = startAttempt(exerciseId, {
+      // by the server regardless of mode. Joining the attempt already in progress is
+      // asked for only by a body that keeps work on it between sessions — everywhere else
+      // a 409 stays what it was.
+      const start = join ? startOrJoinAttempt : startAttempt;
+      const pending = start(exerciseId, {
         language: display.targetLanguage,
         mode: 'PRACTICE',
       })
@@ -285,6 +298,13 @@ export function useExerciseRunner(
     },
     [openExerciseId, openDisplay, openAttempt, uiLanguage],
   );
+
+  const openForBody = useCallback(async (): Promise<string> => {
+    if (!openExerciseId || !openDisplay) {
+      throw new Error('No exercise is open');
+    }
+    return openAttempt(openExerciseId, openDisplay, true);
+  }, [openExerciseId, openDisplay, openAttempt]);
 
   const finishTable = useCallback((verdict: SubmitAttemptResponse) => {
     dispatch({
@@ -395,6 +415,7 @@ export function useExerciseRunner(
     checkRow,
     checkTable,
     finishTable,
+    openAttempt: openForBody,
     check,
     advance,
     retry,
