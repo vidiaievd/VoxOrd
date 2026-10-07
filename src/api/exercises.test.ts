@@ -3,19 +3,26 @@ import {
   checkRow,
   findOpenAttempt,
   findOpenBoardCheck,
+  recentAttempts,
+  saveDraft,
+  startOrJoinAttempt,
 } from './exercises';
-import { apiClient } from './client';
+import { ApiError, apiClient } from './client';
 
 jest.mock('./client', () => ({
-  apiClient: { get: jest.fn(), post: jest.fn() },
+  apiClient: { get: jest.fn(), post: jest.fn(), put: jest.fn() },
+  ApiError: jest.requireActual('./client').ApiError,
 }));
 
 const mockGet = apiClient.get as jest.Mock;
 const mockPost = apiClient.post as jest.Mock;
 
+const mockPut = apiClient.put as jest.Mock;
+
 beforeEach(() => {
   mockGet.mockReset();
   mockPost.mockReset();
+  mockPut.mockReset();
 });
 
 /**
@@ -300,5 +307,53 @@ describe('findOpenBoardCheck', () => {
     mockGet.mockRejectedValue(new Error('offline'));
 
     await expect(findOpenBoardCheck('ex-1')).resolves.toBeNull();
+  });
+});
+
+/**
+ * `read_aloud` uploads its takes as assets of the attempt before handing in, so the attempt
+ * must be found again after the app was killed (plan 70, phase 10): a 409 names it, and the
+ * start is made again naming it.
+ */
+describe('startOrJoinAttempt', () => {
+  const body = { language: 'nb', mode: 'PRACTICE' as const };
+
+  it('joins the attempt the 409 names', async () => {
+    mockPost
+      .mockRejectedValueOnce(
+        new ApiError({ message: 'busy', status: 409, body: { attemptId: 'open-1' } }),
+      )
+      .mockResolvedValueOnce({ attemptId: 'open-1' });
+
+    await expect(startOrJoinAttempt('ex-1', body)).resolves.toEqual({ attemptId: 'open-1' });
+    expect(mockPost).toHaveBeenLastCalledWith('/api/v1/exercises/ex-1/attempts', {
+      ...body,
+      joinAttemptId: 'open-1',
+    });
+  });
+
+  it('passes on every other refusal', async () => {
+    const refused = new ApiError({ message: 'gone', status: 404 });
+    mockPost.mockRejectedValueOnce(refused);
+    await expect(startOrJoinAttempt('ex-1', body)).rejects.toBe(refused);
+    expect(mockPost).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('read_aloud draft and history', () => {
+  it('puts the draft on the attempt', async () => {
+    mockPut.mockResolvedValue({ savedAt: 'now' });
+    await saveDraft('ex-1', 'att-1', { takes: {}, chosen: {} });
+    expect(mockPut).toHaveBeenCalledWith('/api/v1/exercises/ex-1/attempts/att-1/draft', {
+      draftAnswer: { takes: {}, chosen: {} },
+    });
+  });
+
+  it('reads recent attempts and fails soft', async () => {
+    mockGet.mockResolvedValueOnce({ items: [{ id: 'a' }] });
+    await expect(recentAttempts('ex-1')).resolves.toEqual([{ id: 'a' }]);
+    expect(mockGet).toHaveBeenCalledWith('/api/v1/exercises/ex-1/attempts', { query: { limit: 5 } });
+    mockGet.mockRejectedValueOnce(new Error('offline'));
+    await expect(recentAttempts('ex-1')).resolves.toEqual([]);
   });
 });

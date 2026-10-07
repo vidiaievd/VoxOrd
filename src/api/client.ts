@@ -2,23 +2,31 @@ import { apiSettingsStore } from '../store/apiSettingsStore';
 
 const DEFAULT_TIMEOUT_MS = 15000;
 
-export type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 export class ApiError extends Error {
   readonly status: number | null;
   readonly code: string | null;
   readonly retriable: boolean;
+  /**
+   * The error response as the server sent it, parsed, or null. For the refusals that carry
+   * more than a code — the id of an attempt already in progress (409), the prompts whose
+   * recordings were refused (`read_aloud`, 422 `{ code, itemIds }`).
+   */
+  readonly body: unknown;
 
   constructor(params: {
     message: string;
     status: number | null;
     code?: string | null;
     retriable?: boolean;
+    body?: unknown;
   }) {
     super(params.message);
     this.name = 'ApiError';
     this.status = params.status;
     this.code = params.code ?? null;
+    this.body = params.body ?? null;
     // Network failures and timeouts are retriable; 4xx/5xx application
     // errors are not (the caller decides whether to retry the *request*,
     // e.g. after a token refresh on 401).
@@ -171,6 +179,7 @@ class ApiClient {
         message: Array.isArray(message) ? message.join(', ') : String(message),
         status: response.status,
         code: parsed?.code ?? null,
+        body: parsed ?? null,
       });
     }
 
@@ -183,6 +192,10 @@ class ApiClient {
 
   post<T>(path: string, body?: unknown, options?: Omit<RequestOptions, 'method' | 'body'>): Promise<T> {
     return this.request<T>(path, { ...options, method: 'POST', body });
+  }
+
+  put<T>(path: string, body?: unknown, options?: Omit<RequestOptions, 'method' | 'body'>): Promise<T> {
+    return this.request<T>(path, { ...options, method: 'PUT', body });
   }
 
   patch<T>(path: string, body?: unknown, options?: Omit<RequestOptions, 'method' | 'body'>): Promise<T> {

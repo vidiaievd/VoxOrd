@@ -51,6 +51,8 @@ export function ExerciseRunnerScreen({
     checkRow,
     checkTable,
     finishTable,
+    openAttempt,
+    openedContent,
     check,
     advance,
     retry,
@@ -133,6 +135,8 @@ export function ExerciseRunnerScreen({
                 checkRow={checkRow}
                 checkTable={checkTable}
                 finishTable={finishTable}
+                openAttempt={openAttempt}
+                openedContent={openedContent}
                 onOpenSourceLesson={onOpenSourceLesson}
               />
             </ScrollView>

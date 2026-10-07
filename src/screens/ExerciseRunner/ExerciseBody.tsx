@@ -23,6 +23,7 @@ import { SortIntoBucketsBody } from './SortIntoBucketsBody';
 import { HighlightInTextBody } from './HighlightInTextBody';
 import { DictationBody } from './DictationBody';
 import { InflectionTableBody } from './InflectionTableBody';
+import { ReadAloudBody } from './ReadAloudBody';
 
 /**
  * Contract every per-template body implements (Phase 4.2+). A body is a
@@ -117,6 +118,23 @@ export interface ExerciseBodyProps {
   /** Record the check that closed the block; the runner moves to feedback. */
   finishTable: (verdict: SubmitAttemptResponse) => void;
   /**
+   * Open the attempt — or join the one already in progress — and get its id, before anything
+   * is handed in (`read_aloud`, plan 70 phase 10).
+   *
+   * The fourth thing a body may do to the attempt, and the only one that hands in nothing. A
+   * spoken answer is uploaded take by take as assets of the attempt it answers, so the attempt
+   * has to exist before the first upload; and a phone killed between takes must find the same
+   * attempt again, which is why this one joins where the others would be refused with 409.
+   * The hand-in then goes through `checkTable` onto this same attempt. Every other body
+   * ignores it.
+   */
+  openAttempt: () => Promise<string>;
+  /**
+   * What the start of that attempt answered as the exercise's content — `read_aloud` reads from
+   * it the prompts carried from the try before, which the plain display does not know.
+   */
+  openedContent?: () => Record<string, unknown> | null;
+  /**
    * Leave the runner for the lesson this exercise was set on — `multiple_choice_group`'s
    * «To the text» in `link` mode (plan 54 Q5).
    *
@@ -146,6 +164,9 @@ const BODY_OWNS_CHECK: ReadonlySet<string> = new Set([
   'highlight_in_text',
   'dictation',
   'inflection_table',
+  // Not a check at all: the recordings are handed in to a teacher by the body's own «Lever til
+  // læreren», after the takes have uploaded (plan 70 phase 10).
+  'read_aloud',
 ]);
 
 export function bodyOwnsCheck(templateCode: string): boolean {
@@ -181,7 +202,7 @@ function UnsupportedTemplateBody({ display, onAnswerChange }: ExerciseBodyProps)
  * Dispatches to the body component for a template. Steps 4.2–4.5 add cases
  * here (multiple_choice, fill_in_blank, translate_*, match_pairs,
  * sentence_schema, short_answer, writing_task, multiple_choice_group,
- * sort_into_buckets, highlight_in_text, dictation, inflection_table); everything else falls
+ * sort_into_buckets, highlight_in_text, dictation, inflection_table, read_aloud); everything else falls
  * through to the placeholder.
  */
 export function ExerciseBody(props: ExerciseBodyProps) {
@@ -211,6 +232,8 @@ export function ExerciseBody(props: ExerciseBodyProps) {
       return <DictationBody {...props} />;
     case 'inflection_table':
       return <InflectionTableBody {...props} />;
+    case 'read_aloud':
+      return <ReadAloudBody {...props} />;
     default:
       return <UnsupportedTemplateBody {...props} />;
   }

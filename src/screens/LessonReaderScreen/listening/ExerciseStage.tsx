@@ -53,6 +53,8 @@ export function ExerciseStage({
     checkRow,
     checkTable,
     finishTable,
+    openAttempt,
+    openedContent,
     check,
     advance,
     retry,
@@ -106,6 +108,8 @@ export function ExerciseStage({
               checkRow={checkRow}
               checkTable={checkTable}
               finishTable={finishTable}
+              openAttempt={openAttempt}
+              openedContent={openedContent}
             />
 
             {state.phase === 'feedback' && state.verdict ? (
