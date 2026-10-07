@@ -145,7 +145,6 @@ export async function uploadRecording({
  */
 async function putFile(url: string, path: string, type: string): Promise<void> {
   const uri = path.startsWith('file://') ? path : `file://${path}`;
-  const blob = await (await fetch(uri)).blob();
   await new Promise<void>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.onload = () =>
@@ -156,6 +155,6 @@ async function putFile(url: string, path: string, type: string): Promise<void> {
     xhr.onabort = () => reject(new Error('Upload cancelled'));
     xhr.open('PUT', url);
     xhr.setRequestHeader('Content-Type', type);
-    xhr.send(blob);
+    xhr.send({ uri } as unknown as XMLHttpRequestBodyInit);
   });
 }
