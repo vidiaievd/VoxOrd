@@ -710,7 +710,7 @@ function Run({
 
 /* ── The result ────────────────────────────────────────────────────────────── */
 
-/** `**word**` in a string is bold — the web's `<b>` rich text, on a phone. */
+/** `<b>…</b>` in a string is bold — the web's rich text, on a phone. The string brings the tags; the label does not. */
 function Rich({ source, style, bold }: { source: string; style: object; bold: object }) {
   const parts = source.split(/(<b>.*?<\/b>)/g).filter(p => p !== '');
   return (
@@ -749,10 +749,8 @@ function Summary({
   const tip =
     (memory === 'contrast+word' ? `${t('exerciseRunner.minimalPairs.summary.wordsReturn')} ` : '') +
     (memory === 'none'
-      ? t('exerciseRunner.minimalPairs.summary.contrastNotHere', { label: `<b>${contrastLabel}</b>` })
-      : t('exerciseRunner.minimalPairs.summary.contrastScheduled', {
-          label: `<b>${contrastLabel}</b>`,
-        }));
+      ? t('exerciseRunner.minimalPairs.summary.contrastNotHere', { label: contrastLabel })
+      : t('exerciseRunner.minimalPairs.summary.contrastScheduled', { label: contrastLabel }));
 
   return (
     <View>

@@ -248,6 +248,24 @@ describe('MinimalPairsBody', () => {
     expect(text(tree)).toContain('kje / sje');
   });
 
+  it('hands the contrast label to the closing line bare — the string brings its own bold tags', async () => {
+    mockHandOutProbe.mockRejectedValueOnce(
+      new ApiError({ message: 'closed', status: 422, code: 'ALL_PROBES_CLOSED' }),
+    );
+    const checkTable = jest.fn().mockResolvedValue({
+      attemptId: 'att1',
+      correct: false,
+      score: 40,
+      requiresReview: false,
+      feedback: { summary: '' },
+      details: { ...details, passed: false, pairs: [{ ...details.pairs[0], correct: 0 }] },
+    });
+    const tree = render(props({ checkTable }));
+    await press(tree, 'exerciseRunner.minimalPairs.card.start');
+    await flush();
+    expect(text(tree)).toContain('contrastScheduled {"label":"kj / sj"}');
+  });
+
   it('tells the runner a failed sitting did not pass, whatever the submit says', async () => {
     mockHandOutProbe.mockRejectedValueOnce(
       new ApiError({ message: 'closed', status: 422, code: 'ALL_PROBES_CLOSED' }),
