@@ -24,6 +24,7 @@ import { HighlightInTextBody } from './HighlightInTextBody';
 import { DictationBody } from './DictationBody';
 import { InflectionTableBody } from './InflectionTableBody';
 import { ReadAloudBody } from './ReadAloudBody';
+import { MinimalPairsBody } from './MinimalPairsBody';
 
 /**
  * Contract every per-template body implements (Phase 4.2+). A body is a
@@ -167,6 +168,9 @@ const BODY_OWNS_CHECK: ReadonlySet<string> = new Set([
   // Not a check at all: the recordings are handed in to a teacher by the body's own «Lever til
   // læreren», after the takes have uploaded (plan 70 phase 10).
   'read_aloud',
+  // Each probe is answered onto the one attempt and the submit that sums the sitting up is the
+  // body's own «Se resultatet» (plan 72 phase 9).
+  'minimal_pairs',
 ]);
 
 export function bodyOwnsCheck(templateCode: string): boolean {
@@ -234,6 +238,8 @@ export function ExerciseBody(props: ExerciseBodyProps) {
       return <InflectionTableBody {...props} />;
     case 'read_aloud':
       return <ReadAloudBody {...props} />;
+    case 'minimal_pairs':
+      return <MinimalPairsBody {...props} />;
     default:
       return <UnsupportedTemplateBody {...props} />;
   }

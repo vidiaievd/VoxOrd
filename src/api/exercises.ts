@@ -33,6 +33,8 @@ const SUBMIT_PATH = (exerciseId: string, attemptId: string) =>
   `/api/v1/exercises/${exerciseId}/attempts/${attemptId}/submit`;
 const ANSWERS_PATH = (exerciseId: string, attemptId: string) =>
   `/api/v1/exercises/${exerciseId}/attempts/${attemptId}/answers`;
+const ITEMS_PATH = (exerciseId: string, attemptId: string) =>
+  `/api/v1/exercises/${exerciseId}/attempts/${attemptId}/items`;
 const ROWS_PATH = (exerciseId: string, attemptId: string) =>
   `/api/v1/exercises/${exerciseId}/attempts/${attemptId}/rows`;
 const ATTEMPT_PATH = (exerciseId: string, attemptId: string) =>
@@ -284,6 +286,17 @@ export function answerQuestion(
   body: AnswerQuestionRequest,
 ): Promise<AnswerQuestionResponse> {
   return apiClient.post<AnswerQuestionResponse>(ANSWERS_PATH(exerciseId, attemptId), body);
+}
+
+/**
+ * `POST /exercises/:exerciseId/attempts/:attemptId/items` — the probe a `minimal_pairs`
+ * sitting is on (plan 72 §3.6): its clip, its buttons and where the sitting stands, never
+ * which button is the key. Idempotent — asking again hands the same probe back until it is
+ * answered. Once every probe is closed it refuses with 422 `ALL_PROBES_CLOSED`, which means
+ * the submit is what is left. The body is read by `readProbe` in the template module.
+ */
+export function handOutProbe(exerciseId: string, attemptId: string): Promise<unknown> {
+  return apiClient.post<unknown>(ITEMS_PATH(exerciseId, attemptId), {});
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
