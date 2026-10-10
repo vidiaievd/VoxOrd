@@ -615,6 +615,64 @@ export interface Translations {
         start: string;
       };
     };
+    /** `minimal_pairs` — one word heard, the two or three it could have been (plan 72). */
+    minimalPairs: {
+      defaultTitle: string;
+      defaultInstruction: string;
+      progress: string;
+      play: string;
+      pause: string;
+      playWord: string;
+      playsLeft: string;
+      noPlaysLeft: string;
+      freePlay: string;
+      synthetic: string;
+      retry: string;
+      right: string;
+      wrong: string;
+      compare: string;
+      chosen: string;
+      heard: string;
+      next: string;
+      seeResult: string;
+      empty: {
+        title: string;
+        body: string;
+      };
+      failure: {
+        media: string;
+        probe: string;
+        answer: string;
+        finish: string;
+        start: string;
+        emptySet: string;
+        tryAgain: string;
+      };
+      summary: {
+        passed: string;
+        again: string;
+        score: string;
+        hearPair: string;
+        wordsReturn: string;
+        contrastScheduled: string;
+        contrastNotHere: string;
+        allRight: string;
+        newRound: string;
+        sittingsSpent: PluralForms;
+      };
+      card: {
+        probes: PluralForms;
+        minutes: string;
+        defaultInstruction: string;
+        plays: string;
+        freePlay: string;
+        answerAtOnce: string;
+        hearDifference: string;
+        start: string;
+      };
+      unavailable: string;
+      unavailableDesc: string;
+    };
     /** `dictation` — a recording written down a sentence at a time (plan 68). */
     dictation: {
       check: string;
