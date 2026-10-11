@@ -398,7 +398,7 @@ export function RootNavigator() {
         return (
           <HomeScreen
             onDeckPress={deck => navigateTo({ name: 'ModeSelector', deck })}
-            onModePress={(modeId, deckId) => {
+            onModePress={(_modeId, deckId) => {
               // From DailyTraining grid — need a minimal Deck object
               // Full deck will be loaded in ModeSelector
               navigateTo({

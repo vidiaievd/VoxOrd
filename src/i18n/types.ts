@@ -253,6 +253,17 @@ export interface Translations {
       wrong: string;
       answer: string; // '{word}'
       emptyGap: string; // '{label}'
+    translate: {
+      bothWays: string;
+      direction: string; // '{from}', '{to}'
+      numberedLang: string; // '{n}', '{lang}'
+      numberedDirection: string; // '{n}', '{from}', '{to}'
+      progress: string; // '{written}', '{total}'
+      placeholder: string; // '{lang}'
+      showHint: string;
+      hideHint: string;
+      itemApproved: string;
+      itemWithTeacher: string;
     };
     matchPairsHint: string;
     matchPairsRemaining: string; // '{count}'

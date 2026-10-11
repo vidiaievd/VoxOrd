@@ -139,9 +139,9 @@ export async function uploadRecording({
 }
 
 /**
- * The file's bytes to a signed URL. React Native reads a local file into a `Blob` through
- * `fetch('file://…')` (the blob module handles `file:` URIs on Android), and `XMLHttpRequest`
- * sends a `Blob` as the request body — the same PUT the web makes.
+ * The file's bytes to a signed URL — the same PUT the web makes. React Native's
+ * `XMLHttpRequest` streams a local file when the body is `{ uri }`; reading the file into a
+ * `Blob` through `fetch('file://…')` first does not work in RN.
  */
 async function putFile(url: string, path: string, type: string): Promise<void> {
   const uri = path.startsWith('file://') ? path : `file://${path}`;
@@ -155,6 +155,6 @@ async function putFile(url: string, path: string, type: string): Promise<void> {
     xhr.onabort = () => reject(new Error('Upload cancelled'));
     xhr.open('PUT', url);
     xhr.setRequestHeader('Content-Type', type);
-    xhr.send({ uri } as unknown as XMLHttpRequestBodyInit);
+    xhr.send({ uri });
   });
 }

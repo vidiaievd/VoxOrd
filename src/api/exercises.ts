@@ -122,8 +122,8 @@ export interface AttemptFeedback {
 
 /**
  * Response of the submit endpoint (SubmitAnswerResponseDto). The templates that
- * route to human review (translate_*, writing_task) come back
- * `correct=false`, `score=null`, `requiresReview=true`; the teacher's mark arrives
+ * route to human review (writing_task; translate_* unless every sentence hits the key)
+ * come back `correct=false`, `requiresReview=true`; the teacher's mark arrives
  * later, in the review queue, which the app has no screen for.
  */
 /**

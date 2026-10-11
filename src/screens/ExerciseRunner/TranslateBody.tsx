@@ -1,58 +1,318 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TextInput } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, StyleSheet, TextInput, Pressable } from 'react-native';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
+import { useExerciseAudio } from '../../hooks/useExerciseAudio';
 import type { ExerciseBodyProps } from './ExerciseBody';
-import { buildTranslateAnswer, translateCanSubmit, type TranslateContent } from './templates/translate';
+import { AudioLockNote, ExerciseAudioPlayer } from './audio';
+import {
+  buildTranslateAnswer,
+  readTranslateRouting,
+  readTranslateTask,
+  translateCanSubmit,
+  type TranslateItem,
+  type TranslateRouting,
+} from './templates/translate';
+
+/** The letters a Norwegian answer needs and most phone layouts hide — `flow.keyboard`. */
+const NORWEGIAN_CHARS = ['æ', 'ø', 'å'] as const;
 
 /**
- * Shared body for `translate_to_target` and `translate_from_target` — same
- * content/answer shape, only the direction label differs. Both route to human
- * review (`translate.validator.ts` in exercise-engine): they always
- * come back `requiresReview: true`, never auto-scored, so there's nothing
- * template-specific to highlight in feedback — FeedbackBar's generic
- * "submitted for review" tone covers it.
+ * `translate_to_target` / `translate_from_target` — a set of sentences, one hand-in, as the web
+ * runner plays them (plan 42).
+ *
+ * The body says little after hand-in, on purpose: the engine may only ever approve. A sentence
+ * that hits a variant of the key closes on its own, everything else waits for a teacher — a
+ * translation that misses the key is very often a second good one, so nothing here calls an
+ * answer wrong. The footer's Check sends every sentence at once.
  */
-export function TranslateBody({ display, disabled, onAnswerChange }: ExerciseBodyProps) {
+export function TranslateBody({ display, disabled, verdict, onAnswerChange }: ExerciseBodyProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const content = display.content as unknown as TranslateContent;
-  const [text, setText] = useState('');
+
+  const task = useMemo(
+    () => readTranslateTask(display.content, display.templateCode),
+    [display.content, display.templateCode],
+  );
+  const [values, setValues] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    onAnswerChange(buildTranslateAnswer(text), translateCanSubmit(text));
+    onAnswerChange(buildTranslateAnswer(task.items, values), translateCanSubmit(task.items, values));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [text]);
+  }, [task, values]);
 
-  const directionLabel =
-    display.templateCode === 'translate_to_target'
-      ? t('exerciseRunner.translateToTargetLabel', { language: display.targetLanguage })
-      : t('exerciseRunner.translateFromTargetLabel', { language: display.targetLanguage });
+  const routing = useMemo(() => readTranslateRouting(verdict?.details), [verdict]);
+  const written = task.items.filter((item) => (values[item.id] ?? '').trim() !== '').length;
+  const numbered = task.items.length > 1;
+  const mixed = task.dir === 'both';
+
+  const heading = mixed
+    ? t('exerciseRunner.translate.bothWays')
+    : t('exerciseRunner.translate.direction', {
+        from: task.items[0]?.sourceLang ?? task.langs.explain,
+        to: task.items[0]?.answerLang ?? task.langs.target,
+      });
 
   return (
     <View>
-      <Text style={styles.direction}>{directionLabel}</Text>
-      {content.context ? <Text style={styles.context}>{content.context}</Text> : null}
-      <Text style={styles.sourceText}>{content.source_text}</Text>
-      <TextInput
-        style={styles.input}
-        value={text}
-        onChangeText={setText}
-        editable={!disabled}
-        multiline
-        autoCapitalize="sentences"
-        placeholder={t('exerciseRunner.translatePlaceholder')}
-        placeholderTextColor={colors.textMuted}
-      />
+      <Text style={styles.heading}>{heading}</Text>
+      {task.note !== '' && !disabled ? <Text style={styles.note}>{task.note}</Text> : null}
+
+      {numbered ? (
+        <View style={styles.progressRow}>
+          <View style={styles.progressTrack}>
+            <View
+              style={[styles.progressFill, { width: `${(written / task.items.length) * 100}%` }]}
+            />
+          </View>
+          <Text style={styles.progressText}>
+            {t('exerciseRunner.translate.progress', { written, total: task.items.length })}
+          </Text>
+        </View>
+      ) : null}
+
+      {task.items.map((item, index) => (
+        <TranslateCard
+          key={item.id}
+          item={item}
+          content={display.content}
+          number={numbered ? index + 1 : null}
+          showDirection={mixed}
+          showGloss={task.gloss}
+          keyboard={task.keyboard}
+          value={values[item.id] ?? ''}
+          disabled={disabled}
+          outcome={routing[item.id] ?? null}
+          onChange={(text) => setValues((prev) => ({ ...prev, [item.id]: text }))}
+        />
+      ))}
     </View>
+  );
+}
+
+interface TranslateCardProps {
+  item: TranslateItem;
+  /** The exercise's own document — its `audio` block carries the listening rules. */
+  content: unknown;
+  /** Null for a single sentence, where a number would only be furniture. */
+  number: number | null;
+  showDirection: boolean;
+  showGloss: boolean;
+  keyboard: boolean;
+  value: string;
+  disabled: boolean;
+  outcome: TranslateRouting | null;
+  onChange: (text: string) => void;
+}
+
+function TranslateCard({
+  item,
+  content,
+  number,
+  showDirection,
+  showGloss,
+  keyboard,
+  value,
+  disabled,
+  outcome,
+  onChange,
+}: TranslateCardProps) {
+  const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
+  const [hintOpen, setHintOpen] = useState(false);
+  const selection = useRef({ start: value.length, end: value.length });
+
+  const label =
+    number === null
+      ? showDirection
+        ? t('exerciseRunner.translate.direction', { from: item.sourceLang, to: item.answerLang })
+        : item.sourceLang
+      : showDirection
+        ? t('exerciseRunner.translate.numberedDirection', {
+            n: number,
+            from: item.sourceLang,
+            to: item.answerLang,
+          })
+        : t('exerciseRunner.translate.numberedLang', { n: number, lang: item.sourceLang });
+
+  // Insert where the caret is, not at the end: the letter is usually missing mid-word.
+  const insert = (char: string) => {
+    const { start, end } = selection.current;
+    const at = Math.min(start, value.length);
+    const next = value.slice(0, at) + char + value.slice(Math.min(end, value.length));
+    selection.current = { start: at + char.length, end: at + char.length };
+    onChange(next);
+  };
+
+  return (
+    <View style={[styles.card, outcome === 'pass' && { borderColor: colors.success }]}>
+      <View style={styles.cardHeader}>
+        <Text style={styles.cardLabel}>{label}</Text>
+        {outcome !== null ? (
+          <Text
+            style={[
+              styles.outcome,
+              { color: outcome === 'pass' ? colors.success : colors.textSecondary },
+            ]}
+          >
+            {outcome === 'pass'
+              ? t('exerciseRunner.translate.itemApproved')
+              : t('exerciseRunner.translate.itemWithTeacher')}
+          </Text>
+        ) : null}
+      </View>
+
+      <Text style={styles.source}>{item.source}</Text>
+
+      {/* The author's word notes go with the reading, so they close at hand-in. */}
+      {showGloss && item.gloss.length > 0 && !disabled ? (
+        <View style={styles.glossRow}>
+          {item.gloss.map((entry, index) => (
+            <Text key={index} style={styles.gloss}>
+              <Text style={styles.glossWord}>{entry.w}</Text> — {entry.t}
+            </Text>
+          ))}
+        </View>
+      ) : null}
+
+      {item.mediaId !== undefined && !disabled ? (
+        <SentenceAudio content={content} mediaId={item.mediaId}>
+          {(gated) => (
+            <AnswerField
+              value={value}
+              disabled={disabled || gated}
+              placeholder={t('exerciseRunner.translate.placeholder', {
+                lang: item.answerLang.toLowerCase(),
+              })}
+              onChange={onChange}
+              onSelection={(range) => {
+                selection.current = range;
+              }}
+            />
+          )}
+        </SentenceAudio>
+      ) : (
+        <AnswerField
+          value={value}
+          disabled={disabled}
+          placeholder={t('exerciseRunner.translate.placeholder', {
+            lang: item.answerLang.toLowerCase(),
+          })}
+          onChange={onChange}
+          onSelection={(range) => {
+            selection.current = range;
+          }}
+        />
+      )}
+
+      {!disabled ? (
+        <View style={styles.tools}>
+          {/* Only under an answer written in the target language: on the way out of it
+              the letters have no use. */}
+          {keyboard && item.dir === 'to_target'
+            ? NORWEGIAN_CHARS.map((char) => (
+                <Pressable
+                  key={char}
+                  style={({ pressed }) => [styles.charKey, pressed && styles.charKeyPressed]}
+                  onPress={() => insert(char)}
+                  accessibilityLabel={char}
+                >
+                  <Text style={styles.charKeyText}>{char}</Text>
+                </Pressable>
+              ))
+            : null}
+          {item.hint !== undefined ? (
+            <Pressable onPress={() => setHintOpen((open) => !open)} style={styles.hintToggle}>
+              <Text style={styles.hintToggleText}>
+                {hintOpen
+                  ? t('exerciseRunner.translate.hideHint')
+                  : t('exerciseRunner.translate.showHint')}
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
+
+      {hintOpen && item.hint !== undefined && !disabled ? (
+        <Text style={styles.hint}>{item.hint}</Text>
+      ) : null}
+    </View>
+  );
+}
+
+/**
+ * A sentence's own recording. One player per sentence — "two plays" means two plays of this
+ * sentence, and the gate locks this field only. Mounted only where there is a recording, so
+ * a set without audio asks media-service nothing.
+ */
+function SentenceAudio({
+  content,
+  mediaId,
+  children,
+}: {
+  content: unknown;
+  mediaId: string;
+  children: (gated: boolean) => React.ReactNode;
+}) {
+  const { t } = useTranslation();
+  const audioContent = useMemo(() => {
+    const doc = typeof content === 'object' && content !== null ? (content as Record<string, unknown>) : {};
+    const block =
+      typeof doc.audio === 'object' && doc.audio !== null ? (doc.audio as Record<string, unknown>) : {};
+    return { audio: { ...block, enabled: true, source: 'asset', assetId: mediaId } };
+  }, [content, mediaId]);
+  const audio = useExerciseAudio(audioContent);
+
+  return (
+    <View>
+      <ExerciseAudioPlayer eng={audio} />
+      {audio.gated ? (
+        <AudioLockNote itemNoun={t('exerciseRunner.audio.itemNoun.sentence')} own />
+      ) : null}
+      {children(audio.gated)}
+    </View>
+  );
+}
+
+function AnswerField({
+  value,
+  disabled,
+  placeholder,
+  onChange,
+  onSelection,
+}: {
+  value: string;
+  disabled: boolean;
+  placeholder: string;
+  onChange: (text: string) => void;
+  onSelection: (range: { start: number; end: number }) => void;
+}) {
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
+  return (
+    <TextInput
+      style={[styles.input, disabled && styles.inputLocked]}
+      value={value}
+      onChangeText={onChange}
+      onSelectionChange={(event) => onSelection(event.nativeEvent.selection)}
+      editable={!disabled}
+      multiline
+      autoCapitalize="sentences"
+      // The keyboard's own corrector "fixes" a Norwegian answer into the phone's language.
+      autoCorrect={false}
+      spellCheck={false}
+      placeholder={placeholder}
+      placeholderTextColor={colors.textMuted}
+    />
   );
 }
 
 const makeStyles = (colors: ColorScheme) =>
   StyleSheet.create({
-    direction: {
+    heading: {
       fontSize: 12,
       fontWeight: '700',
       color: colors.textMuted,
@@ -60,29 +320,134 @@ const makeStyles = (colors: ColorScheme) =>
       textTransform: 'uppercase',
       marginBottom: 10,
     },
-    context: {
+    note: {
       fontSize: 13,
-      color: colors.textMuted,
-      marginBottom: 10,
+      color: colors.textSecondary,
+      marginBottom: 12,
       lineHeight: 18,
     },
-    sourceText: {
-      fontSize: 20,
+    progressRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 14,
+    },
+    progressTrack: {
+      flex: 1,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: colors.backgroundPressed,
+      overflow: 'hidden',
+    },
+    progressFill: {
+      height: '100%',
+      borderRadius: 3,
+      backgroundColor: colors.accent,
+    },
+    progressText: {
+      fontSize: 12,
+      color: colors.textMuted,
+    },
+    card: {
+      backgroundColor: colors.backgroundCard,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.backgroundPressed,
+      padding: 14,
+      marginBottom: 14,
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: 10,
+      marginBottom: 6,
+    },
+    cardLabel: {
+      fontSize: 12,
       fontWeight: '700',
+      color: colors.textMuted,
+      flexShrink: 1,
+    },
+    outcome: {
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    source: {
+      fontSize: 19,
+      fontWeight: '600',
       color: colors.textPrimary,
-      marginBottom: 20,
-      lineHeight: 28,
+      lineHeight: 27,
+      marginBottom: 8,
+    },
+    glossRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      columnGap: 12,
+      rowGap: 4,
+      marginBottom: 10,
+    },
+    gloss: {
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
+    glossWord: {
+      fontWeight: '700',
     },
     input: {
       backgroundColor: colors.backgroundInput,
-      borderRadius: 14,
+      borderRadius: 12,
       borderWidth: 2,
       borderColor: colors.accent,
-      paddingHorizontal: 16,
-      paddingVertical: 14,
-      fontSize: 16,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      fontSize: 17,
       color: colors.textPrimary,
-      minHeight: 90,
+      minHeight: 76,
       textAlignVertical: 'top',
+      marginTop: 4,
+    },
+    inputLocked: {
+      borderColor: colors.backgroundPressed,
+    },
+    tools: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginTop: 10,
+    },
+    charKey: {
+      minWidth: 40,
+      height: 36,
+      borderRadius: 10,
+      backgroundColor: colors.backgroundPressed,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 10,
+    },
+    charKeyPressed: {
+      backgroundColor: colors.accentLight,
+    },
+    charKeyText: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: colors.textPrimary,
+    },
+    hintToggle: {
+      marginLeft: 'auto',
+      paddingVertical: 6,
+      paddingHorizontal: 4,
+    },
+    hintToggleText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.accent,
+    },
+    hint: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      lineHeight: 18,
+      marginTop: 8,
     },
   });
