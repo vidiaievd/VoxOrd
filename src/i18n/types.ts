@@ -266,6 +266,28 @@ export interface Translations {
       showHint: string;
       hideHint: string;
       type: Record<'form' | 'order' | 'extra' | 'missing' | 'spelling' | 'function', string>;
+    gapFill: {
+      remaining: string; // '{count}'
+      check: string;
+      checkAgain: string; // '{n}'
+      fillEveryGap: string;
+      checkFailed: string;
+      revealFailed: string;
+      showAnswers: string;
+      wrong: string;
+      answer: string; // '{word}'
+      emptyGap: string; // '{label}'
+    translate: {
+      bothWays: string;
+      direction: string; // '{from}', '{to}'
+      numberedLang: string; // '{n}', '{lang}'
+      numberedDirection: string; // '{n}', '{from}', '{to}'
+      progress: string; // '{written}', '{total}'
+      placeholder: string; // '{lang}'
+      showHint: string;
+      hideHint: string;
+      itemApproved: string;
+      itemWithTeacher: string;
     };
     matchPairsHint: string;
     matchPairsRemaining: string; // '{count}'

@@ -129,13 +129,6 @@ export interface WordProgress {
   longTermStrength: number;
 }
 
-export type RelationType =
-  | 'synonym'
-  | 'antonym'
-  | 'related'
-  | 'category'
-  | 'example';
-
 export interface LearningSession {
   id: number;
   deckId: number | null;
@@ -171,12 +164,4 @@ export interface WordExampleTranslation {
   exampleId: number;
   languageCode: string;
   translation: string;
-}
-
-export interface WordRelation {
-  id: number;
-  wordId: number;
-  relatedWordId: number;
-  relationType: RelationType;
-  strength: number;
 }

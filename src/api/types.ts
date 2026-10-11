@@ -161,8 +161,8 @@ export interface VocabularyList {
 /**
  * Exercise template codes mirror content-service's seeded templates exactly.
  * Source: ssz-platform-web/src/features/content-authoring/schemas/exercise.ts
- * (`EXERCISE_TYPES`). All 8 exist server-side; VoxOrd implements them
- * incrementally per Phase 4 steps 4.2–4.5.
+ * (`EXERCISE_TYPES`). Codes the phone has no body for yet (`error_correction`,
+ * `text_order`) fall through to the "unsupported" placeholder.
  */
 export type ExerciseTemplateCode =
   | 'multiple_choice'
@@ -182,6 +182,7 @@ export type ExerciseTemplateCode =
   | 'minimal_pairs'
   | 'information_transfer'
   | 'error_correction';
+  | 'word_bank_gap_fill';
 
 export interface ExerciseInstruction {
   id: string;

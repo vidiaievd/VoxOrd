@@ -39,7 +39,7 @@ export function PronunciationExercise({
   const styles = makeStyles(colors);
 
   const { state, isLoading, speak, startRecord, stopRecord, next, retry, skip } =
-    usePronunciation(deckId, mode, undefined, onComplete);
+    usePronunciation(deckId, mode, onComplete);
 
   // Auto-speak when item changes
   useEffect(() => {

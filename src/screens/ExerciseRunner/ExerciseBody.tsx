@@ -27,6 +27,7 @@ import { ReadAloudBody } from './ReadAloudBody';
 import { MinimalPairsBody } from './MinimalPairsBody';
 import { InformationTransferBody } from './InformationTransferBody';
 import { ErrorCorrectionBody } from './ErrorCorrectionBody';
+import { WordBankGapFillBody } from './WordBankGapFillBody';
 
 /**
  * Contract every per-template body implements (Phase 4.2+). A body is a
@@ -176,6 +177,9 @@ const BODY_OWNS_CHECK: ReadonlySet<string> = new Set([
   // The whole blank is handed in from the body, a check at a time onto the one attempt (plan 73
   // phase 8) — the inflection_table mechanism.
   'information_transfer',
+  // A practice attempt is reopened on every check; the item closes on an all-right check or
+  // on «Show answers», both drawn by the body.
+  'word_bank_gap_fill',
 ]);
 
 export function bodyOwnsCheck(templateCode: string): boolean {
@@ -249,6 +253,8 @@ export function ExerciseBody(props: ExerciseBodyProps) {
       return <InformationTransferBody {...props} />;
     case 'error_correction':
       return <ErrorCorrectionBody {...props} />;
+    case 'word_bank_gap_fill':
+      return <WordBankGapFillBody {...props} />;
     default:
       return <UnsupportedTemplateBody {...props} />;
   }

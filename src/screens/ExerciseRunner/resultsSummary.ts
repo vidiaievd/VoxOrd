@@ -9,8 +9,8 @@ export interface ResultsSummary {
   accuracy: number;
   /**
    * 0..1, (correct + needsReview) / total — for tone/emoji. The templates that
-   * go to a teacher (translate_*, writing_task) always come back `requiresReview`
-   * and never `correct`, so scoring the hero purely on `accuracy` would make
+   * go to a teacher (writing_task always, translate_* unless every sentence hits the
+   * key) come back `requiresReview` rather than `correct`, so scoring the hero purely on `accuracy` would make
    * a perfectly-completed writing set look like a failure; being routed for
    * review is a successful completion, not a wrong answer.
    */
