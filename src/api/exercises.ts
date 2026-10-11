@@ -37,6 +37,8 @@ const ITEMS_PATH = (exerciseId: string, attemptId: string) =>
   `/api/v1/exercises/${exerciseId}/attempts/${attemptId}/items`;
 const ROWS_PATH = (exerciseId: string, attemptId: string) =>
   `/api/v1/exercises/${exerciseId}/attempts/${attemptId}/rows`;
+const SELF_CHECK_PATH = (exerciseId: string, attemptId: string) =>
+  `/api/v1/exercises/${exerciseId}/attempts/${attemptId}/self-check`;
 const REVEAL_PATH = (exerciseId: string, attemptId: string) =>
   `/api/v1/exercises/${exerciseId}/attempts/${attemptId}/reveal`;
 const ATTEMPT_PATH = (exerciseId: string, attemptId: string) =>
@@ -190,6 +192,19 @@ export function submitAttempt(
   body: SubmitAttemptRequest,
 ): Promise<SubmitAttemptResponse> {
   return apiClient.post<SubmitAttemptResponse>(SUBMIT_PATH(exerciseId, attemptId), body);
+}
+
+/**
+ * `POST /exercises/:exerciseId/attempts/:attemptId/self-check` — how close the work in
+ * progress is, before it is handed in (`translate_*`, `error_correction`).
+ *
+ * The draft travels in the shape the submission uses. Each call spends one of the author's
+ * checks (`flow.selfCheck`), counted on the attempt; a spent budget is refused with 422. What
+ * comes back is masked on the server — distances, counts, the task's own rules, never the
+ * key's words — and its shape is the template's.
+ */
+export function selfCheck(exerciseId: string, attemptId: string, draftAnswer: unknown): Promise<unknown> {
+  return apiClient.post<unknown>(SELF_CHECK_PATH(exerciseId, attemptId), { draftAnswer });
 }
 
 /**

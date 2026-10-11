@@ -6,6 +6,14 @@ import { ColorScheme } from '../../theme/colors';
 import { useExerciseAudio } from '../../hooks/useExerciseAudio';
 import type { ExerciseBodyProps } from './ExerciseBody';
 import { AudioLockNote, AudioTranscript, ExerciseAudioPlayer } from './audio';
+import { selfCheck } from '../../api/exercises';
+import { SelfCheckButton } from './SelfCheckButton';
+import {
+  readCorrectionSelfCheck,
+  selfCheckBudget,
+  type CorrectionSelfCheck,
+  type CorrectionSelfCheckItem,
+} from './templates/selfCheck';
 import {
   EMPTY_EDITS,
   buildEcAnswer,
@@ -87,6 +95,29 @@ export function ErrorCorrectionBody({
   useEffect(() => {
     if (disabled) setEditing(null);
   }, [disabled]);
+
+  // The self-check: mistakes fixed and left, before a teacher reads it — on the author's budget.
+  const budget = selfCheckBudget(display.content);
+  const [checked, setChecked] = useState<CorrectionSelfCheck | null>(null);
+  const [checksLeft, setChecksLeft] = useState(budget);
+  const [checking, setChecking] = useState(false);
+  const [checkError, setCheckError] = useState<string | null>(null);
+  const runSelfCheck = async () => {
+    setChecking(true);
+    setCheckError(null);
+    try {
+      const attemptId = await openAttempt();
+      const read = readCorrectionSelfCheck(
+        await selfCheck(display.id, attemptId, buildEcAnswer(task.items, value)),
+      );
+      setChecked(read);
+      setChecksLeft(read.checksLeft);
+    } catch {
+      setCheckError(t('exerciseRunner.errorCorrection.selfCheck.failed'));
+    } finally {
+      setChecking(false);
+    }
+  };
 
   const audio = useExerciseAudio(display.content);
   const audioOn = audio.audio.enabled;
@@ -353,9 +384,32 @@ export function ErrorCorrectionBody({
               </Text>
             ) : null}
             {item.hint !== undefined && !disabled ? <HintToggle hint={item.hint} /> : null}
+            {!disabled && checked?.items[item.id] !== undefined ? (
+              <CorrectionNote feedback={checked.items[item.id]} />
+            ) : null}
           </View>
         );
       })}
+
+      {!disabled && budget > 0 ? (
+        <SelfCheckButton
+          label={t('exerciseRunner.errorCorrection.selfCheck.button', { left: checksLeft })}
+          spentLabel={t('exerciseRunner.errorCorrection.selfCheck.spent')}
+          left={checksLeft}
+          busy={checking}
+          disabled={touched === 0}
+          summary={
+            checked === null
+              ? null
+              : t('exerciseRunner.errorCorrection.selfCheck.summary', {
+                  fixed: checked.fixedCount,
+                  total: checked.spanCount,
+                })
+          }
+          error={checkError}
+          onPress={() => void runSelfCheck()}
+        />
+      ) : null}
 
       {audioOn ? (
         <AudioTranscript
@@ -384,6 +438,43 @@ function typeName(t: ReturnType<typeof useTranslation>['t'], type: SpanType): st
     case 'function':
       return t('exerciseRunner.errorCorrection.type.function');
   }
+}
+
+/** One sentence of a self-check: counts and types only — never which word. */
+function CorrectionNote({ feedback }: { feedback: CorrectionSelfCheckItem }) {
+  const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
+  const { fixedCount, spanCount, strayEdits } = feedback;
+  const left = spanCount - fixedCount;
+  const headline =
+    spanCount === 0
+      ? t('exerciseRunner.errorCorrection.selfCheck.itemClean')
+      : left === 0
+        ? t('exerciseRunner.errorCorrection.selfCheck.itemAll')
+        : fixedCount === 0
+          ? t('exerciseRunner.errorCorrection.selfCheck.itemNone')
+          : t('exerciseRunner.errorCorrection.selfCheck.itemSome', { fixed: fixedCount, total: spanCount });
+  const types = (feedback.remainingTypes ?? []).filter((type): type is SpanType =>
+    ['form', 'order', 'extra', 'missing', 'spelling', 'function'].includes(type),
+  );
+  const done = left === 0 && strayEdits === 0;
+  return (
+    <View style={[styles.selfCheck, { borderColor: done ? colors.success : colors.backgroundPressed }]}>
+      <Text style={[styles.selfCheckHead, done && { color: colors.success }]}>{headline}</Text>
+      {left > 0 ? (
+        <Text style={styles.metaText}>
+          {t('exerciseRunner.errorCorrection.selfCheck.remaining', { count: left })}
+          {types.length > 0 ? ` — ${types.map((type) => typeName(t, type)).join(', ')}` : ''}
+        </Text>
+      ) : null}
+      {strayEdits > 0 ? (
+        <Text style={styles.metaText}>
+          {t('exerciseRunner.errorCorrection.selfCheck.stray', { count: strayEdits })}
+        </Text>
+      ) : null}
+    </View>
+  );
 }
 
 function HintToggle({ hint }: { hint: string }) {
@@ -503,5 +594,7 @@ const makeStyles = (colors: ColorScheme) =>
     },
     metaText: { fontSize: 12, color: colors.textMuted },
     link: { fontSize: 13, fontWeight: '600', color: colors.accent, paddingVertical: 4 },
+    selfCheck: { marginTop: 10, padding: 10, borderRadius: 12, borderWidth: 1.5, gap: 4 },
+    selfCheckHead: { fontSize: 13, fontWeight: '700', color: colors.textSecondary },
     hint: { fontSize: 13, color: colors.textSecondary, lineHeight: 18, marginTop: 2 },
   });
