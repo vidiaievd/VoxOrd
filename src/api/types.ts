@@ -180,7 +180,8 @@ export type ExerciseTemplateCode =
   | 'inflection_table'
   | 'read_aloud'
   | 'minimal_pairs'
-  | 'information_transfer';
+  | 'information_transfer'
+  | 'error_correction';
 
 export interface ExerciseInstruction {
   id: string;

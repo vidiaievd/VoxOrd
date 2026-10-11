@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,8 @@ import {
   ActivityIndicator,
   ScrollView,
   TouchableOpacity,
+  KeyboardAvoidingView,
+  Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from '../../i18n';
@@ -39,6 +41,7 @@ export function ExerciseRunnerScreen({
   onComplete,
   onOpenSourceLesson,
 }: ExerciseRunnerScreenProps) {
+  const keyboardShown = useKeyboardShown();
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
@@ -118,8 +121,11 @@ export function ExerciseRunnerScreen({
         state.phase === 'checking' ||
         state.phase === 'feedback') &&
         state.display && (
-          <>
-            <ScrollView contentContainerStyle={styles.scroll}>
+          // The fields of a body sit anywhere down the page; without this the keyboard
+          // covers the one being typed in. `handled` lets a tap on a body's button land
+          // while the keyboard is up instead of only closing it.
+          <KeyboardAvoidingView style={styles.flex} behavior="padding" enabled={keyboardShown}>
+            <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
               <ExerciseBody
                 // Force a remount per item (mirrors the web reader's
                 // key={contentId}) so a body's local input state (selection,
@@ -189,14 +195,35 @@ export function ExerciseRunnerScreen({
                 )}
               </View>
             ) : null}
-          </>
+          </KeyboardAvoidingView>
         )}
     </SafeAreaView>
   );
 }
 
+/**
+ * Whether the soft keyboard is up. The avoiding view is switched on only while it is: on Android
+ * edge-to-edge the hide event still reports the navigation bar's inset as a keyboard, and an
+ * always-on view kept that much empty space under the footer after every edit.
+ */
+function useKeyboardShown(): boolean {
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', () => setShown(true));
+    const hide = Keyboard.addListener('keyboardDidHide', () => setShown(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+  return shown;
+}
+
 const makeStyles = (colors: ColorScheme) =>
   StyleSheet.create({
+    flex: {
+      flex: 1,
+    },
     container: {
       flex: 1,
       backgroundColor: colors.background,

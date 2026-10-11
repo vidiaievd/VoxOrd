@@ -26,6 +26,7 @@ import { InflectionTableBody } from './InflectionTableBody';
 import { ReadAloudBody } from './ReadAloudBody';
 import { MinimalPairsBody } from './MinimalPairsBody';
 import { InformationTransferBody } from './InformationTransferBody';
+import { ErrorCorrectionBody } from './ErrorCorrectionBody';
 
 /**
  * Contract every per-template body implements (Phase 4.2+). A body is a
@@ -246,6 +247,8 @@ export function ExerciseBody(props: ExerciseBodyProps) {
       return <MinimalPairsBody {...props} />;
     case 'information_transfer':
       return <InformationTransferBody {...props} />;
+    case 'error_correction':
+      return <ErrorCorrectionBody {...props} />;
     default:
       return <UnsupportedTemplateBody {...props} />;
   }
