@@ -37,6 +37,8 @@ const ITEMS_PATH = (exerciseId: string, attemptId: string) =>
   `/api/v1/exercises/${exerciseId}/attempts/${attemptId}/items`;
 const ROWS_PATH = (exerciseId: string, attemptId: string) =>
   `/api/v1/exercises/${exerciseId}/attempts/${attemptId}/rows`;
+const REVEAL_PATH = (exerciseId: string, attemptId: string) =>
+  `/api/v1/exercises/${exerciseId}/attempts/${attemptId}/reveal`;
 const ATTEMPT_PATH = (exerciseId: string, attemptId: string) =>
   `/api/v1/exercises/${exerciseId}/attempts/${attemptId}`;
 const DRAFT_PATH = (exerciseId: string, attemptId: string) =>
@@ -188,6 +190,19 @@ export function submitAttempt(
   body: SubmitAttemptRequest,
 ): Promise<SubmitAttemptResponse> {
   return apiClient.post<SubmitAttemptResponse>(SUBMIT_PATH(exerciseId, attemptId), body);
+}
+
+/**
+ * `POST /exercises/:exerciseId/attempts/:attemptId/reveal` — the answers of a submitted
+ * `word_bank_gap_fill` (or `match_pairs`) attempt, and the note on why each is right.
+ *
+ * The only way the words leave the engine: a check says right or wrong and why, never what.
+ * Asking is recorded on the attempt — shown answers are weaker evidence of knowing them — and
+ * refused with 422 until something has been submitted. The shape is the template's; the body
+ * that asked reads it.
+ */
+export function revealAnswers(exerciseId: string, attemptId: string): Promise<unknown> {
+  return apiClient.post<unknown>(REVEAL_PATH(exerciseId, attemptId), {});
 }
 
 /* ─────────────────────────────────────────────────────────────────────────

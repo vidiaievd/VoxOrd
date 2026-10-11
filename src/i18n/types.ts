@@ -242,6 +242,18 @@ export interface Translations {
     translateToTargetLabel: string; // '{language}'
     translateFromTargetLabel: string; // '{language}'
     translatePlaceholder: string;
+    gapFill: {
+      remaining: string; // '{count}'
+      check: string;
+      checkAgain: string; // '{n}'
+      fillEveryGap: string;
+      checkFailed: string;
+      revealFailed: string;
+      showAnswers: string;
+      wrong: string;
+      answer: string; // '{word}'
+      emptyGap: string; // '{label}'
+    };
     matchPairsHint: string;
     matchPairsRemaining: string; // '{count}'
     matchPairsEmptySlot: string;

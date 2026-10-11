@@ -295,7 +295,9 @@ export function useExerciseRunner(
       if (!openExerciseId || !openDisplay) {
         throw new Error('No exercise is open');
       }
-      const attemptId = await openAttempt(openExerciseId, openDisplay);
+      // Joins an attempt left in progress rather than failing on 409, as the web's attempt
+      // route does: the check is a submit, so the orphan is simply closed by it.
+      const attemptId = await openAttempt(openExerciseId, openDisplay, true);
       return submitAttempt(openExerciseId, attemptId, {
         submittedAnswer,
         timeSpentSeconds: Math.max(
