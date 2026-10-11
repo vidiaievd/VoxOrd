@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { revealAnswers, type SubmitAttemptResponse } from '../../api/exercises';
+import { recentAttempts, revealAnswers, type SubmitAttemptResponse } from '../../api/exercises';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
@@ -21,9 +21,11 @@ import {
   readGapFillTask,
   readGapVerdicts,
   readRevealedGaps,
+  restoreGapFill,
   type GapFillGapToken,
   type GapKey,
   type GapVerdict,
+  type RestoredGapFill,
   type RevealedGap,
 } from './templates/wordBankGapFill';
 
@@ -71,6 +73,40 @@ export function WordBankGapFillBody({
   const [checks, setChecks] = useState(0);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  /*
+    The last check, put back. The engine starts a fresh attempt after a reload — checks are
+    unlimited, so nothing is lost by it — but the learner's words would be, so the board they
+    left is restored from the attempt list, the way the web restores it. Only into an untouched
+    board: a learner who has started placing words has already chosen to start over.
+  */
+  const [restored, setRestored] = useState<RestoredGapFill | null>(null);
+  useEffect(() => {
+    let live = true;
+    recentAttempts(display.id, 1).then((rows) => {
+      if (!live || rows.length === 0) return;
+      const board = restoreGapFill(rows[0], task);
+      if (board === null) return;
+      setValues((prev) => (Object.keys(prev).length > 0 ? prev : board.values));
+      setVerdicts((prev) => (Object.keys(prev).length > 0 ? prev : board.verdicts));
+      setCheckedWords((prev) => (Object.keys(prev).length > 0 ? prev : board.values));
+      setChecks((n) => (n > 0 ? n : 1));
+      setRestored(board);
+    });
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [display.id]);
+
+  const startOver = () => {
+    setValues({});
+    setVerdicts({});
+    setCheckedWords({});
+    setChecks(0);
+    setSelected(null);
+    setRestored(null);
+  };
 
   const audio = useExerciseAudio(display.content);
   const audioOn = audio.audio.enabled;
@@ -247,6 +283,20 @@ export function WordBankGapFillBody({
 
   return (
     <View>
+      {restored !== null && !closed && lastResponse === null ? (
+        <View style={styles.restored}>
+          <Text style={styles.restoredText}>
+            {t('exerciseRunner.gapFill.restored', {
+              correct: String(restored.correct),
+              total: String(restored.total),
+            })}
+          </Text>
+          <TouchableOpacity onPress={startOver} accessibilityRole="button">
+            <Text style={styles.restoredLink}>{t('exerciseRunner.gapFill.startOver')}</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+
       {audioOn ? (
         <View style={styles.audio}>
           <ExerciseAudioPlayer eng={audio} interactive={!closed} />
@@ -364,6 +414,27 @@ const makeStyles = (colors: ColorScheme) =>
   StyleSheet.create({
     audio: {
       marginBottom: 14,
+    },
+    restored: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 8,
+      padding: 12,
+      borderRadius: 12,
+      backgroundColor: colors.backgroundCard,
+      marginBottom: 14,
+    },
+    restoredText: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      flexShrink: 1,
+    },
+    restoredLink: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colors.accent,
     },
     sentence: {
       marginBottom: 14,

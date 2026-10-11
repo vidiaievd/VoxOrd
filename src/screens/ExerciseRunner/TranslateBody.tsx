@@ -6,6 +6,14 @@ import { ColorScheme } from '../../theme/colors';
 import { useExerciseAudio } from '../../hooks/useExerciseAudio';
 import type { ExerciseBodyProps } from './ExerciseBody';
 import { AudioLockNote, ExerciseAudioPlayer } from './audio';
+import { selfCheck } from '../../api/exercises';
+import { SelfCheckButton } from './SelfCheckButton';
+import {
+  readTranslateSelfCheck,
+  selfCheckBudget,
+  type TranslateSelfCheck,
+  type TranslateSelfCheckItem,
+} from './templates/selfCheck';
 import {
   buildTranslateAnswer,
   readTranslateRouting,
@@ -27,7 +35,13 @@ const NORWEGIAN_CHARS = ['æ', 'ø', 'å'] as const;
  * translation that misses the key is very often a second good one, so nothing here calls an
  * answer wrong. The footer's Check sends every sentence at once.
  */
-export function TranslateBody({ display, disabled, verdict, onAnswerChange }: ExerciseBodyProps) {
+export function TranslateBody({
+  display,
+  disabled,
+  verdict,
+  onAnswerChange,
+  openAttempt,
+}: ExerciseBodyProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
@@ -37,6 +51,28 @@ export function TranslateBody({ display, disabled, verdict, onAnswerChange }: Ex
     [display.content, display.templateCode],
   );
   const [values, setValues] = useState<Record<string, string>>({});
+
+  // The self-check: how close the work is before it goes to a teacher, on the author's budget.
+  const [checked, setChecked] = useState<TranslateSelfCheck | null>(null);
+  const [checksLeft, setChecksLeft] = useState(() => selfCheckBudget(display.content));
+  const [checking, setChecking] = useState(false);
+  const [checkError, setCheckError] = useState<string | null>(null);
+  const runSelfCheck = async () => {
+    setChecking(true);
+    setCheckError(null);
+    try {
+      const attemptId = await openAttempt();
+      const read = readTranslateSelfCheck(
+        await selfCheck(display.id, attemptId, buildTranslateAnswer(task.items, values)),
+      );
+      setChecked(read);
+      setChecksLeft(read.checksLeft);
+    } catch {
+      setCheckError(t('exerciseRunner.translate.selfCheck.failed'));
+    } finally {
+      setChecking(false);
+    }
+  };
 
   useEffect(() => {
     onAnswerChange(buildTranslateAnswer(task.items, values), translateCanSubmit(task.items, values));
@@ -85,9 +121,30 @@ export function TranslateBody({ display, disabled, verdict, onAnswerChange }: Ex
           value={values[item.id] ?? ''}
           disabled={disabled}
           outcome={routing[item.id] ?? null}
+          feedback={disabled ? null : checked?.items[item.id] ?? null}
           onChange={(text) => setValues((prev) => ({ ...prev, [item.id]: text }))}
         />
       ))}
+
+      {!disabled && selfCheckBudget(display.content) > 0 ? (
+        <SelfCheckButton
+          label={t('exerciseRunner.translate.selfCheck.button', { left: checksLeft })}
+          spentLabel={t('exerciseRunner.translate.selfCheck.spent')}
+          left={checksLeft}
+          busy={checking}
+          disabled={written === 0}
+          summary={
+            checked === null
+              ? null
+              : t('exerciseRunner.translate.selfCheck.summary', {
+                  passing: checked.passing,
+                  total: task.items.length,
+                })
+          }
+          error={checkError}
+          onPress={() => void runSelfCheck()}
+        />
+      ) : null}
     </View>
   );
 }
@@ -104,6 +161,8 @@ interface TranslateCardProps {
   value: string;
   disabled: boolean;
   outcome: TranslateRouting | null;
+  /** This sentence in the last self-check, while the work is still open. */
+  feedback: TranslateSelfCheckItem | null;
   onChange: (text: string) => void;
 }
 
@@ -117,6 +176,7 @@ function TranslateCard({
   value,
   disabled,
   outcome,
+  feedback,
   onChange,
 }: TranslateCardProps) {
   const { t } = useTranslation();
@@ -239,6 +299,71 @@ function TranslateCard({
       {hintOpen && item.hint !== undefined && !disabled ? (
         <Text style={styles.hint}>{item.hint}</Text>
       ) : null}
+
+      {feedback !== null ? <SelfCheckNote feedback={feedback} /> : null}
+    </View>
+  );
+}
+
+/**
+ * One sentence of a self-check: the verdict in words, the diff with the key's own words already
+ * masked on the server, and the task's rules this answer breaks. Never a word of the key.
+ */
+function SelfCheckNote({ feedback }: { feedback: TranslateSelfCheckItem }) {
+  const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
+  const headline =
+    feedback.verdict === 'exact'
+      ? t('exerciseRunner.translate.selfCheck.exact')
+      : feedback.verdict === 'typo'
+        ? t('exerciseRunner.translate.selfCheck.typo')
+        : feedback.verdict === 'near'
+          ? t('exerciseRunner.translate.selfCheck.near')
+          : feedback.verdict === 'noref'
+            ? t('exerciseRunner.translate.selfCheck.noKey')
+            : feedback.verdict === 'empty'
+              ? t('exerciseRunner.translate.selfCheck.empty')
+              : feedback.divergingWords !== undefined
+                ? t('exerciseRunner.translate.selfCheck.diverging', { count: feedback.divergingWords })
+                : t('exerciseRunner.translate.selfCheck.off');
+  const good = feedback.verdict === 'exact' || feedback.verdict === 'typo';
+  return (
+    <View style={[styles.selfCheck, { borderColor: good ? colors.success : colors.backgroundPressed }]}>
+      <Text style={[styles.selfCheckHead, good && { color: colors.success }]}>{headline}</Text>
+      {feedback.tokens !== undefined && feedback.tokens.length > 0 && !good ? (
+        <Text style={styles.diff}>
+          {feedback.tokens.map((token, index) => (
+            <Text
+              key={index}
+              style={
+                token.t === 'extra'
+                  ? styles.diffExtra
+                  : token.t === 'missing'
+                    ? styles.diffMissing
+                    : token.typo !== null
+                      ? styles.diffTypo
+                      : undefined
+              }
+            >
+              {index > 0 ? ' ' : ''}
+              {token.w}
+            </Text>
+          ))}
+        </Text>
+      ) : null}
+      {feedback.missing.map((guard, index) => (
+        <Text key={`m${index}`} style={styles.guard}>
+          {t('exerciseRunner.translate.selfCheck.requires', { text: guard.text })}
+          {guard.note ? ` — ${guard.note}` : ''}
+        </Text>
+      ))}
+      {feedback.banned.map((guard, index) => (
+        <Text key={`b${index}`} style={styles.guard}>
+          {t('exerciseRunner.translate.selfCheck.avoid', { text: guard.text })}
+          {guard.note ? ` ${guard.note}` : ''}
+        </Text>
+      ))}
     </View>
   );
 }
@@ -444,6 +569,19 @@ const makeStyles = (colors: ColorScheme) =>
       fontWeight: '600',
       color: colors.accent,
     },
+    selfCheck: {
+      marginTop: 10,
+      padding: 10,
+      borderRadius: 12,
+      borderWidth: 1.5,
+      gap: 4,
+    },
+    selfCheckHead: { fontSize: 13, fontWeight: '700', color: colors.textSecondary },
+    diff: { fontSize: 15, lineHeight: 22, color: colors.textPrimary },
+    diffExtra: { color: colors.danger, textDecorationLine: 'line-through' },
+    diffMissing: { color: colors.accent, fontWeight: '700' },
+    diffTypo: { textDecorationLine: 'underline', textDecorationColor: colors.warning },
+    guard: { fontSize: 13, color: colors.textSecondary, lineHeight: 18 },
     hint: {
       fontSize: 13,
       color: colors.textSecondary,

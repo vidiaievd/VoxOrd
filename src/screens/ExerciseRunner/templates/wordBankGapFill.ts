@@ -186,3 +186,66 @@ export function readRevealedGaps(response: unknown): Record<GapKey, RevealedGap>
   }
   return out;
 }
+
+/** A board put back from the learner's last check, when there is one worth putting back. */
+export interface RestoredGapFill {
+  values: Record<GapKey, string>;
+  verdicts: Record<GapKey, GapVerdict>;
+  correct: number;
+  total: number;
+  /** ISO time of that check. */
+  savedAt: string | null;
+}
+
+/**
+ * The last check of this exercise as a board to resume, or `null`.
+ *
+ * The engine does not resume a checked gap-fill — checks are unlimited, so a fresh attempt
+ * costs nothing — but the learner's work does not have to go with it: the web puts the last
+ * answer back, and so does this. Only a check that is still worth working from: scored, not
+ * all right, answers not shown. Placements are kept only where the gap still exists and, in
+ * bank mode, the word is still in the bank (once per copy unless reuse is allowed), so an
+ * exercise edited since cannot be restored into an impossible board.
+ */
+export function restoreGapFill(
+  row: unknown,
+  task: Pick<GapFillTask, 'gapKeys' | 'bank' | 'allowReuse'>,
+): RestoredGapFill | null {
+  const r = asRecord(row);
+  if (String(r.status).toUpperCase() !== 'SCORED') return null;
+  if (r.templateCode !== undefined && r.templateCode !== 'word_bank_gap_fill') return null;
+  if (r.answersRevealed === true) return null;
+  if (typeof r.score === 'number' && r.score >= 100) return null;
+
+  const known = new Set(task.gapKeys);
+  const left = new Map<string, number>();
+  for (const word of task.bank ?? []) left.set(word, (left.get(word) ?? 0) + 1);
+
+  const values: Record<GapKey, string> = {};
+  const placements = asRecord(r.submittedAnswer).placements;
+  for (const raw of Array.isArray(placements) ? placements : []) {
+    const p = asRecord(raw);
+    const gapKey = asString(p.gapKey);
+    const word = asString(p.word);
+    if (!known.has(gapKey) || word === '' || values[gapKey] !== undefined) continue;
+    if (task.bank !== null) {
+      const n = left.get(word) ?? 0;
+      if (n === 0) continue;
+      if (!task.allowReuse) left.set(word, n - 1);
+    }
+    values[gapKey] = word;
+  }
+  if (Object.keys(values).length === 0) return null;
+
+  const verdicts: Record<GapKey, GapVerdict> = {};
+  for (const [gapKey, verdict] of Object.entries(readGapVerdicts(r.validationDetails))) {
+    if (values[gapKey] !== undefined) verdicts[gapKey] = verdict;
+  }
+  return {
+    values,
+    verdicts,
+    correct: Object.values(verdicts).filter((v) => v.correct).length,
+    total: task.gapKeys.length,
+    savedAt: typeof r.submittedAt === 'string' ? r.submittedAt : null,
+  };
+}

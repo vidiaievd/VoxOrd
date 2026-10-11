@@ -4,6 +4,7 @@ import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
 import type { SubmitAttemptResponse } from '../../api/exercises';
+import { feedbackLine } from './feedbackLine';
 
 interface FeedbackBarProps {
   verdict: SubmitAttemptResponse;
@@ -32,12 +33,20 @@ export function FeedbackBar({ verdict }: FeedbackBarProps) {
       : tone === 'incorrect'
         ? t('exerciseRunner.incorrect')
         : t('exerciseRunner.submittedForReview');
+  // The engine's own words are English stock phrases; see `feedbackLine`.
+  const line = feedbackLine(verdict.feedback.summary);
 
   return (
     <View style={[styles.bar, { backgroundColor: `${toneColor}1A`, borderColor: toneColor }]}>
       <Text style={[styles.title, { color: toneColor }]}>{title}</Text>
-      {verdict.feedback.summary ? (
-        <Text style={styles.summary}>{verdict.feedback.summary}</Text>
+      {line.kind === 'expected' ? (
+        <Text style={styles.summary}>
+          {t('exerciseRunner.expectedAnswer', { answer: line.answer })}
+        </Text>
+      ) : line.kind === 'text' ? (
+        <Text style={styles.summary}>{line.text}</Text>
+      ) : tone === 'review' ? (
+        <Text style={styles.summary}>{t('exerciseRunner.reviewNote')}</Text>
       ) : null}
     </View>
   );

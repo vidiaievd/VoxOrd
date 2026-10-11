@@ -234,15 +234,67 @@ export interface Translations {
     correct: string;
     incorrect: string;
     submittedForReview: string;
+    expectedAnswer: string; // '{answer}'
+    reviewNote: string;
     setComplete: string;
     setCompleteDesc: string;
     done: string;
     unsupportedTemplate: string;
     unsupportedTemplateDesc: string; // '{template}'
-    translateToTargetLabel: string; // '{language}'
-    translateFromTargetLabel: string; // '{language}'
-    translatePlaceholder: string;
+    translate: {
+      selfCheck: {
+        button: string;
+        spent: string;
+        failed: string;
+        summary: string;
+        exact: string;
+        typo: string;
+        near: string;
+        off: string;
+        noKey: string;
+        empty: string;
+        diverging: PluralForms;
+        requires: string;
+        avoid: string;
+      };
+      bothWays: string;
+      direction: string; // '{from}', '{to}'
+      numberedLang: string; // '{n}', '{lang}'
+      numberedDirection: string; // '{n}', '{from}', '{to}'
+      progress: string; // '{written}', '{total}'
+      placeholder: string; // '{lang}'
+      showHint: string;
+      hideHint: string;
+      itemApproved: string;
+      itemWithTeacher: string;
+    };
+    gapFill: {
+      restored: string; // '{correct}', '{total}'
+      startOver: string;
+      remaining: string; // '{count}'
+      check: string;
+      checkAgain: string; // '{n}'
+      fillEveryGap: string;
+      checkFailed: string;
+      revealFailed: string;
+      showAnswers: string;
+      wrong: string;
+      answer: string; // '{word}'
+      emptyGap: string; // '{label}'
+    };
     errorCorrection: {
+      selfCheck: {
+        button: string;
+        spent: string;
+        failed: string;
+        summary: string;
+        itemClean: string;
+        itemAll: string;
+        itemNone: string;
+        itemSome: string;
+        remaining: PluralForms;
+        stray: PluralForms;
+      };
       toFind: PluralForms;
       inThis: PluralForms;
       changes: PluralForms;
@@ -266,28 +318,14 @@ export interface Translations {
       showHint: string;
       hideHint: string;
       type: Record<'form' | 'order' | 'extra' | 'missing' | 'spelling' | 'function', string>;
-    gapFill: {
-      remaining: string; // '{count}'
-      check: string;
-      checkAgain: string; // '{n}'
-      fillEveryGap: string;
-      checkFailed: string;
-      revealFailed: string;
-      showAnswers: string;
-      wrong: string;
-      answer: string; // '{word}'
-      emptyGap: string; // '{label}'
-    translate: {
-      bothWays: string;
-      direction: string; // '{from}', '{to}'
-      numberedLang: string; // '{n}', '{lang}'
-      numberedDirection: string; // '{n}', '{from}', '{to}'
-      progress: string; // '{written}', '{total}'
-      placeholder: string; // '{lang}'
-      showHint: string;
-      hideHint: string;
-      itemApproved: string;
-      itemWithTeacher: string;
+    };
+    textOrder: {
+      howTo: string;
+      pickPlace: string;
+      lineLabel: string; // '{n}', '{text}'
+      up: string;
+      down: string;
+      placed: string; // '{placed}', '{total}'
     };
     matchPairsHint: string;
     matchPairsRemaining: string; // '{count}'

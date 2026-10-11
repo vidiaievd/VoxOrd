@@ -161,8 +161,8 @@ export interface VocabularyList {
 /**
  * Exercise template codes mirror content-service's seeded templates exactly.
  * Source: ssz-platform-web/src/features/content-authoring/schemas/exercise.ts
- * (`EXERCISE_TYPES`). Codes the phone has no body for yet (`error_correction`,
- * `text_order`) fall through to the "unsupported" placeholder.
+ * (`EXERCISE_TYPES`). A code the phone has no body for falls through to the
+ * "unsupported" placeholder.
  */
 export type ExerciseTemplateCode =
   | 'multiple_choice'
@@ -181,8 +181,9 @@ export type ExerciseTemplateCode =
   | 'read_aloud'
   | 'minimal_pairs'
   | 'information_transfer'
-  | 'error_correction';
-  | 'word_bank_gap_fill';
+  | 'word_bank_gap_fill'
+  | 'error_correction'
+  | 'text_order';
 
 export interface ExerciseInstruction {
   id: string;

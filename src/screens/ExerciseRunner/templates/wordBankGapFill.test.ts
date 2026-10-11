@@ -5,6 +5,7 @@ import {
   readGapFillTask,
   readGapVerdicts,
   readRevealedGaps,
+  restoreGapFill,
 } from './wordBankGapFill';
 
 // The projection content-service serves on /display, trimmed from a seeded exercise.
@@ -134,5 +135,48 @@ describe('server responses', () => {
       a: { word: 'retter', why: 'Å rette — исправлять.' },
       b: { word: 'skrivefeil', why: null },
     });
+  });
+});
+
+describe('restoreGapFill', () => {
+  const task = { gapKeys: ['a', 'b', 'c'], bank: ['en', 'to', 'tre'], allowReuse: false };
+  const row = {
+    status: 'SCORED',
+    templateCode: 'word_bank_gap_fill',
+    score: 33,
+    answersRevealed: false,
+    submittedAt: '2026-10-11T12:00:00Z',
+    submittedAnswer: { placements: [{ gapKey: 'a', word: 'en' }, { gapKey: 'b', word: 'tre' }, { gapKey: 'c', word: 'to' }] },
+    validationDetails: { gaps: [{ gapKey: 'a', correct: true, explanation: null }, { gapKey: 'b', correct: false, explanation: 'Nei.' }, { gapKey: 'c', correct: false, explanation: null }] },
+  };
+
+  it('puts the last check back with its verdicts', () => {
+    expect(restoreGapFill(row, task)).toEqual({
+      values: { a: 'en', b: 'tre', c: 'to' },
+      verdicts: {
+        a: { correct: true, explanation: null },
+        b: { correct: false, explanation: 'Nei.' },
+        c: { correct: false, explanation: null },
+      },
+      correct: 1,
+      total: 3,
+      savedAt: '2026-10-11T12:00:00Z',
+    });
+  });
+
+  it('restores nothing worth not restoring', () => {
+    expect(restoreGapFill({ ...row, score: 100 }, task)).toBeNull();
+    expect(restoreGapFill({ ...row, answersRevealed: true }, task)).toBeNull();
+    expect(restoreGapFill({ ...row, status: 'IN_PROGRESS' }, task)).toBeNull();
+    expect(restoreGapFill({ ...row, templateCode: 'match_pairs' }, task)).toBeNull();
+    expect(restoreGapFill(null, task)).toBeNull();
+  });
+
+  it('drops placements the exercise no longer allows', () => {
+    const restored = restoreGapFill(
+      { ...row, submittedAnswer: { placements: [{ gapKey: 'a', word: 'en' }, { gapKey: 'b', word: 'en' }, { gapKey: 'z', word: 'to' }, { gapKey: 'c', word: 'fire' }] } },
+      task,
+    );
+    expect(restored?.values).toEqual({ a: 'en' });
   });
 });
