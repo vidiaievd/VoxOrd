@@ -28,6 +28,7 @@ import { MinimalPairsBody } from './MinimalPairsBody';
 import { InformationTransferBody } from './InformationTransferBody';
 import { WordBankGapFillBody } from './WordBankGapFillBody';
 import { ErrorCorrectionBody } from './ErrorCorrectionBody';
+import { TextOrderBody } from './TextOrderBody';
 
 /**
  * Contract every per-template body implements (Phase 4.2+). A body is a
@@ -255,6 +256,8 @@ export function ExerciseBody(props: ExerciseBodyProps) {
       return <WordBankGapFillBody {...props} />;
     case 'error_correction':
       return <ErrorCorrectionBody {...props} />;
+    case 'text_order':
+      return <TextOrderBody {...props} />;
     default:
       return <UnsupportedTemplateBody {...props} />;
   }
