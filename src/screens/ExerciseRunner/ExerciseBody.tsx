@@ -27,6 +27,7 @@ import { ReadAloudBody } from './ReadAloudBody';
 import { MinimalPairsBody } from './MinimalPairsBody';
 import { InformationTransferBody } from './InformationTransferBody';
 import { WordBankGapFillBody } from './WordBankGapFillBody';
+import { ErrorCorrectionBody } from './ErrorCorrectionBody';
 
 /**
  * Contract every per-template body implements (Phase 4.2+). A body is a
@@ -252,6 +253,8 @@ export function ExerciseBody(props: ExerciseBodyProps) {
       return <InformationTransferBody {...props} />;
     case 'word_bank_gap_fill':
       return <WordBankGapFillBody {...props} />;
+    case 'error_correction':
+      return <ErrorCorrectionBody {...props} />;
     default:
       return <UnsupportedTemplateBody {...props} />;
   }

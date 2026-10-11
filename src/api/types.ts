@@ -181,7 +181,8 @@ export type ExerciseTemplateCode =
   | 'read_aloud'
   | 'minimal_pairs'
   | 'information_transfer'
-  | 'word_bank_gap_fill';
+  | 'word_bank_gap_fill'
+  | 'error_correction';
 
 export interface ExerciseInstruction {
   id: string;
