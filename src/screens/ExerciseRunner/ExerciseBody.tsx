@@ -25,6 +25,7 @@ import { DictationBody } from './DictationBody';
 import { InflectionTableBody } from './InflectionTableBody';
 import { ReadAloudBody } from './ReadAloudBody';
 import { MinimalPairsBody } from './MinimalPairsBody';
+import { InformationTransferBody } from './InformationTransferBody';
 
 /**
  * Contract every per-template body implements (Phase 4.2+). A body is a
@@ -171,6 +172,9 @@ const BODY_OWNS_CHECK: ReadonlySet<string> = new Set([
   // Each probe is answered onto the one attempt and the submit that sums the sitting up is the
   // body's own «Se resultatet» (plan 72 phase 9).
   'minimal_pairs',
+  // The whole blank is handed in from the body, a check at a time onto the one attempt (plan 73
+  // phase 8) — the inflection_table mechanism.
+  'information_transfer',
 ]);
 
 export function bodyOwnsCheck(templateCode: string): boolean {
@@ -240,6 +244,8 @@ export function ExerciseBody(props: ExerciseBodyProps) {
       return <ReadAloudBody {...props} />;
     case 'minimal_pairs':
       return <MinimalPairsBody {...props} />;
+    case 'information_transfer':
+      return <InformationTransferBody {...props} />;
     default:
       return <UnsupportedTemplateBody {...props} />;
   }

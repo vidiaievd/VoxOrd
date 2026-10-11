@@ -615,6 +615,48 @@ export interface Translations {
         start: string;
       };
     };
+    /** Plan 73: a blank filled in from a text or a recording, checked as one block. */
+    informationTransfer: {
+      defaultTitle: string;
+      defaultInstruction: string;
+      form: string;
+      fieldN: string; // '{n}'
+      stepOf: string; // '{k}', '{n}'
+      next: string;
+      check: string;
+      checking: string;
+      retry: PluralForms; // '{count}', '{k}', '{max}'
+      retryUnlimited: PluralForms; // '{count}'
+      noKey: string;
+      progress: string;
+      passed: string;
+      tryAgain: string;
+      scoreLine: string; // '{pct}', '{need}'
+      requiredMissed: string;
+      doneHint: string;
+      sendFailed: string;
+      closedAlready: string;
+      empty: string;
+      emptyDesc: string;
+      unavailable: string;
+      unavailableDesc: string;
+      mark: {
+        ok: string;
+        typo: string;
+        unread: string;
+        empty: string;
+        wrong: string;
+      };
+      hint: {
+        format: string; // '{form}'
+        answer: string;
+        unreadTime: string;
+        unreadDate: string;
+        unreadNumber: string;
+        unreadMoney: string;
+        unreadPhone: string;
+      };
+    };
     /** `minimal_pairs` — one word heard, the two or three it could have been (plan 72). */
     minimalPairs: {
       defaultTitle: string;
