@@ -239,9 +239,6 @@ export interface Translations {
     done: string;
     unsupportedTemplate: string;
     unsupportedTemplateDesc: string; // '{template}'
-    translateToTargetLabel: string; // '{language}'
-    translateFromTargetLabel: string; // '{language}'
-    translatePlaceholder: string;
     gapFill: {
       remaining: string; // '{count}'
       check: string;
@@ -253,6 +250,7 @@ export interface Translations {
       wrong: string;
       answer: string; // '{word}'
       emptyGap: string; // '{label}'
+    };
     translate: {
       bothWays: string;
       direction: string; // '{from}', '{to}'

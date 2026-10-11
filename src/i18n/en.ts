@@ -237,9 +237,6 @@ export const en: Translations = {
     done: 'Done',
     unsupportedTemplate: 'Not available yet',
     unsupportedTemplateDesc: 'This exercise type ({template}) is not supported on mobile yet.',
-    translateToTargetLabel: 'Translate into {language}',
-    translateFromTargetLabel: 'Translate from {language}',
-    translatePlaceholder: 'Type your translation…',
     gapFill: {
       remaining: '{count} left',
       check: 'Check',
@@ -251,6 +248,7 @@ export const en: Translations = {
       wrong: 'Not this one',
       answer: 'the answer is {word}',
       emptyGap: '{label}: empty gap',
+    },
     translate: {
       bothWays: 'Both directions',
       direction: '{from} → {to}',

@@ -237,9 +237,6 @@ export const ru: Translations = {
     done: 'Готово',
     unsupportedTemplate: 'Пока недоступно',
     unsupportedTemplateDesc: 'Этот тип упражнения ({template}) пока не поддерживается в приложении.',
-    translateToTargetLabel: 'Переведите на {language}',
-    translateFromTargetLabel: 'Переведите с {language}',
-    translatePlaceholder: 'Введите перевод…',
     gapFill: {
       remaining: 'осталось {count}',
       check: 'Проверить',
@@ -251,6 +248,7 @@ export const ru: Translations = {
       wrong: 'Не это слово',
       answer: 'ответ — {word}',
       emptyGap: '{label}: пустой пропуск',
+    },
     translate: {
       bothWays: 'В обе стороны',
       direction: '{from} → {to}',

@@ -237,9 +237,6 @@ export const uk: Translations = {
     done: 'Готово',
     unsupportedTemplate: 'Поки недоступно',
     unsupportedTemplateDesc: 'Цей тип вправи ({template}) поки не підтримується в застосунку.',
-    translateToTargetLabel: 'Перекладіть на {language}',
-    translateFromTargetLabel: 'Перекладіть з {language}',
-    translatePlaceholder: 'Введіть переклад…',
     gapFill: {
       remaining: 'залишилось {count}',
       check: 'Перевірити',
@@ -251,6 +248,7 @@ export const uk: Translations = {
       wrong: 'Не це слово',
       answer: 'відповідь — {word}',
       emptyGap: '{label}: порожній пропуск',
+    },
     translate: {
       bothWays: 'В обидва боки',
       direction: '{from} → {to}',
