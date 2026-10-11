@@ -239,9 +239,18 @@ export interface Translations {
     done: string;
     unsupportedTemplate: string;
     unsupportedTemplateDesc: string; // '{template}'
-    translateToTargetLabel: string; // '{language}'
-    translateFromTargetLabel: string; // '{language}'
-    translatePlaceholder: string;
+    translate: {
+      bothWays: string;
+      direction: string; // '{from}', '{to}'
+      numberedLang: string; // '{n}', '{lang}'
+      numberedDirection: string; // '{n}', '{from}', '{to}'
+      progress: string; // '{written}', '{total}'
+      placeholder: string; // '{lang}'
+      showHint: string;
+      hideHint: string;
+      itemApproved: string;
+      itemWithTeacher: string;
+    };
     matchPairsHint: string;
     matchPairsRemaining: string; // '{count}'
     matchPairsEmptySlot: string;
