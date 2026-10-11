@@ -313,6 +313,17 @@ describe('InformationTransferBody', () => {
     expect(text(tree)).toContain('informationTransfer.closedAlready');
   });
 
+  it('does not call a start meeting an attempt in progress «finished»', async () => {
+    const checkTable = jest
+      .fn()
+      .mockRejectedValue(new ApiError({ message: 'in progress', status: 409 }));
+    const tree = await render(props({ checkTable }));
+    await type(tree, 'Hvem', 'lege');
+    await press(tree, 'informationTransfer.check');
+    expect(text(tree)).toContain('informationTransfer.sendFailed');
+    expect(text(tree)).not.toContain('informationTransfer.closedAlready');
+  });
+
   it('says so when the verdict is unreadable, and lets the learner press again', async () => {
     const checkTable = jest
       .fn()

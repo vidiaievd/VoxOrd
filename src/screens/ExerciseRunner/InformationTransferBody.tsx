@@ -229,9 +229,12 @@ function InformationTransferRun({
       }
     } catch (e) {
       // A refusal the engine will keep making — this blank is closed, the budget is spent —
-      // reads the same as a lost request, but only one is worth pressing again for.
+      // reads the same as a lost request, but only one is worth pressing again for. Only the
+      // 422 is that refusal: a 409 is the start meeting an attempt already in progress, which
+      // is not «finished» and is told as a failed send (it is what a blank left half-started on
+      // another device looks like).
       setError(
-        e instanceof ApiError && (e.status === 422 || e.status === 409)
+        e instanceof ApiError && e.status === 422
           ? t('exerciseRunner.informationTransfer.closedAlready')
           : t('exerciseRunner.informationTransfer.sendFailed'),
       );
