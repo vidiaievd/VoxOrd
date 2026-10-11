@@ -56,7 +56,6 @@ const IGNORED_ASR_ERRORS = [
 export function usePronunciation(
   deckId: number,
   mode: PronunciationMode = 'mixed',
-  overrideIds?: number[],
   onComplete?: (correctCount: number) => void,
 ): UsePronunciationResult {
   const [isLoading, setIsLoading] = useState(true);
@@ -74,8 +73,8 @@ export function usePronunciation(
     error: null,
   });
 
-  const asrRef = useRef(createASRService('free'));
-  const scorerRef = useRef(createPronunciationScorer('free'));
+  const asrRef = useRef(createASRService());
+  const scorerRef = useRef(createPronunciationScorer());
   const itemsRef = useRef<PronunciationItem[]>([]);
   const indexRef = useRef(0); // sync ref — avoids stale closure in startRecord/skip
 

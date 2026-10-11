@@ -331,7 +331,7 @@ export function useExerciseRunner(
   const check = useCallback(async () => {
     if (state.phase !== 'answering' || !state.canSubmit) return;
     if (checkInFlightRef.current) return;
-    const exerciseId = currentExerciseId(state);
+    const exerciseId = state.exerciseIds[state.idx];
     const display = state.display;
     if (!exerciseId || !display) return;
 
@@ -359,7 +359,7 @@ export function useExerciseRunner(
     } finally {
       checkInFlightRef.current = false;
     }
-  }, [state.phase, state.canSubmit, state.display, state.answer, state.idx, uiLanguage, openAttempt]);
+  }, [state.phase, state.canSubmit, state.display, state.answer, state.idx, state.exerciseIds, uiLanguage, openAttempt]);
 
   const advance = useCallback(() => {
     dispatch({ type: 'ADVANCE' });
