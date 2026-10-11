@@ -26,6 +26,7 @@ import { InflectionTableBody } from './InflectionTableBody';
 import { ReadAloudBody } from './ReadAloudBody';
 import { MinimalPairsBody } from './MinimalPairsBody';
 import { InformationTransferBody } from './InformationTransferBody';
+import { ErrorCorrectionBody } from './ErrorCorrectionBody';
 import { WordBankGapFillBody } from './WordBankGapFillBody';
 
 /**
@@ -250,6 +251,8 @@ export function ExerciseBody(props: ExerciseBodyProps) {
       return <MinimalPairsBody {...props} />;
     case 'information_transfer':
       return <InformationTransferBody {...props} />;
+    case 'error_correction':
+      return <ErrorCorrectionBody {...props} />;
     case 'word_bank_gap_fill':
       return <WordBankGapFillBody {...props} />;
     default:

@@ -242,6 +242,30 @@ export interface Translations {
     translateToTargetLabel: string; // '{language}'
     translateFromTargetLabel: string; // '{language}'
     translatePlaceholder: string;
+    errorCorrection: {
+      toFind: PluralForms;
+      inThis: PluralForms;
+      changes: PluralForms;
+      progress: string;
+      howTo: string;
+      wordLabel: string;
+      insertBeforeLabel: string;
+      insertEnd: string;
+      insertedLabel: string;
+      strikePlaceholder: string;
+      done: string;
+      strike: string;
+      restore: string;
+      insertBefore: string;
+      removeInsert: string;
+      cancel: string;
+      addAtEnd: string;
+      noChanges: string;
+      reset: string;
+      types: string;
+      showHint: string;
+      hideHint: string;
+      type: Record<'form' | 'order' | 'extra' | 'missing' | 'spelling' | 'function', string>;
     gapFill: {
       remaining: string; // '{count}'
       check: string;
