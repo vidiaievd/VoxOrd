@@ -234,8 +234,9 @@ export function useExerciseRunner(
 
       // PRACTICE so the feedback reveals the correct answer; grading is done
       // by the server regardless of mode. Joining the attempt already in progress is
-      // asked for only by a body that keeps work on it between sessions — everywhere else
-      // a 409 stays what it was.
+      // asked for by a body that keeps work on it between sessions, and by the footer's
+      // Check, which hands in at once; a question-at-a-time set still treats a 409 as
+      // what it was.
       const start = join ? startOrJoinAttempt : startAttempt;
       startedContentRef.current = null;
       const pending = start(exerciseId, {
@@ -344,8 +345,11 @@ export function useExerciseRunner(
     try {
       // Whatever the body already opened — a set answered a question at a time
       // has its answers on this attempt, and closing a different one would
-      // leave them unread.
-      const attemptId = await openAttempt(exerciseId, display);
+      // leave them unread. With nothing opened yet, an attempt left in progress
+      // (a killed app, a double start on the web) is joined rather than refused:
+      // the hand-in closes it, as the web's attempt route does. Refusing left the
+      // exercise unanswerable on the phone for as long as that attempt stayed open.
+      const attemptId = await openAttempt(exerciseId, display, true);
       const verdict = await submitAttempt(exerciseId, attemptId, {
         submittedAnswer: state.answer,
         timeSpentSeconds,
