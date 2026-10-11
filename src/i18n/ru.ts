@@ -248,6 +248,18 @@ export const ru: Translations = {
       hideHint: 'Скрыть подсказку',
       itemApproved: 'Зачтено автоматически',
       itemWithTeacher: 'Ждёт учителя',
+    };
+    gapFill: {
+      remaining: 'осталось {count}',
+      check: 'Проверить',
+      checkAgain: 'Проверить снова · попытка {n}',
+      fillEveryGap: 'Заполните все пропуски',
+      checkFailed: 'Не удалось проверить — попробуйте ещё раз',
+      revealFailed: 'Не удалось показать ответы — попробуйте ещё раз',
+      showAnswers: 'Показать ответы',
+      wrong: 'Не это слово',
+      answer: 'ответ — {word}',
+      emptyGap: '{label}: пустой пропуск',
     },
     matchPairsHint: 'Нажмите на строку, затем на половину, которая её завершает',
     matchPairsRemaining: 'осталось: {count}',

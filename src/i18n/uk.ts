@@ -248,6 +248,18 @@ export const uk: Translations = {
       hideHint: 'Сховати підказку',
       itemApproved: 'Зараховано автоматично',
       itemWithTeacher: 'Чекає на вчителя',
+    };
+    gapFill: {
+      remaining: 'залишилось {count}',
+      check: 'Перевірити',
+      checkAgain: 'Перевірити ще · спроба {n}',
+      fillEveryGap: 'Заповніть усі пропуски',
+      checkFailed: 'Не вдалося перевірити — спробуйте ще раз',
+      revealFailed: 'Не вдалося показати відповіді — спробуйте ще раз',
+      showAnswers: 'Показати відповіді',
+      wrong: 'Не це слово',
+      answer: 'відповідь — {word}',
+      emptyGap: '{label}: порожній пропуск',
     },
     matchPairsHint: 'Натисніть на рядок, потім на половину, яка його завершує',
     matchPairsRemaining: 'залишилось: {count}',

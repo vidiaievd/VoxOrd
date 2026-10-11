@@ -248,6 +248,18 @@ export const en: Translations = {
       hideHint: 'Hide hint',
       itemApproved: 'Approved automatically',
       itemWithTeacher: 'Waiting for a teacher',
+    };
+    gapFill: {
+      remaining: '{count} left',
+      check: 'Check',
+      checkAgain: 'Check again · attempt {n}',
+      fillEveryGap: 'Fill in every gap',
+      checkFailed: 'Could not check that — try again',
+      revealFailed: 'Could not show the answers — try again',
+      showAnswers: 'Show answers',
+      wrong: 'Not this one',
+      answer: 'the answer is {word}',
+      emptyGap: '{label}: empty gap',
     },
     matchPairsHint: 'Tap a line, then tap the half that completes it',
     matchPairsRemaining: '{count} left',
