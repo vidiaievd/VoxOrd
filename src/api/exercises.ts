@@ -455,7 +455,7 @@ interface AttemptListRow {
 }
 
 /**
- * The last check of an `inflection_table` that was scored but left open, or `null` (plan 69,
+ * The last check of an `inflection_table` or `information_transfer` that was scored but left open, or `null` (plan 69,
  * phase 9).
  *
  * A whole table is scored by its first check, so unlike a question-by-question set it is never
@@ -477,7 +477,11 @@ export async function findOpenBoardCheck(exerciseId: string): Promise<unknown> {
     }>(ATTEMPTS_PATH(exerciseId), { query: { limit: 5 } });
     const newest = (page.items ?? []).find(a => a.status !== 'IN_PROGRESS');
     if (!newest || newest.status !== 'SCORED') return null;
-    if (newest.templateCode !== 'inflection_table') return null;
+    if (
+      newest.templateCode !== 'inflection_table' &&
+      newest.templateCode !== 'information_transfer'
+    )
+      return null;
     const details = newest.validationDetails as { closed?: unknown } | null;
     return details?.closed === false ? details : null;
   } catch {

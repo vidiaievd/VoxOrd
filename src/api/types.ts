@@ -179,7 +179,8 @@ export type ExerciseTemplateCode =
   | 'dictation'
   | 'inflection_table'
   | 'read_aloud'
-  | 'minimal_pairs';
+  | 'minimal_pairs'
+  | 'information_transfer';
 
 export interface ExerciseInstruction {
   id: string;
