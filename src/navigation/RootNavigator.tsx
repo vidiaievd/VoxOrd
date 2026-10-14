@@ -284,12 +284,13 @@ export function RootNavigator() {
           <UnitContentsScreen
             unitId={screen.unitId}
             onBack={goBack}
-            onLessonPress={lessonId =>
+            onLessonPress={(lessonId, exerciseIds) =>
               navigateTo({
                 name: 'LessonReader',
                 lessonId,
                 unitId: screen.unitId,
                 courseId: screen.courseId,
+                exerciseIds,
               })
             }
             onExercisePress={(exerciseIds, startIndex, sourceLessonId) =>
@@ -362,14 +363,32 @@ export function RootNavigator() {
           />
         );
 
-      case 'LessonReader':
+      case 'LessonReader': {
+        // The text's exercises, as its unit worked them out. None — a text opened from the
+        // runner's «To the text», or one with nothing after it — and the reader just closes.
+        const lessonId = screen.lessonId;
+        const practiceIds = screen.exerciseIds ?? [];
         return (
           <LessonReaderScreen
-            lessonId={screen.lessonId}
+            lessonId={lessonId}
             courseId={screen.courseId}
             onBack={goBack}
+            onPractice={
+              practiceIds.length === 0
+                ? undefined
+                : () =>
+                    navigateTo({
+                      name: 'ExerciseRunner',
+                      exerciseIds: practiceIds,
+                      startIndex: 0,
+                      unitId: screen.unitId,
+                      courseId: screen.courseId,
+                      sourceLessonId: lessonId,
+                    })
+            }
           />
         );
+      }
 
       case 'GrammarRuleReader':
         return (

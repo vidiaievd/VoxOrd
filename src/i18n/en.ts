@@ -138,7 +138,8 @@ export const en: Translations = {
     noContent: 'This lesson has no text yet',
     unsupportedKind: 'This lesson type is not supported on mobile yet',
     noTranslation: 'No translation available',
-    markAsRead: 'Mark as read',
+    toExercises: 'To the exercises',
+    finish: 'Done',
   },
   grammarRuleReader: {
     title: 'Grammar rule',

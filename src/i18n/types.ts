@@ -134,7 +134,10 @@ export interface Translations {
     noContent: string;
     unsupportedKind: string;
     noTranslation: string;
-    markAsRead: string;
+    /** The button at the end of a text that leads into its exercises. */
+    toExercises: string;
+    /** The same button when the text leads into none: it closes the reader. */
+    finish: string;
   };
 
   grammarRuleReader: {

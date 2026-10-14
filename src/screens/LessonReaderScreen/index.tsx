@@ -21,9 +21,20 @@ interface LessonReaderScreenProps {
   lessonId: string;
   courseId: string;
   onBack: () => void;
+  /**
+   * Go on to the exercises this text leads into — the button at the end of the text, the
+   * way a grammar rule leads into its practice. Absent when there are none, and the button
+   * then closes the reader instead.
+   */
+  onPractice?: () => void;
 }
 
-export function LessonReaderScreen({ lessonId, courseId, onBack }: LessonReaderScreenProps) {
+export function LessonReaderScreen({
+  lessonId,
+  courseId,
+  onBack,
+  onPractice,
+}: LessonReaderScreenProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
@@ -34,7 +45,17 @@ export function LessonReaderScreen({ lessonId, courseId, onBack }: LessonReaderS
     [data?.glossary],
   );
 
-  const handleMarkAsRead = async () => {
+  /*
+    Reaching the end of the text is what marks it read. Going on to the exercises does not
+    wait on that mark: a lost request is progress to retry another time, not a reason to keep
+    the learner from the practice. Closing does wait, so a failure is shown where it happened.
+  */
+  const handleFinish = async () => {
+    if (onPractice) {
+      markAsRead().catch(() => undefined);
+      onPractice();
+      return;
+    }
     const ok = await markAsRead();
     if (ok) onBack();
   };
@@ -92,13 +113,15 @@ export function LessonReaderScreen({ lessonId, courseId, onBack }: LessonReaderS
             )}
             <TouchableOpacity
               style={styles.markReadBtn}
-              onPress={handleMarkAsRead}
+              onPress={handleFinish}
               disabled={markStatus === 'submitting'}
             >
               {markStatus === 'submitting' ? (
                 <ActivityIndicator size="small" color={colors.textInverted} />
               ) : (
-                <Text style={styles.markReadText}>{t('lessonReader.markAsRead')}</Text>
+                <Text style={styles.markReadText}>
+                  {onPractice ? t('lessonReader.toExercises') : t('lessonReader.finish')}
+                </Text>
               )}
             </TouchableOpacity>
           </View>

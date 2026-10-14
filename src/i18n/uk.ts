@@ -138,7 +138,8 @@ export const uk: Translations = {
     noContent: 'У цьому уроці поки немає тексту',
     unsupportedKind: 'Цей тип уроку поки не підтримується в застосунку',
     noTranslation: 'Переклад недоступний',
-    markAsRead: 'Позначити прочитаним',
+    toExercises: 'До вправ',
+    finish: 'Готово',
   },
   grammarRuleReader: {
     title: 'Граматичне правило',

@@ -17,7 +17,14 @@ export type Screen =
   | { name: 'Courses' }
   | { name: 'CourseHome'; courseId: string }
   | { name: 'UnitContents'; unitId: string; courseId: string }
-  | { name: 'LessonReader'; lessonId: string; unitId: string; courseId: string }
+  | {
+      name: 'LessonReader';
+      lessonId: string;
+      unitId: string;
+      courseId: string;
+      /** The exercises the text leads into, when it was opened from its unit. */
+      exerciseIds?: string[];
+    }
   | { name: 'VocabularyList'; listId: string; unitId: string; courseId: string }
   | { name: 'GrammarRuleReader'; ruleId: string; unitId: string; courseId: string }
   | { name: 'ReviewSession'; courseId?: string }
