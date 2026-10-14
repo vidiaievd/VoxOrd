@@ -16,6 +16,8 @@ import { useMarkLessonRead } from '../../hooks/useMarkLessonRead';
 import { buildGlossaryIndex } from '../../utils/tokenizeGlossary';
 import { ParagraphView } from './ParagraphView';
 import { AudioLessonView } from './AudioLessonView';
+import { NarrationBar } from './NarrationBar';
+import { useNarrationId } from '../../hooks/useNarration';
 
 interface LessonReaderScreenProps {
   lessonId: string;
@@ -40,6 +42,9 @@ export function LessonReaderScreen({
   const styles = makeStyles(colors);
   const { status, data, error, refresh } = useLessonReader(lessonId, courseId);
   const { status: markStatus, error: markError, markAsRead } = useMarkLessonRead(lessonId);
+  // A text's recording, when it has one (plan 74 narrates texts into it). Looked for only on
+  // a text: an audio lesson's whole screen is its recording already.
+  const narrationId = useNarrationId(data?.kind === 'text' ? data.mediaIds : []);
   const glossaryIndex = useMemo(
     () => buildGlossaryIndex(data?.glossary ?? []),
     [data?.glossary],
@@ -99,6 +104,7 @@ export function LessonReaderScreen({
 
       {status === 'loaded' && data && data.kind === 'text' && (
         <>
+          {narrationId ? <NarrationBar mediaId={narrationId} /> : null}
           <ScrollView contentContainerStyle={styles.scroll}>
             {(data.paragraphs ?? []).map((paragraph, i) => (
               <ParagraphView key={i} paragraph={paragraph} glossaryIndex={glossaryIndex} />

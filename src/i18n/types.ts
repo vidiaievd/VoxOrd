@@ -134,6 +134,16 @@ export interface Translations {
     noContent: string;
     unsupportedKind: string;
     noTranslation: string;
+    /** The strip under the header that plays a text's recording. */
+    narration: {
+      label: string;
+      play: string;
+      pause: string;
+      back: string;
+      forward: string;
+      speed: string;
+      error: string;
+    };
     /** The button at the end of a text that leads into its exercises. */
     toExercises: string;
     /** The same button when the text leads into none: it closes the reader. */
