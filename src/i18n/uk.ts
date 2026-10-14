@@ -2,6 +2,18 @@ import { Translations } from './types';
 
 export const uk: Translations = {
   auth: {
+    biometric: {
+      promptTitle: 'Вхід у VoxOrd',
+      lockedTitle: 'Вхід захищено відбитком',
+      lockedBody: 'Підтвердьте, що це ви, щоб відкрити застосунок.',
+      unlock: 'Розблокувати',
+      usePassword: 'Увійти з паролем',
+      offerTitle: 'Входити за відбитком?',
+      offerMessage: 'Наступного разу застосунок відкриється за відбитком пальця або PIN-кодом телефона — без пароля.',
+      offerConfirm: 'Увімкнути',
+      offerLater: 'Не зараз',
+      settingLabel: 'Вхід за відбитком',
+    },
     subtitle: 'Увійдіть, щоб відкрити свої курси',
     offlineTitle: 'Немає з’єднання із сервером',
     offlineBody: 'Вхід збережено — щойно з’явиться зв’язок, застосунок відкриється.',

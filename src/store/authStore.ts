@@ -6,7 +6,11 @@
  * and everything here is derived from it on start-up.
  */
 
-export type AuthStatus = 'restoring' | 'signedIn' | 'signedOut';
+/**
+ * `locked`: a session is stored behind the fingerprint and was not unlocked — the prompt was
+ * cancelled. Not signed out: unlocking brings it back without a password.
+ */
+export type AuthStatus = 'restoring' | 'signedIn' | 'signedOut' | 'locked';
 
 export interface AuthUser {
   id: string;
@@ -48,6 +52,11 @@ class AuthStore {
 
   setSignedIn(user: AuthUser): void {
     this.state = { status: 'signedIn', user, offline: false };
+    this.notify();
+  }
+
+  setLocked(): void {
+    this.state = { status: 'locked', user: null, offline: false };
     this.notify();
   }
 

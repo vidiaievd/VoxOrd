@@ -3,6 +3,19 @@ import type { PluralForms } from './pluralize';
 export interface Translations {
   /** The screen before the app: signing in, or waiting for the connection. */
   auth: {
+    /** Signing in with the fingerprint (or the device PIN) instead of the password. */
+    biometric: {
+      promptTitle: string;
+      lockedTitle: string;
+      lockedBody: string;
+      unlock: string;
+      usePassword: string;
+      offerTitle: string;
+      offerMessage: string;
+      offerConfirm: string;
+      offerLater: string;
+      settingLabel: string;
+    };
     subtitle: string;
     offlineTitle: string;
     offlineBody: string;

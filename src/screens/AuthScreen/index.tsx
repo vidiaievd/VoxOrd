@@ -13,6 +13,9 @@ import { LoginForm } from './LoginForm';
  * sign in, or — when the server could not be reached and a session is still stored — «no
  * connection» with a retry rather than a password the learner already gave.
  *
+ * A session locked behind the fingerprint gets «unlock» — the prompt again — and a way to
+ * give it up for the password.
+ *
  * Signing in used to live on the Courses tab, which was a strange place for it: every screen
  * of the app is the learner's courses now, so there is nothing to show before it.
  */
@@ -42,6 +45,24 @@ export function AuthScreen() {
       {status === 'restoring' ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.accent} />
+        </View>
+      ) : status === 'locked' ? (
+        <View style={styles.center}>
+          <Text style={styles.offlineTitle}>{t('auth.biometric.lockedTitle')}</Text>
+          <Text style={styles.offlineBody}>{t('auth.biometric.lockedBody')}</Text>
+          <TouchableOpacity style={styles.retry} onPress={retry} disabled={retrying}>
+            {retrying ? (
+              <ActivityIndicator size="small" color={colors.textInverted} />
+            ) : (
+              <Text style={styles.retryText}>{t('auth.biometric.unlock')}</Text>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.secondary}
+            onPress={() => authService.forgetLockedSession()}
+          >
+            <Text style={styles.secondaryText}>{t('auth.biometric.usePassword')}</Text>
+          </TouchableOpacity>
         </View>
       ) : offline ? (
         <View style={styles.center}>
@@ -116,5 +137,14 @@ const makeStyles = (colors: ColorScheme) =>
       fontSize: 15,
       fontWeight: '700',
       color: colors.textInverted,
+    },
+    secondary: {
+      marginTop: 12,
+      paddingVertical: 10,
+    },
+    secondaryText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.accent,
     },
   });

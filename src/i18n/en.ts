@@ -2,6 +2,18 @@ import { Translations } from './types';
 
 export const en: Translations = {
   auth: {
+    biometric: {
+      promptTitle: 'Sign in to VoxOrd',
+      lockedTitle: 'Sign-in is locked',
+      lockedBody: 'Confirm it is you to open the app.',
+      unlock: 'Unlock',
+      usePassword: 'Sign in with password',
+      offerTitle: 'Sign in with your fingerprint?',
+      offerMessage: 'Next time the app opens with your fingerprint or the phone PIN — no password.',
+      offerConfirm: 'Turn on',
+      offerLater: 'Not now',
+      settingLabel: 'Fingerprint sign-in',
+    },
     subtitle: 'Sign in to open your courses',
     offlineTitle: 'No connection to the server',
     offlineBody: 'You are still signed in — the app opens as soon as the connection is back.',

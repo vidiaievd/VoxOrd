@@ -1,4 +1,5 @@
 import { useSettings } from '../hooks/useSettings';
+import { settingsStore } from '../store/settingsStore';
 import { Translations } from './types';
 import { ru } from './ru';
 import { uk } from './uk';
@@ -21,32 +22,45 @@ function interpolate(
 
 export function useTranslation() {
   const { uiLanguage } = useSettings();
+  const t = (path: string, vars?: Record<string, string | number>) =>
+    translateIn(uiLanguage, path, vars);
+  return { t, language: uiLanguage };
+}
+
+/**
+ * A string in the current UI language, outside React — for text handed to the system, such
+ * as the fingerprint prompt, which is shown before any screen has rendered.
+ */
+export function translate(path: string, vars?: Record<string, string | number>): string {
+  return translateIn(settingsStore.getAll().uiLanguage, path, vars);
+}
+
+function translateIn(
+  uiLanguage: string,
+  path: string,
+  vars?: Record<string, string | number>,
+): string {
   const translations = TRANSLATIONS[uiLanguage] ?? ru;
+  const keys = path.split('.');
+  let value: any = translations;
 
-  function t(path: string, vars?: Record<string, string | number>): string {
-    const keys = path.split('.');
-    let value: any = translations;
-
-    for (const key of keys) {
-      value = value?.[key];
-      if (value === undefined) {
-        console.warn(`[i18n] Missing key: ${path} for language: ${uiLanguage}`);
-        let fallback: any = ru;
-        for (const k of keys) fallback = fallback?.[k];
-        value = fallback;
-        break;
-      }
+  for (const key of keys) {
+    value = value?.[key];
+    if (value === undefined) {
+      console.warn(`[i18n] Missing key: ${path} for language: ${uiLanguage}`);
+      let fallback: any = ru;
+      for (const k of keys) fallback = fallback?.[k];
+      value = fallback;
+      break;
     }
-
-    // A `{ one, few, many }` entry needs `vars.count` to pick the right
-    // grammatical form before the usual `{count}` interpolation runs.
-    if (isPluralForms(value)) {
-      const count = Number(vars?.count ?? 0);
-      value = pickPlural(count, value, uiLanguage);
-    }
-
-    return interpolate(value ?? path, vars);
   }
 
-  return { t, language: uiLanguage };
+  // A `{ one, few, many }` entry needs `vars.count` to pick the right
+  // grammatical form before the usual `{count}` interpolation runs.
+  if (isPluralForms(value)) {
+    const count = Number(vars?.count ?? 0);
+    value = pickPlural(count, value, uiLanguage);
+  }
+
+  return interpolate(value ?? path, vars);
 }

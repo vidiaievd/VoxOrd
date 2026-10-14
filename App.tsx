@@ -6,6 +6,7 @@ import { seedIfEmpty } from './src/db/seed';
 import { settingsStore } from './src/store/settingsStore';
 import { apiSettingsStore } from './src/store/apiSettingsStore';
 import { authService } from './src/api/auth';
+import { biometricStore } from './src/store/biometricStore';
 import { debugPrintAllWords } from './src/db/words';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { AppProviders } from './src/providers/AppProviders';
@@ -43,6 +44,9 @@ export default function App() {
         // network call, and word learning is offline-first — a slow or
         // unreachable backend must never delay app start. Course screens read
         // authStore and render their own 'restoring' state until it settles.
+        // Read before the session is: whether it is stored behind the fingerprint decides how
+        // the next refresh is written.
+        await biometricStore.load();
         authService.install();
         void authService.restore();
 

@@ -2,6 +2,18 @@ import { Translations } from './types';
 
 export const ru: Translations = {
   auth: {
+    biometric: {
+      promptTitle: 'Вход в VoxOrd',
+      lockedTitle: 'Вход защищён отпечатком',
+      lockedBody: 'Подтвердите, что это вы, чтобы открыть приложение.',
+      unlock: 'Разблокировать',
+      usePassword: 'Войти с паролем',
+      offerTitle: 'Входить по отпечатку?',
+      offerMessage: 'В следующий раз приложение откроется по отпечатку пальца или PIN-коду телефона — без пароля.',
+      offerConfirm: 'Включить',
+      offerLater: 'Не сейчас',
+      settingLabel: 'Вход по отпечатку',
+    },
     subtitle: 'Войдите, чтобы открыть свои курсы',
     offlineTitle: 'Нет соединения с сервером',
     offlineBody: 'Вход сохранён — как только связь появится, приложение откроется.',
