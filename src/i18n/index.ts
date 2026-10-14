@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useSettings } from '../hooks/useSettings';
 import { settingsStore } from '../store/settingsStore';
 import { Translations } from './types';
@@ -22,8 +23,13 @@ function interpolate(
 
 export function useTranslation() {
   const { uiLanguage } = useSettings();
-  const t = (path: string, vars?: Record<string, string | number>) =>
-    translateIn(uiLanguage, path, vars);
+  // Stable for a language: `t` sits in the dependencies of effects that hand state up to a
+  // parent (a body's footer button), and a new `t` per render would re-run them on every
+  // render the parent's update caused — a render loop nothing on screen would show.
+  const t = useCallback(
+    (path: string, vars?: Record<string, string | number>) => translateIn(uiLanguage, path, vars),
+    [uiLanguage],
+  );
   return { t, language: uiLanguage };
 }
 
