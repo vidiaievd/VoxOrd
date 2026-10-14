@@ -24,7 +24,7 @@ interface UnitContentsScreenProps {
    * Open a lesson. `exerciseIds` are the exercises the lesson leads into — what «To the
    * exercises» at the end of a text opens (`exercisesForLesson`); empty when there are none.
    */
-  onLessonPress: (lessonId: string, exerciseIds: string[]) => void;
+  onLessonPress: (lessonId: string, exerciseIds: string[], alreadyRead: boolean) => void;
   /**
    * Launch the exercise runner over the unit's exercises as a set, starting
    * at the tapped one. `exerciseIds` are content ids in display order.
@@ -85,7 +85,11 @@ export function UnitContentsScreen({
   const handleItemPress = (item: UnitContentsItem): (() => void) | undefined => {
     if (item.contentType === 'lesson') {
       return () =>
-        onLessonPress(item.contentId, data ? exercisesForLesson(data, item.contentId) : []);
+        onLessonPress(
+          item.contentId,
+          data ? exercisesForLesson(data, item.contentId) : [],
+          item.status === 'completed',
+        );
     }
     if (item.contentType === 'exercise') {
       const startIndex = exerciseIds.indexOf(item.contentId);

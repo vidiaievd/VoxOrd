@@ -24,6 +24,8 @@ export type Screen =
       courseId: string;
       /** The exercises the text leads into, when it was opened from its unit. */
       exerciseIds?: string[];
+      /** Marked read before — the button to go on is then pinned rather than at the end. */
+      alreadyRead?: boolean;
     }
   | { name: 'VocabularyList'; listId: string; unitId: string; courseId: string }
   | { name: 'GrammarRuleReader'; ruleId: string; unitId: string; courseId: string }

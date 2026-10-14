@@ -303,13 +303,14 @@ export function RootNavigator() {
           <UnitContentsScreen
             unitId={screen.unitId}
             onBack={goBack}
-            onLessonPress={(lessonId, exerciseIds) =>
+            onLessonPress={(lessonId, exerciseIds, alreadyRead) =>
               navigateTo({
                 name: 'LessonReader',
                 lessonId,
                 unitId: screen.unitId,
                 courseId: screen.courseId,
                 exerciseIds,
+                alreadyRead,
               })
             }
             onExercisePress={(exerciseIds, startIndex, sourceLessonId) =>
@@ -392,6 +393,7 @@ export function RootNavigator() {
             lessonId={lessonId}
             courseId={screen.courseId}
             onBack={goBack}
+            alreadyRead={screen.alreadyRead === true}
             onPractice={
               practiceIds.length === 0
                 ? undefined

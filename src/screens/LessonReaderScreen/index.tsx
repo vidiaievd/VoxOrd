@@ -29,6 +29,12 @@ interface LessonReaderScreenProps {
    * then closes the reader instead.
    */
   onPractice?: () => void;
+  /**
+   * The text was read before. Then the button stays pinned under the text, a way straight
+   * on; a text not read yet has it only at its end, past the last paragraph — reaching it is
+   * the reading.
+   */
+  alreadyRead?: boolean;
 }
 
 export function LessonReaderScreen({
@@ -36,6 +42,7 @@ export function LessonReaderScreen({
   courseId,
   onBack,
   onPractice,
+  alreadyRead = false,
 }: LessonReaderScreenProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -64,6 +71,25 @@ export function LessonReaderScreen({
     const ok = await markAsRead();
     if (ok) onBack();
   };
+
+  const finishControls = (
+    <>
+      {markStatus === 'error' && <Text style={styles.footerError}>{markError?.message}</Text>}
+      <TouchableOpacity
+        style={styles.markReadBtn}
+        onPress={handleFinish}
+        disabled={markStatus === 'submitting'}
+      >
+        {markStatus === 'submitting' ? (
+          <ActivityIndicator size="small" color={colors.textInverted} />
+        ) : (
+          <Text style={styles.markReadText}>
+            {onPractice ? t('lessonReader.toExercises') : t('lessonReader.finish')}
+          </Text>
+        )}
+      </TouchableOpacity>
+    </>
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -112,25 +138,9 @@ export function LessonReaderScreen({
             {(data.paragraphs ?? []).length === 0 && (
               <Text style={styles.emptyDesc}>{t('lessonReader.noContent')}</Text>
             )}
+            {!alreadyRead && <View style={styles.endOfText}>{finishControls}</View>}
           </ScrollView>
-          <View style={styles.footer}>
-            {markStatus === 'error' && (
-              <Text style={styles.footerError}>{markError?.message}</Text>
-            )}
-            <TouchableOpacity
-              style={styles.markReadBtn}
-              onPress={handleFinish}
-              disabled={markStatus === 'submitting'}
-            >
-              {markStatus === 'submitting' ? (
-                <ActivityIndicator size="small" color={colors.textInverted} />
-              ) : (
-                <Text style={styles.markReadText}>
-                  {onPractice ? t('lessonReader.toExercises') : t('lessonReader.finish')}
-                </Text>
-              )}
-            </TouchableOpacity>
-          </View>
+          {alreadyRead && <View style={styles.footer}>{finishControls}</View>}
         </>
       )}
     </SafeAreaView>
@@ -199,6 +209,12 @@ const makeStyles = (colors: ColorScheme) =>
     },
     scroll: {
       padding: 20,
+    },
+    endOfText: {
+      marginTop: 28,
+      paddingTop: 20,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
     },
     footer: {
       paddingHorizontal: 20,
