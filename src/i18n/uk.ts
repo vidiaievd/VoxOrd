@@ -171,6 +171,8 @@ export const uk: Translations = {
     masteryPercent: 'Засвоєно: {percent}%',
   },
   myWords: {
+    deck: 'Колода: {title}',
+    noDeck: 'Лише в «Моїх словах»',
     title: 'Мої слова',
     homeHint: 'Слова, які ви додали з текстів',
     deckTitle: 'Мої слова',

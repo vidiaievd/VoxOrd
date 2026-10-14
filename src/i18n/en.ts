@@ -171,6 +171,8 @@ export const en: Translations = {
     masteryPercent: 'Mastery: {percent}%',
   },
   myWords: {
+    deck: 'Deck: {title}',
+    noDeck: 'Only in my words',
     title: 'My words',
     homeHint: 'Words you added from texts',
     deckTitle: 'My words',

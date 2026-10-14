@@ -171,6 +171,8 @@ export const ru: Translations = {
     masteryPercent: 'Освоено: {percent}%',
   },
   myWords: {
+    deck: 'Колода: {title}',
+    noDeck: 'Только в «Моих словах»',
     title: 'Мои слова',
     homeHint: 'Слова, которые вы добавили из текстов',
     deckTitle: 'Мои слова',

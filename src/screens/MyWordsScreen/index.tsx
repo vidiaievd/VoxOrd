@@ -193,6 +193,11 @@ export function MyWordsScreen({ onBack }: MyWordsScreenProps) {
                       )}
                     </View>
                     <Text style={styles.translation}>{word.translation}</Text>
+                    <Text style={styles.deck}>
+                      {word.deck
+                        ? t('myWords.deck', { title: word.deck.title })
+                        : t('myWords.noDeck')}
+                    </Text>
                     {word.contextSentence && (
                       <Text style={styles.context} numberOfLines={2}>
                         {word.contextSentence}
@@ -247,6 +252,9 @@ function PendingRow({
       activeOpacity={1}
     >
       <Text style={styles.word}>{word.word}</Text>
+      <Text style={styles.deck}>
+        {word.deck ? t('myWords.deck', { title: word.deck.title }) : t('myWords.noDeck')}
+      </Text>
       {word.contextSentence && (
         <Text style={styles.context} numberOfLines={2}>
           {word.contextSentence}
@@ -357,6 +365,7 @@ const makeStyles = (colors: ColorScheme) =>
     },
     badgeText: { fontSize: 11, fontWeight: '700', color: colors.accent },
     translation: { fontSize: 15, color: colors.textPrimary, marginTop: 2 },
+    deck: { fontSize: 12, color: colors.textSecondary, marginTop: 4 },
     context: {
       fontSize: 13,
       fontStyle: 'italic',

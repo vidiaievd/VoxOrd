@@ -29,6 +29,8 @@ export interface PersonalWord {
     paragraphIndex: number | null;
     charStart: number | null;
   } | null;
+  /** The unit deck the word joins; null when it lives in «My words» alone. */
+  deck: { vocabularyListId: string; title: string } | null;
   createdAt: string;
 }
 

@@ -167,6 +167,8 @@ export interface Translations {
 
   /** «My words» — words the student adds from a text (plan 75). */
   myWords: {
+    deck: string;
+    noDeck: string;
     title: string;
     homeHint: string;
     deckTitle: string;
