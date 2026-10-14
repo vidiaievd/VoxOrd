@@ -217,6 +217,43 @@ describe('DictationBody', () => {
     expect(texts()).toContain('exerciseRunner.dictation.unavailable');
   });
 
+  it('puts its check in the runner footer, above the keyboard, when the runner offers one', async () => {
+    const setFooterAction = jest.fn();
+    const { button, type, checkTable } = await mount({ setFooterAction });
+    checkTable.mockResolvedValue(verdict());
+
+    // Nothing of its own under the field: the footer has it.
+    expect(button('exerciseRunner.dictation.check')).toBeUndefined();
+    const first = setFooterAction.mock.calls.at(-1)?.[0];
+    expect(first).toMatchObject({ label: 'exerciseRunner.dictation.check', disabled: true });
+
+    await type('Jeg boor.');
+    const ready = setFooterAction.mock.calls.at(-1)?.[0];
+    expect(ready).toMatchObject({ label: 'exerciseRunner.dictation.check', disabled: false });
+
+    await act(async () => {
+      await ready.onPress();
+    });
+    expect(checkTable).toHaveBeenCalledWith({ segmentId: 's1', text: 'Jeg boor.' });
+
+    // After a failed check the footer offers the retry, and the key under it.
+    const after = setFooterAction.mock.calls.at(-1)?.[0];
+    expect(after.label).toContain('exerciseRunner.dictation.retry');
+    expect(after.secondary?.label).toBe('exerciseRunner.dictation.showKey');
+  });
+
+  it('tells the footer again only when what it shows changes', async () => {
+    const setFooterAction = jest.fn();
+    const { renderer } = await mount({ setFooterAction });
+    const calls = setFooterAction.mock.calls.length;
+
+    // The runner re-rendering the body is not a reason to update the runner.
+    await act(async () => {
+      renderer.update(<DictationBody {...(renderer.root.findByType(DictationBody).props as ExerciseBodyProps)} />);
+    });
+    expect(setFooterAction.mock.calls.length).toBe(calls);
+  });
+
   it('does not check an empty field (AC-R4)', async () => {
     const { button, type } = await mount();
     expect(button('exerciseRunner.dictation.check')?.props.disabled).toBe(true);
