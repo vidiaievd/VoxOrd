@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../../providers/ThemeProvider';
 import { ColorScheme } from '../../../theme/colors';
 import { useTranslation } from '../../../i18n';
@@ -21,6 +22,7 @@ import {
   type WordCaptureSource,
 } from '../../../api/personalVocabulary';
 import { wordCaptureQueueStore } from '../../../store/wordCaptureQueueStore';
+import { syncMyWords } from '../../../lib/myWordsSync';
 
 interface AddWordSheetProps {
   visible: boolean;
@@ -56,6 +58,9 @@ export function AddWordSheet({
   const { t } = useTranslation();
   const { uiLanguage } = useSettings();
   const styles = makeStyles(colors);
+  // The app draws edge to edge: without this the sheet's last button sits under the
+  // phone's navigation bar.
+  const insets = useSafeAreaInsets();
 
   const [lookup, setLookup] = useState<Lookup>({ status: 'loading' });
   const [translation, setTranslation] = useState('');
@@ -105,6 +110,9 @@ export function AddWordSheet({
         : {}),
     });
     setSaving(outcome.kind === 'saved' ? 'saved' : outcome.kind);
+    // A translated word goes into review and the «My words» deck straight away, not only
+    // the next time that screen is opened. In the background: the sheet does not wait.
+    if (outcome.kind === 'saved') syncMyWords(uiLanguage).catch(() => undefined);
   };
 
   const headword = existing?.word ?? catalog?.word ?? surfaceForm;
@@ -123,7 +131,7 @@ export function AddWordSheet({
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <Pressable style={styles.backdrop} onPress={onClose} />
-        <View style={styles.sheet}>
+        <View style={[styles.sheet, { paddingBottom: 32 + insets.bottom }]}>
           <View style={styles.handle} />
 
           <View style={styles.header}>

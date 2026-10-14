@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import type { VocabularyListReaderContent } from './vocabulary';
 
 const BASE = '/api/v1/personal-vocabulary';
 
@@ -79,4 +80,36 @@ export function captureWord(
   request: CaptureWordRequest,
 ): Promise<CaptureWordResponse> {
   return apiClient.post<CaptureWordResponse>(BASE, request);
+}
+
+export function listMyWords(params: {
+  translationLanguage: string;
+  targetLanguage?: string;
+}): Promise<PersonalWord[]> {
+  return apiClient.get<PersonalWord[]>(BASE, { query: params });
+}
+
+/** `translation: ''` removes it; leaving a field out keeps it. */
+export function updateMyWord(
+  entryId: string,
+  body: { translationLanguage: string; translation?: string; word?: string },
+): Promise<PersonalWord> {
+  return apiClient.patch<PersonalWord>(`${BASE}/${entryId}`, body);
+}
+
+export function deleteMyWord(entryId: string): Promise<void> {
+  return apiClient.delete<void>(`${BASE}/${entryId}`);
+}
+
+/**
+ * «My words» shaped like a vocabulary list's reader, id `personal:<language>` — imported
+ * into a local deck by the same code as a course list.
+ */
+export function getMyWordsReader(params: {
+  targetLanguage: string;
+  translationLanguage: string;
+}): Promise<VocabularyListReaderContent> {
+  return apiClient.get<VocabularyListReaderContent>(`${BASE}/reader`, {
+    query: { ...params, includeExamples: true, examplesLimit: 3 },
+  });
 }

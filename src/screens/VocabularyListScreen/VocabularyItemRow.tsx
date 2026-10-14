@@ -54,6 +54,11 @@ export function VocabularyItemRow({ item, expanded, onToggle }: VocabularyItemRo
                 <Text style={styles.posText}>{partOfSpeechLabel(item.partOfSpeech, t)}</Text>
               </View>
             )}
+            {item.personal && (
+              <View style={styles.posBadge}>
+                <Text style={styles.posText}>{t('myWords.mineBadge')}</Text>
+              </View>
+            )}
           </View>
           {item.ipaTranscription !== null && (
             <Text style={styles.ipa}>{item.ipaTranscription}</Text>

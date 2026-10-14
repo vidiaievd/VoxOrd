@@ -70,6 +70,8 @@ export interface VocabularyItemDisplay {
   translation: VocabularyItemTranslationDisplay | null;
   immersionMode: boolean;
   examples: VocabularyExampleDisplay[];
+  /** A word the student added from a lesson of this list's unit, not one of the list (plan 75). */
+  personal?: boolean;
 }
 
 export interface VocabularyListReaderContent {

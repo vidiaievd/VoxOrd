@@ -30,6 +30,7 @@ export type Screen =
   | { name: 'VocabularyList'; listId: string; unitId: string; courseId: string }
   | { name: 'GrammarRuleReader'; ruleId: string; unitId: string; courseId: string }
   | { name: 'ReviewSession'; courseId?: string }
+  | { name: 'MyWords' }
   | {
       name: 'ExerciseRunner';
       exerciseIds: string[];
@@ -60,6 +61,7 @@ export function backTarget(screen: Screen): Screen | null {
       return null;
     case 'Courses':
     case 'Settings':
+    case 'MyWords':
       return { name: 'Home' };
     case 'CourseHome':
       return { name: 'Courses' };
@@ -82,7 +84,7 @@ export function backTarget(screen: Screen): Screen | null {
 
 /** The tab a screen belongs to, for the tab bar's highlight. */
 export function tabOf(screen: Screen): Tab | null {
-  if (screen.name === 'Home') return 'Home';
+  if (screen.name === 'Home' || screen.name === 'MyWords') return 'Home';
   if (screen.name === 'Settings') return 'Settings';
   if (
     screen.name === 'Courses' ||

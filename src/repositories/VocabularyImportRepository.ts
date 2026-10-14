@@ -63,7 +63,15 @@ class VocabularyImportRepository {
       const existingId = existing.get(word.platformItemId);
       seen.add(word.platformItemId);
       if (existingId === undefined) {
-        await this.insertWord(db, deckId, word);
+        // The same platform word may already sit in another deck: a student's own word
+        // comes both in «My words» and in the deck of the unit it was met in (plan 75). The
+        // row is unique by platformItemId, so it is linked here rather than inserted twice.
+        const sharedId = await this.findWordIdByItem(db, word.platformItemId);
+        if (sharedId === null) {
+          await this.insertWord(db, deckId, word);
+        } else {
+          await this.updateWord(db, deckId, sharedId, word);
+        }
         imported += 1;
       } else {
         await this.updateWord(db, deckId, existingId, word);
@@ -89,6 +97,26 @@ class VocabularyImportRepository {
   }
 
   /** The deck backing a platform list, or null when it was never imported. */
+  /** Platform list ids of the local decks whose id starts with `prefix`. */
+  async listDeckListIds(prefix: string): Promise<string[]> {
+    const db = getDatabase();
+    const result = await db.execute(
+      'SELECT platformListId FROM decks WHERE platformListId LIKE ?;',
+      [`${prefix}%`],
+    );
+    return (result.rows ?? [])
+      .map((row) => row.platformListId)
+      .filter((id): id is string => typeof id === 'string');
+  }
+
+  private async findWordIdByItem(db: DB, platformItemId: string): Promise<number | null> {
+    const result = await db.execute('SELECT id FROM words WHERE platformItemId = ? LIMIT 1;', [
+      platformItemId,
+    ]);
+    const id = result.rows?.[0]?.id;
+    return typeof id === 'number' ? id : null;
+  }
+
   async findDeckIdForList(platformListId: string): Promise<number | null> {
     const db = getDatabase();
     const result = await db.execute(

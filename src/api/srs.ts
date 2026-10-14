@@ -181,3 +181,42 @@ export function predictedByRating(card: SrsCard): Partial<Record<ReviewRating, s
   }
   return labels;
 }
+
+const SRS_INTRODUCE_PATH = '/api/v1/srs/cards/introduce';
+const SRS_CARD_STATES_PATH = '/api/v1/srs/cards/states';
+
+/** The server's own cap on one `cards/states` call. */
+export const CARD_STATES_MAX_IDS = 500;
+
+/**
+ * `POST /srs/cards/introduce` — puts a word into the student's review. Idempotent: an
+ * existing card comes back as it is and costs nothing; a new one counts against the day's
+ * new-card budget, and past it the server answers 429.
+ */
+export async function introduceCard(
+  contentType: 'VOCABULARY_WORD',
+  contentId: string,
+): Promise<SrsCard> {
+  return apiClient.post<SrsCard>(SRS_INTRODUCE_PATH, { contentType, contentId });
+}
+
+/**
+ * `POST /srs/cards/states` — the cards these words already have. Ids without one are left
+ * out. No card id comes back: `introduceCard` on an existing card is the way to get it.
+ */
+export async function getCardStates(
+  contentType: 'VOCABULARY_WORD',
+  contentIds: string[],
+): Promise<{ states: { contentId: string; state: string }[] }> {
+  return apiClient.post(SRS_CARD_STATES_PATH, { contentType, contentIds });
+}
+
+/** `POST /srs/cards/:id/suspend` — out of the due queue, its history kept. */
+export async function suspendCard(cardId: string): Promise<void> {
+  await apiClient.post(`/api/v1/srs/cards/${cardId}/suspend`);
+}
+
+/** `POST /srs/cards/:id/unsuspend` — back into the due queue. */
+export async function unsuspendCard(cardId: string): Promise<void> {
+  await apiClient.post(`/api/v1/srs/cards/${cardId}/unsuspend`);
+}

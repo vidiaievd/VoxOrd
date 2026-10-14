@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet, Pressable } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../../providers/ThemeProvider';
 import { ColorScheme } from '../../../theme/colors';
 import { useTranslation } from '../../../i18n';
@@ -20,11 +21,14 @@ export function GlossarySheet({ visible, entry, capture, onClose }: GlossaryShee
   const { t } = useTranslation();
   const { show } = useModal();
   const styles = makeStyles(colors);
+  // The app draws edge to edge: without this the sheet's last button sits under the
+  // phone's navigation bar.
+  const insets = useSafeAreaInsets();
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose} />
-      <View style={styles.sheet}>
+      <View style={[styles.sheet, { paddingBottom: 32 + insets.bottom }]}>
         <View style={styles.handle} />
         <View style={styles.header}>
           <Text style={styles.word}>{entry.word}</Text>

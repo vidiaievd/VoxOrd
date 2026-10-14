@@ -19,6 +19,8 @@ import { AudioLessonView } from './AudioLessonView';
 import { NarrationBar } from './NarrationBar';
 import { useNarrationId } from '../../hooks/useNarration';
 import { wordCaptureQueueStore } from '../../store/wordCaptureQueueStore';
+import { syncMyWords } from '../../lib/myWordsSync';
+import { useSettings } from '../../hooks/useSettings';
 import { ReaderCaptureContext, type ReaderCapture } from './captureContext';
 
 interface LessonReaderScreenProps {
@@ -72,9 +74,13 @@ export function LessonReaderScreen({
   );
 
   // Words added while offline go out when a text is opened with a connection again.
+  const { uiLanguage } = useSettings();
   useEffect(() => {
-    wordCaptureQueueStore.flush().catch(() => undefined);
-  }, []);
+    wordCaptureQueueStore
+      .flush()
+      .then((delivered) => (delivered.size > 0 ? syncMyWords(uiLanguage) : undefined))
+      .catch(() => undefined);
+  }, [uiLanguage]);
 
   /*
     Reaching the end of the text is what marks it read. Going on to the exercises does not
