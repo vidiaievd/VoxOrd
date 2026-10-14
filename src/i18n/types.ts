@@ -14,6 +14,24 @@ export interface Translations {
     courses: string;
   };
 
+  /** Home — «Today»: carry on with a course, review what is due, open another course. */
+  today: {
+    greeting: string; // '{name}'
+    greetingPlain: string;
+    subtitle: string;
+    continue: string;
+    continueCta: string;
+    unitProgress: string; // '{done}', '{total}'
+    reviewTitle: string;
+    reviewDue: PluralForms; // '{count}'
+    reviewNone: string;
+    reviewedToday: string; // '{count}'
+    reviewStart: string;
+    myCourses: string;
+    allCourses: string;
+    noCourses: string;
+    noCoursesDesc: string;
+  };
   home: {
     appSubtitle: string;
     learned: string;

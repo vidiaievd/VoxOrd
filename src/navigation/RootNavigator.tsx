@@ -36,6 +36,7 @@ import { backTarget, tabOf, type Screen, type Tab } from './screens';
 import { BackInterceptProvider } from './backIntercept';
 import { AuthScreen } from '../screens/AuthScreen';
 import { useAuth } from '../hooks/useAuth';
+import { setLastCourseId } from '../store/lastCourseStore';
 
 /** How long a second Back on Home has to follow the first to leave the app. */
 const EXIT_WINDOW_MS = 2000;
@@ -123,6 +124,15 @@ export function RootNavigator() {
   const navigateBackToSelector = useCallback((deck: Deck) => {
     setScreen({ name: 'ModeSelector', deck });
   }, []);
+
+  /** Open a course, and remember it as the one Home's «Continue» picks up. */
+  const openCourse = useCallback(
+    (courseId: string) => {
+      setLastCourseId(courseId);
+      goTo({ name: 'CourseHome', courseId });
+    },
+    [goTo],
+  );
 
   const handleTabPress = useCallback((tab: Tab) => {
     setActiveTab(tab);
@@ -271,9 +281,7 @@ export function RootNavigator() {
 
       case 'Courses':
         return (
-          <CoursesScreen
-            onCoursePress={courseId => navigateTo({ name: 'CourseHome', courseId })}
-          />
+          <CoursesScreen onCoursePress={openCourse} />
         );
 
       case 'CourseHome':
@@ -426,16 +434,13 @@ export function RootNavigator() {
       default:
         return (
           <HomeScreen
-            onDeckPress={deck => navigateTo({ name: 'ModeSelector', deck })}
-            onModePress={(_modeId, deckId) => {
-              // From DailyTraining grid — need a minimal Deck object
-              // Full deck will be loaded in ModeSelector
-              navigateTo({
-                name: 'ModeSelector',
-                deck: { id: deckId } as Deck,
-              });
+            onOpenCourse={openCourse}
+            onOpenUnit={(unitId, courseId) => {
+              setLastCourseId(courseId);
+              goTo({ name: 'UnitContents', unitId, courseId });
             }}
-            onStartCourseReview={() => navigateTo({ name: 'ReviewSession' })}
+            onStartReview={() => navigateTo({ name: 'ReviewSession' })}
+            onAllCourses={() => handleTabPress('Courses')}
           />
         );
     }
