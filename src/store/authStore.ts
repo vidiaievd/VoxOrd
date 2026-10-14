@@ -17,6 +17,12 @@ export interface AuthUser {
 export interface AuthState {
   status: AuthStatus;
   user: AuthUser | null;
+  /**
+   * Signed out only because the server could not be reached: a session is still stored and
+   * will come back with the connection. The sign-in screen says «no connection» and offers a
+   * retry instead of asking for a password the learner already gave.
+   */
+  offline: boolean;
 }
 
 const INITIAL_STATE: AuthState = {
@@ -24,6 +30,7 @@ const INITIAL_STATE: AuthState = {
   // stored session has had a chance to come back.
   status: 'restoring',
   user: null,
+  offline: false,
 };
 
 class AuthStore {
@@ -35,17 +42,17 @@ class AuthStore {
   }
 
   setRestoring(): void {
-    this.state = { status: 'restoring', user: null };
+    this.state = { status: 'restoring', user: null, offline: false };
     this.notify();
   }
 
   setSignedIn(user: AuthUser): void {
-    this.state = { status: 'signedIn', user };
+    this.state = { status: 'signedIn', user, offline: false };
     this.notify();
   }
 
-  setSignedOut(): void {
-    this.state = { status: 'signedOut', user: null };
+  setSignedOut(offline = false): void {
+    this.state = { status: 'signedOut', user: null, offline };
     this.notify();
   }
 

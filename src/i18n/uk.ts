@@ -1,6 +1,11 @@
 import { Translations } from './types';
 
 export const uk: Translations = {
+  auth: {
+    subtitle: 'Увійдіть, щоб відкрити свої курси',
+    offlineTitle: 'Немає з’єднання із сервером',
+    offlineBody: 'Вхід збережено — щойно з’явиться зв’язок, застосунок відкриється.',
+  },
   nav: {
     pressAgainToExit: 'Натисніть «Назад» ще раз, щоб вийти',
     home: 'Головна',

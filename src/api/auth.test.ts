@@ -77,6 +77,7 @@ describe('authService', () => {
       expect(authStore.getState()).toEqual({
         status: 'signedIn',
         user: { id: 'user-1', email: 'a@b.c', roles: ['student'] },
+        offline: false,
       });
       expect(Keychain.setGenericPassword).toHaveBeenCalledWith(
         'platform',
@@ -144,6 +145,7 @@ describe('authService', () => {
       await authService.restore();
 
       expect(authStore.getState().status).toBe('signedOut');
+      expect(authStore.getState().offline).toBe(false);
       expect(Keychain.resetGenericPassword).toHaveBeenCalled();
     });
 
@@ -156,6 +158,8 @@ describe('authService', () => {
       await authService.restore();
 
       expect(authStore.getState().status).toBe('signedOut');
+      // Signed out for now, not for good: the sign-in screen offers a retry.
+      expect(authStore.getState().offline).toBe(true);
       expect(Keychain.resetGenericPassword).not.toHaveBeenCalled();
       expect(await Keychain.getGenericPassword()).toMatchObject({
         password: 'stored-refresh',
@@ -244,7 +248,7 @@ describe('authService', () => {
       await authService.logout();
 
       expect(Keychain.resetGenericPassword).toHaveBeenCalled();
-      expect(authStore.getState()).toEqual({ status: 'signedOut', user: null });
+      expect(authStore.getState()).toEqual({ status: 'signedOut', user: null, offline: false });
       expect(authService.getAccessToken()).toBeNull();
     });
   });

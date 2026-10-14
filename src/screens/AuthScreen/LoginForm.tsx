@@ -33,7 +33,7 @@ export function LoginForm() {
     setError(null);
     try {
       await authService.login(email.trim(), password);
-      // On success authStore flips to 'signedIn' and CoursesScreen re-renders;
+      // On success authStore flips to 'signedIn' and the navigator leaves this screen;
       // nothing else to do here.
     } catch (e) {
       if (e instanceof MfaNotSupportedError) {

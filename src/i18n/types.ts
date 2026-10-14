@@ -1,6 +1,12 @@
 import type { PluralForms } from './pluralize';
 
 export interface Translations {
+  /** The screen before the app: signing in, or waiting for the connection. */
+  auth: {
+    subtitle: string;
+    offlineTitle: string;
+    offlineBody: string;
+  };
   nav: {
     pressAgainToExit: string;
     home: string;

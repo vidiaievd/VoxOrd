@@ -1,6 +1,11 @@
 import { Translations } from './types';
 
 export const ru: Translations = {
+  auth: {
+    subtitle: 'Войдите, чтобы открыть свои курсы',
+    offlineTitle: 'Нет соединения с сервером',
+    offlineBody: 'Вход сохранён — как только связь появится, приложение откроется.',
+  },
   nav: {
     pressAgainToExit: 'Нажмите «Назад» ещё раз, чтобы выйти',
     home: 'Главная',

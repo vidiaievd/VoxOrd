@@ -1,6 +1,11 @@
 import { Translations } from './types';
 
 export const en: Translations = {
+  auth: {
+    subtitle: 'Sign in to open your courses',
+    offlineTitle: 'No connection to the server',
+    offlineBody: 'You are still signed in — the app opens as soon as the connection is back.',
+  },
   nav: {
     pressAgainToExit: 'Press Back again to exit',
     home: 'Home',

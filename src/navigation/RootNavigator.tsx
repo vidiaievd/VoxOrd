@@ -34,6 +34,8 @@ import { GrammarRuleReaderScreen } from '../screens/GrammarRuleReaderScreen';
 import { ReviewSessionScreen } from '../screens/ReviewSessionScreen';
 import { backTarget, tabOf, type Screen, type Tab } from './screens';
 import { BackInterceptProvider } from './backIntercept';
+import { AuthScreen } from '../screens/AuthScreen';
+import { useAuth } from '../hooks/useAuth';
 
 /** How long a second Back on Home has to follow the first to leave the app. */
 const EXIT_WINDOW_MS = 2000;
@@ -51,6 +53,15 @@ export function RootNavigator() {
 
   const [screen, setScreen] = useState<Screen>({ name: 'Home' });
   const [activeTab, setActiveTab] = useState<Tab>('Home');
+  const { status: authStatus } = useAuth();
+
+  // Signed out — by the Settings button or by a session the server dropped — the next
+  // sign-in starts from Home, not from wherever the last one left off.
+  useEffect(() => {
+    if (authStatus !== 'signedOut') return;
+    setScreen({ name: 'Home' });
+    setActiveTab('Home');
+  }, [authStatus]);
 
   const navigateTo = useCallback((s: Screen) => setScreen(s), []);
 
@@ -447,6 +458,10 @@ export function RootNavigator() {
     screen.name !== 'GrammarRuleReader' &&
     screen.name !== 'ReviewSession' &&
     screen.name !== 'ExerciseRunner';
+
+  // Every screen past this point is the learner's own; without a session there is only
+  // the way in.
+  if (authStatus !== 'signedIn') return <AuthScreen />;
 
   return (
     <View style={styles.root}>

@@ -89,8 +89,10 @@ class AuthService {
     if (!refreshed) {
       // No usable session right now. Storage is left alone here on purpose:
       // performRefresh() already dropped the token if the server rejected it,
-      // and keeps it when the failure was merely a network blip.
-      this.clearSession();
+      // and keeps it when the failure was merely a network blip — which is how
+      // an offline start is told apart from a session that is gone.
+      const kept = (await loadRefreshToken()) !== null;
+      this.clearSession(kept);
     }
   }
 
@@ -169,10 +171,13 @@ class AuthService {
     }
   }
 
-  /** Drops the in-memory session only; storage is handled by the caller. */
-  private clearSession(): void {
+  /**
+   * Drops the in-memory session only; storage is handled by the caller. `offline`: the
+   * session is still stored and only the server was out of reach.
+   */
+  private clearSession(offline = false): void {
     this.accessToken = null;
-    authStore.setSignedOut();
+    authStore.setSignedOut(offline);
   }
 }
 

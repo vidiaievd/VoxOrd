@@ -8,7 +8,7 @@ import { authService } from '../../../api/auth';
 
 /**
  * Only rendered when a platform session exists — signing in happens on the
- * Courses tab, not here (see docs/plans/course-integration-plan.md Step 1.4).
+ * sign-in screen the navigator shows before the app (screens/AuthScreen).
  */
 export function AccountSection() {
   const { t } = useTranslation();
