@@ -25,6 +25,8 @@ interface HomeScreenProps {
   onOpenUnit: (unitId: string, courseId: string) => void;
   onStartReview: () => void;
   onAllCourses: () => void;
+  /** «My words» — the words added from texts (plan 75). */
+  onOpenMyWords: () => void;
 }
 
 /** How many courses Home lists before «All courses» takes over. */
@@ -37,7 +39,13 @@ const COURSES_ON_HOME = 3;
  * Home was the word decks, which are gone; the courses are the app now, so Home leads into
  * them instead of standing beside them.
  */
-export function HomeScreen({ onOpenCourse, onOpenUnit, onStartReview, onAllCourses }: HomeScreenProps) {
+export function HomeScreen({
+  onOpenCourse,
+  onOpenUnit,
+  onStartReview,
+  onAllCourses,
+  onOpenMyWords,
+}: HomeScreenProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
@@ -86,6 +94,11 @@ export function HomeScreen({ onOpenCourse, onOpenUnit, onStartReview, onAllCours
         ) : null}
 
         <ReviewCard stats={srs.data} onStart={onStartReview} />
+
+        <TouchableOpacity style={styles.card} onPress={onOpenMyWords} activeOpacity={0.85}>
+          <Text style={styles.eyebrow}>{t('myWords.title')}</Text>
+          <Text style={styles.cardMuted}>{t('myWords.homeHint')}</Text>
+        </TouchableOpacity>
 
         {courses.courses.length > 0 ? (
           <View style={styles.section}>

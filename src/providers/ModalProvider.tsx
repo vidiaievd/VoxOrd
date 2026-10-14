@@ -2,6 +2,7 @@ import { createContext, ReactNode, useCallback, useContext, useState } from 'rea
 import { ModalRenderer } from '../components/modal/ModalRenderer';
 import { PickerOption } from '../components/modal/sheets/BottomSheetPicker';
 import type { ReaderGlossaryEntry } from '../api/lessons';
+import type { WordCaptureSource } from '../api/personalVocabulary';
 
 export type ModalConfig =
   | {
@@ -23,6 +24,13 @@ export type ModalConfig =
   | {
       type: 'glossary';
       entry: ReaderGlossaryEntry;
+      /** Set in a text, where the word can go on to «My words» — the form as tapped and where. */
+      capture?: { surfaceForm: string; source: WordCaptureSource };
+    }
+  | {
+      type: 'addWord';
+      surfaceForm: string;
+      source: WordCaptureSource;
     };
 
 export interface ModalContextValue {

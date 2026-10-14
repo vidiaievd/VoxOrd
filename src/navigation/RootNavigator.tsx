@@ -32,6 +32,7 @@ import { ExerciseRunnerScreen } from '../screens/ExerciseRunner';
 import { VocabularyListScreen } from '../screens/VocabularyListScreen';
 import { GrammarRuleReaderScreen } from '../screens/GrammarRuleReaderScreen';
 import { ReviewSessionScreen } from '../screens/ReviewSessionScreen';
+import { MyWordsScreen } from '../screens/MyWordsScreen';
 import { backTarget, tabOf, type Screen, type Tab } from './screens';
 import { BackInterceptProvider } from './backIntercept';
 import { AuthScreen } from '../screens/AuthScreen';
@@ -375,6 +376,9 @@ export function RootNavigator() {
           <ReviewSessionScreen onBack={goBack} />
         );
 
+      case 'MyWords':
+        return <MyWordsScreen onBack={goBack} />;
+
       case 'VocabularyList':
         return (
           <VocabularyListScreen
@@ -443,6 +447,7 @@ export function RootNavigator() {
             }}
             onStartReview={() => navigateTo({ name: 'ReviewSession' })}
             onAllCourses={() => handleTabPress('Courses')}
+            onOpenMyWords={() => navigateTo({ name: 'MyWords' })}
           />
         );
     }

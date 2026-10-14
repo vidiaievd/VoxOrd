@@ -165,6 +165,41 @@ export interface Translations {
     masteryPercent: string; // 'Mastery: {percent}%'
   };
 
+  /** «My words» — words the student adds from a text (plan 75). */
+  myWords: {
+    deck: string;
+    noDeck: string;
+    title: string;
+    homeHint: string;
+    deckTitle: string;
+    empty: string;
+    emptyHint: string;
+    loadError: string;
+    pendingSection: string;
+    wordsSection: string;
+    translationPlaceholderShort: string;
+    saveTranslation: string;
+    saveError: string;
+    courseBadge: string;
+    /** On a word of a unit's list that the student added themselves. */
+    mineBadge: string;
+    limitReached: string;
+    deleteHint: string;
+    deleteTitle: string;
+    deleteMessage: string;
+    deleteConfirm: string;
+    add: string;
+    save: string;
+    translationPlaceholder: string;
+    /** Under the dictionary form when the text had another form: «in the text: {form}». */
+    inText: string;
+    fromCourse: string;
+    alreadyAdded: string;
+    waitingForTranslation: string;
+    added: string;
+    queued: string;
+    refused: string;
+  };
   lessonReader: {
     title: string;
     loadError: string;

@@ -7,10 +7,15 @@ import type { LessonParagraph } from '../../api/types';
 import type { ReaderGlossaryEntry } from '../../api/lessons';
 import { getMediaAsset } from '../../api/media';
 import { tokenizeGlossary } from '../../utils/tokenizeGlossary';
+import { sentenceAt, wordRuns } from '../../lib/text/wordRuns';
+import type { WordCaptureSource } from '../../api/personalVocabulary';
+import { ReaderCaptureContext, useReaderCapture, type ReaderCapture } from './captureContext';
 import { readerBlocks, type Inline, type ReaderBlock } from '../../lib/text/readerBlocks';
 
 interface ParagraphViewProps {
   paragraph: LessonParagraph;
+  /** Position of the paragraph in the text — where a word saved from it was met. */
+  paragraphIndex: number;
   glossaryIndex: Map<string, ReaderGlossaryEntry>;
 }
 
@@ -19,30 +24,37 @@ interface ParagraphViewProps {
  * a quoted document, lists, a table, an image — with the glossary's words tappable inside
  * every run of text, and the paragraph's translation behind the eye.
  */
-export function ParagraphView({ paragraph, glossaryIndex }: ParagraphViewProps) {
+export function ParagraphView({ paragraph, paragraphIndex, glossaryIndex }: ParagraphViewProps) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const [showTranslation, setShowTranslation] = useState(false);
   const blocks = useMemo(() => readerBlocks(paragraph.target), [paragraph.target]);
+  const textCapture = useReaderCapture();
+  const capture = useMemo<ReaderCapture | null>(
+    () => (textCapture ? { ...textCapture, paragraphIndex } : null),
+    [textCapture, paragraphIndex],
+  );
 
   // A paragraph that held only media the reader plays elsewhere — the narration's token.
   if (blocks.length === 0) return null;
 
   return (
-    <View style={styles.paragraph}>
-      {blocks.map((block, i) => (
-        <BlockView key={i} block={block} glossaryIndex={glossaryIndex} />
-      ))}
+    <ReaderCaptureContext.Provider value={capture}>
+      <View style={styles.paragraph}>
+        {blocks.map((block, i) => (
+          <BlockView key={i} block={block} glossaryIndex={glossaryIndex} />
+        ))}
 
-      {paragraph.translation && (
-        <>
-          <TouchableOpacity onPress={() => setShowTranslation(v => !v)}>
-            <Text style={styles.toggle}>{showTranslation ? '🙈' : '👁'}</Text>
-          </TouchableOpacity>
-          {showTranslation && <Text style={styles.translation}>{paragraph.translation}</Text>}
-        </>
-      )}
-    </View>
+        {paragraph.translation && (
+          <>
+            <TouchableOpacity onPress={() => setShowTranslation(v => !v)}>
+              <Text style={styles.toggle}>{showTranslation ? '🙈' : '👁'}</Text>
+            </TouchableOpacity>
+            {showTranslation && <Text style={styles.translation}>{paragraph.translation}</Text>}
+          </>
+        )}
+      </View>
+    </ReaderCaptureContext.Provider>
   );
 }
 
@@ -114,7 +126,10 @@ function BlockView({
   }
 }
 
-/** A run of text with its bold and italic, and the glossary's words tappable. */
+/**
+ * A run of text with its bold and italic. A glossary word opens its card; in a text every
+ * other word opens «Add to my words» (plan 75), with the sentence it stands in.
+ */
 function Inlines({
   inlines,
   glossaryIndex,
@@ -125,26 +140,71 @@ function Inlines({
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const { show } = useModal();
+  const capture = useReaderCapture();
+  const blockText = useMemo(() => inlines.map((inline) => inline.text).join(''), [inlines]);
 
+  const sourceAt = (offset: number): WordCaptureSource | null =>
+    capture
+      ? {
+          targetLanguage: capture.targetLanguage,
+          sourceVariantId: capture.variantId,
+          sourceParagraph: capture.paragraphIndex,
+          contextSentence: sentenceAt(blockText, offset) || null,
+        }
+      : null;
+
+  let inlineStart = 0;
   return (
     <>
       {inlines.map((inline, i) => {
         const emphasis = [inline.bold && styles.bold, inline.italic && styles.italic];
+        const start = inlineStart;
+        inlineStart += inline.text.length;
+        let tokenStart = start;
         return (
           <Text key={i} style={emphasis}>
-            {tokenizeGlossary(inline.text, glossaryIndex).map((token, j) =>
-              token.entry ? (
-                <Text
-                  key={j}
-                  style={styles.glossaryWord}
-                  onPress={() => show({ type: 'glossary', entry: token.entry! })}
-                >
-                  {token.text}
+            {tokenizeGlossary(inline.text, glossaryIndex).map((token, j) => {
+              const offset = tokenStart;
+              tokenStart += token.text.length;
+              if (token.entry) {
+                const source = sourceAt(offset);
+                return (
+                  <Text
+                    key={j}
+                    style={styles.glossaryWord}
+                    onPress={() =>
+                      show({
+                        type: 'glossary',
+                        entry: token.entry!,
+                        ...(source ? { capture: { surfaceForm: token.text, source } } : {}),
+                      })
+                    }
+                  >
+                    {token.text}
+                  </Text>
+                );
+              }
+              if (!capture) return <Text key={j}>{token.text}</Text>;
+              return (
+                <Text key={j}>
+                  {wordRuns(token.text).map((run, k) =>
+                    run.isWord ? (
+                      <Text
+                        key={k}
+                        onPress={() => {
+                          const source = sourceAt(offset + run.start);
+                          if (source) show({ type: 'addWord', surfaceForm: run.text, source });
+                        }}
+                      >
+                        {run.text}
+                      </Text>
+                    ) : (
+                      run.text
+                    ),
+                  )}
                 </Text>
-              ) : (
-                <Text key={j}>{token.text}</Text>
-              ),
-            )}
+              );
+            })}
           </Text>
         );
       })}

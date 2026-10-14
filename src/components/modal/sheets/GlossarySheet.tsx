@@ -1,25 +1,34 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet, Pressable } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../../providers/ThemeProvider';
 import { ColorScheme } from '../../../theme/colors';
 import { useTranslation } from '../../../i18n';
 import type { ReaderGlossaryEntry } from '../../../api/lessons';
+import type { WordCaptureSource } from '../../../api/personalVocabulary';
+import { useModal } from '../../../providers/ModalProvider';
 
 interface GlossarySheetProps {
   visible: boolean;
   entry: ReaderGlossaryEntry;
+  /** Present in a text: the word can be added to «My words» from here. */
+  capture?: { surfaceForm: string; source: WordCaptureSource };
   onClose: () => void;
 }
 
-export function GlossarySheet({ visible, entry, onClose }: GlossarySheetProps) {
+export function GlossarySheet({ visible, entry, capture, onClose }: GlossarySheetProps) {
   const { colors } = useTheme();
   const { t } = useTranslation();
+  const { show } = useModal();
   const styles = makeStyles(colors);
+  // The app draws edge to edge: without this the sheet's last button sits under the
+  // phone's navigation bar.
+  const insets = useSafeAreaInsets();
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose} />
-      <View style={styles.sheet}>
+      <View style={[styles.sheet, { paddingBottom: 32 + insets.bottom }]}>
         <View style={styles.handle} />
         <View style={styles.header}>
           <Text style={styles.word}>{entry.word}</Text>
@@ -38,6 +47,14 @@ export function GlossarySheet({ visible, entry, onClose }: GlossarySheetProps) {
           </>
         ) : (
           <Text style={styles.definition}>{t('lessonReader.noTranslation')}</Text>
+        )}
+        {capture && (
+          <TouchableOpacity
+            style={styles.addBtn}
+            onPress={() => show({ type: 'addWord', ...capture })}
+          >
+            <Text style={styles.addText}>{t('myWords.add')}</Text>
+          </TouchableOpacity>
         )}
         <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
           <Text style={styles.closeText}>{t('common.close')}</Text>
@@ -105,6 +122,18 @@ const makeStyles = (colors: ColorScheme) =>
       textAlign: 'center',
       lineHeight: 20,
       marginBottom: 20,
+    },
+    addBtn: {
+      marginTop: 8,
+      paddingVertical: 14,
+      backgroundColor: colors.accent,
+      borderRadius: 14,
+      alignItems: 'center',
+    },
+    addText: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: colors.textInverted,
     },
     closeBtn: {
       marginTop: 8,
