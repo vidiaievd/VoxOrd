@@ -1,5 +1,12 @@
-import React, { useState, useCallback } from 'react';
-import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import {
+  View,
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  BackHandler,
+  ToastAndroid,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from '../i18n';
 import { HomeScreen } from '../screens/HomeScreen';
@@ -25,42 +32,14 @@ import { ExerciseRunnerScreen } from '../screens/ExerciseRunner';
 import { VocabularyListScreen } from '../screens/VocabularyListScreen';
 import { GrammarRuleReaderScreen } from '../screens/GrammarRuleReaderScreen';
 import { ReviewSessionScreen } from '../screens/ReviewSessionScreen';
+import { backTarget, tabOf, type Screen, type Tab } from './screens';
+import { BackInterceptProvider } from './backIntercept';
+import { AuthScreen } from '../screens/AuthScreen';
+import { useAuth } from '../hooks/useAuth';
+import { setLastCourseId } from '../store/lastCourseStore';
 
-type Tab = 'Home' | 'Courses' | 'Settings';
-
-type Screen =
-  | { name: 'Home' }
-  | { name: 'ModeSelector'; deck: Deck }
-  | { name: 'Card'; deck: Deck; mode?: 'assessment' }
-  | { name: 'Matching'; deckId: number }
-  | { name: 'Quiz'; deckId: number }
-  | { name: 'Spelling'; deckId: number }
-  | { name: 'Listening'; deckId: number }
-  | { name: 'Pronunciation'; deckId: number }
-  | { name: 'Context'; deckId: number }
-  | { name: 'DeepSession'; deck: Deck }
-  | { name: 'SessionResults'; sessionId: number; deckId: number }
-  | { name: 'Courses' }
-  | { name: 'CourseHome'; courseId: string }
-  | { name: 'UnitContents'; unitId: string; courseId: string }
-  | { name: 'LessonReader'; lessonId: string; unitId: string; courseId: string }
-  | { name: 'VocabularyList'; listId: string; unitId: string; courseId: string }
-  | { name: 'GrammarRuleReader'; ruleId: string; unitId: string; courseId: string }
-  | { name: 'ReviewSession'; courseId?: string }
-  | {
-      name: 'ExerciseRunner';
-      exerciseIds: string[];
-      startIndex: number;
-      unitId: string;
-      courseId: string;
-      /**
-       * The unit's own text lesson, when it has one — what `multiple_choice_group`'s «To
-       * the text» opens (plan 54 Q5). Carried on the route because the unit screen is
-       * where it is known; the runner is handed a set of exercise ids and nothing else.
-       */
-      sourceLessonId?: string;
-    }
-  | { name: 'Settings' };
+/** How long a second Back on Home has to follow the first to leave the app. */
+const EXIT_WINDOW_MS = 2000;
 
 const SCREEN_FOR_TAB: Record<Tab, Screen> = {
   Home: { name: 'Home' },
@@ -75,8 +54,59 @@ export function RootNavigator() {
 
   const [screen, setScreen] = useState<Screen>({ name: 'Home' });
   const [activeTab, setActiveTab] = useState<Tab>('Home');
+  const { status: authStatus } = useAuth();
+
+  // Signed out — by the Settings button or by a session the server dropped — the next
+  // sign-in starts from Home, not from wherever the last one left off.
+  useEffect(() => {
+    if (authStatus !== 'signedOut') return;
+    setScreen({ name: 'Home' });
+    setActiveTab('Home');
+  }, [authStatus]);
 
   const navigateTo = useCallback((s: Screen) => setScreen(s), []);
+
+  /** Go to `target` with the tab bar following it — what Back does everywhere. */
+  const goTo = useCallback((target: Screen) => {
+    setScreen(target);
+    const tab = tabOf(target);
+    if (tab !== null) setActiveTab(tab);
+  }, []);
+
+  /** The current screen's way back, for its own arrow. */
+  const goBack = useCallback(() => {
+    const target = backTarget(screen);
+    if (target !== null) goTo(target);
+  }, [goTo, screen]);
+
+  /** A screen's own handler for Back, if it registered one — see `useBackIntercept`. */
+  const interceptRef = useRef<(() => boolean) | null>(null);
+  const lastHomeBack = useRef(0);
+
+  /*
+    The phone's Back button. Without this every press left the app, wherever it was pressed.
+    A screen with work in progress is asked first; otherwise Back goes where the screen's own
+    arrow goes. On Home it takes two presses to leave, with a toast between them. An open
+    sheet never gets here: React Native's Modal takes Back itself and closes.
+  */
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (interceptRef.current?.()) return true;
+
+      const target = backTarget(screen);
+      if (target !== null) {
+        goTo(target);
+        return true;
+      }
+
+      const now = Date.now();
+      if (now - lastHomeBack.current < EXIT_WINDOW_MS) return false;
+      lastHomeBack.current = now;
+      ToastAndroid.show(t('nav.pressAgainToExit'), ToastAndroid.SHORT);
+      return true;
+    });
+    return () => sub.remove();
+  }, [goTo, screen, t]);
 
   const navigateToResults = useCallback(
     (sessionId: number, deckId: number) => {
@@ -94,6 +124,15 @@ export function RootNavigator() {
   const navigateBackToSelector = useCallback((deck: Deck) => {
     setScreen({ name: 'ModeSelector', deck });
   }, []);
+
+  /** Open a course, and remember it as the one Home's «Continue» picks up. */
+  const openCourse = useCallback(
+    (courseId: string) => {
+      setLastCourseId(courseId);
+      goTo({ name: 'CourseHome', courseId });
+    },
+    [goTo],
+  );
 
   const handleTabPress = useCallback((tab: Tab) => {
     setActiveTab(tab);
@@ -242,16 +281,14 @@ export function RootNavigator() {
 
       case 'Courses':
         return (
-          <CoursesScreen
-            onCoursePress={courseId => navigateTo({ name: 'CourseHome', courseId })}
-          />
+          <CoursesScreen onCoursePress={openCourse} />
         );
 
       case 'CourseHome':
         return (
           <CourseHomeScreen
             courseId={screen.courseId}
-            onBack={() => setScreen({ name: 'Courses' })}
+            onBack={goBack}
             onUnitPress={unitId =>
               navigateTo({ name: 'UnitContents', unitId, courseId: screen.courseId })
             }
@@ -265,13 +302,15 @@ export function RootNavigator() {
         return (
           <UnitContentsScreen
             unitId={screen.unitId}
-            onBack={() => setScreen({ name: 'CourseHome', courseId: screen.courseId })}
-            onLessonPress={lessonId =>
+            onBack={goBack}
+            onLessonPress={(lessonId, exerciseIds, alreadyRead) =>
               navigateTo({
                 name: 'LessonReader',
                 lessonId,
                 unitId: screen.unitId,
                 courseId: screen.courseId,
+                exerciseIds,
+                alreadyRead,
               })
             }
             onExercisePress={(exerciseIds, startIndex, sourceLessonId) =>
@@ -304,12 +343,7 @@ export function RootNavigator() {
         );
 
       case 'ExerciseRunner': {
-        const backToUnit = () =>
-          setScreen({
-            name: 'UnitContents',
-            unitId: screen.unitId,
-            courseId: screen.courseId,
-          });
+        const backToUnit = goBack;
         // The text these exercises are about, when the unit has one. This navigator holds
         // one screen and no stack, so opening the lesson leaves the runner exactly as
         // tapping Back would — and the way back from the lesson is the unit, which is
@@ -338,46 +372,51 @@ export function RootNavigator() {
 
       case 'ReviewSession':
         return (
-          <ReviewSessionScreen
-            onBack={() =>
-              setScreen(
-                screen.courseId
-                  ? { name: 'CourseHome', courseId: screen.courseId }
-                  : { name: 'Home' },
-              )
-            }
-          />
+          <ReviewSessionScreen onBack={goBack} />
         );
 
       case 'VocabularyList':
         return (
           <VocabularyListScreen
             listId={screen.listId}
-            onBack={() =>
-              setScreen({ name: 'UnitContents', unitId: screen.unitId, courseId: screen.courseId })
-            }
+            onBack={goBack}
           />
         );
 
-      case 'LessonReader':
+      case 'LessonReader': {
+        // The text's exercises, as its unit worked them out. None — a text opened from the
+        // runner's «To the text», or one with nothing after it — and the reader just closes.
+        const lessonId = screen.lessonId;
+        const practiceIds = screen.exerciseIds ?? [];
         return (
           <LessonReaderScreen
-            lessonId={screen.lessonId}
+            lessonId={lessonId}
             courseId={screen.courseId}
-            onBack={() =>
-              setScreen({ name: 'UnitContents', unitId: screen.unitId, courseId: screen.courseId })
+            onBack={goBack}
+            alreadyRead={screen.alreadyRead === true}
+            onPractice={
+              practiceIds.length === 0
+                ? undefined
+                : () =>
+                    navigateTo({
+                      name: 'ExerciseRunner',
+                      exerciseIds: practiceIds,
+                      startIndex: 0,
+                      unitId: screen.unitId,
+                      courseId: screen.courseId,
+                      sourceLessonId: lessonId,
+                    })
             }
           />
         );
+      }
 
       case 'GrammarRuleReader':
         return (
           <GrammarRuleReaderScreen
             ruleId={screen.ruleId}
             courseId={screen.courseId}
-            onBack={() =>
-              setScreen({ name: 'UnitContents', unitId: screen.unitId, courseId: screen.courseId })
-            }
+            onBack={goBack}
             onPracticePress={exerciseIds =>
               navigateTo({
                 name: 'ExerciseRunner',
@@ -397,16 +436,13 @@ export function RootNavigator() {
       default:
         return (
           <HomeScreen
-            onDeckPress={deck => navigateTo({ name: 'ModeSelector', deck })}
-            onModePress={(_modeId, deckId) => {
-              // From DailyTraining grid — need a minimal Deck object
-              // Full deck will be loaded in ModeSelector
-              navigateTo({
-                name: 'ModeSelector',
-                deck: { id: deckId } as Deck,
-              });
+            onOpenCourse={openCourse}
+            onOpenUnit={(unitId, courseId) => {
+              setLastCourseId(courseId);
+              goTo({ name: 'UnitContents', unitId, courseId });
             }}
-            onStartCourseReview={() => navigateTo({ name: 'ReviewSession' })}
+            onStartReview={() => navigateTo({ name: 'ReviewSession' })}
+            onAllCourses={() => handleTabPress('Courses')}
           />
         );
     }
@@ -430,9 +466,15 @@ export function RootNavigator() {
     screen.name !== 'ReviewSession' &&
     screen.name !== 'ExerciseRunner';
 
+  // Every screen past this point is the learner's own; without a session there is only
+  // the way in.
+  if (authStatus !== 'signedIn') return <AuthScreen />;
+
   return (
     <View style={styles.root}>
-      <View style={styles.content}>{renderScreen()}</View>
+      <View style={styles.content}>
+        <BackInterceptProvider handlerRef={interceptRef}>{renderScreen()}</BackInterceptProvider>
+      </View>
       {showTabBar && (
         <SafeAreaView edges={['bottom']} style={styles.tabBar}>
           <TabItem

@@ -4,9 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
-import { useAuth } from '../../hooks/useAuth';
 import { useMyCourses } from '../../hooks/useMyCourses';
-import { LoginForm } from './LoginForm';
 import { CourseCard } from './CourseCard';
 import { CourseListItem } from '../../api/courses';
 import { OfflineBanner } from '../../components/OfflineBanner';
@@ -20,7 +18,6 @@ export function CoursesScreen({ onCoursePress }: CoursesScreenProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const { status } = useAuth();
   const { status: coursesStatus, courses, error, refreshing, stale, refresh } = useMyCourses();
 
   return (
@@ -29,23 +26,15 @@ export function CoursesScreen({ onCoursePress }: CoursesScreenProps) {
         <Text style={styles.title}>{t('courses.title')}</Text>
       </View>
 
-      {status === 'signedIn' && stale && isNetworkError(error) && <OfflineBanner />}
+      {stale && isNetworkError(error) && <OfflineBanner />}
 
-      {status === 'restoring' && (
+      {coursesStatus === 'loading' && (
         <View style={styles.centerFill}>
           <ActivityIndicator size="large" color={colors.accent} />
         </View>
       )}
 
-      {status === 'signedOut' && <LoginForm />}
-
-      {status === 'signedIn' && coursesStatus === 'loading' && (
-        <View style={styles.centerFill}>
-          <ActivityIndicator size="large" color={colors.accent} />
-        </View>
-      )}
-
-      {status === 'signedIn' && coursesStatus === 'error' && (
+      {coursesStatus === 'error' && (
         <View style={styles.centerFill}>
           <Text style={styles.emptyTitle}>{t('courses.loadError')}</Text>
           <Text style={styles.emptyDesc}>{error?.message}</Text>
@@ -55,7 +44,7 @@ export function CoursesScreen({ onCoursePress }: CoursesScreenProps) {
         </View>
       )}
 
-      {status === 'signedIn' && coursesStatus === 'loaded' && courses.length === 0 && (
+      {coursesStatus === 'loaded' && courses.length === 0 && (
         <FlatList
           data={[]}
           renderItem={null}
@@ -72,7 +61,7 @@ export function CoursesScreen({ onCoursePress }: CoursesScreenProps) {
         />
       )}
 
-      {status === 'signedIn' && coursesStatus === 'loaded' && courses.length > 0 && (
+      {coursesStatus === 'loaded' && courses.length > 0 && (
         <FlatList
           data={courses}
           keyExtractor={(item: CourseListItem) => item.enrollment.id}

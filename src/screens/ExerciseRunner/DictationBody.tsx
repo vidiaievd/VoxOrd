@@ -28,7 +28,8 @@ import {
   AudioTranscript,
   ExerciseAudioPlayer,
 } from './audio';
-import type { ExerciseBodyProps } from './ExerciseBody';
+import type { ExerciseBodyProps, FooterAction } from './ExerciseBody';
+import { BodyFooter } from './BodyFooter';
 import {
   buildDictationSubmission,
   nextOpen,
@@ -137,6 +138,7 @@ function DictationRunner({
   onAnswerChange,
   checkTable,
   finishTable,
+  setFooterAction,
   projection,
 }: ExerciseBodyProps & { projection: DictationProjection }) {
   const { t } = useTranslation();
@@ -397,6 +399,48 @@ function DictationRunner({
   const slices = transcriptSlices(segments, states);
   const canCheck = fieldLive && !cooling && text.trim() !== '';
 
+  /*
+    The stage's button in the runner's footer, above the keyboard — the check sat under the
+    field in the scroll, and the keyboard covered it while the sentence was typed. «Finish»
+    stays in the body: by then the runner has the verdict and its own Continue.
+  */
+  const showKey =
+    checked && !passed && settings.revealKey
+      ? {
+          label: t('exerciseRunner.dictation.showKey'),
+          onPress: () => send(true),
+          disabled: sending,
+        }
+      : undefined;
+  const footer: FooterAction | null = disabled
+    ? null
+    : writing
+    ? {
+        label: t('exerciseRunner.dictation.check'),
+        onPress: () => send(false),
+        disabled: !canCheck,
+        busy: sending,
+        error,
+      }
+    : checked && !passed && !closed
+    ? {
+        label: `↺ ${t('exerciseRunner.dictation.retry')}`,
+        onPress: retry,
+        disabled: sending,
+        error,
+        secondary: showKey,
+      }
+    : closed && ahead !== null
+    ? {
+        label: `${t('exerciseRunner.dictation.next')} →`,
+        onPress: next,
+        disabled: sending,
+        error,
+        secondary: showKey,
+      }
+    : null;
+  const inFooter = setFooterAction !== undefined;
+
   return (
     <View>
       {segments.length > 1 && (
@@ -607,9 +651,10 @@ function DictationRunner({
         />
       )}
 
+      <BodyFooter set={setFooterAction} action={footer} />
       <View style={styles.bottom}>
         {/* Drawn from the last verdict's `closed`, never from a count kept here. */}
-        {writing && !disabled && (
+        {!inFooter && writing && !disabled && (
           <Button
             label={t('exerciseRunner.dictation.check')}
             onPress={() => send(false)}
@@ -620,7 +665,7 @@ function DictationRunner({
             styles={styles}
           />
         )}
-        {checked && !passed && !closed && !disabled && (
+        {!inFooter && checked && !passed && !closed && !disabled && (
           <Button
             label={`↺ ${t('exerciseRunner.dictation.retry')}`}
             onPress={retry}
@@ -629,7 +674,7 @@ function DictationRunner({
             styles={styles}
           />
         )}
-        {checked && !passed && settings.revealKey && !disabled && (
+        {!inFooter && checked && !passed && settings.revealKey && !disabled && (
           <TouchableOpacity
             style={[styles.ghostBtn, sending && styles.btnDim]}
             onPress={() => send(true)}
@@ -643,6 +688,7 @@ function DictationRunner({
         )}
         {closed &&
           (ahead !== null ? (
+            !inFooter &&
             !disabled && (
               <Button
                 label={`${t('exerciseRunner.dictation.next')} →`}
@@ -669,7 +715,7 @@ function DictationRunner({
         {gated && (
           <AudioLockNote message={t('exerciseRunner.dictation.lockNote')} />
         )}
-        {error !== null && <Text style={styles.error}>{error}</Text>}
+        {!inFooter && error !== null && <Text style={styles.error}>{error}</Text>}
       </View>
     </View>
   );

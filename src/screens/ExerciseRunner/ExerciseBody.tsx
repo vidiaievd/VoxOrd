@@ -148,6 +148,39 @@ export interface ExerciseBodyProps {
    * Every other body ignores it.
    */
   onOpenSourceLesson?: () => void;
+  /**
+   * Put the body's own button in the runner's footer instead of Check, while answering.
+   *
+   * The footer is the one place on the screen the keyboard never covers: it sits outside the
+   * scroll and rides up with the keyboard. A body whose button lives in its own content had
+   * that button pushed out of sight while the learner typed, with the footer's Check — dead
+   * until the body was done — the only button left in view. A body that steps through its own
+   * stages (`short_answer`: answer, next question, send the set) hands each stage's button
+   * here, so there is one button and it is always where the thumb is.
+   *
+   * `null` gives the footer back to Check. A body that calls this must clear it when it
+   * unmounts; one that never calls it keeps the footer it always had.
+   */
+  setFooterAction?: (action: FooterAction | null) => void;
+}
+
+/** A body's button in the runner's footer — see `setFooterAction`. */
+export interface FooterAction {
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+  /** A request is in flight: the button shows a spinner and does not take presses. */
+  busy?: boolean;
+  /** A line under the button — what pressing it commits to. */
+  note?: string;
+  /** Why the last press failed, shown above the button. */
+  error?: string | null;
+  /**
+   * A second, quieter choice under the button — the way past the main one rather than a
+   * rival to it (`short_answer`: «Skip» under «Answer», «Send for checking» under «Back to
+   * the skipped»).
+   */
+  secondary?: { label: string; onPress: () => void; disabled?: boolean };
 }
 
 /**

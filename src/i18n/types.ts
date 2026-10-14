@@ -1,12 +1,50 @@
 import type { PluralForms } from './pluralize';
 
 export interface Translations {
+  /** The screen before the app: signing in, or waiting for the connection. */
+  auth: {
+    /** Signing in with the fingerprint (or the device PIN) instead of the password. */
+    biometric: {
+      promptTitle: string;
+      lockedTitle: string;
+      lockedBody: string;
+      unlock: string;
+      usePassword: string;
+      offerTitle: string;
+      offerMessage: string;
+      offerConfirm: string;
+      offerLater: string;
+      settingLabel: string;
+    };
+    subtitle: string;
+    offlineTitle: string;
+    offlineBody: string;
+  };
   nav: {
+    pressAgainToExit: string;
     home: string;
     settings: string;
     courses: string;
   };
 
+  /** Home — «Today»: carry on with a course, review what is due, open another course. */
+  today: {
+    greeting: string; // '{name}'
+    greetingPlain: string;
+    subtitle: string;
+    continue: string;
+    continueCta: string;
+    unitProgress: string; // '{done}', '{total}'
+    reviewTitle: string;
+    reviewDue: PluralForms; // '{count}'
+    reviewNone: string;
+    reviewedToday: string; // '{count}'
+    reviewStart: string;
+    myCourses: string;
+    allCourses: string;
+    noCourses: string;
+    noCoursesDesc: string;
+  };
   home: {
     appSubtitle: string;
     learned: string;
@@ -133,7 +171,20 @@ export interface Translations {
     noContent: string;
     unsupportedKind: string;
     noTranslation: string;
-    markAsRead: string;
+    /** The strip under the header that plays a text's recording. */
+    narration: {
+      label: string;
+      play: string;
+      pause: string;
+      back: string;
+      forward: string;
+      speed: string;
+      error: string;
+    };
+    /** The button at the end of a text that leads into its exercises. */
+    toExercises: string;
+    /** The same button when the text leads into none: it closes the reader. */
+    finish: string;
   };
 
   grammarRuleReader: {
@@ -179,6 +230,13 @@ export interface Translations {
   };
 
   exerciseRunner: {
+    /** Leaving a set mid-way, by the arrow or the phone's Back. */
+    leave: {
+      title: string;
+      message: string;
+      confirm: string;
+      stay: string;
+    };
     /**
      * The listening layer — plan 56 phase 7. One player, one gate and one transcript,
      * shared by every template that carries a clip, so the strings live here rather
@@ -374,6 +432,17 @@ export interface Translations {
       irreversible: string;
       next: string;
       last: string;
+      /** Pass over a question and come back to it — nothing is sent. */
+      skip: string;
+      backToSkipped: string; // '{count}'
+      /** Every question answered or skipped, some skipped: the screen before sending. */
+      reviewTitle: string;
+      reviewDesc: string; // '{answered}', '{total}'
+      /** Sending a set with questions left unanswered. */
+      confirmTitle: string;
+      confirmMessage: PluralForms; // '{count}'
+      confirmSend: string;
+      doneSkipped: string; // '{count}'
       covered: string; // '{covered}', '{total}'
       tooShort: string;
       modelLabel: string;
@@ -389,7 +458,6 @@ export interface Translations {
       doneTitle: string;
       doneTally: string; // '{pass}', '{partial}', '{fail}'
       doneTeacher: string;
-      doneHint: string;
       sendFailed: string;
       handedInAlready: string;
       empty: string;

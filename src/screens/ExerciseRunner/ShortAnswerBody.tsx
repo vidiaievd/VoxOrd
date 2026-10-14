@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TextInput, ActivityIndicator } from 'react-native';
 import { ApiError } from '../../api/client';
 import { findOpenAttempt, type AnsweredQuestion } from '../../api/exercises';
 import { useTranslation } from '../../i18n';
+import { useModal } from '../../providers/ModalProvider';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
 import { useExerciseAudio } from '../../hooks/useExerciseAudio';
@@ -22,6 +23,8 @@ import {
   countVerdict,
   EMPTY_TALLY,
   isShortAnswerDocument,
+  nextSkipped,
+  nextUnreached,
   readShortAnswerResult,
   readShortAnswerSet,
   readVerdict,
@@ -30,6 +33,8 @@ import {
   type ShortAnswerSet as Set,
   type ShortAnswerTally,
   type ShortAnswerVerdict,
+  type ShortAnswerWalk,
+  unansweredCount,
 } from './templates/shortAnswer';
 
 /**
@@ -84,8 +89,12 @@ function UnreadableSet({ onAnswerChange }: Pick<ExerciseBodyProps, 'onAnswerChan
   );
 }
 
-/** Where the runner is in one question — README "Screen 2", the state machine of the set. */
-type Phase = 'writing' | 'submitted' | 'done';
+/**
+ * Where the runner is in one question — README "Screen 2", the state machine of the set.
+ * `review` is the set with every question answered or skipped and some skipped: nothing on
+ * screen to answer, the way back to the skipped ones and the way to send.
+ */
+type Phase = 'writing' | 'submitted' | 'review' | 'done';
 
 /**
  * The student's side of the set: write, hand in for good, read the verdict, move on.
@@ -98,9 +107,21 @@ type Phase = 'writing' | 'submitted' | 'done';
  *
  * How it meets the runner shell: each answer is a call onto the attempt
  * (`answerQuestion`), which opens that attempt on the first one; when the last question
- * is in, the aggregate goes up through `onAnswerChange` and the footer's Check closes the
- * attempt with it. The engine regrades every answer there from scratch — a verdict that
- * reached a client is a verdict a client could send back (plan 51 §3.3).
+ * is in, «Send for checking» closes the attempt with the aggregate (`checkTable`). The
+ * engine regrades every answer there from scratch — a verdict that reached a client is a
+ * verdict a client could send back (plan 51 §3.3).
+ *
+ * A question may be skipped and come back to: the set walks the questions not reached yet
+ * first, then offers «Back to the skipped» beside «Send for checking». Sending with
+ * questions unanswered is allowed, after a confirmation that says they count as wrong —
+ * which is what the engine does with them. Requiring every answer would leave a learner
+ * who cannot answer one question with no way to hand in the rest but writing anything.
+ *
+ * Every stage's button — answer, skip, next question, send — is the runner's footer
+ * (`setFooterAction`), never a button of its own under the field. One button at a time,
+ * and the only one the keyboard cannot cover: with the hand-in in the scroll and the
+ * footer holding a Check that stayed dead until the set was done, a learner typing saw
+ * only the dead one.
  *
  * **The student sees only the input field** — no word counter, no sentence starter, no
  * hint, no timer. That is the handoff's decision, stated in as many words: `minWords`
@@ -112,18 +133,26 @@ function ShortAnswerSet({
   disabled,
   onAnswerChange,
   answerQuestion,
+  checkTable,
+  finishTable,
+  setFooterAction,
   set,
 }: ExerciseBodyProps & { set: Set }) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+  const { show } = useModal();
 
   const [index, setIndex] = useState(0);
+  /** Questions handed in and questions skipped, by id — see `ShortAnswerWalk`. */
+  const [walk, setWalk] = useState<ShortAnswerWalk>({ answered: [], skipped: [] });
   const [value, setValue] = useState('');
   const [phase, setPhase] = useState<Phase>('writing');
   const [result, setResult] = useState<ShortAnswerResult | null>(null);
   const [tally, setTally] = useState<ShortAnswerTally>(EMPTY_TALLY);
   const [sending, setSending] = useState(false);
+  /** The set is being sent — the closing submit is in flight. */
+  const [closing, setClosing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /** True until the server has been asked what is already in — see the effect below. */
   const [resuming, setResuming] = useState(true);
@@ -144,7 +173,8 @@ function ShortAnswerSet({
 
   const total = set.questions.length;
   const question = set.questions[index];
-  const last = index + 1 >= total;
+  const ids = useMemo(() => set.questions.map(q => q.id), [set]);
+  const unanswered = unansweredCount(ids, walk);
 
   /**
    * Pick the set up where it was left (plan 51 §8 Q6).
@@ -179,13 +209,15 @@ function ShortAnswerSet({
         );
 
         const handedIn = known.map(a => a.questionId);
+        // Skips are not kept between sittings: a question skipped before the app was closed
+        // is simply one not reached yet.
+        setWalk({ answered: handedIn, skipped: [] });
         const nextIndex = set.questions.findIndex(q => !handedIn.includes(q.id));
         if (nextIndex === -1) {
-          // Every question is in and the attempt was never closed: the footer's Check is
-          // all that is left, so the set arrives on its own completion screen.
+          // Every question is in and the attempt was never closed: sending the set is all
+          // that is left, so it arrives on its own completion screen.
           setIndex(total - 1);
           setPhase('done');
-          onAnswerChange(buildShortAnswerSubmission(answers.current), true);
         } else {
           setIndex(nextIndex);
         }
@@ -201,12 +233,11 @@ function ShortAnswerSet({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [display.id, set]);
 
-  // Nothing to check until the last answer is in: the footer's button closes the set, and
-  // it must not be able to close one that is still being written.
+  // The shell's own Check never closes this set — the set is sent by its own button in the
+  // footer — so the shell is never handed an answer it could submit.
   useEffect(() => {
-    if (phase !== 'done') onAnswerChange(null, false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, index]);
+    onAnswerChange(null, false);
+  }, [onAnswerChange]);
 
   const handIn = useCallback(async () => {
     if (!question || sending || !canHandIn(value)) return;
@@ -215,6 +246,11 @@ function ShortAnswerSet({
     try {
       const response = await answerQuestion(question.id, { text: value.trim() });
       answers.current = [...answers.current, { questionId: question.id, text: value.trim() }];
+      const answeredId = question.id;
+      setWalk(w => ({
+        answered: [...w.answered, answeredId],
+        skipped: w.skipped.filter(id => id !== answeredId),
+      }));
       const read = readShortAnswerResult(response.result);
       setResult(read);
       // A verdict that could not be read is not counted as any of the three: the answer is
@@ -238,23 +274,145 @@ function ShortAnswerSet({
     }
   }, [answerQuestion, question, sending, t, value]);
 
-  const next = useCallback(() => {
+  /** Open the question at `target` for writing, or the review when there is none. */
+  const goTo = useCallback((target: number | null) => {
     setResult(null);
     setValue('');
     setError(null);
-
-    if (!last) {
-      setIndex(i => i + 1);
-      setPhase('writing');
+    if (target === null) {
+      setPhase('review');
       return;
     }
-    // The set is written; the shell closes it. The verdicts collected along the way are
-    // deliberately not sent — the validator recomputes all of them from the text and the
-    // current key, which is what keeps the score, the routing and the teacher's breakdown
-    // independent of anything this device decided.
-    setPhase('done');
-    onAnswerChange(buildShortAnswerSubmission(answers.current), true);
-  }, [last, onAnswerChange]);
+    setIndex(target);
+    setPhase('writing');
+  }, []);
+
+  /** After an answer: the next question not reached yet. */
+  const next = useCallback(() => goTo(nextUnreached(ids, index, walk)), [goTo, ids, index, walk]);
+
+  /**
+   * Pass over this question. It stays open — nothing is sent — and the set moves on to the
+   * next question not reached yet; when there is none, to the review.
+   */
+  const skip = useCallback(() => {
+    if (!question || sending) return;
+    const skipped = { ...walk, skipped: [...walk.skipped.filter(id => id !== question.id), question.id] };
+    setWalk(skipped);
+    goTo(nextUnreached(ids, index, skipped));
+  }, [goTo, ids, index, question, sending, walk]);
+
+  const backToSkipped = useCallback(
+    () => goTo(nextSkipped(ids, index, walk)),
+    [goTo, ids, index, walk],
+  );
+
+  /**
+   * Close the attempt with every answer handed in. The verdicts collected along the way are
+   * deliberately not sent — the validator recomputes all of them from the text and the
+   * current key, which is what keeps the score, the routing and the teacher's breakdown
+   * independent of anything this device decided.
+   */
+  const sendNow = useCallback(async () => {
+    if (closing) return;
+    setClosing(true);
+    setError(null);
+    try {
+      const verdict = await checkTable(buildShortAnswerSubmission(answers.current));
+      setResult(null);
+      setValue('');
+      setPhase('done');
+      finishTable(verdict);
+    } catch {
+      setError(t('exerciseRunner.shortAnswer.sendFailed'));
+    } finally {
+      setClosing(false);
+    }
+  }, [checkTable, closing, finishTable, t]);
+
+  /** Send, after saying out loud what happens to the questions left without an answer. */
+  const send = useCallback(() => {
+    if (unanswered === 0) {
+      sendNow();
+      return;
+    }
+    show({
+      type: 'confirm',
+      title: t('exerciseRunner.shortAnswer.confirmTitle'),
+      message: t('exerciseRunner.shortAnswer.confirmMessage', { count: unanswered }),
+      confirmLabel: t('exerciseRunner.shortAnswer.confirmSend'),
+      cancelLabel: t('common.cancel'),
+      onConfirm: () => {
+        sendNow();
+      },
+    });
+  }, [sendNow, show, t, unanswered]);
+
+  const gateShown =
+    audioOn && audio.audio.settings.layout === 'gate' && !entered && phase !== 'done';
+
+  /*
+    The footer's button for the stage the set is in. Nothing while the set is still being
+    read back from the server, behind the listen-first screen (it has its own Start), or once
+    the runner has the verdict — the shell's Continue takes the footer then.
+  */
+  useEffect(() => {
+    if (!setFooterAction) return;
+    if (disabled || resuming || total === 0 || gateShown) {
+      setFooterAction(null);
+    } else if (phase === 'writing') {
+      setFooterAction({
+        label: t('exerciseRunner.shortAnswer.handIn'),
+        onPress: handIn,
+        disabled: !canHandIn(value) || locked,
+        busy: sending,
+        note: t('exerciseRunner.shortAnswer.irreversible'),
+        error,
+        secondary: { label: t('exerciseRunner.shortAnswer.skip'), onPress: skip },
+      });
+    } else if (phase === 'submitted' && nextUnreached(ids, index, walk) !== null) {
+      setFooterAction({ label: t('exerciseRunner.shortAnswer.next'), onPress: next, error });
+    } else if (phase !== 'done' && walk.skipped.length > 0) {
+      // The skipped ones come first and sending is the way past them: a set with gaps is
+      // allowed to go, but not by the same press that would have opened the next question.
+      setFooterAction({
+        label: t('exerciseRunner.shortAnswer.backToSkipped', { count: walk.skipped.length }),
+        onPress: backToSkipped,
+        busy: closing,
+        error,
+        secondary: { label: t('exerciseRunner.shortAnswer.last'), onPress: send },
+      });
+    } else {
+      setFooterAction({
+        label: t('exerciseRunner.shortAnswer.last'),
+        onPress: send,
+        busy: closing,
+        error,
+      });
+    }
+  }, [
+    setFooterAction,
+    disabled,
+    resuming,
+    total,
+    gateShown,
+    phase,
+    ids,
+    index,
+    walk,
+    value,
+    locked,
+    sending,
+    closing,
+    error,
+    handIn,
+    next,
+    skip,
+    backToSkipped,
+    send,
+    t,
+  ]);
+
+  useEffect(() => () => setFooterAction?.(null), [setFooterAction]);
 
   if (resuming) {
     return (
@@ -283,14 +441,13 @@ function ShortAnswerSet({
             partial: tally.partial,
             fail: tally.fail,
           })}</Text>
+        {unanswered > 0 ? (
+          <Text style={styles.doneTally}>
+            {t('exerciseRunner.shortAnswer.doneSkipped', { count: unanswered })}
+          </Text>
+        ) : null}
         {withTeacher ? (
           <Text style={styles.doneNote}>{t('exerciseRunner.shortAnswer.doneTeacher')}</Text>
-        ) : null}
-        {/* The set is handed in by the footer, which is the one button that closes an
-            attempt in this app. Said out loud, because the screen is otherwise finished
-            and nothing on it would explain what is left to press. */}
-        {!disabled ? (
-          <Text style={styles.doneHint}>{t('exerciseRunner.shortAnswer.doneHint')}</Text>
         ) : null}
       </View>
     );
@@ -301,9 +458,57 @@ function ShortAnswerSet({
     After the last answer it is a finished set rather than a clip to hear again, so the
     `done` screen above wins — which is why this stands below it.
   */
-  if (audioOn && audio.audio.settings.layout === 'gate' && !entered) {
+  if (gateShown) {
     return (
       <AudioGateScreen eng={audio} interactive={!disabled} onStart={() => setEntered(true)} />
+    );
+  }
+
+  /*
+    One dot per question: handed in, skipped, the one on screen, not reached yet. With skips
+    the set is no longer walked top to bottom, and a bar filling left to right would say it
+    was. Shown under `progress` only, as the bar was.
+  */
+  const dots = set.settings.progress ? (
+    <View style={styles.progressRow}>
+      <View style={styles.dots}>
+        {ids.map((id, i) => (
+          <View
+            key={id}
+            style={[
+              styles.dot,
+              walk.answered.includes(id)
+                ? styles.dotAnswered
+                : walk.skipped.includes(id)
+                  ? styles.dotSkipped
+                  : null,
+              phase !== 'review' && i === index ? styles.dotCurrent : null,
+            ]}
+          />
+        ))}
+      </View>
+      {phase !== 'review' ? (
+        <Text style={styles.progressLabel}>
+          {t('exerciseRunner.shortAnswer.position', { n: index + 1, total })}
+        </Text>
+      ) : null}
+    </View>
+  ) : null;
+
+  if (phase === 'review') {
+    return (
+      <View>
+        {dots}
+        <View style={styles.done}>
+          <Text style={styles.doneTitle}>{t('exerciseRunner.shortAnswer.reviewTitle')}</Text>
+          <Text style={styles.doneTally}>
+            {t('exerciseRunner.shortAnswer.reviewDesc', {
+              answered: walk.answered.length,
+              total,
+            })}
+          </Text>
+        </View>
+      </View>
     );
   }
 
@@ -312,22 +517,10 @@ function ShortAnswerSet({
   const submitted = phase === 'submitted';
   const verdict: ShortAnswerVerdict | 'wait' = result?.verdict ?? 'wait';
   const toneColor = verdictColor(verdict, colors);
-  // The bar counts the question being answered as done the moment it is handed in, so the
-  // last answer fills it rather than leaving the set looking unfinished.
-  const filled = (index + (submitted ? 1 : 0)) / total;
 
   return (
     <View>
-      {set.settings.progress ? (
-        <View style={styles.progressRow}>
-          <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${filled * 100}%` }]} />
-          </View>
-          <Text style={styles.progressLabel}>
-            {t('exerciseRunner.shortAnswer.position', { n: index + 1, total })}
-          </Text>
-        </View>
-      ) : null}
+      {dots}
 
       {/* The reader's own instruction wins where there is one: it is translated per
           learner, while the projection carries the author's, in the language being
@@ -430,8 +623,6 @@ function ShortAnswerSet({
         </View>
       ) : null}
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-
       {audioOn ? (
         <AudioTranscript
           audio={audio.audio}
@@ -439,34 +630,6 @@ function ShortAnswerSet({
           delivered={transcript}
         />
       ) : null}
-
-      {submitted ? (
-        <TouchableOpacity style={styles.button} onPress={next}>
-          <Text style={styles.buttonText}>
-            {last ? t('exerciseRunner.shortAnswer.last') : t('exerciseRunner.shortAnswer.next')}
-          </Text>
-        </TouchableOpacity>
-      ) : (
-        <>
-          <TouchableOpacity
-            style={[
-              styles.button,
-              (!canHandIn(value) || sending || locked) && styles.buttonDisabled,
-            ]}
-            onPress={handIn}
-            disabled={!canHandIn(value) || sending || disabled || locked}
-          >
-            {sending ? (
-              <ActivityIndicator size="small" color={colors.textInverted} />
-            ) : (
-              <Text style={styles.buttonText}>{t('exerciseRunner.shortAnswer.handIn')}</Text>
-            )}
-          </TouchableOpacity>
-          <Text style={styles.irreversible}>
-            {t('exerciseRunner.shortAnswer.irreversible')}
-          </Text>
-        </>
-      )}
     </View>
   );
 }
@@ -497,18 +660,34 @@ const makeStyles = (colors: ColorScheme) =>
       alignItems: 'center',
       marginBottom: 14,
     },
-    progressTrack: {
+    dots: {
       flex: 1,
-      height: 4,
-      borderRadius: 2,
-      backgroundColor: colors.border,
-      overflow: 'hidden',
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
       marginRight: 10,
     },
-    progressFill: {
-      height: '100%',
-      borderRadius: 2,
+    dot: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      borderWidth: 2,
+      borderColor: colors.border,
+      marginRight: 6,
+      marginVertical: 2,
+    },
+    dotAnswered: {
       backgroundColor: colors.accent,
+      borderColor: colors.accent,
+    },
+    dotSkipped: {
+      borderColor: colors.warning,
+    },
+    dotCurrent: {
+      width: 14,
+      height: 14,
+      borderRadius: 7,
+      borderColor: colors.textPrimary,
     },
     progressLabel: {
       fontSize: 12,
@@ -619,32 +798,6 @@ const makeStyles = (colors: ColorScheme) =>
       borderTopColor: colors.border,
       paddingTop: 8,
     },
-    error: {
-      fontSize: 12.5,
-      color: colors.danger,
-      marginTop: 10,
-    },
-    button: {
-      marginTop: 14,
-      backgroundColor: colors.accent,
-      borderRadius: 14,
-      paddingVertical: 13,
-      alignItems: 'center',
-    },
-    buttonDisabled: {
-      opacity: 0.5,
-    },
-    buttonText: {
-      fontSize: 15,
-      fontWeight: '700',
-      color: colors.textInverted,
-    },
-    irreversible: {
-      fontSize: 12,
-      color: colors.textMuted,
-      textAlign: 'center',
-      marginTop: 8,
-    },
     done: {
       alignItems: 'center',
       paddingVertical: 36,
@@ -672,12 +825,6 @@ const makeStyles = (colors: ColorScheme) =>
       color: colors.textMuted,
       textAlign: 'center',
       marginTop: 4,
-    },
-    doneHint: {
-      fontSize: 12.5,
-      color: colors.textMuted,
-      textAlign: 'center',
-      marginTop: 12,
     },
     unavailable: {
       alignItems: 'center',

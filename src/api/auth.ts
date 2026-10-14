@@ -1,10 +1,6 @@
 import { apiClient, ApiError } from './client';
 import { decodeJwtPayload } from './jwt';
-import {
-  clearRefreshToken,
-  loadRefreshToken,
-  saveRefreshToken,
-} from './tokenStorage';
+import { clearRefreshToken, loadRefreshToken, saveRefreshToken, BiometricLockedError } from './tokenStorage';
 import { authStore, AuthUser } from '../store/authStore';
 import type { AuthTokensResponse } from './types';
 
@@ -79,7 +75,16 @@ class AuthService {
   async restore(): Promise<void> {
     authStore.setRestoring();
 
-    const refreshToken = await loadRefreshToken();
+    let refreshToken: string | null;
+    try {
+      refreshToken = await loadRefreshToken();
+    } catch (e) {
+      if (e instanceof BiometricLockedError) {
+        authStore.setLocked();
+        return;
+      }
+      throw e;
+    }
     if (!refreshToken) {
       authStore.setSignedOut();
       return;
@@ -89,9 +94,20 @@ class AuthService {
     if (!refreshed) {
       // No usable session right now. Storage is left alone here on purpose:
       // performRefresh() already dropped the token if the server rejected it,
-      // and keeps it when the failure was merely a network blip.
-      this.clearSession();
+      // and keeps it when the failure was merely a network blip — which is how
+      // an offline start is told apart from a session that is gone.
+      const kept = (await loadRefreshToken()) !== null;
+      this.clearSession(kept);
     }
+  }
+
+  /**
+   * Give up a session locked behind the fingerprint and sign in with the password instead —
+   * the way out for a finger that is not accepted, or a device whose biometrics changed.
+   */
+  async forgetLockedSession(): Promise<void> {
+    await clearRefreshToken();
+    this.clearSession();
   }
 
   async logout(): Promise<void> {
@@ -127,7 +143,13 @@ class AuthService {
 
   /** Never throws — returns false on any failure so callers can branch simply. */
   private async performRefresh(): Promise<boolean> {
-    const refreshToken = await loadRefreshToken();
+    let refreshToken: string | null;
+    try {
+      refreshToken = await loadRefreshToken();
+    } catch {
+      // Locked behind the fingerprint: no refresh now; restore() is what offers the unlock.
+      return false;
+    }
     if (!refreshToken) return false;
 
     try {
@@ -169,10 +191,13 @@ class AuthService {
     }
   }
 
-  /** Drops the in-memory session only; storage is handled by the caller. */
-  private clearSession(): void {
+  /**
+   * Drops the in-memory session only; storage is handled by the caller. `offline`: the
+   * session is still stored and only the server was out of reach.
+   */
+  private clearSession(offline = false): void {
     this.accessToken = null;
-    authStore.setSignedOut();
+    authStore.setSignedOut(offline);
   }
 }
 

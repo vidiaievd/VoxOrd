@@ -14,6 +14,9 @@ import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
 import { authService, MfaNotSupportedError } from '../../api/auth';
 import { ApiError } from '../../api/client';
+import { useModal } from '../../providers/ModalProvider';
+import { biometryAvailable, setBiometricSignIn } from '../../api/biometric';
+import { biometricStore } from '../../store/biometricStore';
 
 export function LoginForm() {
   const { t } = useTranslation();
@@ -24,6 +27,7 @@ export function LoginForm() {
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { show } = useModal();
 
   const canSubmit = email.trim().length > 0 && password.length > 0 && !isSubmitting;
 
@@ -33,7 +37,22 @@ export function LoginForm() {
     setError(null);
     try {
       await authService.login(email.trim(), password);
-      // On success authStore flips to 'signedIn' and CoursesScreen re-renders;
+      // Asked once, right after the password worked: the moment it is worth the most.
+      // The sheet lives above the navigator, so it outlasts this form.
+      if (!biometricStore.wasOffered() && (await biometryAvailable())) {
+        await biometricStore.set({ offered: true });
+        show({
+          type: 'confirm',
+          title: t('auth.biometric.offerTitle'),
+          message: t('auth.biometric.offerMessage'),
+          confirmLabel: t('auth.biometric.offerConfirm'),
+          cancelLabel: t('auth.biometric.offerLater'),
+          onConfirm: () => {
+            setBiometricSignIn(true);
+          },
+        });
+      }
+      // On success authStore flips to 'signedIn' and the navigator leaves this screen;
       // nothing else to do here.
     } catch (e) {
       if (e instanceof MfaNotSupportedError) {

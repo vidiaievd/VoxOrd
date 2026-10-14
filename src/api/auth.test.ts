@@ -3,6 +3,8 @@ import { apiClient } from './client';
 import { apiSettingsStore } from '../store/apiSettingsStore';
 import { authStore } from '../store/authStore';
 import { makeJwt } from './jwt.test';
+import { __resetRefreshTokenCache } from './tokenStorage';
+import { biometricStore } from '../store/biometricStore';
 
 jest.mock('react-native-keychain', () => {
   let stored: { username: string; password: string } | null = null;
@@ -57,6 +59,7 @@ describe('authService', () => {
   beforeEach(() => {
     jest.spyOn(apiSettingsStore, 'get').mockReturnValue('http://10.0.2.2:80');
     Keychain.__setStored(null);
+    __resetRefreshTokenCache();
     jest.clearAllMocks();
     authStore.setRestoring();
     authService.install();
@@ -77,6 +80,7 @@ describe('authService', () => {
       expect(authStore.getState()).toEqual({
         status: 'signedIn',
         user: { id: 'user-1', email: 'a@b.c', roles: ['student'] },
+        offline: false,
       });
       expect(Keychain.setGenericPassword).toHaveBeenCalledWith(
         'platform',
@@ -144,6 +148,7 @@ describe('authService', () => {
       await authService.restore();
 
       expect(authStore.getState().status).toBe('signedOut');
+      expect(authStore.getState().offline).toBe(false);
       expect(Keychain.resetGenericPassword).toHaveBeenCalled();
     });
 
@@ -156,6 +161,8 @@ describe('authService', () => {
       await authService.restore();
 
       expect(authStore.getState().status).toBe('signedOut');
+      // Signed out for now, not for good: the sign-in screen offers a retry.
+      expect(authStore.getState().offline).toBe(true);
       expect(Keychain.resetGenericPassword).not.toHaveBeenCalled();
       expect(await Keychain.getGenericPassword()).toMatchObject({
         password: 'stored-refresh',
@@ -234,6 +241,41 @@ describe('authService', () => {
     });
   });
 
+  describe('biometric lock', () => {
+    it('reports a session behind a cancelled fingerprint prompt as locked, not gone', async () => {
+      jest.spyOn(biometricStore, 'isEnabled').mockReturnValue(true);
+      Keychain.getGenericPassword.mockImplementationOnce(async () => {
+        throw new Error('User canceled the operation');
+      });
+
+      await authService.restore();
+
+      expect(authStore.getState().status).toBe('locked');
+      expect(Keychain.resetGenericPassword).not.toHaveBeenCalled();
+    });
+
+    it('forgets a locked session for a password sign-in', async () => {
+      Keychain.__setStored({ username: 'platform', password: 'stored-refresh' });
+
+      await authService.forgetLockedSession();
+
+      expect(authStore.getState().status).toBe('signedOut');
+      expect(Keychain.resetGenericPassword).toHaveBeenCalled();
+    });
+
+    it('reads the Keychain once per run, not on every refresh', async () => {
+      Keychain.__setStored({ username: 'platform', password: 'stored-refresh' });
+      globalThis.fetch = routeFetch({
+        '/auth/refresh': () => jsonResponse(200, tokensResponse()),
+      }) as unknown as typeof fetch;
+
+      await authService.restore();
+      await authService.refreshTokens();
+
+      expect(Keychain.getGenericPassword).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('logout', () => {
     it('clears the keychain and local session even if the request fails', async () => {
       Keychain.__setStored({ username: 'platform', password: 'stored-refresh' });
@@ -244,7 +286,7 @@ describe('authService', () => {
       await authService.logout();
 
       expect(Keychain.resetGenericPassword).toHaveBeenCalled();
-      expect(authStore.getState()).toEqual({ status: 'signedOut', user: null });
+      expect(authStore.getState()).toEqual({ status: 'signedOut', user: null, offline: false });
       expect(authService.getAccessToken()).toBeNull();
     });
   });

@@ -23,7 +23,8 @@ import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
 import { useExerciseAudio } from '../../hooks/useExerciseAudio';
 import { AudioLockNote, AudioTranscript, ExerciseAudioPlayer } from './audio';
-import type { ExerciseBodyProps } from './ExerciseBody';
+import type { ExerciseBodyProps, FooterAction } from './ExerciseBody';
+import { BodyFooter } from './BodyFooter';
 import {
   askedKeys,
   buildInflectionTableSubmission,
@@ -121,6 +122,7 @@ function InflectionTableRun({
   onAnswerChange,
   checkTable,
   finishTable,
+  setFooterAction,
   table,
 }: ExerciseBodyProps & { table: InflectionTableProjection }) {
   const { t } = useTranslation();
@@ -605,11 +607,38 @@ function InflectionTableRun({
         />
       )}
 
-      {/* The controls belong to the table, not to the shell's footer: for this template they
-          are the check itself. Drawn from the last verdict's `closed`, never from a count
-          kept here; a closed table leaves the footer's Continue alone (deviation 12). */}
+      {/* The check is the table's own, drawn from the last verdict's `closed`, never from a
+          count kept here; a closed table leaves the footer's Continue alone (deviation 12).
+          Where the runner offers its footer the button goes there, above the keyboard that
+          covered it under the table while a cell was typed in. */}
+      <BodyFooter
+        set={setFooterAction}
+        action={
+          disabled
+            ? null
+            : !checked
+            ? ({
+                label: t('exerciseRunner.inflectionTable.check'),
+                onPress: () => {
+                  send();
+                },
+                disabled: !checkable || audioLocked,
+                busy: sending,
+              } satisfies FooterAction)
+            : !closed && wrong.length > 0
+            ? ({
+                label: `↺ ${t('exerciseRunner.inflectionTable.retryWrong', {
+                  n: verdict?.attempt ?? attempt,
+                  max: settings.attempts,
+                })}`,
+                onPress: retryWrong,
+                disabled: sending,
+              } satisfies FooterAction)
+            : null
+        }
+      />
       <View style={styles.actions}>
-        {!checked ? (
+        {setFooterAction !== undefined ? null : !checked ? (
           <TouchableOpacity
             style={[
               styles.primaryBtn,

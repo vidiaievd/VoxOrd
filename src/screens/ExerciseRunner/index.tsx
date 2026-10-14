@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -11,10 +11,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from '../../i18n';
+import { useModal } from '../../providers/ModalProvider';
+import { useBackIntercept } from '../../navigation/backIntercept';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
 import { useExerciseRunner } from '../../hooks/useExerciseRunner';
-import { bodyOwnsCheck, ExerciseBody } from './ExerciseBody';
+import { bodyOwnsCheck, ExerciseBody, type FooterAction } from './ExerciseBody';
 import { FeedbackBar } from './FeedbackBar';
 import { SetResultsScreen } from './SetResultsScreen';
 
@@ -62,6 +64,41 @@ export function ExerciseRunnerScreen({
     retryAttempt,
   } = useExerciseRunner(exerciseIds, startIndex);
 
+  /**
+   * A body's own button in place of Check — `ExerciseBodyProps.setFooterAction`. A body that
+   * sets it clears it when it unmounts, and the body is remounted for every item, so each
+   * item starts with Check. Not reset from here: a parent's effect runs after its child's,
+   * and would wipe the button the new body has just put up.
+   */
+  const [footerAction, setFooterAction] = useState<FooterAction | null>(null);
+
+  const { show } = useModal();
+  /*
+    Leaving a set mid-way asks first — the arrow and the phone's Back alike. What was handed
+    in is on the server already; what is lost is the answer on screen, not sent yet. Nothing
+    to ask once the set is finished, or before an item has even loaded.
+  */
+  const midSet =
+    state.phase === 'answering' || state.phase === 'checking' || state.phase === 'feedback';
+  const leave = useCallback(() => {
+    if (!midSet) {
+      onBack();
+      return;
+    }
+    show({
+      type: 'confirm',
+      title: t('exerciseRunner.leave.title'),
+      message: t('exerciseRunner.leave.message'),
+      confirmLabel: t('exerciseRunner.leave.confirm'),
+      cancelLabel: t('exerciseRunner.leave.stay'),
+      onConfirm: onBack,
+    });
+  }, [midSet, onBack, show, t]);
+  useBackIntercept(() => {
+    leave();
+    return true;
+  });
+
   const progressRatio = progress.total > 0 ? progress.current / progress.total : 0;
 
   // A non-empty finished set gets the full results summary (own SafeAreaView,
@@ -74,7 +111,7 @@ export function ExerciseRunnerScreen({
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
+        <TouchableOpacity onPress={leave} style={styles.backBtn}>
           <Text style={styles.backText}>←</Text>
         </TouchableOpacity>
         <View style={styles.progressWrap}>
@@ -144,14 +181,17 @@ export function ExerciseRunnerScreen({
                 openAttempt={openAttempt}
                 openedContent={openedContent}
                 onOpenSourceLesson={onOpenSourceLesson}
+                setFooterAction={setFooterAction}
               />
             </ScrollView>
 
             {/* A body that runs its own checks draws its own controls, so while
                 answering the footer bar would be an empty strip with a border. It
                 comes back for the verdict, where Continue is «Fullfør» (plan 54
-                §8 Q6). */}
-            {state.phase === 'feedback' || !bodyOwnsCheck(state.display.templateCode) ? (
+                §8 Q6), and for a body that put its own button there. */}
+            {state.phase === 'feedback' ||
+            footerAction !== null ||
+            !bodyOwnsCheck(state.display.templateCode) ? (
               <View style={styles.footer}>
                 {state.phase === 'feedback' && state.verdict ? (
                   <>
@@ -171,6 +211,46 @@ export function ExerciseRunnerScreen({
                         {isLast ? t('exerciseRunner.finish') : t('exerciseRunner.continue')}
                       </Text>
                     </TouchableOpacity>
+                  </>
+                ) : footerAction && state.phase === 'answering' ? (
+                  <>
+                    {footerAction.error ? (
+                      <Text style={styles.footerError}>{footerAction.error}</Text>
+                    ) : null}
+                    <TouchableOpacity
+                      style={[
+                        styles.primaryBtn,
+                        (footerAction.disabled || footerAction.busy) && styles.primaryBtnDisabled,
+                      ]}
+                      onPress={footerAction.onPress}
+                      disabled={footerAction.disabled || footerAction.busy}
+                    >
+                      {footerAction.busy ? (
+                        <ActivityIndicator size="small" color={colors.textInverted} />
+                      ) : (
+                        <Text style={styles.primaryBtnText}>{footerAction.label}</Text>
+                      )}
+                    </TouchableOpacity>
+                    {footerAction.secondary ? (
+                      <TouchableOpacity
+                        style={styles.linkBtn}
+                        onPress={footerAction.secondary.onPress}
+                        disabled={footerAction.secondary.disabled || footerAction.busy}
+                      >
+                        <Text
+                          style={[
+                            styles.linkBtnText,
+                            (footerAction.secondary.disabled || footerAction.busy) &&
+                              styles.linkBtnTextDisabled,
+                          ]}
+                        >
+                          {footerAction.secondary.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ) : null}
+                    {footerAction.note ? (
+                      <Text style={styles.footerNote}>{footerAction.note}</Text>
+                    ) : null}
                   </>
                 ) : (
                   <>
@@ -322,6 +402,12 @@ const makeStyles = (colors: ColorScheme) =>
       textAlign: 'center',
       marginBottom: 8,
     },
+    footerNote: {
+      fontSize: 12,
+      color: colors.textMuted,
+      textAlign: 'center',
+      marginTop: 8,
+    },
     primaryBtn: {
       backgroundColor: colors.accent,
       borderRadius: 14,
@@ -348,5 +434,18 @@ const makeStyles = (colors: ColorScheme) =>
       fontSize: 15,
       fontWeight: '700',
       color: colors.accent,
+    },
+    linkBtn: {
+      paddingVertical: 10,
+      marginTop: 4,
+      alignItems: 'center',
+    },
+    linkBtnText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.accent,
+    },
+    linkBtnTextDisabled: {
+      opacity: 0.5,
     },
   });
