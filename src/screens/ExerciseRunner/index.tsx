@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from '../../i18n';
+import { useModal } from '../../providers/ModalProvider';
+import { useBackIntercept } from '../../navigation/backIntercept';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
 import { useExerciseRunner } from '../../hooks/useExerciseRunner';
@@ -70,6 +72,33 @@ export function ExerciseRunnerScreen({
    */
   const [footerAction, setFooterAction] = useState<FooterAction | null>(null);
 
+  const { show } = useModal();
+  /*
+    Leaving a set mid-way asks first — the arrow and the phone's Back alike. What was handed
+    in is on the server already; what is lost is the answer on screen, not sent yet. Nothing
+    to ask once the set is finished, or before an item has even loaded.
+  */
+  const midSet =
+    state.phase === 'answering' || state.phase === 'checking' || state.phase === 'feedback';
+  const leave = useCallback(() => {
+    if (!midSet) {
+      onBack();
+      return;
+    }
+    show({
+      type: 'confirm',
+      title: t('exerciseRunner.leave.title'),
+      message: t('exerciseRunner.leave.message'),
+      confirmLabel: t('exerciseRunner.leave.confirm'),
+      cancelLabel: t('exerciseRunner.leave.stay'),
+      onConfirm: onBack,
+    });
+  }, [midSet, onBack, show, t]);
+  useBackIntercept(() => {
+    leave();
+    return true;
+  });
+
   const progressRatio = progress.total > 0 ? progress.current / progress.total : 0;
 
   // A non-empty finished set gets the full results summary (own SafeAreaView,
@@ -82,7 +111,7 @@ export function ExerciseRunnerScreen({
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
+        <TouchableOpacity onPress={leave} style={styles.backBtn}>
           <Text style={styles.backText}>←</Text>
         </TouchableOpacity>
         <View style={styles.progressWrap}>

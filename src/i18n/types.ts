@@ -2,6 +2,7 @@ import type { PluralForms } from './pluralize';
 
 export interface Translations {
   nav: {
+    pressAgainToExit: string;
     home: string;
     settings: string;
     courses: string;
@@ -179,6 +180,13 @@ export interface Translations {
   };
 
   exerciseRunner: {
+    /** Leaving a set mid-way, by the arrow or the phone's Back. */
+    leave: {
+      title: string;
+      message: string;
+      confirm: string;
+      stay: string;
+    };
     /**
      * The listening layer — plan 56 phase 7. One player, one gate and one transcript,
      * shared by every template that carries a clip, so the strings live here rather

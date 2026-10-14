@@ -2,6 +2,7 @@ import { Translations } from './types';
 
 export const uk: Translations = {
   nav: {
+    pressAgainToExit: 'Натисніть «Назад» ще раз, щоб вийти',
     home: 'Головна',
     settings: 'Налаштування',
     courses: 'Курси',
@@ -181,6 +182,12 @@ export const uk: Translations = {
     coursesGroup: 'Курси',
   },
   exerciseRunner: {
+    leave: {
+      title: 'Вийти з вправ?',
+      message: 'Здані відповіді збережено. Відповідь, яку ви не надіслали, зникне.',
+      confirm: 'Вийти',
+      stay: 'Залишитися',
+    },
     /** The listening layer — plan 56 phase 7, shared by every template with a clip. */
     audio: {
       play: 'Слухати',

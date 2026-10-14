@@ -2,6 +2,7 @@ import { Translations } from './types';
 
 export const en: Translations = {
   nav: {
+    pressAgainToExit: 'Press Back again to exit',
     home: 'Home',
     settings: 'Settings',
     courses: 'Courses',
@@ -181,6 +182,12 @@ export const en: Translations = {
     coursesGroup: 'Courses',
   },
   exerciseRunner: {
+    leave: {
+      title: 'Leave the exercises?',
+      message: 'Answers you handed in are saved. An answer you have not sent will be lost.',
+      confirm: 'Leave',
+      stay: 'Stay',
+    },
     /** The listening layer — plan 56 phase 7, shared by every template with a clip. */
     audio: {
       play: 'Play',

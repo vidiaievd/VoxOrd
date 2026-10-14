@@ -2,6 +2,7 @@ import { Translations } from './types';
 
 export const ru: Translations = {
   nav: {
+    pressAgainToExit: 'Нажмите «Назад» ещё раз, чтобы выйти',
     home: 'Главная',
     settings: 'Настройки',
     courses: 'Курсы',
@@ -181,6 +182,12 @@ export const ru: Translations = {
     coursesGroup: 'Курсы',
   },
   exerciseRunner: {
+    leave: {
+      title: 'Выйти из упражнений?',
+      message: 'Сданные ответы сохранены. Ответ, который вы не отправили, пропадёт.',
+      confirm: 'Выйти',
+      stay: 'Остаться',
+    },
     /** The listening layer — plan 56 phase 7, shared by every template with a clip. */
     audio: {
       play: 'Слушать',
