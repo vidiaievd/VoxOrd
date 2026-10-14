@@ -170,6 +170,18 @@ export const en: Translations = {
     statusLocked: 'Locked',
     masteryPercent: 'Mastery: {percent}%',
   },
+  myWords: {
+    add: 'Add to my words',
+    save: 'Add to my words',
+    translationPlaceholder: 'Your translation — or add it later',
+    inText: 'in the text: {form}',
+    fromCourse: 'Translation from the course',
+    alreadyAdded: 'Already in your words',
+    waitingForTranslation: 'Waiting for a translation',
+    added: 'Added',
+    queued: 'Saved — it will be sent when you are back online',
+    refused: 'This could not be added — pick a single word',
+  },
   lessonReader: {
     title: 'Lesson',
     loadError: "Couldn't load this lesson",

@@ -4,9 +4,15 @@ import { getLessonReaderContent, LessonReaderContent } from '../api/lessons';
 import { useSettings } from './useSettings';
 import { useSwrResource } from './useSwrResource';
 
+/** The reader's content plus the course's language, which the reader response does not carry. */
+export type LessonReaderData = LessonReaderContent & {
+  /** Optional only for content cached before it was kept. */
+  targetLanguage?: string;
+};
+
 export interface LessonReaderState {
   status: 'loading' | 'loaded' | 'error';
-  data: LessonReaderContent | null;
+  data: LessonReaderData | null;
   error: Error | null;
   /** True while `data` is a cached value shown ahead of (or instead of, on failure) a fresh fetch. */
   stale: boolean;
@@ -31,13 +37,14 @@ export function useLessonReader(lessonId: string, courseId: string): LessonReade
   const { uiLanguage } = useSettings();
   const loader = useCallback(async () => {
     const container = await getContainer(courseId);
-    return getLessonReaderContent(lessonId, {
+    const content = await getLessonReaderContent(lessonId, {
       studentNativeLanguage: uiLanguage,
       studentCurrentLevel: container.difficultyLevel,
     });
+    return { ...content, targetLanguage: container.targetLanguage };
   }, [lessonId, courseId, uiLanguage]);
 
-  const { status, data, error, stale, refresh } = useSwrResource<LessonReaderContent>(
+  const { status, data, error, stale, refresh } = useSwrResource<LessonReaderData>(
     `lesson-reader:${lessonId}:${courseId}:${uiLanguage}`,
     loader,
   );

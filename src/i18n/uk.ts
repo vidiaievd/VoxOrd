@@ -170,6 +170,18 @@ export const uk: Translations = {
     statusLocked: 'Закрито',
     masteryPercent: 'Засвоєно: {percent}%',
   },
+  myWords: {
+    add: 'До моїх слів',
+    save: 'Додати до моїх слів',
+    translationPlaceholder: 'Свій переклад — можна пізніше',
+    inText: 'у тексті: {form}',
+    fromCourse: 'Переклад із курсу',
+    alreadyAdded: 'Вже у ваших словах',
+    waitingForTranslation: 'Чекає на переклад',
+    added: 'Додано',
+    queued: 'Збережено — надішлеться, коли з’явиться мережа',
+    refused: 'Це не вдалося додати — оберіть одне слово',
+  },
   lessonReader: {
     title: 'Урок',
     loadError: 'Не вдалося завантажити урок',

@@ -165,6 +165,20 @@ export interface Translations {
     masteryPercent: string; // 'Mastery: {percent}%'
   };
 
+  /** «My words» — words the student adds from a text (plan 75). */
+  myWords: {
+    add: string;
+    save: string;
+    translationPlaceholder: string;
+    /** Under the dictionary form when the text had another form: «in the text: {form}». */
+    inText: string;
+    fromCourse: string;
+    alreadyAdded: string;
+    waitingForTranslation: string;
+    added: string;
+    queued: string;
+    refused: string;
+  };
   lessonReader: {
     title: string;
     loadError: string;

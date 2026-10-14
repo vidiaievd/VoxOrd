@@ -68,6 +68,12 @@ export interface ListeningStage {
 
 export interface LessonReaderContent {
   lessonId: string;
+  /**
+   * The variant the server chose (plan 75) — a word saved from the text names it, which is
+   * how the word finds its unit's deck. Optional: a content cached before the field existed
+   * lacks it, and a LIVE lesson has none.
+   */
+  variantId?: string | null;
   kind: LessonKind;
   title: string;
   displayTitle: string | null;

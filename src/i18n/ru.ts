@@ -170,6 +170,18 @@ export const ru: Translations = {
     statusLocked: 'Закрыто',
     masteryPercent: 'Освоено: {percent}%',
   },
+  myWords: {
+    add: 'В мои слова',
+    save: 'Добавить в мои слова',
+    translationPlaceholder: 'Свой перевод — можно позже',
+    inText: 'в тексте: {form}',
+    fromCourse: 'Перевод из курса',
+    alreadyAdded: 'Уже в ваших словах',
+    waitingForTranslation: 'Ждёт перевода',
+    added: 'Добавлено',
+    queued: 'Сохранено — отправится, когда появится сеть',
+    refused: 'Это не получилось добавить — выберите одно слово',
+  },
   lessonReader: {
     title: 'Урок',
     loadError: 'Не удалось загрузить урок',

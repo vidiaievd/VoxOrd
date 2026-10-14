@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,8 @@ import { ParagraphView } from './ParagraphView';
 import { AudioLessonView } from './AudioLessonView';
 import { NarrationBar } from './NarrationBar';
 import { useNarrationId } from '../../hooks/useNarration';
+import { wordCaptureQueueStore } from '../../store/wordCaptureQueueStore';
+import { ReaderCaptureContext, type ReaderCapture } from './captureContext';
 
 interface LessonReaderScreenProps {
   lessonId: string;
@@ -56,6 +58,23 @@ export function LessonReaderScreen({
     () => buildGlossaryIndex(data?.glossary ?? []),
     [data?.glossary],
   );
+  // Words can be added to «My words» once the text's language is known.
+  const capture = useMemo<ReaderCapture | null>(
+    () =>
+      data?.targetLanguage
+        ? {
+            targetLanguage: data.targetLanguage,
+            variantId: data.variantId ?? null,
+            paragraphIndex: null,
+          }
+        : null,
+    [data?.targetLanguage, data?.variantId],
+  );
+
+  // Words added while offline go out when a text is opened with a connection again.
+  useEffect(() => {
+    wordCaptureQueueStore.flush().catch(() => undefined);
+  }, []);
 
   /*
     Reaching the end of the text is what marks it read. Going on to the exercises does not
@@ -131,15 +150,22 @@ export function LessonReaderScreen({
       {status === 'loaded' && data && data.kind === 'text' && (
         <>
           {narrationId ? <NarrationBar mediaId={narrationId} /> : null}
-          <ScrollView contentContainerStyle={styles.scroll}>
-            {(data.paragraphs ?? []).map((paragraph, i) => (
-              <ParagraphView key={i} paragraph={paragraph} glossaryIndex={glossaryIndex} />
-            ))}
-            {(data.paragraphs ?? []).length === 0 && (
-              <Text style={styles.emptyDesc}>{t('lessonReader.noContent')}</Text>
-            )}
-            {!alreadyRead && <View style={styles.endOfText}>{finishControls}</View>}
-          </ScrollView>
+          <ReaderCaptureContext.Provider value={capture}>
+            <ScrollView contentContainerStyle={styles.scroll}>
+              {(data.paragraphs ?? []).map((paragraph, i) => (
+                <ParagraphView
+                  key={i}
+                  paragraph={paragraph}
+                  paragraphIndex={i}
+                  glossaryIndex={glossaryIndex}
+                />
+              ))}
+              {(data.paragraphs ?? []).length === 0 && (
+                <Text style={styles.emptyDesc}>{t('lessonReader.noContent')}</Text>
+              )}
+              {!alreadyRead && <View style={styles.endOfText}>{finishControls}</View>}
+            </ScrollView>
+          </ReaderCaptureContext.Provider>
           {alreadyRead && <View style={styles.footer}>{finishControls}</View>}
         </>
       )}
