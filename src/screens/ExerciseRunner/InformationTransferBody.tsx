@@ -29,7 +29,8 @@ import {
   AudioTranscript,
   ExerciseAudioPlayer,
 } from './audio';
-import type { ExerciseBodyProps } from './ExerciseBody';
+import type { ExerciseBodyProps, FooterAction } from './ExerciseBody';
+import { BodyFooter } from './BodyFooter';
 import {
   buildInformationTransferSubmission,
   canCheck,
@@ -123,6 +124,7 @@ function InformationTransferRun({
   onAnswerChange,
   checkTable,
   finishTable,
+  setFooterAction,
   blank,
 }: ExerciseBodyProps & { blank: InformationTransferProjection }) {
   const { t } = useTranslation();
@@ -533,11 +535,51 @@ function InformationTransferRun({
         />
       )}
 
-      {/* The controls belong to the blank, not to the shell's footer: for this template they
-          are the check itself. Drawn from the last verdict's `closed`, never from a count
-          kept here; a closed blank leaves the footer's Continue alone. */}
+      {/* The check is the blank's own, drawn from the last verdict's `closed`, never from a
+          count kept here; a closed blank leaves the footer's Continue alone. Where the runner
+          offers its footer the button goes there, above the keyboard that covered it under
+          the blank while a field was typed in. */}
+      <BodyFooter
+        set={setFooterAction}
+        action={
+          disabled
+            ? null
+            : !checked
+            ? walking && !lastStep
+              ? ({
+                  label: `${t('exerciseRunner.informationTransfer.next')} →`,
+                  onPress: () => setStep(at + 1),
+                  disabled: audioLocked,
+                } satisfies FooterAction)
+              : ({
+                  label: t('exerciseRunner.informationTransfer.check'),
+                  onPress: () => {
+                    send();
+                  },
+                  disabled: !checkable || audioLocked,
+                  busy: sending,
+                } satisfies FooterAction)
+            : !closed && wrong.length > 0
+            ? ({
+                label: `↺ ${
+                  answering.attempts > 0
+                    ? t('exerciseRunner.informationTransfer.retry', {
+                        count: wrong.length,
+                        k: verdict.attempt + 1,
+                        max: answering.attempts,
+                      })
+                    : t('exerciseRunner.informationTransfer.retryUnlimited', {
+                        count: wrong.length,
+                      })
+                }`,
+                onPress: retryWrong,
+                disabled: sending,
+              } satisfies FooterAction)
+            : null
+        }
+      />
       <View style={styles.actions}>
-        {!checked ? (
+        {setFooterAction !== undefined ? null : !checked ? (
           walking && !lastStep ? (
             <TouchableOpacity
               style={[
