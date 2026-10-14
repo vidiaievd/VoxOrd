@@ -374,6 +374,17 @@ export interface Translations {
       irreversible: string;
       next: string;
       last: string;
+      /** Pass over a question and come back to it — nothing is sent. */
+      skip: string;
+      backToSkipped: string; // '{count}'
+      /** Every question answered or skipped, some skipped: the screen before sending. */
+      reviewTitle: string;
+      reviewDesc: string; // '{answered}', '{total}'
+      /** Sending a set with questions left unanswered. */
+      confirmTitle: string;
+      confirmMessage: PluralForms; // '{count}'
+      confirmSend: string;
+      doneSkipped: string; // '{count}'
       covered: string; // '{covered}', '{total}'
       tooShort: string;
       modelLabel: string;

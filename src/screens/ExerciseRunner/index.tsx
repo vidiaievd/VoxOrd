@@ -202,6 +202,23 @@ export function ExerciseRunnerScreen({
                         <Text style={styles.primaryBtnText}>{footerAction.label}</Text>
                       )}
                     </TouchableOpacity>
+                    {footerAction.secondary ? (
+                      <TouchableOpacity
+                        style={styles.linkBtn}
+                        onPress={footerAction.secondary.onPress}
+                        disabled={footerAction.secondary.disabled || footerAction.busy}
+                      >
+                        <Text
+                          style={[
+                            styles.linkBtnText,
+                            (footerAction.secondary.disabled || footerAction.busy) &&
+                              styles.linkBtnTextDisabled,
+                          ]}
+                        >
+                          {footerAction.secondary.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ) : null}
                     {footerAction.note ? (
                       <Text style={styles.footerNote}>{footerAction.note}</Text>
                     ) : null}
@@ -388,5 +405,18 @@ const makeStyles = (colors: ColorScheme) =>
       fontSize: 15,
       fontWeight: '700',
       color: colors.accent,
+    },
+    linkBtn: {
+      paddingVertical: 10,
+      marginTop: 4,
+      alignItems: 'center',
+    },
+    linkBtnText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.accent,
+    },
+    linkBtnTextDisabled: {
+      opacity: 0.5,
     },
   });

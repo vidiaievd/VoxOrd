@@ -175,6 +175,12 @@ export interface FooterAction {
   note?: string;
   /** Why the last press failed, shown above the button. */
   error?: string | null;
+  /**
+   * A second, quieter choice under the button — the way past the main one rather than a
+   * rival to it (`short_answer`: «Skip» under «Answer», «Send for checking» under «Back to
+   * the skipped»).
+   */
+  secondary?: { label: string; onPress: () => void; disabled?: boolean };
 }
 
 /**

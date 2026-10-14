@@ -312,6 +312,49 @@ export function buildShortAnswerSubmission(answers: ShortAnswerAnswer[]): ShortA
   return { answers: answers.map(({ questionId, text }) => ({ questionId, text })) };
 }
 
+/**
+ * Where the learner is in the set: which questions are handed in and which were skipped.
+ * A question in neither has not been reached yet. Skipping is a pass over a question, not
+ * an answer to it — nothing goes to the server, and the question stays open until it is
+ * answered or the set is sent without it (the engine then counts it as answered with
+ * nothing).
+ */
+export interface ShortAnswerWalk {
+  answered: readonly string[];
+  skipped: readonly string[];
+}
+
+/**
+ * The next question not yet reached, looking forward from `from` and then from the top.
+ * `null` once every question is answered or skipped — what is left then is the skipped
+ * ones, or sending the set.
+ */
+export function nextUnreached(ids: readonly string[], from: number, walk: ShortAnswerWalk): number | null {
+  return findFrom(ids, from, id => !walk.answered.includes(id) && !walk.skipped.includes(id));
+}
+
+/**
+ * The skipped question to go back to: the next one after `from`, then from the top — so
+ * skipping it again moves on to the following skipped question rather than back to itself.
+ * `from` itself is found last, when it is the only one left.
+ */
+export function nextSkipped(ids: readonly string[], from: number, walk: ShortAnswerWalk): number | null {
+  return findFrom(ids, from, id => walk.skipped.includes(id) && !walk.answered.includes(id));
+}
+
+function findFrom(ids: readonly string[], from: number, wanted: (id: string) => boolean): number | null {
+  for (let step = 1; step <= ids.length; step++) {
+    const i = (from + step) % ids.length;
+    if (wanted(ids[i]!)) return i;
+  }
+  return null;
+}
+
+/** Questions the set would be sent without — every one not handed in. */
+export function unansweredCount(ids: readonly string[], walk: ShortAnswerWalk): number {
+  return ids.filter(id => !walk.answered.includes(id)).length;
+}
+
 /* ── The old form: one question, one submission ──────────────────────────── */
 
 /**
