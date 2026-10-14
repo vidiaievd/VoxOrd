@@ -14,7 +14,7 @@ import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
 import { useExerciseRunner } from '../../hooks/useExerciseRunner';
-import { bodyOwnsCheck, ExerciseBody } from './ExerciseBody';
+import { bodyOwnsCheck, ExerciseBody, type FooterAction } from './ExerciseBody';
 import { FeedbackBar } from './FeedbackBar';
 import { SetResultsScreen } from './SetResultsScreen';
 
@@ -61,6 +61,14 @@ export function ExerciseRunnerScreen({
     retry,
     retryAttempt,
   } = useExerciseRunner(exerciseIds, startIndex);
+
+  /**
+   * A body's own button in place of Check — `ExerciseBodyProps.setFooterAction`. A body that
+   * sets it clears it when it unmounts, and the body is remounted for every item, so each
+   * item starts with Check. Not reset from here: a parent's effect runs after its child's,
+   * and would wipe the button the new body has just put up.
+   */
+  const [footerAction, setFooterAction] = useState<FooterAction | null>(null);
 
   const progressRatio = progress.total > 0 ? progress.current / progress.total : 0;
 
@@ -144,14 +152,17 @@ export function ExerciseRunnerScreen({
                 openAttempt={openAttempt}
                 openedContent={openedContent}
                 onOpenSourceLesson={onOpenSourceLesson}
+                setFooterAction={setFooterAction}
               />
             </ScrollView>
 
             {/* A body that runs its own checks draws its own controls, so while
                 answering the footer bar would be an empty strip with a border. It
                 comes back for the verdict, where Continue is «Fullfør» (plan 54
-                §8 Q6). */}
-            {state.phase === 'feedback' || !bodyOwnsCheck(state.display.templateCode) ? (
+                §8 Q6), and for a body that put its own button there. */}
+            {state.phase === 'feedback' ||
+            footerAction !== null ||
+            !bodyOwnsCheck(state.display.templateCode) ? (
               <View style={styles.footer}>
                 {state.phase === 'feedback' && state.verdict ? (
                   <>
@@ -171,6 +182,29 @@ export function ExerciseRunnerScreen({
                         {isLast ? t('exerciseRunner.finish') : t('exerciseRunner.continue')}
                       </Text>
                     </TouchableOpacity>
+                  </>
+                ) : footerAction && state.phase === 'answering' ? (
+                  <>
+                    {footerAction.error ? (
+                      <Text style={styles.footerError}>{footerAction.error}</Text>
+                    ) : null}
+                    <TouchableOpacity
+                      style={[
+                        styles.primaryBtn,
+                        (footerAction.disabled || footerAction.busy) && styles.primaryBtnDisabled,
+                      ]}
+                      onPress={footerAction.onPress}
+                      disabled={footerAction.disabled || footerAction.busy}
+                    >
+                      {footerAction.busy ? (
+                        <ActivityIndicator size="small" color={colors.textInverted} />
+                      ) : (
+                        <Text style={styles.primaryBtnText}>{footerAction.label}</Text>
+                      )}
+                    </TouchableOpacity>
+                    {footerAction.note ? (
+                      <Text style={styles.footerNote}>{footerAction.note}</Text>
+                    ) : null}
                   </>
                 ) : (
                   <>
@@ -321,6 +355,12 @@ const makeStyles = (colors: ColorScheme) =>
       color: colors.danger,
       textAlign: 'center',
       marginBottom: 8,
+    },
+    footerNote: {
+      fontSize: 12,
+      color: colors.textMuted,
+      textAlign: 'center',
+      marginTop: 8,
     },
     primaryBtn: {
       backgroundColor: colors.accent,

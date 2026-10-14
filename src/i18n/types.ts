@@ -389,7 +389,6 @@ export interface Translations {
       doneTitle: string;
       doneTally: string; // '{pass}', '{partial}', '{fail}'
       doneTeacher: string;
-      doneHint: string;
       sendFailed: string;
       handedInAlready: string;
       empty: string;
