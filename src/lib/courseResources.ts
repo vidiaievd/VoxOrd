@@ -1,7 +1,7 @@
 import { getContainer } from '../api/courses';
 import { getCourseHome } from '../api/courseHome';
 import { getExerciseAnswers, getExerciseDisplay } from '../api/exercises';
-import { exerciseKeyCacheKey, type ExerciseKey } from './offlineGrading';
+import { exerciseKeyCacheKey, type ExerciseKey } from '../offline/engine/grading';
 import { getGrammarRuleExplanation, type GrammarRuleExplanation } from '../api/grammarRules';
 import { getLessonReaderContent, type LessonReaderContent } from '../api/lessons';
 import type { Container, CourseHomePayload, ExerciseDisplay, UnitContentsResult } from '../api/types';

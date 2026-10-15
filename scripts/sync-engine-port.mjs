@@ -47,6 +47,8 @@ const SOURCES = [
   'modules/attempts/application/services/minimal-pairs-attempt.ts',
   'modules/attempts/application/commands/submit-answer/submit-facts.ts',
   'shared/application/services/multiple-choice-attempt.ts',
+  'shared/application/ports/feedback-generator.port.ts',
+  'infrastructure/feedback/rule-based-feedback-generator.ts',
 ];
 
 function header(relativePath) {

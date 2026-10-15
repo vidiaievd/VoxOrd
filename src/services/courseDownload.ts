@@ -16,7 +16,7 @@ import {
   type CourseResource,
 } from '../lib/courseResources';
 import { collectMediaIds } from '../lib/mediaIds';
-import { needsKey } from '../lib/offlineGrading';
+import { isGradedOffline } from '../offline/engine/grading';
 import { setMemoryCache, writeCacheSnapshot } from '../lib/swrCache';
 import { buildImportPlan } from '../repositories/vocabularyImportMapping';
 import { vocabularyImportRepository } from '../repositories/VocabularyImportRepository';
@@ -271,7 +271,7 @@ export class CourseDownloader {
         const display = await this.fetch(exerciseDisplayResource(item.contentId, uiLanguage));
         if (!kept(display)) return false;
         // The key goes along only for the templates the phone grades itself offline.
-        if (!needsKey(display.templateCode, display.content)) return true;
+        if (!isGradedOffline(display.templateCode)) return true;
         return (await this.fetch(exerciseKeyResource(item.contentId))) !== null;
       }
       case 'vocabulary_list': {

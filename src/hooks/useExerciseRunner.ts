@@ -27,16 +27,8 @@ import {
 } from '../screens/ExerciseRunner/runnerMachine';
 import { useSettings } from './useSettings';
 import { exerciseDisplayResource } from '../lib/courseResources';
-import {
-  exerciseKeyCacheKey,
-  gradedOnPhone,
-  gradeOffline,
-  needsKey,
-  OFFLINE_ATTEMPT_PREFIX,
-  type ExerciseKey,
-} from '../lib/offlineGrading';
-import { randomNonce } from '../lib/reviewQueue';
 import { isServerOutOfReach as serverOutOfReach } from '../api/isNetworkError';
+import { OFFLINE_ATTEMPT_PREFIX } from '../offline/engine/attempt';
 import { exerciseOutboxStore } from '../store/exerciseOutboxStore';
 
 export type ProgressPostStatus = 'idle' | 'posting' | 'done' | 'error';
@@ -372,18 +364,7 @@ export function useExerciseRunner(
       if (!mounted.current) return;
       dispatch({ type: 'CHECK_SUCCESS', verdict, timeSpentSeconds });
     } catch (e) {
-      // Without the server, an exercise whose key the download kept is graded here and its
-      // attempt queued for the engine (offline plan, B4–B5).
-      const verdict = serverOutOfReach(e)
-        ? await gradeHere(exerciseId, display, state.answer, timeSpentSeconds, uiLanguage)
-        : null;
       if (!mounted.current) return;
-      if (verdict) {
-        // Whatever start went through before the connection died is joined by the replay.
-        attemptIdRef.current = null;
-        dispatch({ type: 'CHECK_SUCCESS', verdict, timeSpentSeconds });
-        return;
-      }
       dispatch({ type: 'CHECK_FAILURE', message: errorMessage(e) });
     } finally {
       checkInFlightRef.current = false;
@@ -478,49 +459,4 @@ export function useExerciseRunner(
     retryAttempt,
     progressPostStatus,
   };
-}
-
-/**
- * The phone's own verdict on an exercise it may grade, with the attempt queued for the
- * engine; null when it may not — another template, or a key the download never kept.
- */
-async function gradeHere(
-  exerciseId: string,
-  display: ExerciseDisplay,
-  answer: unknown,
-  timeSpentSeconds: number,
-  locale: string,
-): Promise<SubmitAttemptResponse | null> {
-  if (!gradedOnPhone(display.templateCode, display.content)) return null;
-  let key: ExerciseKey | null = null;
-  if (needsKey(display.templateCode, display.content)) {
-    const cacheKey = exerciseKeyCacheKey(exerciseId);
-    key =
-      getMemoryCache<ExerciseKey>(cacheKey) ?? (await readCacheSnapshot<ExerciseKey>(cacheKey));
-    if (!key) return null;
-  }
-
-  let verdict: SubmitAttemptResponse;
-  try {
-    verdict = gradeOffline(
-      key,
-      display.templateCode,
-      answer,
-      locale,
-      `${OFFLINE_ATTEMPT_PREFIX}${randomNonce()}`,
-    );
-  } catch (e) {
-    // An answer the engine would refuse as malformed is not one to queue for it.
-    console.warn('[ExerciseRunner] Offline grading refused the answer:', e);
-    return null;
-  }
-  await exerciseOutboxStore.enqueueAttempt({
-    exerciseId,
-    language: display.targetLanguage,
-    submittedAnswer: answer,
-    timeSpentSeconds,
-    locale,
-    answeredAt: new Date().toISOString(),
-  });
-  return verdict;
 }

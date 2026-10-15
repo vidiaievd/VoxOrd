@@ -1,4 +1,5 @@
 import { ApiError, apiClient } from './client';
+import { isServerOutOfReach } from './isNetworkError';
 import type {
   DifficultyLevel,
   ExerciseDisplay,
@@ -192,7 +193,7 @@ export function getExerciseAnswers(id: string): Promise<ExerciseAnswersResponse>
 }
 
 /** `POST /exercises/:exerciseId/attempts` — start (create) an attempt. */
-export function startAttempt(
+function remoteStartAttempt(
   exerciseId: string,
   body: StartAttemptRequest,
 ): Promise<StartAttemptResponse> {
@@ -213,7 +214,7 @@ export function startAttempt(
  * buttons from the last verdict's `closed`, never from a count it keeps
  * itself (plan 54 §3.3).
  */
-export function submitAttempt(
+function remoteSubmitAttempt(
   exerciseId: string,
   attemptId: string,
   body: SubmitAttemptRequest,
@@ -230,7 +231,7 @@ export function submitAttempt(
  * comes back is masked on the server — distances, counts, the task's own rules, never the
  * key's words — and its shape is the template's.
  */
-export function selfCheck(exerciseId: string, attemptId: string, draftAnswer: unknown): Promise<unknown> {
+function remoteSelfCheck(exerciseId: string, attemptId: string, draftAnswer: unknown): Promise<unknown> {
   return apiClient.post<unknown>(SELF_CHECK_PATH(exerciseId, attemptId), { draftAnswer });
 }
 
@@ -243,7 +244,7 @@ export function selfCheck(exerciseId: string, attemptId: string, draftAnswer: un
  * refused with 422 until something has been submitted. The shape is the template's; the body
  * that asked reads it.
  */
-export function revealAnswers(exerciseId: string, attemptId: string): Promise<unknown> {
+function remoteRevealAnswers(exerciseId: string, attemptId: string): Promise<unknown> {
   return apiClient.post<unknown>(REVEAL_PATH(exerciseId, attemptId), {});
 }
 
@@ -337,7 +338,7 @@ export interface AnswerQuestionResponse {
  * question and get its verdict. Final: the engine refuses a second answer to
  * the same question (422), as it refuses one on a closed attempt.
  */
-export function answerQuestion(
+function remoteAnswerQuestion(
   exerciseId: string,
   attemptId: string,
   body: AnswerQuestionRequest,
@@ -410,7 +411,7 @@ export interface CheckRowResponse {
  * Repeatable, unlike the answers endpoint: only a sentence already solved or revealed is
  * refused (422), as is a board with nothing on it (400).
  */
-export function checkRow(
+function remoteCheckRow(
   exerciseId: string,
   attemptId: string,
   body: CheckRowRequest,
@@ -523,7 +524,7 @@ interface AttemptListRow {
  *
  * Fails soft, as `findOpenAttempt` does: a table that cannot be resumed is played from the top.
  */
-export async function findOpenBoardCheck(exerciseId: string): Promise<unknown> {
+async function remoteFindOpenBoardCheck(exerciseId: string): Promise<unknown> {
   try {
     const page = await apiClient.get<{
       items: Array<{
@@ -554,7 +555,7 @@ export async function findOpenBoardCheck(exerciseId: string): Promise<unknown> {
  * which is what happened before there was anything to resume. Losing the
  * network on the way in must not cost the exercise.
  */
-export async function findOpenAttempt(exerciseId: string): Promise<OpenAttempt | null> {
+async function remoteFindOpenAttempt(exerciseId: string): Promise<OpenAttempt | null> {
   try {
     const page = await apiClient.get<{ items: AttemptListRow[] }>(ATTEMPTS_PATH(exerciseId), {
       query: { status: 'IN_PROGRESS', limit: 1 },
@@ -617,16 +618,16 @@ export interface AttemptRow {
  * the engine's own way to hand back an attempt a caller already knows of. Only a 409 that
  * carries the id is answered like this; every other refusal is the caller's.
  */
-export async function startOrJoinAttempt(
+async function remoteStartOrJoinAttempt(
   exerciseId: string,
   body: StartAttemptRequest,
 ): Promise<StartAttemptResponse> {
   try {
-    return await startAttempt(exerciseId, body);
+    return await remoteStartAttempt(exerciseId, body);
   } catch (e) {
     const open = conflictAttemptId(e);
     if (open === null) throw e;
-    return startAttempt(exerciseId, { ...body, joinAttemptId: open });
+    return remoteStartAttempt(exerciseId, { ...body, joinAttemptId: open });
   }
 }
 
@@ -641,7 +642,7 @@ function conflictAttemptId(e: unknown): string | null {
  * it arrives and never read by the submit: for `read_aloud`, the uploaded takes and the choice
  * between them (the kernel's `toDraft`).
  */
-export function saveDraft(
+function remoteSaveDraft(
   exerciseId: string,
   attemptId: string,
   draftAnswer: unknown,
@@ -650,7 +651,7 @@ export function saveDraft(
 }
 
 /** `GET /exercises/:exerciseId/attempts/:attemptId` — one attempt, to see how a failed submit left it. */
-export function getAttempt(exerciseId: string, attemptId: string): Promise<AttemptRow> {
+function remoteGetAttempt(exerciseId: string, attemptId: string): Promise<AttemptRow> {
   return apiClient.get<AttemptRow>(ATTEMPT_PATH(exerciseId, attemptId));
 }
 
@@ -660,13 +661,175 @@ export function getAttempt(exerciseId: string, attemptId: string): Promise<Attem
  * Fails soft, like `findOpenAttempt`: a history that cannot be read leaves the learner at a
  * fresh recorder, which is where they would have been anyway.
  */
+async function remoteRecentAttempts(exerciseId: string, limit = 5): Promise<AttemptRow[]> {
+  const page = await apiClient.get<{ items: AttemptRow[] }>(ATTEMPTS_PATH(exerciseId), {
+    query: { limit },
+  });
+  return page.items ?? [];
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Attempts without the server (offline plan, B4).
+ *
+ * Every attempt call above has a twin on the phone: `src/offline/engine` runs the engine's
+ * commands against the downloaded key. An attempt started there has an id that says so
+ * (`offline:…`), and every later call about it is answered there — the bodies and the runner
+ * call the same functions whichever side answers. A start goes to the phone when the server
+ * cannot be reached and the exercise was downloaded with its key, or when an attempt begun
+ * offline is still open: the work continues where it was, and its journal is replayed to the
+ * server later (`exerciseOutboxStore`), never mixed with a fresh server attempt.
+ *
+ * `remoteAttempts` is the server side alone, for that replay: a replay must fail when the
+ * server is away, not fall back to the phone it is replaying from.
+ * ────────────────────────────────────────────────────────────────────── */
+
+/** What `src/offline/engine` answers with; refusals come as `ApiError`, as the server's do. */
+export interface LocalAttempts {
+  isLocal(attemptId: string): boolean;
+  hasOpenAttempt(exerciseId: string): Promise<boolean>;
+  canStart(exerciseId: string): Promise<boolean>;
+  start(exerciseId: string, body: StartAttemptRequest): Promise<StartAttemptResponse>;
+  submit(attemptId: string, body: SubmitAttemptRequest): Promise<SubmitAttemptResponse>;
+  answerQuestion(attemptId: string, body: AnswerQuestionRequest): Promise<AnswerQuestionResponse>;
+  checkRow(attemptId: string, body: CheckRowRequest): Promise<CheckRowResponse>;
+  revealAnswers(attemptId: string): Promise<unknown>;
+  selfCheck(attemptId: string, draftAnswer: unknown): Promise<unknown>;
+  saveDraft(attemptId: string, draftAnswer: unknown): Promise<{ savedAt: string }>;
+  getAttempt(attemptId: string): Promise<AttemptRow>;
+  findOpenAttempt(exerciseId: string): Promise<OpenAttempt | null>;
+  findOpenBoardCheck(exerciseId: string): Promise<unknown>;
+  recentAttempts(exerciseId: string, limit: number): Promise<AttemptRow[]>;
+}
+
+let local: LocalAttempts | null = null;
+
+export function setLocalAttempts(engine: LocalAttempts | null): void {
+  local = engine;
+}
+
+export const remoteAttempts = {
+  startAttempt: remoteStartAttempt,
+  startOrJoinAttempt: remoteStartOrJoinAttempt,
+  submitAttempt: remoteSubmitAttempt,
+  answerQuestion: remoteAnswerQuestion,
+  checkRow: remoteCheckRow,
+  revealAnswers: remoteRevealAnswers,
+  selfCheck: remoteSelfCheck,
+  saveDraft: remoteSaveDraft,
+};
+
+const isLocal = (attemptId: string) => local !== null && local.isLocal(attemptId);
+
+/** `POST /exercises/:exerciseId/attempts` — on the server, or on the phone when it must be. */
+export async function startAttempt(
+  exerciseId: string,
+  body: StartAttemptRequest,
+): Promise<StartAttemptResponse> {
+  if (local && (await local.hasOpenAttempt(exerciseId))) return local.start(exerciseId, body);
+  try {
+    return await remoteStartAttempt(exerciseId, body);
+  } catch (e) {
+    if (local && isServerOutOfReach(e) && (await local.canStart(exerciseId))) {
+      return local.start(exerciseId, body);
+    }
+    throw e;
+  }
+}
+
+/** The attempt to record into: a new one, or the one in progress — wherever it lives. */
+export async function startOrJoinAttempt(
+  exerciseId: string,
+  body: StartAttemptRequest,
+): Promise<StartAttemptResponse> {
+  try {
+    return await startAttempt(exerciseId, body);
+  } catch (e) {
+    const open = conflictAttemptId(e);
+    if (open === null) throw e;
+    return isLocal(open)
+      ? local!.start(exerciseId, { ...body, joinAttemptId: open })
+      : remoteStartAttempt(exerciseId, { ...body, joinAttemptId: open });
+  }
+}
+
+export function submitAttempt(
+  exerciseId: string,
+  attemptId: string,
+  body: SubmitAttemptRequest,
+): Promise<SubmitAttemptResponse> {
+  return isLocal(attemptId)
+    ? local!.submit(attemptId, body)
+    : remoteSubmitAttempt(exerciseId, attemptId, body);
+}
+
+export function answerQuestion(
+  exerciseId: string,
+  attemptId: string,
+  body: AnswerQuestionRequest,
+): Promise<AnswerQuestionResponse> {
+  return isLocal(attemptId)
+    ? local!.answerQuestion(attemptId, body)
+    : remoteAnswerQuestion(exerciseId, attemptId, body);
+}
+
+export function checkRow(
+  exerciseId: string,
+  attemptId: string,
+  body: CheckRowRequest,
+): Promise<CheckRowResponse> {
+  return isLocal(attemptId)
+    ? local!.checkRow(attemptId, body)
+    : remoteCheckRow(exerciseId, attemptId, body);
+}
+
+export function revealAnswers(exerciseId: string, attemptId: string): Promise<unknown> {
+  return isLocal(attemptId)
+    ? local!.revealAnswers(attemptId)
+    : remoteRevealAnswers(exerciseId, attemptId);
+}
+
+export function selfCheck(
+  exerciseId: string,
+  attemptId: string,
+  draftAnswer: unknown,
+): Promise<unknown> {
+  return isLocal(attemptId)
+    ? local!.selfCheck(attemptId, draftAnswer)
+    : remoteSelfCheck(exerciseId, attemptId, draftAnswer);
+}
+
+export function saveDraft(
+  exerciseId: string,
+  attemptId: string,
+  draftAnswer: unknown,
+): Promise<{ savedAt: string }> {
+  return isLocal(attemptId)
+    ? local!.saveDraft(attemptId, draftAnswer)
+    : remoteSaveDraft(exerciseId, attemptId, draftAnswer);
+}
+
+export function getAttempt(exerciseId: string, attemptId: string): Promise<AttemptRow> {
+  return isLocal(attemptId)
+    ? local!.getAttempt(attemptId)
+    : remoteGetAttempt(exerciseId, attemptId);
+}
+
+/** The open attempt at this exercise: one begun on the phone first, then the server's. */
+export async function findOpenAttempt(exerciseId: string): Promise<OpenAttempt | null> {
+  const here = local ? await local.findOpenAttempt(exerciseId) : null;
+  return here ?? remoteFindOpenAttempt(exerciseId);
+}
+
+export async function findOpenBoardCheck(exerciseId: string): Promise<unknown> {
+  const here = local ? await local.findOpenBoardCheck(exerciseId) : null;
+  return here ?? remoteFindOpenBoardCheck(exerciseId);
+}
+
+/** Recent attempts — the server's, or the phone's when the server cannot be asked. */
 export async function recentAttempts(exerciseId: string, limit = 5): Promise<AttemptRow[]> {
   try {
-    const page = await apiClient.get<{ items: AttemptRow[] }>(ATTEMPTS_PATH(exerciseId), {
-      query: { limit },
-    });
-    return page.items ?? [];
+    return await remoteRecentAttempts(exerciseId, limit);
   } catch {
-    return [];
+    return local ? local.recentAttempts(exerciseId, limit) : [];
   }
 }
