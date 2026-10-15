@@ -17,6 +17,8 @@ export const en: Translations = {
     subtitle: 'Sign in to open your courses',
     offlineTitle: 'No connection to the server',
     offlineBody: 'You are still signed in — the app opens as soon as the connection is back.',
+    offlineSessionBanner: 'No connection to the server — your answers are kept on the phone',
+    offlineSessionPending: 'Waiting to sync: {count}',
   },
   nav: {
     pressAgainToExit: 'Press Back again to exit',
@@ -120,6 +122,8 @@ export const en: Translations = {
     signOut: 'Sign out',
     signOutConfirmTitle: 'Sign out?',
     signOutConfirmMessage: 'You will need to log in again to access your courses.',
+    signOutPendingMessage: 'Not sent to the server yet: {count}. It stays on the phone and goes out when you sign back in to this account.',
+    signOutOfflineNote: 'There is no connection to the server right now — signing back in needs the network.',
     developer: 'Developer',
     apiBaseUrl: 'API base URL',
     apiBaseUrlSave: 'Save',

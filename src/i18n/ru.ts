@@ -17,6 +17,8 @@ export const ru: Translations = {
     subtitle: 'Войдите, чтобы открыть свои курсы',
     offlineTitle: 'Нет соединения с сервером',
     offlineBody: 'Вход сохранён — как только связь появится, приложение откроется.',
+    offlineSessionBanner: 'Нет связи с сервером — ответы сохраняются на телефоне',
+    offlineSessionPending: 'Ждут отправки: {count}',
   },
   nav: {
     pressAgainToExit: 'Нажмите «Назад» ещё раз, чтобы выйти',
@@ -120,6 +122,8 @@ export const ru: Translations = {
     signOut: 'Выйти',
     signOutConfirmTitle: 'Выйти из аккаунта?',
     signOutConfirmMessage: 'Для доступа к курсам понадобится войти заново.',
+    signOutPendingMessage: 'Ещё не отправлено на сервер: {count}. Это сохранится на телефоне и уйдёт, когда вы снова войдёте в этот аккаунт.',
+    signOutOfflineNote: 'Сейчас нет связи с сервером — войти снова получится только с сетью.',
     developer: 'Разработчику',
     apiBaseUrl: 'Адрес API',
     apiBaseUrlSave: 'Сохранить',

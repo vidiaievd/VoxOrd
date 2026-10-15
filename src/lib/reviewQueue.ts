@@ -21,6 +21,12 @@ export interface QueuedReview {
    * hours later, and it has to arrive with the same permission it was given.
    */
   carryOnPastLimit?: boolean;
+  /**
+   * Who answered. An answer given offline can outlive the session it was given in — the
+   * refresh token expires, someone else signs in — and must only ever go out as its own
+   * learner's. Absent on answers queued by a build from before it was recorded.
+   */
+  userId?: string;
 }
 
 /**
@@ -64,6 +70,16 @@ export function shouldRetry(status: number | null): boolean {
   if (status === null) return true;
   if (status === 401 || status === 429) return true;
   return status >= 500;
+}
+
+/**
+ * Whether an entry queued by `entryUserId` may go out in the session of `userId`. Without a
+ * session nothing goes out. An entry from before the owner was recorded goes with whoever is
+ * signed in — the phone only ever had one learner when such entries were written.
+ */
+export function isOwnedBy(entryUserId: string | undefined, userId: string | null): boolean {
+  if (userId === null) return false;
+  return entryUserId === undefined || entryUserId === userId;
 }
 
 export function makeIdempotencyKey(

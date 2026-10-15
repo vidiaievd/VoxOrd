@@ -1,5 +1,6 @@
 import {
   enqueueReview,
+  isOwnedBy,
   makeIdempotencyKey,
   randomNonce,
   removeReviews,
@@ -111,5 +112,21 @@ describe('makeIdempotencyKey', () => {
       randomNonce(),
     );
     expect(key.length).toBeLessThanOrEqual(128);
+  });
+});
+
+describe('isOwnedBy', () => {
+  it('lets an entry go out in its own learner’s session only', () => {
+    expect(isOwnedBy('user-1', 'user-1')).toBe(true);
+    expect(isOwnedBy('user-1', 'user-2')).toBe(false);
+  });
+
+  it('sends nothing without a session', () => {
+    expect(isOwnedBy('user-1', null)).toBe(false);
+    expect(isOwnedBy(undefined, null)).toBe(false);
+  });
+
+  it('gives an entry from before the owner was recorded to whoever is signed in', () => {
+    expect(isOwnedBy(undefined, 'user-2')).toBe(true);
   });
 });

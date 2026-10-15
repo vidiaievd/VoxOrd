@@ -22,6 +22,10 @@ jest.mock('../api/personalVocabulary', () => ({
 
 import { captureWord } from '../api/personalVocabulary';
 import { wordCaptureQueueStore } from './wordCaptureQueueStore';
+import { authStore } from './authStore';
+
+const LEARNER = { id: 'user-1', email: 'a@b.c', roles: ['student'] };
+const OTHER = { id: 'user-2', email: 'x@y.z', roles: ['student'] };
 
 const mockCapture = captureWord as jest.Mock;
 
@@ -43,10 +47,31 @@ const offline = () =>
 describe('wordCaptureQueueStore', () => {
   beforeEach(async () => {
     mockCapture.mockReset();
-    // Drain whatever a previous test left queued.
+    // Drain whatever a previous test left queued, whoever's it is.
     mockCapture.mockResolvedValue(response('x'));
-    await wordCaptureQueueStore.flush();
+    for (const user of [OTHER, LEARNER]) {
+      authStore.setSignedIn(user);
+      await wordCaptureQueueStore.flush();
+    }
     mockCapture.mockReset();
+  });
+
+  it('keeps a word captured offline for its own learner', async () => {
+    mockCapture.mockRejectedValue(offline());
+    await wordCaptureQueueStore.submit(request('selv'));
+
+    authStore.setSignedIn(OTHER);
+    mockCapture.mockReset();
+    mockCapture.mockResolvedValue(response('selv'));
+    await wordCaptureQueueStore.flush();
+    expect(mockCapture).not.toHaveBeenCalled();
+    expect(wordCaptureQueueStore.pendingCount).toBe(0);
+
+    authStore.setSignedIn(LEARNER);
+    expect(wordCaptureQueueStore.pendingCount).toBe(1);
+    await wordCaptureQueueStore.flush();
+    expect(mockCapture).toHaveBeenCalledTimes(1);
+    expect(wordCaptureQueueStore.pendingCount).toBe(0);
   });
 
   it('sends a word at once when there is a connection', async () => {

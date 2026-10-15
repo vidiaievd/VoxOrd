@@ -19,6 +19,9 @@ export interface Translations {
     subtitle: string;
     offlineTitle: string;
     offlineBody: string;
+    /** Above the tab bar while the app works from the stored session, without the server. */
+    offlineSessionBanner: string;
+    offlineSessionPending: string; // '{count}'
   };
   nav: {
     pressAgainToExit: string;
@@ -115,6 +118,8 @@ export interface Translations {
     signOut: string;
     signOutConfirmTitle: string;
     signOutConfirmMessage: string;
+    signOutPendingMessage: string; // '{count}'
+    signOutOfflineNote: string;
     developer: string;
     apiBaseUrl: string;
     apiBaseUrlSave: string;
