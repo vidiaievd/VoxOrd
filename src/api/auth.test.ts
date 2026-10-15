@@ -6,6 +6,34 @@ import { makeJwt } from './jwt.test';
 import { __resetRefreshTokenCache } from './tokenStorage';
 import { biometricStore } from '../store/biometricStore';
 
+/** In-memory stand-in for the device's async storage. */
+const mockStorage = new Map<string, string>();
+
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  createAsyncStorage: () => ({
+    getItem: async (key: string) => mockStorage.get(key) ?? null,
+    setItem: async (key: string, value: string) => {
+      mockStorage.set(key, value);
+    },
+    removeItem: async (key: string) => {
+      mockStorage.delete(key);
+    },
+  }),
+}));
+
+const STORED_USER = { id: 'user-1', email: 'a@b.c', roles: ['student'] };
+
+/** The user of the last session, as a previous sign-in left it. */
+function storeSessionUser(user: unknown = STORED_USER) {
+  mockStorage.set('user', JSON.stringify(user));
+}
+
+function networkDown() {
+  return jest.fn(async () => {
+    throw new TypeError('Network request failed');
+  }) as unknown as typeof fetch;
+}
+
 jest.mock('react-native-keychain', () => {
   let stored: { username: string; password: string } | null = null;
   return {
@@ -59,6 +87,7 @@ describe('authService', () => {
   beforeEach(() => {
     jest.spyOn(apiSettingsStore, 'get').mockReturnValue('http://10.0.2.2:80');
     Keychain.__setStored(null);
+    mockStorage.clear();
     __resetRefreshTokenCache();
     jest.clearAllMocks();
     authStore.setRestoring();
@@ -88,6 +117,8 @@ describe('authService', () => {
         expect.objectContaining({ service: expect.any(String) }),
       );
       expect(authService.getAccessToken()).not.toBeNull();
+      // Kept for a start without the server.
+      expect(JSON.parse(mockStorage.get('user')!)).toEqual(STORED_USER);
     });
 
     it('throws MfaNotSupportedError when the account requires 2FA', async () => {
@@ -152,11 +183,74 @@ describe('authService', () => {
       expect(Keychain.resetGenericPassword).toHaveBeenCalled();
     });
 
-    it('keeps the refresh token when the failure is only a network error', async () => {
-      Keychain.__setStored({ username: 'platform', password: 'stored-refresh' });
-      globalThis.fetch = jest.fn(async () => {
-        throw new TypeError('Network request failed');
+    it('forgets the session user together with a rejected token', async () => {
+      Keychain.__setStored({ username: 'platform', password: 'expired-refresh' });
+      storeSessionUser();
+      globalThis.fetch = routeFetch({
+        '/auth/refresh': () => jsonResponse(401, { message: 'Invalid refresh token' }),
       }) as unknown as typeof fetch;
+
+      await authService.restore();
+
+      expect(authStore.getState().status).toBe('signedOut');
+      expect(mockStorage.has('user')).toBe(false);
+    });
+
+    it('opens the app offline as the stored user when the server cannot be reached', async () => {
+      Keychain.__setStored({ username: 'platform', password: 'stored-refresh' });
+      storeSessionUser();
+      globalThis.fetch = networkDown();
+
+      await authService.restore();
+
+      expect(authStore.getState()).toEqual({
+        status: 'signedIn',
+        user: STORED_USER,
+        offline: true,
+      });
+      expect(authService.getAccessToken()).toBeNull();
+      expect(Keychain.resetGenericPassword).not.toHaveBeenCalled();
+    });
+
+    it('opens the app before the refresh answers, then confirms the session', async () => {
+      Keychain.__setStored({ username: 'platform', password: 'stored-refresh' });
+      storeSessionUser();
+      let answer: ((r: Response) => void) | null = null;
+      globalThis.fetch = jest.fn(
+        () => new Promise<Response>(resolve => (answer = resolve)),
+      ) as unknown as typeof fetch;
+
+      const restoring = authService.restore();
+      await new Promise<void>(resolve => setImmediate(() => resolve()));
+
+      // No spinner while a phone without a route waits out the timeout.
+      expect(authStore.getState()).toMatchObject({ status: 'signedIn', offline: true });
+
+      answer!(jsonResponse(200, tokensResponse()));
+      await restoring;
+
+      expect(authStore.getState()).toMatchObject({ status: 'signedIn', offline: false });
+      expect(authService.getAccessToken()).not.toBeNull();
+    });
+
+    it('keeps the session through a gateway that answers 5xx while the auth service starts', async () => {
+      Keychain.__setStored({ username: 'platform', password: 'stored-refresh' });
+      storeSessionUser();
+      globalThis.fetch = routeFetch({
+        '/auth/refresh': () => jsonResponse(502, { message: 'Bad Gateway' }),
+      }) as unknown as typeof fetch;
+
+      await authService.restore();
+
+      expect(authStore.getState()).toMatchObject({ status: 'signedIn', offline: true });
+      expect(Keychain.resetGenericPassword).not.toHaveBeenCalled();
+      expect(mockStorage.has('user')).toBe(true);
+    });
+
+    it('waits for the connection on the sign-in screen when the stored session has no user', async () => {
+      // A session stored by a build that did not keep its user.
+      Keychain.__setStored({ username: 'platform', password: 'stored-refresh' });
+      globalThis.fetch = networkDown();
 
       await authService.restore();
 
@@ -167,6 +261,16 @@ describe('authService', () => {
       expect(await Keychain.getGenericPassword()).toMatchObject({
         password: 'stored-refresh',
       });
+    });
+
+    it('ignores a stored user it cannot read', async () => {
+      Keychain.__setStored({ username: 'platform', password: 'stored-refresh' });
+      storeSessionUser({ id: 42 });
+      globalThis.fetch = networkDown();
+
+      await authService.restore();
+
+      expect(authStore.getState()).toMatchObject({ status: 'signedOut', offline: true });
     });
   });
 
@@ -221,6 +325,26 @@ describe('authService', () => {
         status: 401,
       });
       expect(authStore.getState().status).toBe('signedOut');
+    });
+
+    it('stays in the app, offline, when a 401 meets a refresh that cannot reach the server', async () => {
+      Keychain.__setStored({ username: 'platform', password: 'stored-refresh' });
+      storeSessionUser();
+      authStore.setSignedIn(STORED_USER);
+      globalThis.fetch = jest.fn(async (url: string) => {
+        if (url.includes('/auth/refresh')) throw new TypeError('Network request failed');
+        return jsonResponse(401, {});
+      }) as unknown as typeof fetch;
+
+      await expect(apiClient.get('/api/v1/enrollments')).rejects.toMatchObject({
+        status: 401,
+      });
+      expect(authStore.getState()).toEqual({
+        status: 'signedIn',
+        user: STORED_USER,
+        offline: true,
+      });
+      expect(Keychain.resetGenericPassword).not.toHaveBeenCalled();
     });
 
     it('allows a new refresh after a previous one settled', async () => {
@@ -279,13 +403,13 @@ describe('authService', () => {
   describe('logout', () => {
     it('clears the keychain and local session even if the request fails', async () => {
       Keychain.__setStored({ username: 'platform', password: 'stored-refresh' });
-      globalThis.fetch = jest.fn(async () => {
-        throw new TypeError('Network request failed');
-      }) as unknown as typeof fetch;
+      storeSessionUser();
+      globalThis.fetch = networkDown();
 
       await authService.logout();
 
       expect(Keychain.resetGenericPassword).toHaveBeenCalled();
+      expect(mockStorage.has('user')).toBe(false);
       expect(authStore.getState()).toEqual({ status: 'signedOut', user: null, offline: false });
       expect(authService.getAccessToken()).toBeNull();
     });
