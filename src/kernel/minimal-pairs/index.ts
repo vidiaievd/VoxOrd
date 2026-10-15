@@ -88,8 +88,8 @@ export {
   wordCount,
 } from './derive';
 
-export type { DealtProbe, DrawnProbe, History, Rand, WordHistory } from './sampler';
-export { deal, historyKey, lcg, readDraw, sample } from './sampler';
+export type { DealtProbe, DrawFault, DrawnProbe, History, Rand, WordHistory } from './sampler';
+export { checkDraw, deal, historyKey, lcg, readDraw, sample } from './sampler';
 
 export type { PairResult, PickRefusal, PickVerdict, ProbeRecord, ProbeState, Summary } from './judge';
 export {
