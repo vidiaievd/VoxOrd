@@ -1,14 +1,9 @@
-import { useCallback } from 'react';
-import { getContainer } from '../api/courses';
-import { getLessonReaderContent, LessonReaderContent } from '../api/lessons';
+import { useMemo } from 'react';
+import { lessonReaderResource, type LessonReaderData } from '../lib/courseResources';
 import { useSettings } from './useSettings';
 import { useSwrResource } from './useSwrResource';
 
-/** The reader's content plus the course's language, which the reader response does not carry. */
-export type LessonReaderData = LessonReaderContent & {
-  /** Optional only for content cached before it was kept. */
-  targetLanguage?: string;
-};
+export type { LessonReaderData };
 
 export interface LessonReaderState {
   status: 'loading' | 'loaded' | 'error';
@@ -35,18 +30,13 @@ export interface LessonReaderState {
  */
 export function useLessonReader(lessonId: string, courseId: string): LessonReaderState {
   const { uiLanguage } = useSettings();
-  const loader = useCallback(async () => {
-    const container = await getContainer(courseId);
-    const content = await getLessonReaderContent(lessonId, {
-      studentNativeLanguage: uiLanguage,
-      studentCurrentLevel: container.difficultyLevel,
-    });
-    return { ...content, targetLanguage: container.targetLanguage };
-  }, [lessonId, courseId, uiLanguage]);
-
+  const resource = useMemo(
+    () => lessonReaderResource(lessonId, courseId, uiLanguage),
+    [lessonId, courseId, uiLanguage],
+  );
   const { status, data, error, stale, refresh } = useSwrResource<LessonReaderData>(
-    `lesson-reader:${lessonId}:${courseId}:${uiLanguage}`,
-    loader,
+    resource.key,
+    resource.load,
   );
 
   return { status, data, error, stale, refresh };

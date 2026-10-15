@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 import {
   answerQuestion as answerQuestionRequest,
   checkRow as checkRowRequest,
-  getExerciseDisplay,
   startAttempt,
   startOrJoinAttempt,
   submitAttempt,
@@ -27,6 +26,7 @@ import {
   type RunnerState,
 } from '../screens/ExerciseRunner/runnerMachine';
 import { useSettings } from './useSettings';
+import { exerciseDisplayResource } from '../lib/courseResources';
 
 export type ProgressPostStatus = 'idle' | 'posting' | 'done' | 'error';
 
@@ -182,12 +182,13 @@ export function useExerciseRunner(
     // A fresh item is a fresh attempt; the previous one is closed or abandoned.
     attemptIdRef.current = null;
     openingRef.current = null;
-    const cacheKey = `exercise-display:${exerciseId}:${uiLanguage}`;
+    const resource = exerciseDisplayResource(exerciseId, uiLanguage);
+    const cacheKey = resource.key;
 
     let cancelled = false;
     (async () => {
       try {
-        const display = await getExerciseDisplay(exerciseId, uiLanguage);
+        const display = await resource.load();
         if (cancelled || !mounted.current) return;
         answeringStartedAtRef.current = Date.now();
         setMemoryCache(cacheKey, display);

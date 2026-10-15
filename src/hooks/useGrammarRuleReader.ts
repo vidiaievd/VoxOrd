@@ -1,6 +1,6 @@
-import { useCallback } from 'react';
-import { getContainer } from '../api/courses';
-import { getGrammarRuleExplanation, GrammarRuleExplanation } from '../api/grammarRules';
+import { useMemo } from 'react';
+import type { GrammarRuleExplanation } from '../api/grammarRules';
+import { grammarRuleResource } from '../lib/courseResources';
 import { useSettings } from './useSettings';
 import { useSwrResource } from './useSwrResource';
 
@@ -21,17 +21,13 @@ export interface GrammarRuleReaderState {
  */
 export function useGrammarRuleReader(ruleId: string, courseId: string): GrammarRuleReaderState {
   const { uiLanguage } = useSettings();
-  const loader = useCallback(async () => {
-    const container = await getContainer(courseId);
-    return getGrammarRuleExplanation(ruleId, {
-      studentNativeLanguage: uiLanguage,
-      studentCurrentLevel: container.difficultyLevel,
-    });
-  }, [ruleId, courseId, uiLanguage]);
-
+  const resource = useMemo(
+    () => grammarRuleResource(ruleId, courseId, uiLanguage),
+    [ruleId, courseId, uiLanguage],
+  );
   const { status, data, error, stale, refresh } = useSwrResource<GrammarRuleExplanation>(
-    `grammar-rule-reader:${ruleId}:${courseId}:${uiLanguage}`,
-    loader,
+    resource.key,
+    resource.load,
   );
 
   return { status, data, error, stale, refresh };

@@ -1,7 +1,7 @@
-import { useCallback } from 'react';
-import { getCourseHome } from '../api/courseHome';
+import { useMemo } from 'react';
 import type { CourseHomePayload } from '../api/types';
 import { useSwrResource } from './useSwrResource';
+import { courseHomeResource } from '../lib/courseResources';
 
 export interface CourseHomeState {
   status: 'loading' | 'loaded' | 'error';
@@ -15,6 +15,6 @@ export interface CourseHomeState {
 
 /** Stale-while-revalidate (Phase 6): reopening a recently-viewed course is instant. */
 export function useCourseHome(courseId: string): CourseHomeState {
-  const loader = useCallback(() => getCourseHome(courseId), [courseId]);
-  return useSwrResource<CourseHomePayload>(`course-home:${courseId}`, loader);
+  const resource = useMemo(() => courseHomeResource(courseId), [courseId]);
+  return useSwrResource<CourseHomePayload>(resource.key, resource.load);
 }

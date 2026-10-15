@@ -5,6 +5,7 @@ import { authStore, type AuthState } from '../store/authStore';
 import { reviewQueueStore } from '../store/reviewQueueStore';
 import { wordCaptureQueueStore } from '../store/wordCaptureQueueStore';
 import { vocabularyReplica } from './vocabularyReplica';
+import { courseDownloader } from './courseDownload';
 
 /**
  * What the coordinator needs from the outside world — the device, the session and the
@@ -148,5 +149,7 @@ export const sessionSync = new SessionSync({
     { name: 'reviews', flush: () => reviewQueueStore.flush() },
     { name: 'captured words', flush: () => wordCaptureQueueStore.flush() },
     { name: 'vocabulary replica', flush: () => vocabularyReplica.refresh() },
+    // Last and longest: walks the courses, at most twice a day each (offline plan, B3).
+    { name: 'course materials', flush: () => courseDownloader.run() },
   ],
 });

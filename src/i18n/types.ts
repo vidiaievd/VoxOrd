@@ -120,6 +120,11 @@ export interface Translations {
     signOutConfirmMessage: string;
     signOutPendingMessage: string; // '{count}'
     signOutOfflineNote: string;
+    /** Downloading the courses for use without the network. */
+    offline: string;
+    offlineDownload: string;
+    offlineDownloading: string;
+    offlineNever: string;
     developer: string;
     apiBaseUrl: string;
     apiBaseUrlSave: string;

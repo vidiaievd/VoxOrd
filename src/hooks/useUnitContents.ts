@@ -1,5 +1,5 @@
-import { useCallback } from 'react';
-import { getUnitContents } from '../api/unitContents';
+import { useMemo } from 'react';
+import { unitContentsResource } from '../lib/courseResources';
 import type { UnitContentsResult } from '../api/types';
 import { useSwrResource } from './useSwrResource';
 
@@ -19,6 +19,6 @@ export interface UnitContentsState {
  * out of reach too.
  */
 export function useUnitContents(unitId: string): UnitContentsState {
-  const loader = useCallback(() => getUnitContents(unitId), [unitId]);
-  return useSwrResource<UnitContentsResult>(`unit-contents:${unitId}`, loader);
+  const resource = useMemo(() => unitContentsResource(unitId), [unitId]);
+  return useSwrResource<UnitContentsResult>(resource.key, resource.load);
 }
