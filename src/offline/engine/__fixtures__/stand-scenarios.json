@@ -10022,5 +10022,770 @@
     }
    }
   ]
+ },
+ {
+  "name": "mc set: retry, refused, reveal, right, unknown, submit",
+  "templateCode": "multiple_choice",
+  "key": {
+   "templateCode": "multiple_choice",
+   "content": {
+    "title": "Ord fra tekst 1A",
+    "settings": {
+     "retry": "one",
+     "layout": "list",
+     "instant": false,
+     "letters": true,
+     "shuffle": true,
+     "progress": true,
+     "eliminate": false,
+     "showWhyWrong": true,
+     "explainOnCorrect": true,
+     "shuffleQuestions": false
+    },
+    "questions": [
+     {
+      "id": "1",
+      "kind": "vocab",
+      "stem": "selvstendig",
+      "context": "",
+      "options": [
+       {
+        "id": "a",
+        "text": "som trenger mye hjelp",
+        "fixed": false
+       },
+       {
+        "id": "b",
+        "text": "som kan jobbe alene",
+        "fixed": false
+       },
+       {
+        "id": "c",
+        "text": "som bestemmer over andre",
+        "fixed": false
+       }
+      ]
+     },
+     {
+      "id": "2",
+      "kind": "vocab",
+      "stem": "oversiktlig",
+      "context": "",
+      "options": [
+       {
+        "id": "a",
+        "text": "rotete og uryddig",
+        "fixed": false
+       },
+       {
+        "id": "b",
+        "text": "lett å få oversikt over",
+        "fixed": false
+       },
+       {
+        "id": "c",
+        "text": "veldig lang og detaljert",
+        "fixed": false
+       }
+      ]
+     },
+     {
+      "id": "3",
+      "kind": "vocab",
+      "stem": "et fagbrev",
+      "context": "",
+      "options": [
+       {
+        "id": "a",
+        "text": "et vanlig brev i posten",
+        "fixed": false
+       },
+       {
+        "id": "b",
+        "text": "et bevis på fagutdanning",
+        "fixed": false
+       },
+       {
+        "id": "c",
+        "text": "en søknad om jobb",
+        "fixed": false
+       }
+      ]
+     }
+    ],
+    "instruction": "Hva betyr ordene? Velg riktig forklaring."
+   },
+   "expectedAnswers": {
+    "questions": {
+     "1": {
+      "why": "Selvstendig betyr at man klarer å jobbe på egen hånd, uten at noen forteller hva som skal gjøres. Annonsen ber om det fordi den nye elektrikeren skal lede mindre prosjekter.",
+      "options": {
+       "a": "Det er nettopp det motsatte: en selvstendig arbeidstaker trenger lite hjelp.",
+       "c": "Å bestemme over andre er å være leder eller sjef. Man kan være selvstendig uten å ha noen under seg."
+      },
+      "correctOptionId": "b"
+     },
+     "2": {
+      "why": "Oversiktlig beskriver noe som er ordnet slik at man raskt ser hva som står hvor. Bartek passer på at CV-en er det.",
+      "options": {
+       "a": "Rotete er det motsatte av oversiktlig.",
+       "c": "Lengden har ingenting med saken å gjøre — en kort tekst kan være rotete, og en lang kan være oversiktlig."
+      },
+      "correctOptionId": "b"
+     },
+     "3": {
+      "why": "Et fagbrev er dokumentet som viser at man har fullført en fagutdanning. Annonsen krever det, og Bartek har det.",
+      "options": {
+       "a": "Ordet «brev» er felles, men et fagbrev sendes ikke i posten — det er et vitnemål.",
+       "c": "Søknaden er det Bartek skriver selv. Fagbrevet er noe han har fra før."
+      },
+      "correctOptionId": "b"
+     }
+    }
+   },
+   "answerCheckSettings": null,
+   "instructions": [
+    {
+     "id": "2e96df68-c5bb-5f75-aa29-1abf9f7c6377",
+     "exerciseId": "8ed8b7ab-731a-51ee-94af-52e826184700",
+     "instructionLanguage": "ru",
+     "instructionText": "Hva betyr ordene? Velg riktig forklaring for hvert ord.",
+     "hintText": null,
+     "textOverrides": null,
+     "createdAt": "2026-08-02T15:14:08.359Z",
+     "updatedAt": "2026-09-02T16:11:35.509Z"
+    }
+   ]
+  },
+  "projection": {},
+  "ops": [
+   {
+    "op": "answer",
+    "body": {
+     "questionId": "1",
+     "optionId": "a"
+    }
+   },
+   {
+    "op": "answer",
+    "body": {
+     "questionId": "1",
+     "optionId": "b"
+    }
+   },
+   {
+    "op": "answer",
+    "body": {
+     "questionId": "1",
+     "optionId": "b"
+    }
+   },
+   {
+    "op": "answer",
+    "body": {
+     "questionId": "2",
+     "optionId": null,
+     "reveal": true
+    }
+   },
+   {
+    "op": "answer",
+    "body": {
+     "questionId": "3",
+     "optionId": "b"
+    }
+   },
+   {
+    "op": "answer",
+    "body": {
+     "questionId": "9",
+     "optionId": "a"
+    }
+   },
+   {
+    "op": "answer",
+    "body": {
+     "questionId": "3",
+     "optionId": ""
+    }
+   },
+   {
+    "op": "submit",
+    "body": {
+     "submittedAnswer": {
+      "answers": []
+     },
+     "timeSpentSeconds": 5,
+     "locale": "ru"
+    }
+   }
+  ],
+  "responses": [
+   {
+    "status": 200,
+    "body": {
+     "attemptId": "c692ba0b-7403-42c0-80d5-c19c1d9ecfed",
+     "templateCode": "multiple_choice",
+     "answered": 0,
+     "total": 3,
+     "result": {
+      "questionId": "1",
+      "optionId": "a",
+      "correct": false,
+      "attempt": 1,
+      "attemptsLeft": 1,
+      "closed": false,
+      "optionWhy": "Det er nettopp det motsatte: en selvstendig arbeidstaker trenger lite hjelp."
+     },
+     "routedForReview": false
+    }
+   },
+   {
+    "status": 200,
+    "body": {
+     "attemptId": "c692ba0b-7403-42c0-80d5-c19c1d9ecfed",
+     "templateCode": "multiple_choice",
+     "answered": 1,
+     "total": 3,
+     "result": {
+      "questionId": "1",
+      "optionId": "b",
+      "correct": true,
+      "attempt": 2,
+      "attemptsLeft": 0,
+      "closed": true,
+      "keyOptionId": "b",
+      "why": "Selvstendig betyr at man klarer å jobbe på egen hånd, uten at noen forteller hva som skal gjøres. Annonsen ber om det fordi den nye elektrikeren skal lede mindre prosjekter."
+     },
+     "routedForReview": false
+    }
+   },
+   {
+    "status": 422,
+    "body": {
+     "message": "This question is finished — it was answered, revealed, or all its attempts are spent"
+    }
+   },
+   {
+    "status": 200,
+    "body": {
+     "attemptId": "c692ba0b-7403-42c0-80d5-c19c1d9ecfed",
+     "templateCode": "multiple_choice",
+     "answered": 2,
+     "total": 3,
+     "result": {
+      "questionId": "2",
+      "optionId": "",
+      "correct": false,
+      "attempt": 1,
+      "attemptsLeft": 1,
+      "closed": true,
+      "keyOptionId": "b",
+      "why": "Oversiktlig beskriver noe som er ordnet slik at man raskt ser hva som står hvor. Bartek passer på at CV-en er det."
+     },
+     "routedForReview": false
+    }
+   },
+   {
+    "status": 200,
+    "body": {
+     "attemptId": "c692ba0b-7403-42c0-80d5-c19c1d9ecfed",
+     "templateCode": "multiple_choice",
+     "answered": 3,
+     "total": 3,
+     "result": {
+      "questionId": "3",
+      "optionId": "b",
+      "correct": true,
+      "attempt": 1,
+      "attemptsLeft": 1,
+      "closed": true,
+      "keyOptionId": "b",
+      "why": "Et fagbrev er dokumentet som viser at man har fullført en fagutdanning. Annonsen krever det, og Bartek har det."
+     },
+     "routedForReview": false
+    }
+   },
+   {
+    "status": 400,
+    "body": {
+     "message": "This exercise has no such answerable question"
+    }
+   },
+   {
+    "status": 400,
+    "body": {
+     "message": "An answer cannot be handed in empty"
+    }
+   },
+   {
+    "status": 200,
+    "body": {
+     "attemptId": "c692ba0b-7403-42c0-80d5-c19c1d9ecfed",
+     "correct": false,
+     "score": 33,
+     "requiresReview": false,
+     "feedback": {
+      "summary": "Incorrect. Please try again."
+     }
+    }
+   }
+  ]
+ },
+ {
+  "name": "translate self-checks until spent, then submit",
+  "templateCode": "translate_to_target",
+  "key": {
+   "templateCode": "translate_to_target",
+   "content": {
+    "dir": "to_target",
+    "note": "",
+    "items": [
+     {
+      "id": "s1",
+      "dir": "to_target",
+      "gloss": [
+       {
+        "t": "familie (en)",
+        "w": "семья"
+       }
+      ],
+      "source": "Семья живёт в Бергене."
+     }
+    ],
+    "langs": {
+     "target": "Norsk",
+     "explain": "Russisk"
+    },
+    "format": "single"
+   },
+   "expectedAnswers": {
+    "items": {
+     "s1": {
+      "refs": [
+       "Familien bor i Bergen."
+      ],
+      "forbid": [],
+      "require": [],
+      "explanation": "Презенс глагола «å bo» — «bor»."
+     }
+    }
+   },
+   "answerCheckSettings": null,
+   "instructions": [
+    {
+     "id": "3b3c794f-3807-5644-b862-9061dcbacca2",
+     "exerciseId": "5471c248-94dd-509f-9e6c-09191e87e067",
+     "instructionLanguage": "ru",
+     "instructionText": "Переведите предложение на норвежский.",
+     "hintText": null,
+     "textOverrides": null,
+     "createdAt": "2026-06-21T07:59:32.612Z",
+     "updatedAt": "2026-06-21T10:32:28.127Z"
+    }
+   ]
+  },
+  "projection": {},
+  "ops": [
+   {
+    "op": "selfCheck",
+    "draftAnswer": [
+     {
+      "itemId": "s1",
+      "text": "Familie bor i Bergen"
+     }
+    ]
+   },
+   {
+    "op": "selfCheck",
+    "draftAnswer": [
+     {
+      "itemId": "s1",
+      "text": "Familien bor i Bergen."
+     }
+    ]
+   },
+   {
+    "op": "selfCheck",
+    "draftAnswer": [
+     {
+      "itemId": "s1",
+      "text": "Familien bor i Bergen."
+     }
+    ]
+   },
+   {
+    "op": "selfCheck",
+    "draftAnswer": [
+     {
+      "itemId": "s1",
+      "text": "Familien bor i Bergen."
+     }
+    ]
+   },
+   {
+    "op": "selfCheck",
+    "draftAnswer": {
+     "bad": true
+    }
+   },
+   {
+    "op": "submit",
+    "body": {
+     "submittedAnswer": [
+      {
+       "itemId": "s1",
+       "text": "Familien bor i Bergen."
+      }
+     ],
+     "timeSpentSeconds": 5,
+     "locale": "ru"
+    }
+   },
+   {
+    "op": "selfCheck",
+    "draftAnswer": [
+     {
+      "itemId": "s1",
+      "text": "x"
+     }
+    ]
+   }
+  ],
+  "responses": [
+   {
+    "status": 200,
+    "body": {
+     "attemptId": "a631673f-06f8-4fee-96ce-5fc4b44565e0",
+     "checksUsed": 1,
+     "checksLeft": 1,
+     "templateCode": "translate_to_target",
+     "items": [
+      {
+       "itemId": "s1",
+       "verdict": "typo",
+       "sim": 1,
+       "tokens": [
+        {
+         "t": "eq",
+         "w": "familie",
+         "typo": "familien"
+        },
+        {
+         "t": "eq",
+         "w": "bor",
+         "typo": null
+        },
+        {
+         "t": "eq",
+         "w": "i",
+         "typo": null
+        },
+        {
+         "t": "eq",
+         "w": "bergen",
+         "typo": null
+        }
+       ],
+       "missing": [],
+       "banned": []
+      }
+     ],
+     "passing": 0
+    }
+   },
+   {
+    "status": 200,
+    "body": {
+     "attemptId": "a631673f-06f8-4fee-96ce-5fc4b44565e0",
+     "checksUsed": 2,
+     "checksLeft": 0,
+     "templateCode": "translate_to_target",
+     "items": [
+      {
+       "itemId": "s1",
+       "verdict": "exact",
+       "sim": 1,
+       "tokens": [
+        {
+         "t": "eq",
+         "w": "familien",
+         "typo": null
+        },
+        {
+         "t": "eq",
+         "w": "bor",
+         "typo": null
+        },
+        {
+         "t": "eq",
+         "w": "i",
+         "typo": null
+        },
+        {
+         "t": "eq",
+         "w": "bergen",
+         "typo": null
+        }
+       ],
+       "missing": [],
+       "banned": []
+      }
+     ],
+     "passing": 1
+    }
+   },
+   {
+    "status": 422,
+    "body": {
+     "message": "All 2 self-checks have been used"
+    }
+   },
+   {
+    "status": 422,
+    "body": {
+     "message": "All 2 self-checks have been used"
+    }
+   },
+   {
+    "status": 400,
+    "body": {
+     "message": "Draft answer must carry the work so far in this template's shape"
+    }
+   },
+   {
+    "status": 200,
+    "body": {
+     "attemptId": "a631673f-06f8-4fee-96ce-5fc4b44565e0",
+     "correct": true,
+     "score": 100,
+     "requiresReview": false,
+     "feedback": {
+      "summary": "Correct!"
+     },
+     "details": {
+      "totalItems": 1,
+      "passedItems": 1,
+      "items": [
+       {
+        "itemId": "s1",
+        "routing": "pass"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "status": 422,
+    "body": {
+     "message": "Cannot self-check an attempt with status SCORED"
+    }
+   }
+  ]
+ },
+ {
+  "name": "error correction self-check then submit",
+  "templateCode": "error_correction",
+  "key": {
+   "templateCode": "error_correction",
+   "content": {
+    "mode": "sentences",
+    "note": "Indirekte tale — setninger om tekst 1A.",
+    "items": [
+     {
+      "id": "s-0",
+      "wrong": "Anne sa at søknaden var god, men at han har noen skrivefeil."
+     },
+     {
+      "id": "s-1",
+      "wrong": "Bartek fortalte Anne at han skal søke på stillingen med en gang."
+     },
+     {
+      "id": "s-2",
+      "wrong": "Kari spør om har han fagbrev som elektriker."
+     }
+    ]
+   },
+   "expectedAnswers": {
+    "items": {
+     "s-0": {
+      "ref": "Anne sa at søknaden var god, men at han hadde noen skrivefeil.",
+      "meta": {
+       "9:10:hadde": {
+        "note": "Tidsforskyvning etter «sa»: presens «har» → preteritum «hadde»."
+       }
+      }
+     },
+     "s-1": {
+      "ref": "Bartek fortalte Anne at han skulle søke på stillingen med en gang.",
+      "meta": {
+       "5:6:skulle": {
+        "note": "Tidsforskyvning etter «fortalte»: «skal» → «skulle»."
+       }
+      }
+     },
+     "s-2": {
+      "ref": "Kari spør om han har fagbrev som elektriker.",
+      "meta": {
+       "3:5:han har": {
+        "note": "I indirekte spørsmål er det ingen inversjon: «om han har», ikke «om har han»."
+       }
+      }
+     }
+    }
+   },
+   "answerCheckSettings": null,
+   "instructions": [
+    {
+     "id": "dcbfe2f3-a636-5b80-9e03-79db98b66684",
+     "exerciseId": "84c941af-dd1d-5d31-9acb-937f0656c63f",
+     "instructionLanguage": "ru",
+     "instructionText": "В каждом предложении один фрагмент содержит ошибку в косвенной речи. Найдите и исправьте её.",
+     "hintText": "Помните: после глагола говорения в прошедшем времени время сдвигается на шаг назад, а после «om» инверсии нет.",
+     "textOverrides": null,
+     "createdAt": "2026-08-01T19:35:34.783Z",
+     "updatedAt": "2026-09-02T16:11:35.538Z"
+    }
+   ]
+  },
+  "projection": {},
+  "ops": [
+   {
+    "op": "selfCheck",
+    "draftAnswer": {
+     "items": {
+      "s-0": {
+       "marked": {
+        "9": true
+       },
+       "fix": {
+        "9": "hadde"
+       },
+       "ins": {}
+      }
+     }
+    }
+   },
+   {
+    "op": "selfCheck",
+    "draftAnswer": {
+     "items": {}
+    }
+   },
+   {
+    "op": "submit",
+    "body": {
+     "submittedAnswer": {
+      "items": {
+       "s-0": {
+        "marked": {
+         "9": true
+        },
+        "fix": {
+         "9": "hadde"
+        },
+        "ins": {}
+       }
+      }
+     },
+     "timeSpentSeconds": 5,
+     "locale": "ru"
+    }
+   }
+  ],
+  "responses": [
+   {
+    "status": 200,
+    "body": {
+     "attemptId": "a5085573-f55c-4015-8f61-655e3e13ab9b",
+     "checksUsed": 1,
+     "checksLeft": 1,
+     "templateCode": "error_correction",
+     "items": [
+      {
+       "itemId": "s-0",
+       "fixedCount": 1,
+       "spanCount": 1,
+       "fixedSpans": [
+        true
+       ],
+       "strayEdits": 0
+      },
+      {
+       "itemId": "s-1",
+       "fixedCount": 0,
+       "spanCount": 1,
+       "fixedSpans": [
+        false
+       ],
+       "strayEdits": 0
+      },
+      {
+       "itemId": "s-2",
+       "fixedCount": 0,
+       "spanCount": 1,
+       "fixedSpans": [
+        false
+       ],
+       "strayEdits": 0
+      }
+     ],
+     "fixedCount": 1,
+     "spanCount": 3
+    }
+   },
+   {
+    "status": 200,
+    "body": {
+     "attemptId": "a5085573-f55c-4015-8f61-655e3e13ab9b",
+     "checksUsed": 2,
+     "checksLeft": 0,
+     "templateCode": "error_correction",
+     "items": [
+      {
+       "itemId": "s-0",
+       "fixedCount": 0,
+       "spanCount": 1,
+       "fixedSpans": [
+        false
+       ],
+       "strayEdits": 0
+      },
+      {
+       "itemId": "s-1",
+       "fixedCount": 0,
+       "spanCount": 1,
+       "fixedSpans": [
+        false
+       ],
+       "strayEdits": 0
+      },
+      {
+       "itemId": "s-2",
+       "fixedCount": 0,
+       "spanCount": 1,
+       "fixedSpans": [
+        false
+       ],
+       "strayEdits": 0
+      }
+     ],
+     "fixedCount": 0,
+     "spanCount": 3
+    }
+   },
+   {
+    "status": 200,
+    "body": {
+     "attemptId": "a5085573-f55c-4015-8f61-655e3e13ab9b",
+     "correct": false,
+     "score": null,
+     "requiresReview": true,
+     "feedback": {
+      "summary": "Your answer has been submitted for review."
+     }
+    }
+   }
+  ]
  }
 ]

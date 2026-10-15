@@ -44,7 +44,7 @@ async function perform(
 
 describe('the local engine replies as exercise-engine did on the stand', () => {
   it.each(scenarios.map(s => [s.name, s] as const))('%s', async (_name, s) => {
-    const { engine, advance } = memoryEngine({
+    const { engine, advance, journal } = memoryEngine({
       ex: exerciseFrom('ex', s.key as ExerciseKey, s.projection as Record<string, unknown>),
     });
     const { attemptId } = await engine.start('ex', { language: 'nb', mode: 'PRACTICE' });
@@ -68,5 +68,16 @@ describe('the local engine replies as exercise-engine did on the stand', () => {
         body: masked(expected.body),
       });
     }
+
+    // The journal is what the server will be sent: exactly the calls that went through, in
+    // order — so replaying it is replaying this recording without its refusals.
+    const accepted = (s.ops as JournalOp[]).filter((_op, i) => s.responses[i].status < 300);
+    expect(journal.map(entry => entry.op)).toEqual(
+      accepted.map(op => {
+        const rest: Record<string, unknown> = { ...op };
+        delete rest.delayMs;
+        return rest;
+      }),
+    );
   });
 });
