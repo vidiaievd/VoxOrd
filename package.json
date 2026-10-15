@@ -14,7 +14,9 @@
     "db:reset": "adb shell pm clear com.voxord",
     "test": "jest",
     "kernel:sync": "node scripts/sync-shared-kernel.mjs",
-    "kernel:check": "node scripts/sync-shared-kernel.mjs --check"
+    "kernel:check": "node scripts/sync-shared-kernel.mjs --check",
+    "engine:sync": "node scripts/sync-engine-port.mjs",
+    "engine:check": "node scripts/sync-engine-port.mjs --check"
   },
   "dependencies": {
     "@op-engineering/op-sqlite": "^15.2.5",

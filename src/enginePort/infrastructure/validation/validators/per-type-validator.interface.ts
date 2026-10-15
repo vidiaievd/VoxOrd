@@ -1,0 +1,31 @@
+// ---------------------------------------------------------------------------
+// GENERATED FILE — DO NOT EDIT.
+// Source: ssz-platform/services/exercise-engine-service/src/infrastructure/validation/validators/per-type-validator.interface.ts
+// Regenerate with `npm run engine:sync`; verify with `npm run engine:check`.
+// ---------------------------------------------------------------------------
+
+import type { Result } from '../../../shared/kernel/result';
+import type { ValidationError, ValidationOutcome } from '../../../shared/application/ports/answer-validator.port';
+
+export interface PerTypeValidateInput {
+  submittedAnswer: unknown;
+  expectedAnswers: unknown;
+  /**
+   * exercise.content. Optional here although the dispatcher always passes it: only
+   * word_bank_gap_fill and match_pairs read it — the two templates that store their
+   * answers inside the content — and the other nine validators would otherwise have to
+   * name a field they never look at.
+   */
+  content?: unknown;
+  /**
+   * The template the exercise was written against. Only the translate validator reads it,
+   * and only as the fallback for a document whose `content.dir` predates the field.
+   */
+  templateCode?: string;
+  checkSettings: Record<string, unknown>;
+  targetLanguage: string;
+}
+
+export interface IPerTypeValidator {
+  validate(input: PerTypeValidateInput): Result<ValidationOutcome, ValidationError>;
+}

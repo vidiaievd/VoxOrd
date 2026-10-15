@@ -1,2 +1,3 @@
 # Generated copy of ssz-platform's shared-kernel (`npm run kernel:sync`) — never edited here.
 src/kernel/
+src/enginePort/
