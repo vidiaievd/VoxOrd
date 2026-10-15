@@ -104,21 +104,3 @@ export async function getNextWord(
     reviewCount: (row.reviewCount ?? 0) as number,
   };
 }
-
-export async function debugPrintAllWords(): Promise<void> {
-  const db = getDatabase();
-  const result = await db.execute(`
-    SELECT w.id, w.word, w.partOfSpeech, t.translation, wp.status, wp.deckId
-    FROM words w
-    JOIN translations  t  ON t.wordId  = w.id AND t.languageCode = 'ru'
-    JOIN word_progress wp ON wp.wordId = w.id
-    ORDER BY w.id;
-  `);
-  const rows = result.rows ?? [];
-  console.log(`[DB] Total word-deck pairs: ${rows.length}`);
-  rows.forEach(row => {
-    console.log(
-      `[DB] #${row.id} | ${row.word} (${row.partOfSpeech}) → ${row.translation} | deck: ${row.deckId} | status: ${row.status}`,
-    );
-  });
-}

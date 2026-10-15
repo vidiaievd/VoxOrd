@@ -2,14 +2,6 @@ import { getDatabase } from '../db/database';
 import { DeckUserStatus } from '../db/types';
 import { SQL } from '../srs/dueness';
 
-export interface DeckGroup {
-  id: number;
-  title: string;
-  icon: string;
-  sortOrder: number;
-  decks: Deck[];
-}
-
 export interface Deck {
   id: number;
   title: string;
@@ -77,29 +69,6 @@ class DeckRepository {
       // completedAt:  row.completedAt  as number | null,
       languageCode: row.languageCode as string,
       sortOrder:    row.sortOrder    as number,
-    }));
-  }
-
-  /**
-   * Groups with their decks attached. `decks` may be passed in by a caller
-   * that already loaded them (HomeRepository does), to avoid running the
-   * aggregate deck query twice for one screen.
-   */
-  async getAllGrouped(decks?: Deck[]): Promise<DeckGroup[]> {
-    const db = getDatabase();
-
-    const groupsResult = await db.execute(
-      'SELECT * FROM deck_groups ORDER BY sortOrder ASC;'
-    );
-    const groups = groupsResult.rows ?? [];
-    const allDecks = decks ?? (await this.getAll());
-
-    return groups.map((g) => ({
-      id:        g.id        as number,
-      title:     g.title     as string,
-      icon:      g.icon      as string,
-      sortOrder: g.sortOrder as number,
-      decks:     allDecks.filter((d) => d.groupId === g.id),
     }));
   }
 
