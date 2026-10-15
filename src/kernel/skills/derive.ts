@@ -1,0 +1,417 @@
+// ---------------------------------------------------------------------------
+// GENERATED FILE — DO NOT EDIT.
+// Source: ssz-platform/packages/shared-kernel/src/skills/derive.ts
+// Regenerate with `npm run kernel:sync`; verify with `npm run kernel:check`.
+// ---------------------------------------------------------------------------
+
+// Deriving what an exercise trains — plan 55 §3.4.
+//
+// The decision this file encodes: **the axis is derived, not authored.** 452 seeded
+// exercises get their axes for no authoring work at all, and the coverage report is
+// truthful on the day it ships. Hand-tagging would mean the report lies until somebody
+// tags the catalogue — that is to say, always.
+//
+// The chain for `skill`, first rung that fires wins outright:
+//
+//   1. override   — the author said so
+//   2. placement  — where the exercise stands in the lesson
+//   3. document   — a flag inside the exercise itself
+//   4. template   — the table in by-template.ts
+//
+// Placement outranks the template because of a fact in the schema, not a preference:
+// `LessonListeningStage` links a lesson variant to an `Exercise` by foreign key, and an
+// exercise standing as a listening stage **is** listening, whatever template sits under
+// it. A `short_answer` about a recording is not a reading exercise.
+//
+// Since plan 64 (decision F) the placement and document rungs no longer answer with a
+// list of channels. They change what the learner takes in — `input` — and the template's
+// `output` survives them, so a written answer to a recording counts as listening *and*
+// writing. The chain still decides which rung speaks first; it now decides it per field.
+//
+// `focus` has its own, shorter chain — override → atoms → template — because placement
+// and the document say nothing about the subject. Two chains means two sources reported;
+// one combined `source` would have to lie about one of them.
+
+import { templateProfile } from './by-template';
+import type { Focus, FocusSource, Form, Input, Modality, Output, Skill, SkillSource } from './model';
+import { channelsOf, isModality, orderFocuses, parseFocuses, parseSkills } from './model';
+
+/** How the exercise sits in its lesson. Every field optional: most exercises have none. */
+export interface Placement {
+  /** Set when the exercise is a stage of an AUDIO lesson (`LessonListeningStage`). */
+  listeningStage?: 'gap_fill' | 'comprehension' | null;
+  /** Set when the exercise is the comprehension question of a VIDEO lesson. */
+  videoQuestion?: boolean;
+  /** The kind of the lesson placing it, when known. */
+  lessonKind?: 'text' | 'video' | 'audio' | 'live' | null;
+}
+
+/**
+ * What the author said, if anything.
+ *
+ * `setAt` is the whole point of the shape: an empty `skills` array with `setAt` set means
+ * "this exercise trains nothing I want counted" — a deliberate statement — while an empty
+ * array without it means the author never spoke and the chain should carry on. Prisma
+ * cannot express a nullable array, so the marker is a separate column (plan 55 §3.5).
+ *
+ * One marker covers both axes, so **a partial override is not expressible**: speaking
+ * about the skill means speaking about the focus too. Deliberate. Two markers would let
+ * an exercise sit half-derived and half-declared, and the strip would have to explain a
+ * state nobody asked for; the authoring UI writes the pair, and an author who wants the
+ * derived focus back copies it into the field it already shows them.
+ */
+export interface SkillOverride {
+  skills?: unknown;
+  focus?: unknown;
+  /**
+   * What the author said about *how* the exercise is answered (plan 63 §2 E).
+   *
+   * Nothing writes it yet — there is no column for it — and the field is here so that the
+   * rung exists in one place when something does. An unrecognised value is ignored rather
+   * than trusted, exactly as the two lists above are filtered.
+   */
+  modality?: unknown;
+  setAt?: Date | string | null;
+}
+
+export interface AtomRef {
+  atomType: string;
+  atomId?: string;
+  /**
+   * Which element of the exercise names this atom, where the catalogue records it
+   * (`ExerciseItemTarget.itemKey`). Null for an atom named by the whole exercise, which
+   * is all the older `PRACTICED_BY` graph can say.
+   *
+   * The key is what makes a subject a share rather than a flag: a set of eight questions,
+   * three about words and five about a rule, is three-eighths vocabulary — not "both
+   * subjects, equally" (plan 64, decision H).
+   */
+  itemKey?: string | null;
+}
+
+export interface DeriveInput {
+  templateCode: string;
+  /** The persisted `content` document. Read for flags only, never for the key. */
+  content?: unknown;
+  /** `PRACTICED_BY` atoms, as snapshotted for the attempt event (plan 21 §3). */
+  atoms?: readonly AtomRef[];
+  placement?: Placement | null;
+  override?: SkillOverride | null;
+}
+
+/**
+ * How much of the exercise each subject accounts for, 0–1 per subject.
+ *
+ * Shares of *elements*, not of exercises, and they need not sum to 1: an element about a
+ * word inside a rule names both subjects and counts in both. Empty whenever the subject
+ * did not come from the atom graph — a template's hint is a claim about the type, and
+ * weighing it would invent a precision nobody recorded.
+ */
+export type FocusWeights = Partial<Record<Focus, number>>;
+
+export interface DerivedProfile {
+  /** The CEFR channels — `channelsOf(input, output)`, unless the author overrode them. */
+  skills: Skill[];
+  /**
+   * What the exercise is built to take in and give out (plan 64, decision F).
+   *
+   * Never overridden: the author's override speaks about channels, and a list of
+   * channels cannot be turned back into one input and one output. These two fields
+   * describe the exercise as built; `skills` is what it is counted as.
+   */
+  input: Input;
+  output: Output;
+  focus: Focus[];
+  /** Empty unless `focusSource` is `atoms`. See `FocusWeights`. */
+  focusWeights: FocusWeights;
+  form: Form;
+  /** How the learner had to know it — plan 63 §2 E. */
+  modality: Modality;
+  skillSource: SkillSource;
+  focusSource: FocusSource;
+  /**
+   * Which rung answered the modality. Its own chain — override → document → template —
+   * because placement says nothing about how an answer is produced: a `short_answer`
+   * standing as a listening stage is heard rather than read, and still written from
+   * nothing.
+   */
+  modalitySource: SkillSource;
+}
+
+function hasSpoken(override: SkillOverride | null | undefined): boolean {
+  return override?.setAt !== undefined && override?.setAt !== null;
+}
+
+/** A recording, when the exercise stands somewhere that plays one. The output is untouched. */
+function fromPlacement(placement: Placement | null | undefined): Input | null {
+  if (!placement) return null;
+  if (placement.listeningStage) return 'audio';
+  if (placement.videoQuestion === true) return 'video';
+  if (placement.lessonKind === 'audio') return 'audio';
+  if (placement.lessonKind === 'video') return 'video';
+  return null;
+}
+
+function record(value: unknown): Record<string, unknown> | null {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+/**
+ * Flags inside the document itself.
+ *
+ * Two live sources today, and a third arriving with plan 56:
+ *
+ * - `audio.enabled` — the audio layer of plan 56 turns any exercise into listening. This
+ *   is the single point where the two plans meet, and it is read defensively so that it
+ *   starts working the moment the field exists, without a change here.
+ * - `settings.input` on `word_bank_gap_fill` — `free` means typed from nothing (written
+ *   production), `bank` means chosen from a strip (recognition). The template merged two
+ *   old types, so the document is the only thing that can tell them apart.
+ * - `input.mode` on `inflection_table` — `bank` offers the forms, so the same table is
+ *   recognised rather than recalled (plan 69).
+ * - `mode` on `read_aloud` — a monologue or a dialogue is production with no subject of its own,
+ *   and a picture monologue takes in a picture (plan 70).
+ * - `focus` on `information_transfer` — the author picks the subject in step 1, `pragmatics` or
+ *   `vocabulary` (plan 73); the source switch reaches the input through `audio.enabled`.
+ */
+interface DocumentReading {
+  input?: Input;
+  output?: Output;
+  form?: Form;
+  modality?: Modality;
+  /**
+   * The template's structural subject as the document narrows it — set only by a type whose
+   * hint holds for some of its tasks and not others (`read_aloud`, plan 70). Replaces the row's
+   * `focus` wherever the row's would be read; an empty list withdraws the hint.
+   */
+  focus?: readonly Focus[];
+}
+
+function fromDocument(templateCode: string, content: unknown): DocumentReading | null {
+  const doc = record(content);
+  if (!doc) return null;
+
+  const reading: DocumentReading = {};
+  const heard = record(doc['audio'])?.['enabled'] === true;
+
+  if (templateCode === 'word_bank_gap_fill') {
+    const mode = record(doc['settings'])?.['input'];
+    // Typed from nothing is retrieval; chosen off a strip is recognition. The same flag
+    // settles the output, the form and the modality, which is the whole argument for
+    // reading the document here rather than splitting the template back in two.
+    if (mode === 'free') {
+      reading.output = 'written_target';
+      if (!heard) Object.assign(reading, { input: 'none', form: 'free', modality: 'recall' });
+    }
+    if (mode === 'bank') {
+      reading.output = 'none';
+      if (!heard) Object.assign(reading, { input: 'text', form: 'bank', modality: 'recognition' });
+    }
+    // With the recording on, `form` and `modality` are deliberately *not* read, and stay
+    // what the template says (`mixed`, `unknown`). That is a bug — the flag means the
+    // same with or without sound — and it is frozen: `modality` rates plan 63's shadow
+    // atom cards, and fixing it here would change their rating mid-comparison. It is
+    // fixed together with the vocabulary of `modality` (plan 64, decision G2).
+  }
+
+  if (templateCode === 'inflection_table') {
+    // Forms on offer are picked, not spelled (plan 69, deviation 1). Unlike the gap-fill above,
+    // the output stays `written_target` — the result is a written paradigm in both modes — and
+    // the reading holds with the recording on: a new type has no frozen ratings to protect.
+    if (record(doc['input'])?.['mode'] === 'bank') {
+      Object.assign(reading, { form: 'bank', modality: 'recognition' });
+    }
+  }
+
+  if (heard) reading.input = 'audio';
+
+  if (templateCode === 'information_transfer') {
+    // The subject the author chose (step 1). Anything else reads as the row's own.
+    const focus = doc['focus'];
+    if (focus === 'pragmatics' || focus === 'vocabulary') reading.focus = [focus];
+  }
+
+  if (templateCode === 'read_aloud') {
+    // One type, three tasks (plan 70 §3.9). Reading aloud keeps the row; a monologue and a
+    // dialogue choose their own words — `production` — and carry no subject of their own.
+    // A picture monologue takes in a picture, and the picture decides even with a recording on:
+    // the prototype's `raAxes` puts the image first, since the clip is at most a prompt beside it.
+    const mode = doc['mode'];
+    if (mode === 'monologue' || mode === 'dialogue') {
+      reading.modality = 'production';
+      reading.focus = [];
+    }
+    if (mode === 'monologue') {
+      const prompts = Array.isArray(doc['prompts']) ? doc['prompts'] : [];
+      const pictured = prompts.some((p) => {
+        const asset = record(record(p)?.['image'])?.['assetId'];
+        return typeof asset === 'string' && asset.trim() !== '';
+      });
+      if (pictured) reading.input = 'image';
+    }
+  }
+
+  return Object.keys(reading).length > 0 ? reading : null;
+}
+
+/**
+ * The subject, read off the atom graph.
+ *
+ * Today this returns nothing for the seeded catalogue: no `ContentRelation` rows are
+ * seeded at all, so `practicedAtoms` is empty on every attempt against seeded content.
+ * That is not a reason to guess harder in the table — it is the reason the report has an
+ * `unknown` bucket, and the reason the grammar-rule pool (audit 34 §5 item 3) matters
+ * beyond spaced repetition.
+ *
+ * Exported for `recipe.ts`, which reads the same graph element by element and must not
+ * classify an atom by a second rule.
+ */
+export function atomFocus(atom: AtomRef): Focus | null {
+  const type = atom.atomType.toLowerCase();
+  if (type.includes('grammar')) return 'grammar';
+  if (type.includes('word') || type.includes('vocab')) return 'vocabulary';
+  return null;
+}
+
+function fromAtoms(atoms: readonly AtomRef[] | undefined): Focus[] | null {
+  if (!atoms || atoms.length === 0) return null;
+  const found = new Set<Focus>();
+  for (const atom of atoms) {
+    const focus = atomFocus(atom);
+    if (focus) found.add(focus);
+  }
+  return found.size > 0 ? orderFocuses(found) : null;
+}
+
+/**
+ * The same graph, read by element rather than by exercise.
+ *
+ * An atom with no `itemKey` stands for the whole exercise and gets a bucket of its own,
+ * so a catalogue that predates element-level targets still weighs in at 1 — the older
+ * shape says "this exercise is about grammar", which is exactly one element's worth of
+ * evidence and should not read as eight.
+ */
+function weighAtoms(
+  atoms: readonly AtomRef[] | undefined,
+  structural: readonly Focus[] = [],
+): FocusWeights {
+  if (!atoms || atoms.length === 0) return {};
+
+  const byItem = new Map<string, Set<Focus>>();
+  for (const atom of atoms) {
+    const focus = atomFocus(atom);
+    if (!focus) continue;
+    const key = atom.itemKey ?? '';
+    const bucket = byItem.get(key) ?? new Set<Focus>();
+    bucket.add(focus);
+    byItem.set(key, bucket);
+  }
+
+  if (byItem.size === 0) return {};
+  // A structural subject is true of every element, so every element carries it.
+  for (const bucket of byItem.values()) for (const focus of structural) bucket.add(focus);
+
+  const weights: FocusWeights = {};
+  for (const foci of byItem.values()) {
+    for (const focus of foci) weights[focus] = (weights[focus] ?? 0) + 1 / byItem.size;
+  }
+  return weights;
+}
+
+/**
+ * The subject a template asserts of every element, as its document narrows it — empty unless
+ * the row is `focusStructural`. One reading for `deriveSkills` and `recipe.ts`, so a monologue
+ * does not lose `pronunciation` in one and keep it in the other.
+ */
+export function structuralFocus(templateCode: string, content?: unknown): Focus[] {
+  const profile = templateProfile(templateCode);
+  if (!profile?.focusStructural) return [];
+  return [...(fromDocument(templateCode, content)?.focus ?? profile.focus)];
+}
+
+export function deriveSkills(input: DeriveInput): DerivedProfile {
+  const profile = templateProfile(input.templateCode);
+  const document = fromDocument(input.templateCode, input.content);
+
+  // `form` is not part of either chain: it is a property of how the answer is produced,
+  // and only the template and the document have anything to say about it.
+  const form: Form = document?.form ?? profile?.form ?? 'unknown';
+
+  // Each field takes the first rung that speaks about it: a recording in the lesson
+  // replaces the input and leaves the output to the document or the template.
+  const placed = fromPlacement(input.placement);
+  const channelInput: Input = placed ?? document?.input ?? profile?.input ?? 'none';
+  const channelOutput: Output = document?.output ?? profile?.output ?? 'none';
+
+  let skills: Skill[];
+  let skillSource: SkillSource;
+
+  if (hasSpoken(input.override)) {
+    skills = parseSkills(input.override?.skills);
+    skillSource = 'override';
+  } else {
+    skills = channelsOf(channelInput, channelOutput);
+    // The highest rung that changed anything. A template-less code still counts as
+    // placed or documented when a recording is all anyone knows about it.
+    skillSource = placed
+      ? 'placement'
+      : document?.input || document?.output
+        ? 'document'
+        : profile
+          ? 'template'
+          : 'unknown';
+  }
+
+  let focus: Focus[];
+  let focusSource: FocusSource;
+  let focusWeights: FocusWeights = {};
+  // The template's hint, as the document narrows it (`DocumentReading.focus`).
+  const hint: readonly Focus[] = document?.focus ?? profile?.focus ?? [];
+
+  if (hasSpoken(input.override)) {
+    focus = parseFocuses(input.override?.focus);
+    focusSource = 'override';
+  } else {
+    const fromGraph = fromAtoms(input.atoms);
+    if (fromGraph) {
+      // A structural hint joins the graph instead of yielding to it (`focusStructural`).
+      const structural = structuralFocus(input.templateCode, input.content);
+      focus = orderFocuses([...fromGraph, ...structural]);
+      focusSource = 'atoms';
+      focusWeights = weighAtoms(input.atoms, structural);
+    } else if (profile && hint.length > 0) {
+      focus = orderFocuses(hint);
+      focusSource = 'template';
+    } else {
+      focus = [];
+      focusSource = 'unknown';
+    }
+  }
+
+  const overriddenModality = hasSpoken(input.override) && isModality(input.override?.modality);
+  const modality: Modality = overriddenModality
+    ? (input.override?.modality as Modality)
+    : (document?.modality ?? profile?.modality ?? 'unknown');
+  const modalitySource: SkillSource = overriddenModality
+    ? 'override'
+    : document?.modality
+      ? 'document'
+      : profile?.modality && profile.modality !== 'unknown'
+        ? 'template'
+        : 'unknown';
+
+  return {
+    skills,
+    input: channelInput,
+    output: channelOutput,
+    focus,
+    focusWeights,
+    form,
+    modality,
+    skillSource,
+    focusSource,
+    modalitySource,
+  };
+}

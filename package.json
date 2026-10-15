@@ -12,7 +12,9 @@
     "emulator:start": "adb start-server && emulator -avd rn_pixel -no-snapshot -no-audio -gpu host -memory 4096 -cores 4",
     "emulator:restart": "npm run emulator:stop && npm run emulator:start",
     "db:reset": "adb shell pm clear com.voxord",
-    "test": "jest"
+    "test": "jest",
+    "kernel:sync": "node scripts/sync-shared-kernel.mjs",
+    "kernel:check": "node scripts/sync-shared-kernel.mjs --check"
   },
   "dependencies": {
     "@op-engineering/op-sqlite": "^15.2.5",
