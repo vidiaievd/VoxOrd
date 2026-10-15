@@ -9,6 +9,8 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 }));
 
 const mockRemote = {
+  startAttempt: jest.fn(),
+  abandonAttempt: jest.fn(),
   startOrJoinAttempt: jest.fn(),
   submitAttempt: jest.fn(),
   answerQuestion: jest.fn(),
@@ -164,5 +166,63 @@ describe('exerciseOutboxStore', () => {
     expect(exerciseOutboxStore.pendingCount).toBe(1);
     await exerciseOutboxStore.flush();
     expect(mockRemote.submitAttempt).toHaveBeenCalledTimes(1);
+  });
+
+  describe('a minimal_pairs sitting dealt on the phone (offline plan, B6)', () => {
+    const draw = [{ n: 1, pairId: 'p', wordId: 'w1', side: 0, optionIds: ['w2', 'w1'] }];
+    // Each its own: the local → server id map outlives a test.
+    const sitting = (id: string) => ({ ...attempt(id), probeDraw: draw });
+    const answerOp = { op: 'answer' as const, body: { questionId: 'p1', optionId: 'w1' } };
+    const conflict = (openAttemptId: string) =>
+      new ApiError({
+        message: 'Another sitting of this exercise is open',
+        status: 409,
+        code: 'MP_DRAW_CONFLICT',
+        body: { code: 'MP_DRAW_CONFLICT', openAttemptId },
+      });
+
+    it('starts with the draw it was dealt, never joining whatever is open', async () => {
+      mockRemote.startAttempt.mockResolvedValueOnce({ attemptId: 'srv-mp' });
+      await exerciseOutboxStore.recordLocalOp(sitting('mp'), answerOp);
+      await exerciseOutboxStore.flush();
+
+      expect(mockRemote.startAttempt).toHaveBeenCalledWith('ex-mp', {
+        language: 'nb',
+        mode: 'PRACTICE',
+        probeDraw: draw,
+      });
+      expect(mockRemote.startOrJoinAttempt).not.toHaveBeenCalled();
+      expect(mockRemote.answerQuestion).toHaveBeenCalledWith('ex-mp', 'srv-mp', answerOp.body);
+      expect(exerciseOutboxStore.pendingCount).toBe(0);
+    });
+
+    it('abandons a sitting left open on the web and starts once more', async () => {
+      mockRemote.startAttempt
+        .mockRejectedValueOnce(conflict('srv-web'))
+        .mockResolvedValueOnce({ attemptId: 'srv-mp' });
+      await exerciseOutboxStore.recordLocalOp(sitting('mp2'), answerOp);
+      await exerciseOutboxStore.flush();
+
+      expect(mockRemote.abandonAttempt).toHaveBeenCalledWith('ex-mp2', 'srv-web');
+      expect(mockRemote.startAttempt).toHaveBeenCalledTimes(2);
+      expect(mockRemote.answerQuestion).toHaveBeenCalledWith('ex-mp2', 'srv-mp', answerOp.body);
+    });
+
+    it('keeps the sitting while the server is out of reach, and drops one it refuses', async () => {
+      mockRemote.startAttempt.mockRejectedValueOnce(offline());
+      await exerciseOutboxStore.recordLocalOp(sitting('mp3'), answerOp);
+      await exerciseOutboxStore.flush();
+      expect(exerciseOutboxStore.pendingCount).toBe(1);
+
+      const error = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+      mockRemote.startAttempt.mockRejectedValueOnce(
+        new ApiError({ message: 'spent', status: 422, code: 'MP_SITTINGS_SPENT' }),
+      );
+      await exerciseOutboxStore.flush();
+      expect(exerciseOutboxStore.pendingCount).toBe(0);
+      expect(mockRemote.answerQuestion).not.toHaveBeenCalled();
+      expect(error).toHaveBeenCalledWith(expect.stringContaining('MP_SITTINGS_SPENT'));
+      error.mockRestore();
+    });
   });
 });

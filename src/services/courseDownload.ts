@@ -9,6 +9,7 @@ import {
   courseHomeResource,
   exerciseDisplayResource,
   exerciseKeyResource,
+  probeHistoryResource,
   grammarRuleResource,
   lessonReaderResource,
   unitContentsResource,
@@ -16,7 +17,8 @@ import {
   type CourseResource,
 } from '../lib/courseResources';
 import { collectMediaIds } from '../lib/mediaIds';
-import { isGradedOffline } from '../offline/engine/grading';
+import { fromPersisted as mpFromPersisted, TEMPLATE_CODE as MINIMAL_PAIRS } from '../kernel/minimal-pairs';
+import { isGradedOffline, type ExerciseKey } from '../offline/engine/grading';
 import { setMemoryCache, writeCacheSnapshot } from '../lib/swrCache';
 import { buildImportPlan } from '../repositories/vocabularyImportMapping';
 import { vocabularyImportRepository } from '../repositories/VocabularyImportRepository';
@@ -270,9 +272,16 @@ export class CourseDownloader {
       case 'exercise': {
         const display = await this.fetch(exerciseDisplayResource(item.contentId, uiLanguage));
         if (!kept(display)) return false;
-        // The key goes along only for the templates the phone grades itself offline.
+        // The key goes along only for the templates the phone grades itself offline. Its media
+        // too: a `minimal_pairs` projection names no clip, the key holds them all.
         if (!isGradedOffline(display.templateCode)) return true;
-        return (await this.fetch(exerciseKeyResource(item.contentId))) !== null;
+        const key = await this.fetch(exerciseKeyResource(item.contentId));
+        if (!kept(key)) return false;
+        if (display.templateCode === MINIMAL_PAIRS && dealsWeakest(key)) {
+          // Without it a `weakest` sitting offline deals as on a first sitting; not a failure.
+          await this.fetch(probeHistoryResource(item.contentId));
+        }
+        return true;
       }
       case 'vocabulary_list': {
         const reader = await this.fetch(vocabularyListResource(item.contentId, uiLanguage));
@@ -322,6 +331,11 @@ export class CourseDownloader {
     this.status = { ...this.status, ...patch };
     this.listeners.forEach(l => l());
   }
+}
+
+/** A `minimal_pairs` set that deals from the learner's misses, and so needs their record. */
+function dealsWeakest(key: ExerciseKey): boolean {
+  return mpFromPersisted(key.content, key.expectedAnswers).set.sampling === 'weakest';
 }
 
 function finishedKey(userId: string): string {

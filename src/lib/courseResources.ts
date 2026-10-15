@@ -1,6 +1,7 @@
 import { getContainer } from '../api/courses';
 import { getCourseHome } from '../api/courseHome';
-import { getExerciseAnswers, getExerciseDisplay } from '../api/exercises';
+import { getExerciseAnswers, getExerciseDisplay, getProbeHistory } from '../api/exercises';
+import type { ProbeHistorySnapshot } from '../offline/engine/engine';
 import { exerciseKeyCacheKey, type ExerciseKey } from '../offline/engine/grading';
 import { getGrammarRuleExplanation, type GrammarRuleExplanation } from '../api/grammarRules';
 import { getLessonReaderContent, type LessonReaderContent } from '../api/lessons';
@@ -121,6 +122,21 @@ export function exerciseKeyResource(exerciseId: string): CourseResource<Exercise
         answerCheckSettings: answers.answerCheckSettings,
         instructions: answers.instructions,
       };
+    },
+  };
+}
+
+/**
+ * The learner's `minimal_pairs` record for a `weakest` set (offline plan, B6), stamped with when
+ * it was asked: the phone counts its own sittings only from then on, so none is counted twice.
+ */
+export function probeHistoryResource(exerciseId: string): CourseResource<ProbeHistorySnapshot> {
+  return {
+    key: `probe-history:${exerciseId}`,
+    load: async () => {
+      const fetchedAt = new Date().toISOString();
+      const history = await getProbeHistory(exerciseId);
+      return { fetchedAt, targetLanguage: history.targetLanguage, sittings: history.sittings };
     },
   };
 }

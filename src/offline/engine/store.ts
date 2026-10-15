@@ -37,6 +37,13 @@ export class LocalAttemptStore {
       .map(a => JSON.parse(JSON.stringify(a)) as LocalAttempt);
   }
 
+  async listAll(userId: string): Promise<LocalAttempt[]> {
+    return Object.values(await this.load())
+      .filter(a => a.userId === userId)
+      .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
+      .map(a => JSON.parse(JSON.stringify(a)) as LocalAttempt);
+  }
+
   private load(): Promise<Record<string, LocalAttempt>> {
     if (this.attempts) return Promise.resolve(this.attempts);
     if (!this.loading) {

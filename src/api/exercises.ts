@@ -88,6 +88,11 @@ export interface StartAttemptRequest {
    * someone else's (plan 70, Q2-A).
    */
   joinAttemptId?: string;
+  /**
+   * `minimal_pairs` in PRACTICE: a sitting dealt and played on the phone offline, handed over
+   * on the replay (offline plan, B6). The server keeps it if the document could have dealt it.
+   */
+  probeDraw?: unknown[];
 }
 
 /**
@@ -354,7 +359,25 @@ function remoteAnswerQuestion(
  * the submit is what is left. The body is read by `readProbe` in the template module.
  */
 export function handOutProbe(exerciseId: string, attemptId: string): Promise<unknown> {
-  return apiClient.post<unknown>(ITEMS_PATH(exerciseId, attemptId), {});
+  return isLocal(attemptId)
+    ? local!.handOutProbe(attemptId)
+    : apiClient.post<unknown>(ITEMS_PATH(exerciseId, attemptId), {});
+}
+
+/**
+ * `GET /exercises/:exerciseId/attempts/probe-history` — the learner's own `minimal_pairs` record
+ * in the exercise's language, what `weakest` deals from (offline plan, B6). Kept by the course
+ * download so a sitting dealt offline reads what the server would have.
+ */
+export function getProbeHistory(
+  exerciseId: string,
+): Promise<{ targetLanguage: string; sittings: Array<{ probes: unknown[] }> }> {
+  return apiClient.get(`${ATTEMPTS_PATH(exerciseId)}/probe-history`);
+}
+
+/** `DELETE /exercises/:exerciseId/attempts/:attemptId` — an in-progress attempt abandoned. */
+function remoteAbandonAttempt(exerciseId: string, attemptId: string): Promise<void> {
+  return apiClient.delete<void>(ATTEMPT_PATH(exerciseId, attemptId));
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -691,6 +714,7 @@ export interface LocalAttempts {
   start(exerciseId: string, body: StartAttemptRequest): Promise<StartAttemptResponse>;
   submit(attemptId: string, body: SubmitAttemptRequest): Promise<SubmitAttemptResponse>;
   answerQuestion(attemptId: string, body: AnswerQuestionRequest): Promise<AnswerQuestionResponse>;
+  handOutProbe(attemptId: string): Promise<unknown>;
   checkRow(attemptId: string, body: CheckRowRequest): Promise<CheckRowResponse>;
   revealAnswers(attemptId: string): Promise<unknown>;
   selfCheck(attemptId: string, draftAnswer: unknown): Promise<unknown>;
@@ -710,6 +734,7 @@ export function setLocalAttempts(engine: LocalAttempts | null): void {
 export const remoteAttempts = {
   startAttempt: remoteStartAttempt,
   startOrJoinAttempt: remoteStartOrJoinAttempt,
+  abandonAttempt: remoteAbandonAttempt,
   submitAttempt: remoteSubmitAttempt,
   answerQuestion: remoteAnswerQuestion,
   checkRow: remoteCheckRow,

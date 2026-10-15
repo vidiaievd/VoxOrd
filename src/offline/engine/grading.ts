@@ -13,6 +13,7 @@ import { HighlightInTextValidator } from '../../enginePort/infrastructure/valida
 import { InflectionTableValidator } from '../../enginePort/infrastructure/validation/validators/inflection-table.validator';
 import { InformationTransferValidator } from '../../enginePort/infrastructure/validation/validators/information-transfer.validator';
 import { MatchPairsValidator } from '../../enginePort/infrastructure/validation/validators/match-pairs.validator';
+import { MinimalPairsValidator } from '../../enginePort/infrastructure/validation/validators/minimal-pairs.validator';
 import { MultipleChoiceGroupValidator } from '../../enginePort/infrastructure/validation/validators/multiple-choice-group.validator';
 import { MultipleChoiceValidator } from '../../enginePort/infrastructure/validation/validators/multiple-choice.validator';
 import { SentenceSchemaValidator } from '../../enginePort/infrastructure/validation/validators/sentence-schema.validator';
@@ -26,9 +27,9 @@ import { WritingTaskValidator } from '../../enginePort/infrastructure/validation
 
 /**
  * The engine's graders, as its `SchemaBasedAnswerValidator` dispatches them, for every template
- * the phone works offline. Two are left out on purpose: `minimal_pairs` deals its probes on the
- * server at random — a sitting played on the phone would be replayed against another draw — and
- * `read_aloud` is a recording for a teacher, uploaded to media-service as it is made.
+ * the phone works offline. One is left out on purpose: `read_aloud` is a recording for a
+ * teacher, uploaded to media-service as it is made. `minimal_pairs` is dealt on the phone and
+ * the replay hands the draw over (offline plan, B6), unless the author limits its sittings.
  *
  * The engine's first step, an AJV check of the submission against the template's answer
  * schema, is not repeated: the submissions come from this app's own bodies, and the engine
@@ -39,6 +40,7 @@ const VALIDATORS: ReadonlyMap<string, IPerTypeValidator> = new Map<string, IPerT
   ['multiple_choice_group', new MultipleChoiceGroupValidator()],
   ['fill_in_blank', new FillInBlankValidator()],
   ['match_pairs', new MatchPairsValidator()],
+  ['minimal_pairs', new MinimalPairsValidator()],
   ['short_answer', new ShortAnswerValidator()],
   ['sentence_schema', new SentenceSchemaValidator()],
   ['word_bank_fill', new WordBankFillValidator()],
@@ -71,6 +73,7 @@ const TEMPLATE_DEFAULTS: Readonly<Record<string, Record<string, unknown>>> = {
   inflection_table: {},
   information_transfer: {},
   match_pairs: { allow_partial_credit: true },
+  minimal_pairs: {},
   multiple_choice: { allow_partial_credit: false },
   multiple_choice_group: { allow_partial_credit: true },
   sentence_schema: { order_sensitive: true, allow_partial_credit: true },

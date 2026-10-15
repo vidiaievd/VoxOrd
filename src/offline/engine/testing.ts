@@ -1,6 +1,7 @@
 import type { ExerciseDisplay } from '../../api/types';
 import type { LocalAttempt } from './attempt';
-import { LocalEngine, type JournalOp } from './engine';
+import { lcg } from '../../kernel/minimal-pairs';
+import { LocalEngine, type JournalOp, type ProbeHistorySnapshot } from './engine';
 import type { ExerciseKey } from './grading';
 
 /**
@@ -10,7 +11,14 @@ import type { ExerciseKey } from './grading';
 export function memoryEngine(
   exercises: Record<string, { display: ExerciseDisplay; key: ExerciseKey }>,
   userId = 'user-1',
+  extra: {
+    /** Kept clips; by default every clip is kept, at `file:///media/<assetId>`. */
+    clipUrl?: (assetId: string) => string | null;
+    probeHistory?: Record<string, ProbeHistorySnapshot>;
+    seed?: number;
+  } = {},
 ) {
+  const random = lcg(extra.seed ?? 7);
   const attempts = new Map<string, LocalAttempt>();
   const journal: Array<{ attemptId: string; op: JournalOp }> = [];
   let ids = 0;
@@ -21,6 +29,10 @@ export function memoryEngine(
     userId: () => userId,
     display: async id => exercises[id]?.display ?? null,
     key: async id => exercises[id]?.key ?? null,
+    clipUrl: async assetId =>
+      extra.clipUrl ? extra.clipUrl(assetId) : assetId ? `file:///media/${assetId}` : null,
+    probeHistory: async id => extra.probeHistory?.[id] ?? null,
+    random,
     attempts: {
       get: async id => {
         const a = attempts.get(id);
@@ -32,6 +44,10 @@ export function memoryEngine(
       listFor: async (user, exerciseId) =>
         [...attempts.values()]
           .filter(a => a.userId === user && a.exerciseId === exerciseId)
+          .sort((a, b) => b.startedAt.localeCompare(a.startedAt)),
+      listAll: async user =>
+        [...attempts.values()]
+          .filter(a => a.userId === user)
           .sort((a, b) => b.startedAt.localeCompare(a.startedAt)),
     },
     journal: async (attempt, op) => {

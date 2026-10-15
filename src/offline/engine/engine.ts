@@ -14,6 +14,7 @@ import type { ExerciseDisplay } from '../../api/types';
 import * as ec from '../../kernel/error-correction';
 import * as mc from '../../kernel/multiple-choice';
 import * as matchPairs from '../../kernel/match-pairs';
+import * as mp from '../../kernel/minimal-pairs';
 import * as sentenceSchema from '../../kernel/sentence-schema';
 import * as shortAnswer from '../../kernel/short-answer';
 import * as translate from '../../kernel/translate';
@@ -35,6 +36,14 @@ import {
 import { audioTranscriptFor } from '../../enginePort/modules/attempts/application/services/audio-transcript';
 import { informationTransferLearnerDetails } from '../../enginePort/modules/attempts/application/services/information-transfer-details';
 import { seedFrom } from '../../enginePort/shared/application/services/multiple-choice-attempt';
+import {
+  closedResults,
+  currentProbe,
+  drawOf,
+  HISTORY_SITTINGS,
+  historyFor,
+  probeStatesOf,
+} from '../../enginePort/modules/attempts/application/services/minimal-pairs-attempt';
 import * as entity from './attempt';
 import { LocalRefusal, OFFLINE_ATTEMPT_PREFIX, type LocalAttempt } from './attempt';
 import { feedbackFor, isGradedOffline, validate, type ExerciseKey } from './grading';
@@ -56,14 +65,32 @@ export interface LocalEngineDeps {
   display(exerciseId: string): Promise<ExerciseDisplay | null>;
   /** Its key as the download kept it — `/answers`. */
   key(exerciseId: string): Promise<ExerciseKey | null>;
+  /** A clip kept on the phone as a playable `file://` link; null when it is not kept. */
+  clipUrl(assetId: string): Promise<string | null>;
+  /** The learner's `minimal_pairs` record as the download fetched it, for `weakest`. */
+  probeHistory(exerciseId: string): Promise<ProbeHistorySnapshot | null>;
+  /** The random source a `minimal_pairs` sitting is dealt from. */
+  random(): number;
   attempts: {
     get(id: string): Promise<LocalAttempt | null>;
     put(attempt: LocalAttempt): Promise<void>;
     /** This learner's local attempts at an exercise, newest first. */
     listFor(userId: string, exerciseId: string): Promise<LocalAttempt[]>;
+    /** Every local attempt of this learner, newest first. */
+    listAll(userId: string): Promise<LocalAttempt[]>;
   };
   /** Records a call that went through, after the attempt it changed is stored. */
   journal(attempt: LocalAttempt, op: JournalOp): Promise<void>;
+}
+
+/**
+ * `GET /exercises/:id/attempts/probe-history` as the download kept it (offline plan, B6): the
+ * learner's scored sittings in the exercise's language, newest first, and when it was asked.
+ */
+export interface ProbeHistorySnapshot {
+  fetchedAt: string;
+  targetLanguage: string;
+  sittings: Array<{ probes: unknown[] }>;
 }
 
 const REVIEW_SUMMARY = 'Your answer has been submitted for review.';
@@ -95,7 +122,12 @@ export class LocalEngine {
       this.deps.display(exerciseId),
       this.deps.key(exerciseId),
     ]);
-    return display !== null && key !== null && isGradedOffline(display.templateCode);
+    return (
+      display !== null &&
+      key !== null &&
+      isGradedOffline(display.templateCode) &&
+      !sittingsLimited(display.templateCode, key)
+    );
   }
 
   /** The learner's open local attempt at an exercise, if any. */
@@ -110,7 +142,12 @@ export class LocalEngine {
     const userId = this.requireUser();
     const display = await this.deps.display(exerciseId);
     const key = await this.deps.key(exerciseId);
-    if (!display || !key || !isGradedOffline(display.templateCode)) {
+    if (
+      !display ||
+      !key ||
+      !isGradedOffline(display.templateCode) ||
+      sittingsLimited(display.templateCode, key)
+    ) {
       throw new LocalRefusal(422, 'This exercise is not available offline');
     }
 
@@ -126,6 +163,8 @@ export class LocalEngine {
       (existing.answeredQuestions.length > 0 ||
         existing.checkedRows.length > 0 ||
         existing.pickedOptions.length > 0 ||
+        // A `minimal_pairs` sitting is under way from the moment its probes are drawn.
+        existing.probeDraw !== null ||
         questionStatesOf(existing).length > 0 ||
         segmentStatesOf(existing).length > 0 ||
         board !== null ||
@@ -148,8 +187,104 @@ export class LocalEngine {
       targetLanguage: body.language,
       now: this.deps.now(),
     });
+    if (display.templateCode === mp.TEMPLATE_CODE) {
+      attempt.probeDraw = await this.dealSitting(userId, display, key);
+    }
     await this.deps.attempts.put(attempt);
     return this.startResponse(attempt, display);
+  }
+
+  /**
+   * The engine's `/items` for a sitting on the phone (`hand-out-probe.handler`): the first probe
+   * not closed, its clip as the kept file. A clip that is not on the phone is refused like one
+   * media-service cannot sign — the student is not handed a probe nobody can hear.
+   */
+  async handOutProbe(attemptId: string): Promise<unknown> {
+    const a = await this.load(attemptId);
+    const draw = drawOf(a);
+    if (a.templateCode !== mp.TEMPLATE_CODE || draw.length === 0) {
+      throw new LocalRefusal(422, 'This attempt has no probes to hand out', 'NOT_A_PROBE_SET');
+    }
+    if (a.status !== 'IN_PROGRESS') {
+      throw new LocalRefusal(422, 'This attempt is no longer in progress', 'NOT_IN_PROGRESS');
+    }
+    const states = probeStatesOf(a);
+    const probe = currentProbe(draw, states);
+    if (!probe) {
+      throw new LocalRefusal(422, 'Every probe is answered — submit the attempt', 'ALL_PROBES_CLOSED');
+    }
+
+    const key = await this.requireKey(a.exerciseId);
+    const document = mp.fromPersisted(key.content, key.expectedAnswers);
+    const view = mp.toProbeView(document, probe, draw.length);
+    const url = view === null ? null : await this.deps.clipUrl(view.clip.assetId);
+    if (view === null || url === null) {
+      throw new LocalRefusal(503, 'The clip cannot be played right now', 'MEDIA_UNAVAILABLE');
+    }
+
+    const state = states.find(s => s.n === probe.n);
+    return {
+      n: view.n,
+      total: view.total,
+      questionId: view.questionId,
+      clip: {
+        url,
+        // A kept file does not expire; the field is the engine's, so it is filled.
+        expiresAt: new Date(this.deps.now().getTime() + 3_600_000).toISOString(),
+        durationMs: view.clip.durationMs,
+        provenance: view.clip.provenance,
+        dialect: view.clip.dialect,
+      },
+      options: view.options,
+      state: {
+        tries: state?.picks.length ?? 0,
+        maxTries: mp.maxTries(document.feedback, false),
+        closed: false,
+      },
+      closedProbes: closedResults(draw, states),
+    };
+  }
+
+  /**
+   * The engine's `prepareSitting` with the phone's random source (offline plan, B6). `weakest`
+   * reads the record the download fetched together with the sittings played here since — one
+   * played before the fetch is either in the record already or, not yet replayed then, left
+   * out until the next fetch rather than counted twice. The replay hands the draw over and the
+   * server checks it (`checkDraw`) instead of drawing again.
+   */
+  private async dealSitting(
+    userId: string,
+    display: ExerciseDisplay,
+    key: ExerciseKey,
+  ): Promise<mp.DealtProbe[]> {
+    const document = mp.fromPersisted(key.content, key.expectedAnswers);
+    const history =
+      document.set.sampling === 'weakest'
+        ? historyFor(document, await this.probeDetails(userId, display))
+        : undefined;
+    const draw = mp.deal(document, () => this.deps.random(), history);
+    if (draw.length === 0) {
+      throw new LocalRefusal(422, 'This exercise has no pair with audio to play', 'MP_EMPTY_SET', {
+        message: 'This exercise has no pair with audio to play',
+        code: 'MP_EMPTY_SET',
+      });
+    }
+    return draw;
+  }
+
+  /** What `findScoredDetails` reads on the server, from the record kept and the phone's own. */
+  private async probeDetails(userId: string, display: ExerciseDisplay): Promise<unknown[]> {
+    const record = await this.deps.probeHistory(display.id);
+    const since = record?.fetchedAt ?? '';
+    const own: unknown[] = [];
+    for (const a of await this.deps.attempts.listAll(userId)) {
+      if (a.templateCode !== mp.TEMPLATE_CODE || a.status !== 'SCORED' || a.startedAt <= since) {
+        continue;
+      }
+      const other = a.exerciseId === display.id ? display : await this.deps.display(a.exerciseId);
+      if (other?.targetLanguage === display.targetLanguage) own.push(a.validationDetails);
+    }
+    return [...own, ...(record?.sittings ?? [])].slice(0, HISTORY_SITTINGS);
   }
 
   async submit(attemptId: string, body: SubmitAttemptRequest): Promise<SubmitAttemptResponse> {
@@ -221,7 +356,11 @@ export class LocalEngine {
           score: outcome.score,
           requiresReview: false,
           feedback,
-          details: learnerFacingDetails(a.templateCode, outcome.details),
+          details: await this.withPairClips(
+            a.templateCode,
+            learnerFacingDetails(a.templateCode, outcome.details),
+            key,
+          ),
           audioTranscript: audioTranscriptFor(
             key.content,
             transcriptOwed(a.templateCode, outcome.details),
@@ -264,6 +403,14 @@ export class LocalEngine {
           'This question is finished — it was answered, revealed, or all its attempts are spent',
         );
       }
+    } else if (a.templateCode === mp.TEMPLATE_CODE) {
+      // A pick and nothing else: there is no «show me» on a probe.
+      if (body.optionId === undefined || reveal) {
+        throw new LocalRefusal(422, 'This exercise is not answered a question at a time');
+      }
+      if (body.optionId === null || body.optionId === '') {
+        throw new LocalRefusal(400, 'An answer cannot be handed in empty');
+      }
     } else {
       throw new LocalRefusal(422, 'This exercise is not answered a question at a time');
     }
@@ -272,7 +419,9 @@ export class LocalEngine {
     const reply =
       a.templateCode === shortAnswer.TEMPLATE_CODE
         ? this.answerShortAnswer(a, key, body.questionId, body.text as string, now)
-        : this.pickOption(a, key, body.questionId, body.optionId ?? null, reveal, now);
+        : a.templateCode === mp.TEMPLATE_CODE
+          ? await this.answerProbe(a, key, body.questionId, body.optionId as string, now)
+          : this.pickOption(a, key, body.questionId, body.optionId ?? null, reveal, now);
 
     await this.commit(a, { op: 'answer', body });
     return stripUndefined(reply);
@@ -548,6 +697,86 @@ export class LocalEngine {
     };
   }
 
+  /**
+   * The engine's `answerProbe`: one answer judged by the kernel against the draw, the key and
+   * the A/B pair only once the probe closes, the pair as the kept files.
+   */
+  private async answerProbe(
+    a: LocalAttempt,
+    key: ExerciseKey,
+    questionId: string,
+    optionId: string,
+    now: Date,
+  ): Promise<AnswerQuestionResponse> {
+    if (a.status !== 'IN_PROGRESS') {
+      throw new LocalRefusal(422, `Cannot answer a question on an attempt with status ${a.status}`);
+    }
+    const draw = drawOf(a);
+    const n = mp.probeNumber(questionId);
+    const probe = n === null ? undefined : draw.find(p => p.n === n);
+    if (!probe) throw new LocalRefusal(400, 'This exercise has no such answerable question');
+    const states = probeStatesOf(a);
+    if (states.some(s => s.n === probe.n && s.closed)) {
+      throw new LocalRefusal(
+        422,
+        'This question is finished — it was answered, revealed, or all its attempts are spent',
+      );
+    }
+    if (currentProbe(draw, states)?.n !== probe.n) {
+      throw new LocalRefusal(422, 'This is not the probe the sitting is on — ask POST /items for it');
+    }
+
+    const document = mp.fromPersisted(key.content, key.expectedAnswers);
+    const state = states.find(s => s.n === probe.n);
+    const tries = mp.maxTries(document.feedback, false);
+    const judged = mp.judgePick(probe, state, optionId, tries);
+    if ('refused' in judged) {
+      throw judged.refused === 'closed'
+        ? new LocalRefusal(
+            422,
+            'This question is finished — it was answered, revealed, or all its attempts are spent',
+          )
+        : new LocalRefusal(400, 'That is not one of this probe’s options');
+    }
+    const { verdict, next } = judged;
+    entity.pickOption(
+      a,
+      { questionId, optionId, correct: verdict.correct, closed: verdict.closed, revealed: false },
+      now,
+    );
+
+    const result: Record<string, unknown> = {
+      questionId,
+      n: probe.n,
+      optionId,
+      correct: verdict.correct,
+      closed: verdict.closed,
+      tries: next.picks.length,
+      triesLeft: Math.max(0, tries - next.picks.length),
+      firstCorrect: next.picks[0] === probe.wordId,
+    };
+    if (verdict.closed) {
+      const reveal = mp.revealOf(document, probe, optionId);
+      result.keyOptionId = reveal.keyOptionId;
+      result.options = reveal.options;
+      if (reveal.compare) {
+        const chosen = await this.deps.clipUrl(reveal.compare.chosenAssetId);
+        const target = await this.deps.clipUrl(reveal.compare.targetAssetId);
+        // Both or neither: half a comparison is not one.
+        if (chosen && target) result.compare = { chosen, target };
+      }
+    }
+
+    return {
+      attemptId: a.id,
+      templateCode: mp.TEMPLATE_CODE,
+      answered: probeStatesOf(a).filter(s => s.closed).length,
+      total: draw.length,
+      result,
+      routedForReview: false,
+    } as AnswerQuestionResponse;
+  }
+
   private pickOption(
     a: LocalAttempt,
     key: ExerciseKey,
@@ -602,6 +831,33 @@ export class LocalEngine {
       routedForReview: false,
       audioTranscript: audioTranscriptFor(key.content, closed >= answerable.length),
     };
+  }
+
+  /**
+   * The engine's `withPairClips`: «Hør paret» under each pair of a `minimal_pairs` result, a
+   * kept file per word in the pair's order, an empty string where the file is not kept.
+   */
+  private async withPairClips(
+    templateCode: string,
+    details: unknown,
+    key: ExerciseKey,
+  ): Promise<unknown> {
+    if (templateCode !== mp.TEMPLATE_CODE || typeof details !== 'object' || details === null) {
+      return details;
+    }
+    const summary = details as { pairs?: Array<{ pairId: string }> };
+    if (!Array.isArray(summary.pairs)) return details;
+    const document = mp.fromPersisted(key.content, key.expectedAnswers);
+    const assetsOf = new Map(
+      document.pairs.map(p => [p.id, mp.filledWords(p).map(w => w.clip.assetId)]),
+    );
+    const pairs = [];
+    for (const p of summary.pairs) {
+      const clips = [];
+      for (const id of assetsOf.get(p.pairId) ?? []) clips.push((await this.deps.clipUrl(id)) ?? '');
+      pairs.push({ ...p, clips });
+    }
+    return { ...summary, pairs };
   }
 
   private startResponse(a: LocalAttempt, display: ExerciseDisplay): StartAttemptResponse {
@@ -689,4 +945,14 @@ function readTranslateDraft(draft: unknown): Record<string, string> | null {
 /** A reply as JSON would carry it: the engine's `undefined` fields never reach the phone. */
 function stripUndefined<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
+}
+
+/**
+ * `minimal_pairs` with a limit on sittings stays online (offline plan, B6): the phone cannot
+ * know how many the server has already counted, and a replay over the limit is refused — the
+ * whole sitting lost after the student was told it was done.
+ */
+function sittingsLimited(templateCode: string, key: ExerciseKey): boolean {
+  if (templateCode !== mp.TEMPLATE_CODE) return false;
+  return mp.fromPersisted(key.content, key.expectedAnswers).scoring.attempts > 0;
 }

@@ -1,14 +1,15 @@
 import { ApiError } from '../../api/client';
 import { setLocalAttempts, type LocalAttempts } from '../../api/exercises';
 import type { ExerciseDisplay } from '../../api/types';
-import { exerciseDisplayResource } from '../../lib/courseResources';
+import { exerciseDisplayResource, probeHistoryResource } from '../../lib/courseResources';
+import { mediaCache } from '../../services/mediaCache';
 import { randomNonce } from '../../lib/reviewQueue';
 import { getMemoryCache, readCacheSnapshot } from '../../lib/swrCache';
 import { authStore } from '../../store/authStore';
 import { exerciseOutboxStore } from '../../store/exerciseOutboxStore';
 import { settingsStore } from '../../store/settingsStore';
 import { isLocalAttemptId, LocalRefusal } from './attempt';
-import { LocalEngine } from './engine';
+import { LocalEngine, type ProbeHistorySnapshot } from './engine';
 import { exerciseKeyCacheKey, type ExerciseKey } from './grading';
 import { LocalAttemptStore } from './store';
 
@@ -25,6 +26,10 @@ export const localEngine = new LocalEngine({
       exerciseDisplayResource(exerciseId, settingsStore.getAll().uiLanguage).key,
     ),
   key: exerciseId => cached<ExerciseKey>(exerciseKeyCacheKey(exerciseId)),
+  clipUrl: async assetId => (assetId ? ((await mediaCache.lookup(assetId))?.url ?? null) : null),
+  probeHistory: exerciseId =>
+    cached<ProbeHistorySnapshot>(probeHistoryResource(exerciseId).key),
+  random: Math.random,
   attempts: new LocalAttemptStore(),
   journal: (attempt, op) => exerciseOutboxStore.recordLocalOp(attempt, op),
 });
@@ -50,6 +55,7 @@ const localAttempts: LocalAttempts = {
   start: (exerciseId, body) => answered(() => localEngine.start(exerciseId, body)),
   submit: (attemptId, body) => answered(() => localEngine.submit(attemptId, body)),
   answerQuestion: (attemptId, body) => answered(() => localEngine.answerQuestion(attemptId, body)),
+  handOutProbe: attemptId => answered(() => localEngine.handOutProbe(attemptId)),
   checkRow: (attemptId, body) => answered(() => localEngine.checkRow(attemptId, body)),
   revealAnswers: attemptId => answered(() => localEngine.revealAnswers(attemptId)),
   selfCheck: (attemptId, draft) => answered(() => localEngine.selfCheck(attemptId, draft)),

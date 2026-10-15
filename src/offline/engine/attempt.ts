@@ -57,7 +57,7 @@ export interface LocalAttempt {
   answeredQuestions: AnsweredQuestion[];
   checkedRows: CheckedRow[];
   pickedOptions: PickedOption[];
-  /** `minimal_pairs` only, which is never offline; kept for the facts the engine reads. */
+  /** `minimal_pairs`: the sitting dealt on the phone, handed to the server on the replay. */
   probeDraw: unknown;
   timeSpentSeconds: number;
   startedAt: string;
@@ -68,7 +68,7 @@ export interface LocalAttempt {
 /** A refusal, with the status and message the engine's controller would answer with. */
 export class LocalRefusal extends Error {
   constructor(
-    readonly status: 400 | 404 | 409 | 422 | 429,
+    readonly status: 400 | 404 | 409 | 422 | 429 | 503,
     message: string,
     readonly code: string | null = null,
     readonly body: unknown = null,

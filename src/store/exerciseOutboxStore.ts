@@ -44,6 +44,11 @@ export interface QueuedSession {
   ops: JournalOp[];
   /** How many of `ops` have reached the server. */
   sent: number;
+  /**
+   * `minimal_pairs`: the sitting the phone dealt (offline plan, B6). The replay's start hands it
+   * over so the answers land on the probes they were given to; absent for every other template.
+   */
+  probeDraw?: unknown[];
 }
 
 /** A finished exercise's or lesson's progress record, on its way to learning-service. */
@@ -99,7 +104,13 @@ class ExerciseOutboxStore {
 
   /** One call made on a local attempt; it joins the entry already queued for that attempt. */
   async recordLocalOp(
-    attempt: { id: string; userId: string; exerciseId: string; targetLanguage: string },
+    attempt: {
+      id: string;
+      userId: string;
+      exerciseId: string;
+      targetLanguage: string;
+      probeDraw?: unknown;
+    },
     op: JournalOp,
   ): Promise<void> {
     await this.load();
@@ -121,6 +132,7 @@ class ExerciseOutboxStore {
       language: attempt.targetLanguage,
       ops: [op],
       sent: 0,
+      ...(Array.isArray(attempt.probeDraw) ? { probeDraw: attempt.probeDraw } : {}),
     });
   }
 
@@ -204,6 +216,24 @@ class ExerciseOutboxStore {
   /** The calls of one local attempt, from where the last flush stopped. */
   private async deliverSession(entry: QueuedSession): Promise<'sent' | 'kept'> {
     let serverId = this.attemptIds[entry.localAttemptId];
+    if (!serverId && entry.probeDraw) {
+      try {
+        serverId = await startDealtSitting(entry, entry.probeDraw);
+      } catch (e) {
+        const status = e instanceof ApiError ? e.status : null;
+        if (shouldRetry(status)) return 'kept';
+        // Over the author's limit, or a document edited since the download: the sitting the
+        // student finished on the phone does not reach the server. Said loudly, as it is lost.
+        console.error(
+          `[ExerciseOutbox] Sitting at ${entry.exerciseId} refused on replay (${status} ${
+            e instanceof ApiError ? (e.code ?? '') : ''
+          }) — its answers are lost.`,
+        );
+        return 'sent';
+      }
+      this.attemptIds = { ...this.attemptIds, [entry.localAttemptId]: serverId };
+      await this.persistIds();
+    }
     if (!serverId) {
       try {
         // Joining matters: a start that reached the server before the connection died left
@@ -265,6 +295,28 @@ class ExerciseOutboxStore {
 
   private notify(): void {
     this.listeners.forEach(l => l());
+  }
+}
+
+/**
+ * The start of a `minimal_pairs` sitting dealt on the phone, with that draw. A start already
+ * made with it is handed back by the server. Another sitting left open there — begun on the web
+ * and never finished — is named in a 409 `MP_DRAW_CONFLICT`; it is abandoned, as the web does
+ * with a stale attempt, and the start made once more. The finished sitting outweighs the
+ * unfinished one, and nothing of it had been scored.
+ */
+async function startDealtSitting(entry: QueuedSession, probeDraw: unknown[]): Promise<string> {
+  const body = { language: entry.language, mode: 'PRACTICE' as const, probeDraw };
+  try {
+    return (await remoteAttempts.startAttempt(entry.exerciseId, body)).attemptId;
+  } catch (e) {
+    const open =
+      e instanceof ApiError && e.status === 409 && e.code === 'MP_DRAW_CONFLICT'
+        ? (e.body as { openAttemptId?: unknown } | null)?.openAttemptId
+        : null;
+    if (typeof open !== 'string' || open === '') throw e;
+    await remoteAttempts.abandonAttempt(entry.exerciseId, open);
+    return (await remoteAttempts.startAttempt(entry.exerciseId, body)).attemptId;
   }
 }
 
