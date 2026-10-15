@@ -164,6 +164,36 @@ export async function reviewCard(
   return apiClient.post<SrsCard>(SRS_REVIEW_PATH(cardId), request);
 }
 
+const SRS_VOCABULARY_REPLICA_PATH = '/api/v1/srs/cards/vocabulary';
+
+/**
+ * A card as the vocabulary replica carries it: the review card plus the two FSRS fields the
+ * scheduler reads that the review card leaves out. `predicted` is always empty and there is
+ * no `front`/`back` — words come from the imported decks.
+ */
+export interface ReplicaCard extends SrsCard {
+  elapsedDays: number;
+  learningSteps: number;
+}
+
+export interface VocabularyReplica {
+  /** When the copy was taken. */
+  serverTime: string;
+  /** Vocabulary reviews counted today, and the cap they are measured against. */
+  reviewedToday: number;
+  dailyLimit: number;
+  /** Every vocabulary card of the learner, suspended included. */
+  cards: ReplicaCard[];
+}
+
+/**
+ * `GET /srs/cards/vocabulary` — every vocabulary card of the learner with its full FSRS
+ * state, the copy the phone keeps to review words offline (offline plan, B1).
+ */
+export async function getVocabularyReplica(): Promise<VocabularyReplica> {
+  return apiClient.get<VocabularyReplica>(SRS_VOCABULARY_REPLICA_PATH);
+}
+
 /** The subset a word trainer can render: vocabulary cards with content. */
 export function vocabularyCards(cards: SrsCard[]): SrsCard[] {
   return cards.filter((card) => card.contentType === 'VOCABULARY_WORD' && !!card.front);

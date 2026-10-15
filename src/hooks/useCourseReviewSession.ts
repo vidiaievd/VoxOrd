@@ -18,6 +18,7 @@ import type { AttemptResult } from '../lib/sessionGrader';
 import { deepSessionRepository } from '../repositories/DeepSessionRepository';
 import type { DeepSessionWord } from './useDeepSession';
 import { reviewQueueStore } from '../store/reviewQueueStore';
+import { vocabularyReplica } from '../services/vocabularyReplica';
 import type { ExerciseTracking } from './exerciseTracking';
 
 /**
@@ -136,11 +137,16 @@ export function useCourseReviewSession(
       // Null means a padding word slipped through; it owns no card, so there is
       // nothing to review.
       if (!cardId) continue;
+      const reviewedAt = new Date();
+      // The phone's copy takes the rating first, so a word reviewed offline is
+      // not due again on the next session (offline plan, B1).
+      await vocabularyReplica.recordReview(cardId, rating, reviewedAt);
       // The queue persists the review before sending and replays it later if
       // the network is down, so a failure here is not lost work.
-      await reviewQueueStore.submit(cardId, rating, new Date(), {
+      const card = await reviewQueueStore.submit(cardId, rating, reviewedAt, {
         carryOnPastLimit: carryOnRef.current,
       });
+      if (card) await vocabularyReplica.recordServerCard(card);
       posted.push({ wordId, rating });
     }
 

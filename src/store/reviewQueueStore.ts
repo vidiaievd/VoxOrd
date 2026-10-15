@@ -53,6 +53,18 @@ class ReviewQueueStore {
   }
 
   /**
+   * Cards of the signed-in learner with an answer still on its way to the server — a copy
+   * of the schedule refreshed now would not have seen it yet.
+   */
+  async pendingCardIds(): Promise<Set<string>> {
+    await this.load();
+    const userId = currentUserId();
+    return new Set(
+      this.queue.filter(review => isOwnedBy(review.userId, userId)).map(review => review.cardId),
+    );
+  }
+
+  /**
    * Records an answer and tries to deliver it immediately. Resolves with the
    * server's card when the round trip succeeded, or null when the answer was
    * queued instead — the caller advances to the next card either way, which is

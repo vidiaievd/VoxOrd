@@ -4,6 +4,7 @@ import { authService } from '../api/auth';
 import { authStore, type AuthState } from '../store/authStore';
 import { reviewQueueStore } from '../store/reviewQueueStore';
 import { wordCaptureQueueStore } from '../store/wordCaptureQueueStore';
+import { vocabularyReplica } from './vocabularyReplica';
 
 /**
  * What the coordinator needs from the outside world — the device, the session and the
@@ -17,7 +18,10 @@ export interface SessionSyncDeps {
   getAuth(): AuthState;
   onAuthChange(listener: () => void): () => void;
   reconnect(): Promise<void>;
-  /** Everything answered or captured offline, in the order it is sent. */
+  /**
+   * What runs once the session is online, in order: everything answered or captured
+   * offline goes out, then the copies kept for offline are taken afresh.
+   */
   queues: ReadonlyArray<{ name: string; flush(): Promise<unknown> }>;
 }
 
@@ -29,7 +33,8 @@ export interface SessionSyncDeps {
  *   network, not that the server is on it; the refresh is what finds out.
  * - The session becomes online — after a reconnect, a cold start the server confirmed, or a
  *   sign-in → the queues are sent, oldest kind first. Reviews go before captured words: a
- *   review can only be about a card that already exists, a word only adds one.
+ *   review can only be about a card that already exists, a word only adds one. Then the
+ *   vocabulary copy is refreshed — after the reviews, so the server's numbers include them.
  *
  * Queues are flushed only by a session that is online: offline every request would fail as a
  * network error and come straight back to the queue.
@@ -142,5 +147,6 @@ export const sessionSync = new SessionSync({
   queues: [
     { name: 'reviews', flush: () => reviewQueueStore.flush() },
     { name: 'captured words', flush: () => wordCaptureQueueStore.flush() },
+    { name: 'vocabulary replica', flush: () => vocabularyReplica.refresh() },
   ],
 });

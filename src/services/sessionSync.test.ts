@@ -3,6 +3,7 @@ jest.mock('@react-native-community/netinfo', () => ({ addEventListener: jest.fn(
 jest.mock('../api/auth', () => ({ authService: {} }));
 jest.mock('../store/reviewQueueStore', () => ({ reviewQueueStore: {} }));
 jest.mock('../store/wordCaptureQueueStore', () => ({ wordCaptureQueueStore: {} }));
+jest.mock('./vocabularyReplica', () => ({ vocabularyReplica: {} }));
 
 import { SessionSync, type SessionSyncDeps } from './sessionSync';
 import type { AuthState } from '../store/authStore';

@@ -383,6 +383,50 @@ export const migrations: Migration[] = [
       await backfillFsrsCards(db);
     },
   },
+  {
+    version: 11,
+    up: async db => {
+      // The phone's copy of the learner's vocabulary cards (offline plan, B1): what lets
+      // course words be reviewed without the server. The server stays the owner of the
+      // schedule — a refresh replaces these rows, a review offline only previews them.
+      // Keyed by the SRS card id and scoped by user: a phone can change hands, and one
+      // learner's schedule must never be drilled as another's.
+      await db.execute(`
+      CREATE TABLE IF NOT EXISTS srs_card_replica (
+        cardId TEXT PRIMARY KEY,
+        userId TEXT NOT NULL,
+        contentId TEXT NOT NULL,
+        state TEXT NOT NULL,
+        stability REAL NOT NULL,
+        difficulty REAL NOT NULL,
+        dueAt INTEGER NOT NULL,
+        elapsedDays REAL NOT NULL,
+        scheduledDays REAL NOT NULL,
+        learningSteps INTEGER NOT NULL,
+        reps INTEGER NOT NULL,
+        lapses INTEGER NOT NULL,
+        lastReviewedAt INTEGER,
+        createdAt TEXT NOT NULL,
+        updatedAt TEXT NOT NULL
+      );
+    `);
+      await db.execute(`
+      CREATE INDEX IF NOT EXISTS idx_srs_card_replica_due
+        ON srs_card_replica(userId, dueAt);
+    `);
+      // The day's vocabulary budget as the last refresh saw it, counted on by reviews
+      // given offline. One row per learner.
+      await db.execute(`
+      CREATE TABLE IF NOT EXISTS srs_replica_meta (
+        userId TEXT PRIMARY KEY,
+        dailyLimit INTEGER NOT NULL,
+        reviewedToday INTEGER NOT NULL,
+        day TEXT NOT NULL,
+        syncedAt INTEGER NOT NULL
+      );
+    `);
+    },
+  },
 ];
 
 /**
