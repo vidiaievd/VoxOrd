@@ -31,6 +31,7 @@ import {
   exerciseKeyCacheKey,
   gradedOnPhone,
   gradeOffline,
+  needsKey,
   OFFLINE_ATTEMPT_PREFIX,
   type ExerciseKey,
 } from '../lib/offlineGrading';
@@ -491,14 +492,23 @@ async function gradeHere(
   locale: string,
 ): Promise<SubmitAttemptResponse | null> {
   if (!gradedOnPhone(display.templateCode, display.content)) return null;
-  const cacheKey = exerciseKeyCacheKey(exerciseId);
-  const key =
-    getMemoryCache<ExerciseKey>(cacheKey) ?? (await readCacheSnapshot<ExerciseKey>(cacheKey));
-  if (!key) return null;
+  let key: ExerciseKey | null = null;
+  if (needsKey(display.templateCode, display.content)) {
+    const cacheKey = exerciseKeyCacheKey(exerciseId);
+    key =
+      getMemoryCache<ExerciseKey>(cacheKey) ?? (await readCacheSnapshot<ExerciseKey>(cacheKey));
+    if (!key) return null;
+  }
 
   let verdict: SubmitAttemptResponse;
   try {
-    verdict = gradeOffline(key, answer, locale, `${OFFLINE_ATTEMPT_PREFIX}${randomNonce()}`);
+    verdict = gradeOffline(
+      key,
+      display.templateCode,
+      answer,
+      locale,
+      `${OFFLINE_ATTEMPT_PREFIX}${randomNonce()}`,
+    );
   } catch (e) {
     // An answer the engine would refuse as malformed is not one to queue for it.
     console.warn('[ExerciseRunner] Offline grading refused the answer:', e);

@@ -173,6 +173,8 @@ export interface SubmitAttemptResponse {
 /** What `GET /exercises/:id/answers` carries for grading on the phone. */
 export interface ExerciseAnswersResponse {
   templateCode: string;
+  /** The full content — unlike `/display`, not the student projection. */
+  content: unknown;
   expectedAnswers: unknown;
   answerCheckSettings: Record<string, unknown> | null;
   instructions: ExerciseInstruction[] | null;

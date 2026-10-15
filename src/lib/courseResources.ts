@@ -116,6 +116,7 @@ export function exerciseKeyResource(exerciseId: string): CourseResource<Exercise
       const answers = await getExerciseAnswers(exerciseId);
       return {
         templateCode: answers.templateCode,
+        content: answers.content,
         expectedAnswers: answers.expectedAnswers,
         answerCheckSettings: answers.answerCheckSettings,
         instructions: answers.instructions,

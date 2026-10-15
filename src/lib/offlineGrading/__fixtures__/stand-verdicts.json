@@ -1,0 +1,1058 @@
+[
+ {
+  "name": "match all right",
+  "templateCode": "match_pairs",
+  "key": {
+   "templateCode": "match_pairs",
+   "content": {
+    "left_items": [
+     {
+      "id": "l1",
+      "text": "frokost"
+     },
+     {
+      "id": "l2",
+      "text": "lekser"
+     },
+     {
+      "id": "l3",
+      "text": "å hente"
+     },
+     {
+      "id": "l4",
+      "text": "hverdag"
+     }
+    ],
+    "right_items": [
+     {
+      "id": "r1",
+      "text": "забирать"
+     },
+     {
+      "id": "r2",
+      "text": "завтрак"
+     },
+     {
+      "id": "r3",
+      "text": "будний день"
+     },
+     {
+      "id": "r4",
+      "text": "домашнее задание"
+     }
+    ]
+   },
+   "expectedAnswers": {
+    "pairs": [
+     {
+      "left_id": "l1",
+      "right_id": "r2"
+     },
+     {
+      "left_id": "l2",
+      "right_id": "r4"
+     },
+     {
+      "left_id": "l3",
+      "right_id": "r1"
+     },
+     {
+      "left_id": "l4",
+      "right_id": "r3"
+     }
+    ]
+   },
+   "answerCheckSettings": null,
+   "instructions": [
+    {
+     "id": "5d977bc5-6ed3-5179-af39-03d03e75075b",
+     "exerciseId": "690e4617-ce7c-59a1-86a9-0f11000957a6",
+     "instructionLanguage": "ru",
+     "instructionText": "Сопоставьте норвежские слова с переводом.",
+     "hintText": null,
+     "textOverrides": null,
+     "createdAt": "2026-06-21T07:59:32.619Z",
+     "updatedAt": "2026-06-21T10:32:28.133Z"
+    }
+   ]
+  },
+  "answer": {
+   "placements": [
+    {
+     "pairId": "l1",
+     "rightId": "ql1"
+    },
+    {
+     "pairId": "l2",
+     "rightId": "ql2"
+    },
+    {
+     "pairId": "l3",
+     "rightId": "ql3"
+    },
+    {
+     "pairId": "l4",
+     "rightId": "ql4"
+    }
+   ]
+  },
+  "verdict": {
+   "correct": true,
+   "score": 100,
+   "requiresReview": false,
+   "feedback": {
+    "summary": "Correct!"
+   },
+   "details": {
+    "totalPairs": 4,
+    "correctPairs": 4,
+    "pairs": [
+     {
+      "pairId": "l1",
+      "correct": true,
+      "explanation": null
+     },
+     {
+      "pairId": "l2",
+      "correct": true,
+      "explanation": null
+     },
+     {
+      "pairId": "l3",
+      "correct": true,
+      "explanation": null
+     },
+     {
+      "pairId": "l4",
+      "correct": true,
+      "explanation": null
+     }
+    ]
+   }
+  }
+ },
+ {
+  "name": "match partial",
+  "templateCode": "match_pairs",
+  "key": {
+   "templateCode": "match_pairs",
+   "content": {
+    "left_items": [
+     {
+      "id": "l1",
+      "text": "frokost"
+     },
+     {
+      "id": "l2",
+      "text": "lekser"
+     },
+     {
+      "id": "l3",
+      "text": "å hente"
+     },
+     {
+      "id": "l4",
+      "text": "hverdag"
+     }
+    ],
+    "right_items": [
+     {
+      "id": "r1",
+      "text": "забирать"
+     },
+     {
+      "id": "r2",
+      "text": "завтрак"
+     },
+     {
+      "id": "r3",
+      "text": "будний день"
+     },
+     {
+      "id": "r4",
+      "text": "домашнее задание"
+     }
+    ]
+   },
+   "expectedAnswers": {
+    "pairs": [
+     {
+      "left_id": "l1",
+      "right_id": "r2"
+     },
+     {
+      "left_id": "l2",
+      "right_id": "r4"
+     },
+     {
+      "left_id": "l3",
+      "right_id": "r1"
+     },
+     {
+      "left_id": "l4",
+      "right_id": "r3"
+     }
+    ]
+   },
+   "answerCheckSettings": null,
+   "instructions": [
+    {
+     "id": "5d977bc5-6ed3-5179-af39-03d03e75075b",
+     "exerciseId": "690e4617-ce7c-59a1-86a9-0f11000957a6",
+     "instructionLanguage": "ru",
+     "instructionText": "Сопоставьте норвежские слова с переводом.",
+     "hintText": null,
+     "textOverrides": null,
+     "createdAt": "2026-06-21T07:59:32.619Z",
+     "updatedAt": "2026-06-21T10:32:28.133Z"
+    }
+   ]
+  },
+  "answer": {
+   "placements": [
+    {
+     "pairId": "l1",
+     "rightId": "ql1"
+    },
+    {
+     "pairId": "l2",
+     "rightId": "ql3"
+    }
+   ]
+  },
+  "verdict": {
+   "correct": false,
+   "score": 25,
+   "requiresReview": false,
+   "feedback": {
+    "summary": "Incorrect. Please try again."
+   },
+   "details": {
+    "totalPairs": 4,
+    "correctPairs": 1,
+    "pairs": [
+     {
+      "pairId": "l1",
+      "correct": true,
+      "explanation": null
+     },
+     {
+      "pairId": "l2",
+      "correct": false,
+      "explanation": null
+     }
+    ]
+   }
+  }
+ },
+ {
+  "name": "translate exact",
+  "templateCode": "translate_to_target",
+  "key": {
+   "templateCode": "translate_to_target",
+   "content": {
+    "dir": "to_target",
+    "note": "",
+    "items": [
+     {
+      "id": "s1",
+      "dir": "to_target",
+      "gloss": [
+       {
+        "t": "familie (en)",
+        "w": "семья"
+       }
+      ],
+      "source": "Семья живёт в Бергене."
+     }
+    ],
+    "langs": {
+     "target": "Norsk",
+     "explain": "Russisk"
+    },
+    "format": "single"
+   },
+   "expectedAnswers": {
+    "items": {
+     "s1": {
+      "refs": [
+       "Familien bor i Bergen."
+      ],
+      "forbid": [],
+      "require": [],
+      "explanation": "Презенс глагола «å bo» — «bor»."
+     }
+    }
+   },
+   "answerCheckSettings": null,
+   "instructions": [
+    {
+     "id": "3b3c794f-3807-5644-b862-9061dcbacca2",
+     "exerciseId": "5471c248-94dd-509f-9e6c-09191e87e067",
+     "instructionLanguage": "ru",
+     "instructionText": "Переведите предложение на норвежский.",
+     "hintText": null,
+     "textOverrides": null,
+     "createdAt": "2026-06-21T07:59:32.612Z",
+     "updatedAt": "2026-06-21T10:32:28.127Z"
+    }
+   ]
+  },
+  "answer": [
+   {
+    "itemId": "s1",
+    "text": "Familien bor i Bergen."
+   }
+  ],
+  "verdict": {
+   "correct": true,
+   "score": 100,
+   "requiresReview": false,
+   "feedback": {
+    "summary": "Correct!"
+   },
+   "details": {
+    "totalItems": 1,
+    "passedItems": 1,
+    "items": [
+     {
+      "itemId": "s1",
+      "routing": "pass"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "name": "translate off",
+  "templateCode": "translate_to_target",
+  "key": {
+   "templateCode": "translate_to_target",
+   "content": {
+    "dir": "to_target",
+    "note": "",
+    "items": [
+     {
+      "id": "s1",
+      "dir": "to_target",
+      "gloss": [
+       {
+        "t": "familie (en)",
+        "w": "семья"
+       }
+      ],
+      "source": "Семья живёт в Бергене."
+     }
+    ],
+    "langs": {
+     "target": "Norsk",
+     "explain": "Russisk"
+    },
+    "format": "single"
+   },
+   "expectedAnswers": {
+    "items": {
+     "s1": {
+      "refs": [
+       "Familien bor i Bergen."
+      ],
+      "forbid": [],
+      "require": [],
+      "explanation": "Презенс глагола «å bo» — «bor»."
+     }
+    }
+   },
+   "answerCheckSettings": null,
+   "instructions": [
+    {
+     "id": "3b3c794f-3807-5644-b862-9061dcbacca2",
+     "exerciseId": "5471c248-94dd-509f-9e6c-09191e87e067",
+     "instructionLanguage": "ru",
+     "instructionText": "Переведите предложение на норвежский.",
+     "hintText": null,
+     "textOverrides": null,
+     "createdAt": "2026-06-21T07:59:32.612Z",
+     "updatedAt": "2026-06-21T10:32:28.127Z"
+    }
+   ]
+  },
+  "answer": [
+   {
+    "itemId": "s1",
+    "text": "Familie bodde i Oslo."
+   }
+  ],
+  "verdict": {
+   "correct": false,
+   "score": null,
+   "requiresReview": true,
+   "feedback": {
+    "summary": "Your answer has been submitted for review."
+   },
+   "details": {
+    "totalItems": 1,
+    "passedItems": 0,
+    "items": [
+     {
+      "itemId": "s1",
+      "routing": "teacher"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "name": "ec untouched",
+  "templateCode": "error_correction",
+  "key": {
+   "templateCode": "error_correction",
+   "content": {
+    "mode": "sentences",
+    "note": "Indirekte tale — setninger om tekst 1A.",
+    "items": [
+     {
+      "id": "s-0",
+      "wrong": "Anne sa at søknaden var god, men at han har noen skrivefeil."
+     },
+     {
+      "id": "s-1",
+      "wrong": "Bartek fortalte Anne at han skal søke på stillingen med en gang."
+     },
+     {
+      "id": "s-2",
+      "wrong": "Kari spør om har han fagbrev som elektriker."
+     }
+    ]
+   },
+   "expectedAnswers": {
+    "items": {
+     "s-0": {
+      "ref": "Anne sa at søknaden var god, men at han hadde noen skrivefeil.",
+      "meta": {
+       "9:10:hadde": {
+        "note": "Tidsforskyvning etter «sa»: presens «har» → preteritum «hadde»."
+       }
+      }
+     },
+     "s-1": {
+      "ref": "Bartek fortalte Anne at han skulle søke på stillingen med en gang.",
+      "meta": {
+       "5:6:skulle": {
+        "note": "Tidsforskyvning etter «fortalte»: «skal» → «skulle»."
+       }
+      }
+     },
+     "s-2": {
+      "ref": "Kari spør om han har fagbrev som elektriker.",
+      "meta": {
+       "3:5:han har": {
+        "note": "I indirekte spørsmål er det ingen inversjon: «om han har», ikke «om har han»."
+       }
+      }
+     }
+    }
+   },
+   "answerCheckSettings": null,
+   "instructions": [
+    {
+     "id": "dcbfe2f3-a636-5b80-9e03-79db98b66684",
+     "exerciseId": "84c941af-dd1d-5d31-9acb-937f0656c63f",
+     "instructionLanguage": "ru",
+     "instructionText": "В каждом предложении один фрагмент содержит ошибку в косвенной речи. Найдите и исправьте её.",
+     "hintText": "Помните: после глагола говорения в прошедшем времени время сдвигается на шаг назад, а после «om» инверсии нет.",
+     "textOverrides": null,
+     "createdAt": "2026-08-01T19:35:34.783Z",
+     "updatedAt": "2026-09-02T16:11:35.538Z"
+    }
+   ]
+  },
+  "answer": {
+   "items": {}
+  },
+  "verdict": {
+   "correct": false,
+   "score": null,
+   "requiresReview": true,
+   "feedback": {
+    "summary": "Your answer has been submitted for review."
+   },
+   "details": null
+  }
+ },
+ {
+  "name": "fill partial",
+  "templateCode": "fill_in_blank",
+  "key": {
+   "templateCode": "fill_in_blank",
+   "content": {
+    "word_bank": [
+     "leiligheten",
+     "nabolaget",
+     "leilighet",
+     "nabolag"
+    ],
+    "text_with_blanks": "Sara leier en leilighet. ___1___ er liten, men ___2___ (nabolag) er trygt."
+   },
+   "expectedAnswers": {
+    "blanks": [
+     {
+      "blank_id": 1,
+      "accepted_answers": [
+       "Leiligheten",
+       "leiligheten"
+      ]
+     },
+     {
+      "blank_id": 2,
+      "accepted_answers": [
+       "nabolaget"
+      ]
+     }
+    ],
+    "explanation": "Определённая форма: leiligheten, nabolaget."
+   },
+   "answerCheckSettings": null,
+   "instructions": [
+    {
+     "id": "b693adac-a518-5ddd-ad25-3929c852adad",
+     "exerciseId": "56eca2f7-3874-531b-b4ac-39673157722f",
+     "instructionLanguage": "ru",
+     "instructionText": "Вставьте существительные в определённой форме.",
+     "hintText": "en leilighet → leiligheten, et nabolag → nabolaget.",
+     "textOverrides": null,
+     "createdAt": "2026-06-21T07:59:32.699Z",
+     "updatedAt": "2026-06-21T10:32:28.209Z"
+    }
+   ]
+  },
+  "answer": {
+   "blanks": [
+    {
+     "blank_id": 1,
+     "accepted_answers": [
+      "leiligheten"
+     ]
+    },
+    {
+     "blank_id": 2,
+     "accepted_answers": [
+      "nabolag"
+     ]
+    }
+   ]
+  },
+  "verdict": {
+   "correct": false,
+   "score": 50,
+   "requiresReview": false,
+   "feedback": {
+    "summary": "en leilighet → leiligheten, et nabolag → nabolaget.",
+    "correctAnswer": "Leiligheten / nabolaget"
+   },
+   "details": null
+  }
+ },
+ {
+  "name": "fill right",
+  "templateCode": "fill_in_blank",
+  "key": {
+   "templateCode": "fill_in_blank",
+   "content": {
+    "word_bank": [
+     "leiligheten",
+     "nabolaget",
+     "leilighet",
+     "nabolag"
+    ],
+    "text_with_blanks": "Sara leier en leilighet. ___1___ er liten, men ___2___ (nabolag) er trygt."
+   },
+   "expectedAnswers": {
+    "blanks": [
+     {
+      "blank_id": 1,
+      "accepted_answers": [
+       "Leiligheten",
+       "leiligheten"
+      ]
+     },
+     {
+      "blank_id": 2,
+      "accepted_answers": [
+       "nabolaget"
+      ]
+     }
+    ],
+    "explanation": "Определённая форма: leiligheten, nabolaget."
+   },
+   "answerCheckSettings": null,
+   "instructions": [
+    {
+     "id": "b693adac-a518-5ddd-ad25-3929c852adad",
+     "exerciseId": "56eca2f7-3874-531b-b4ac-39673157722f",
+     "instructionLanguage": "ru",
+     "instructionText": "Вставьте существительные в определённой форме.",
+     "hintText": "en leilighet → leiligheten, et nabolag → nabolaget.",
+     "textOverrides": null,
+     "createdAt": "2026-06-21T07:59:32.699Z",
+     "updatedAt": "2026-06-21T10:32:28.209Z"
+    }
+   ]
+  },
+  "answer": {
+   "blanks": [
+    {
+     "blank_id": 1,
+     "accepted_answers": [
+      " LEILIGHETEN "
+     ]
+    },
+    {
+     "blank_id": 2,
+     "accepted_answers": [
+      "nabolaget"
+     ]
+    }
+   ]
+  },
+  "verdict": {
+   "correct": true,
+   "score": 100,
+   "requiresReview": false,
+   "feedback": {
+    "summary": "Correct!"
+   },
+   "details": null
+  }
+ },
+ {
+  "name": "order two swapped",
+  "templateCode": "text_order",
+  "key": {
+   "templateCode": "text_order",
+   "content": {
+    "kind": "sentences",
+    "items": [
+     {
+      "id": "a",
+      "text": "Bartek sitter foran datamaskinen og leser stillingsannonser på nettet."
+     },
+     {
+      "id": "b",
+      "text": "Han finner en annonse fra Nordby Elektro AS som ser interessant ut."
+     },
+     {
+      "id": "c",
+      "text": "Han bestemmer seg for å søke med en gang."
+     },
+     {
+      "id": "d",
+      "text": "Først skriver han en søknad og forteller hvorfor han vil ha jobben."
+     },
+     {
+      "id": "e",
+      "text": "Deretter oppdaterer han CV-en sin med all erfaringen fra det nåværende firmaet."
+     },
+     {
+      "id": "f",
+      "text": "Anne leser gjennom søknaden og finner noen skrivefeil."
+     },
+     {
+      "id": "g",
+      "text": "Bartek retter feilene og sender søknaden."
+     },
+     {
+      "id": "h",
+      "text": "Nå må han bare vente på svar fra firmaet."
+     }
+    ],
+    "context": "Tekst 1A — Bartek søker ny jobb."
+   },
+   "expectedAnswers": {
+    "order": [
+     "a",
+     "b",
+     "c",
+     "d",
+     "e",
+     "f",
+     "g",
+     "h"
+    ],
+    "explanation": "Rekkefølgen følger teksten: han leser annonsen, bestemmer seg, skriver søknad, oppdaterer CV-en, får hjelp av Anne, retter feilene og venter."
+   },
+   "answerCheckSettings": null,
+   "instructions": [
+    {
+     "id": "b1d03ac8-f381-5675-867e-dcaccfbcadd5",
+     "exerciseId": "e79dba50-4216-5996-8a84-fef5d899d495",
+     "instructionLanguage": "ru",
+     "instructionText": "Расставьте предложения в том порядке, в каком события происходят в тексте 1A.",
+     "hintText": null,
+     "textOverrides": null,
+     "createdAt": "2026-08-01T19:35:34.778Z",
+     "updatedAt": "2026-09-02T16:11:35.523Z"
+    }
+   ]
+  },
+  "answer": {
+   "order": [
+    "a",
+    "b",
+    "d",
+    "c",
+    "e",
+    "f",
+    "g",
+    "h"
+   ]
+  },
+  "verdict": {
+   "correct": false,
+   "score": 75,
+   "requiresReview": false,
+   "feedback": {
+    "summary": "Incorrect. Please try again."
+   },
+   "details": null
+  }
+ },
+ {
+  "name": "order short",
+  "templateCode": "text_order",
+  "key": {
+   "templateCode": "text_order",
+   "content": {
+    "kind": "sentences",
+    "items": [
+     {
+      "id": "a",
+      "text": "Bartek sitter foran datamaskinen og leser stillingsannonser på nettet."
+     },
+     {
+      "id": "b",
+      "text": "Han finner en annonse fra Nordby Elektro AS som ser interessant ut."
+     },
+     {
+      "id": "c",
+      "text": "Han bestemmer seg for å søke med en gang."
+     },
+     {
+      "id": "d",
+      "text": "Først skriver han en søknad og forteller hvorfor han vil ha jobben."
+     },
+     {
+      "id": "e",
+      "text": "Deretter oppdaterer han CV-en sin med all erfaringen fra det nåværende firmaet."
+     },
+     {
+      "id": "f",
+      "text": "Anne leser gjennom søknaden og finner noen skrivefeil."
+     },
+     {
+      "id": "g",
+      "text": "Bartek retter feilene og sender søknaden."
+     },
+     {
+      "id": "h",
+      "text": "Nå må han bare vente på svar fra firmaet."
+     }
+    ],
+    "context": "Tekst 1A — Bartek søker ny jobb."
+   },
+   "expectedAnswers": {
+    "order": [
+     "a",
+     "b",
+     "c",
+     "d",
+     "e",
+     "f",
+     "g",
+     "h"
+    ],
+    "explanation": "Rekkefølgen følger teksten: han leser annonsen, bestemmer seg, skriver søknad, oppdaterer CV-en, får hjelp av Anne, retter feilene og venter."
+   },
+   "answerCheckSettings": null,
+   "instructions": [
+    {
+     "id": "b1d03ac8-f381-5675-867e-dcaccfbcadd5",
+     "exerciseId": "e79dba50-4216-5996-8a84-fef5d899d495",
+     "instructionLanguage": "ru",
+     "instructionText": "Расставьте предложения в том порядке, в каком события происходят в тексте 1A.",
+     "hintText": null,
+     "textOverrides": null,
+     "createdAt": "2026-08-01T19:35:34.778Z",
+     "updatedAt": "2026-09-02T16:11:35.523Z"
+    }
+   ]
+  },
+  "answer": {
+   "order": [
+    "a",
+    "b",
+    "c"
+   ]
+  },
+  "verdict": {
+   "correct": false,
+   "score": 38,
+   "requiresReview": false,
+   "feedback": {
+    "summary": "Incorrect. Please try again."
+   },
+   "details": null
+  }
+ },
+ {
+  "name": "mc wrong",
+  "templateCode": "multiple_choice",
+  "key": {
+   "templateCode": "multiple_choice",
+   "content": {
+    "options": [
+     {
+      "id": "a",
+      "text": "fordi"
+     },
+     {
+      "id": "b",
+      "text": "selv om"
+     },
+     {
+      "id": "c",
+      "text": "før"
+     },
+     {
+      "id": "d",
+      "text": "hvis"
+     }
+    ],
+    "question": "Maria skriver en e-post ___ hun vil fortelle om treningen."
+   },
+   "expectedAnswers": {
+    "explanation": "«fordi» вводит причину.",
+    "correct_option_ids": [
+     "a"
+    ]
+   },
+   "answerCheckSettings": null,
+   "instructions": [
+    {
+     "id": "f387a606-a1ba-5de9-81d6-8f2ec87ade5e",
+     "exerciseId": "59b5f485-d392-5cec-a69e-131f7455344d",
+     "instructionLanguage": "ru",
+     "instructionText": "Выберите подходящий подчинительный союз.",
+     "hintText": "Причина = fordi.",
+     "textOverrides": null,
+     "createdAt": "2026-07-13T10:26:39.344Z",
+     "updatedAt": "2026-09-02T16:11:51.467Z"
+    }
+   ]
+  },
+  "answer": {
+   "correct_option_ids": [
+    "b"
+   ]
+  },
+  "verdict": {
+   "correct": false,
+   "score": 0,
+   "requiresReview": false,
+   "feedback": {
+    "summary": "Причина = fordi.",
+    "correctAnswer": "a"
+   },
+   "details": null
+  }
+ },
+ {
+  "name": "mc right",
+  "templateCode": "multiple_choice",
+  "key": {
+   "templateCode": "multiple_choice",
+   "content": {
+    "options": [
+     {
+      "id": "a",
+      "text": "fordi"
+     },
+     {
+      "id": "b",
+      "text": "selv om"
+     },
+     {
+      "id": "c",
+      "text": "før"
+     },
+     {
+      "id": "d",
+      "text": "hvis"
+     }
+    ],
+    "question": "Maria skriver en e-post ___ hun vil fortelle om treningen."
+   },
+   "expectedAnswers": {
+    "explanation": "«fordi» вводит причину.",
+    "correct_option_ids": [
+     "a"
+    ]
+   },
+   "answerCheckSettings": null,
+   "instructions": [
+    {
+     "id": "f387a606-a1ba-5de9-81d6-8f2ec87ade5e",
+     "exerciseId": "59b5f485-d392-5cec-a69e-131f7455344d",
+     "instructionLanguage": "ru",
+     "instructionText": "Выберите подходящий подчинительный союз.",
+     "hintText": "Причина = fordi.",
+     "textOverrides": null,
+     "createdAt": "2026-07-13T10:26:39.344Z",
+     "updatedAt": "2026-09-02T16:11:51.467Z"
+    }
+   ]
+  },
+  "answer": {
+   "correct_option_ids": [
+    "a"
+   ]
+  },
+  "verdict": {
+   "correct": true,
+   "score": 100,
+   "requiresReview": false,
+   "feedback": {
+    "summary": "Correct!"
+   },
+   "details": null
+  }
+ },
+ {
+  "name": "short exact",
+  "templateCode": "short_answer",
+  "key": {
+   "templateCode": "short_answer",
+   "content": {
+    "context": "Tekst 9B.",
+    "question": "Hvorfor kom de første innvandrerne på 60- og 70-tallet?"
+   },
+   "expectedAnswers": {
+    "accepted_answers": [
+     "for å jobbe",
+     "de kom for å jobbe, ofte i industrien"
+    ],
+    "reference_answer": "For å jobbe, ofte i industrien."
+   },
+   "answerCheckSettings": null,
+   "instructions": [
+    {
+     "id": "42492f7c-c385-5d03-9855-2658fd28618b",
+     "exerciseId": "59d8e3c3-2711-5aa9-af83-8dba5107f37d",
+     "instructionLanguage": "ru",
+     "instructionText": "Ответьте на вопрос по тексту 9B.",
+     "hintText": null,
+     "textOverrides": null,
+     "createdAt": "2026-08-21T05:09:13.555Z",
+     "updatedAt": "2026-09-02T16:11:41.396Z"
+    }
+   ]
+  },
+  "answer": {
+   "text": "For å jobbe"
+  },
+  "verdict": {
+   "correct": true,
+   "score": 100,
+   "requiresReview": false,
+   "feedback": {
+    "summary": "Correct!"
+   },
+   "details": null
+  }
+ },
+ {
+  "name": "short near",
+  "templateCode": "short_answer",
+  "key": {
+   "templateCode": "short_answer",
+   "content": {
+    "context": "Tekst 9B.",
+    "question": "Hvorfor kom de første innvandrerne på 60- og 70-tallet?"
+   },
+   "expectedAnswers": {
+    "accepted_answers": [
+     "for å jobbe",
+     "de kom for å jobbe, ofte i industrien"
+    ],
+    "reference_answer": "For å jobbe, ofte i industrien."
+   },
+   "answerCheckSettings": null,
+   "instructions": [
+    {
+     "id": "42492f7c-c385-5d03-9855-2658fd28618b",
+     "exerciseId": "59d8e3c3-2711-5aa9-af83-8dba5107f37d",
+     "instructionLanguage": "ru",
+     "instructionText": "Ответьте на вопрос по тексту 9B.",
+     "hintText": null,
+     "textOverrides": null,
+     "createdAt": "2026-08-21T05:09:13.555Z",
+     "updatedAt": "2026-09-02T16:11:41.396Z"
+    }
+   ]
+  },
+  "answer": {
+   "text": "for å jobber"
+  },
+  "verdict": {
+   "correct": false,
+   "score": 67,
+   "requiresReview": false,
+   "feedback": {
+    "summary": "Incorrect. Please try again."
+   },
+   "details": null
+  }
+ },
+ {
+  "name": "short far",
+  "templateCode": "short_answer",
+  "key": {
+   "templateCode": "short_answer",
+   "content": {
+    "context": "Tekst 9B.",
+    "question": "Hvorfor kom de første innvandrerne på 60- og 70-tallet?"
+   },
+   "expectedAnswers": {
+    "accepted_answers": [
+     "for å jobbe",
+     "de kom for å jobbe, ofte i industrien"
+    ],
+    "reference_answer": "For å jobbe, ofte i industrien."
+   },
+   "answerCheckSettings": null,
+   "instructions": [
+    {
+     "id": "42492f7c-c385-5d03-9855-2658fd28618b",
+     "exerciseId": "59d8e3c3-2711-5aa9-af83-8dba5107f37d",
+     "instructionLanguage": "ru",
+     "instructionText": "Ответьте на вопрос по тексту 9B.",
+     "hintText": null,
+     "textOverrides": null,
+     "createdAt": "2026-08-21T05:09:13.555Z",
+     "updatedAt": "2026-09-02T16:11:41.396Z"
+    }
+   ]
+  },
+  "answer": {
+   "text": "Jeg vet ikke hva de gjorde der i det hele tatt"
+  },
+  "verdict": {
+   "correct": false,
+   "score": null,
+   "requiresReview": true,
+   "feedback": {
+    "summary": "Your answer has been submitted for review."
+   },
+   "details": null
+  }
+ }
+]
