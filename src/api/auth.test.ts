@@ -274,6 +274,81 @@ describe('authService', () => {
     });
   });
 
+  describe('reconnect', () => {
+    it('brings an offline session back online when the refresh gets through', async () => {
+      Keychain.__setStored({ username: 'platform', password: 'stored-refresh' });
+      storeSessionUser();
+      authStore.setSignedIn(STORED_USER, true);
+      globalThis.fetch = routeFetch({
+        '/auth/refresh': () => jsonResponse(200, tokensResponse()),
+      }) as unknown as typeof fetch;
+
+      await authService.reconnect();
+
+      expect(authStore.getState()).toMatchObject({ status: 'signedIn', offline: false });
+      expect(authService.getAccessToken()).not.toBeNull();
+    });
+
+    it('stays offline while the server is still out of reach', async () => {
+      Keychain.__setStored({ username: 'platform', password: 'stored-refresh' });
+      storeSessionUser();
+      authStore.setSignedIn(STORED_USER, true);
+      globalThis.fetch = networkDown();
+
+      await authService.reconnect();
+
+      expect(authStore.getState()).toEqual({
+        status: 'signedIn',
+        user: STORED_USER,
+        offline: true,
+      });
+    });
+
+    it('signs out when the server refuses the token of an offline session', async () => {
+      Keychain.__setStored({ username: 'platform', password: 'stored-refresh' });
+      storeSessionUser();
+      authStore.setSignedIn(STORED_USER, true);
+      globalThis.fetch = routeFetch({
+        '/auth/refresh': () => jsonResponse(401, {}),
+      }) as unknown as typeof fetch;
+
+      await authService.reconnect();
+
+      expect(authStore.getState()).toMatchObject({ status: 'signedOut', offline: false });
+      expect(mockStorage.has('user')).toBe(false);
+    });
+
+    it('restores a session that waited on the sign-in screen for the connection', async () => {
+      Keychain.__setStored({ username: 'platform', password: 'stored-refresh' });
+      authStore.setSignedOut(true);
+      globalThis.fetch = routeFetch({
+        '/auth/refresh': () => jsonResponse(200, tokensResponse()),
+      }) as unknown as typeof fetch;
+
+      await authService.reconnect();
+
+      expect(authStore.getState()).toMatchObject({ status: 'signedIn', offline: false });
+    });
+
+    it('leaves an online session alone', async () => {
+      authStore.setSignedIn(STORED_USER);
+      globalThis.fetch = jest.fn() as unknown as typeof fetch;
+
+      await authService.reconnect();
+
+      expect(globalThis.fetch).not.toHaveBeenCalled();
+    });
+
+    it('leaves a plain sign-in screen alone', async () => {
+      authStore.setSignedOut();
+      globalThis.fetch = jest.fn() as unknown as typeof fetch;
+
+      await authService.reconnect();
+
+      expect(globalThis.fetch).not.toHaveBeenCalled();
+    });
+  });
+
   describe('single-flight refresh', () => {
     it('issues exactly one refresh request for concurrent 401s', async () => {
       Keychain.__setStored({ username: 'platform', password: 'stored-refresh' });

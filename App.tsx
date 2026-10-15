@@ -6,6 +6,7 @@ import { seedIfEmpty } from './src/db/seed';
 import { settingsStore } from './src/store/settingsStore';
 import { apiSettingsStore } from './src/store/apiSettingsStore';
 import { authService } from './src/api/auth';
+import { sessionSync } from './src/services/sessionSync';
 import { biometricStore } from './src/store/biometricStore';
 import { debugPrintAllWords } from './src/db/words';
 import { RootNavigator } from './src/navigation/RootNavigator';
@@ -49,6 +50,9 @@ export default function App() {
         await biometricStore.load();
         authService.install();
         void authService.restore();
+        // A session that worked offline goes back to the server with the network, and what
+        // was answered meanwhile goes with it.
+        sessionSync.start();
 
         setReady(true);
       } catch (e) {

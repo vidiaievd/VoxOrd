@@ -124,6 +124,25 @@ class AuthService {
   }
 
   /**
+   * The connection may be back — the network came up, the app came to the foreground. Working
+   * offline, try the server again: a refresh that gets through clears the flag; one refused
+   * signs out; one that still cannot reach the server changes nothing. A session waiting on
+   * the sign-in screen for the connection is restored. Anything else is left alone.
+   */
+  async reconnect(): Promise<void> {
+    const { status, offline } = authStore.getState();
+    if (!offline) return;
+    if (status === 'signedOut') {
+      await this.restore();
+      return;
+    }
+    if (status !== 'signedIn') return;
+
+    const outcome = await this.refresh();
+    if (outcome === 'failed') this.clearSession();
+  }
+
+  /**
    * Give up a session locked behind the fingerprint and sign in with the password instead —
    * the way out for a finger that is not accepted, or a device whose biometrics changed.
    */
