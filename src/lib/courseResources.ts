@@ -1,6 +1,7 @@
 import { getContainer } from '../api/courses';
 import { getCourseHome } from '../api/courseHome';
-import { getExerciseDisplay } from '../api/exercises';
+import { getExerciseAnswers, getExerciseDisplay } from '../api/exercises';
+import { exerciseKeyCacheKey, type ExerciseKey } from './offlineGrading';
 import { getGrammarRuleExplanation, type GrammarRuleExplanation } from '../api/grammarRules';
 import { getLessonReaderContent, type LessonReaderContent } from '../api/lessons';
 import type { Container, CourseHomePayload, ExerciseDisplay, UnitContentsResult } from '../api/types';
@@ -101,5 +102,24 @@ export function exerciseDisplayResource(
   return {
     key: `exercise-display:${exerciseId}:${uiLanguage}`,
     load: () => getExerciseDisplay(exerciseId, uiLanguage),
+  };
+}
+
+/**
+ * The key of an exercise graded on the phone offline (`lib/offlineGrading`). Read by the
+ * runner only when the server cannot grade; never shown.
+ */
+export function exerciseKeyResource(exerciseId: string): CourseResource<ExerciseKey> {
+  return {
+    key: exerciseKeyCacheKey(exerciseId),
+    load: async () => {
+      const answers = await getExerciseAnswers(exerciseId);
+      return {
+        templateCode: answers.templateCode,
+        expectedAnswers: answers.expectedAnswers,
+        answerCheckSettings: answers.answerCheckSettings,
+        instructions: answers.instructions,
+      };
+    },
   };
 }

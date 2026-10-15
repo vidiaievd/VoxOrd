@@ -2,9 +2,14 @@ import { useEffect, useState } from 'react';
 import { authStore } from '../store/authStore';
 import { reviewQueueStore } from '../store/reviewQueueStore';
 import { wordCaptureQueueStore } from '../store/wordCaptureQueueStore';
+import { exerciseOutboxStore } from '../store/exerciseOutboxStore';
 
 function count(): number {
-  return reviewQueueStore.pendingCount + wordCaptureQueueStore.pendingCount;
+  return (
+    reviewQueueStore.pendingCount +
+    wordCaptureQueueStore.pendingCount +
+    exerciseOutboxStore.pendingCount
+  );
 }
 
 /**
@@ -20,11 +25,13 @@ export function usePendingSync(): number {
     const unsubscribes = [
       reviewQueueStore.subscribe(update),
       wordCaptureQueueStore.subscribe(update),
+      exerciseOutboxStore.subscribe(update),
       authStore.subscribe(update),
     ];
     // The queues load from storage lazily; a load that already happened is picked up here.
     void reviewQueueStore.load();
     void wordCaptureQueueStore.load();
+    void exerciseOutboxStore.load();
     update();
     return () => unsubscribes.forEach(u => u());
   }, []);

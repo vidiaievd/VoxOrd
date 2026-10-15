@@ -1,5 +1,10 @@
 import { ApiError, apiClient } from './client';
-import type { DifficultyLevel, ExerciseDisplay, ExerciseTemplateCode } from './types';
+import type {
+  DifficultyLevel,
+  ExerciseDisplay,
+  ExerciseInstruction,
+  ExerciseTemplateCode,
+} from './types';
 
 /* ─────────────────────────────────────────────────────────────────────────
  * Exercise display + server-side attempt flow.
@@ -28,6 +33,7 @@ import type { DifficultyLevel, ExerciseDisplay, ExerciseTemplateCode } from './t
  * ────────────────────────────────────────────────────────────────────── */
 
 const EXERCISE_DISPLAY_PATH = (id: string) => `/api/v1/exercises/${id}/display`;
+const EXERCISE_ANSWERS_PATH = (id: string) => `/api/v1/exercises/${id}/answers`;
 const ATTEMPTS_PATH = (exerciseId: string) => `/api/v1/exercises/${exerciseId}/attempts`;
 const SUBMIT_PATH = (exerciseId: string, attemptId: string) =>
   `/api/v1/exercises/${exerciseId}/attempts/${attemptId}/submit`;
@@ -162,6 +168,25 @@ export interface SubmitAttemptResponse {
   details?: unknown;
   /** The clip's words, when this verdict is the one that earns them (plan 56 §3.3). */
   audioTranscript?: AudioTranscript;
+}
+
+/** What `GET /exercises/:id/answers` carries for grading on the phone. */
+export interface ExerciseAnswersResponse {
+  templateCode: string;
+  expectedAnswers: unknown;
+  answerCheckSettings: Record<string, unknown> | null;
+  instructions: ExerciseInstruction[] | null;
+}
+
+/**
+ * `GET /exercises/:id/answers` (content-service) — the live document with its key. Asked
+ * only for the templates the web grades in the browser too (`lib/offlineGrading`), whose key
+ * was never a secret from the student's device; the phone keeps it to grade them offline
+ * (offline plan, B5 group 1). The route sits behind the JWT alone, as for the web's reader —
+ * its tighter guard is ssz-platform's open `block-5-followup`.
+ */
+export function getExerciseAnswers(id: string): Promise<ExerciseAnswersResponse> {
+  return apiClient.get<ExerciseAnswersResponse>(EXERCISE_ANSWERS_PATH(id));
 }
 
 /** `POST /exercises/:exerciseId/attempts` — start (create) an attempt. */

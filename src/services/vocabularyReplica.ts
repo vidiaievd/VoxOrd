@@ -1,5 +1,4 @@
-import { ApiError } from '../api/client';
-import { isNetworkError } from '../api/isNetworkError';
+import { isServerOutOfReach } from '../api/isNetworkError';
 import { getVocabularyReplica, type ReviewRating, type SrsCard } from '../api/srs';
 import {
   applyLocalReview,
@@ -31,8 +30,7 @@ export interface ReplicaDueQueue {
  * or answered as one that is down. A refusal (4xx) is the server speaking, and stands.
  */
 export function shouldUseReplica(error: unknown): boolean {
-  if (isNetworkError(error)) return true;
-  return error instanceof ApiError && error.status !== null && error.status >= 500;
+  return isServerOutOfReach(error);
 }
 
 /**

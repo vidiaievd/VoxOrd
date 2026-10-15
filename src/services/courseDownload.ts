@@ -7,6 +7,7 @@ import { translate } from '../i18n';
 import {
   courseHomeResource,
   exerciseDisplayResource,
+  exerciseKeyResource,
   grammarRuleResource,
   lessonReaderResource,
   unitContentsResource,
@@ -14,6 +15,7 @@ import {
   type CourseResource,
 } from '../lib/courseResources';
 import { setMemoryCache, writeCacheSnapshot } from '../lib/swrCache';
+import { gradedOnPhone } from '../lib/offlineGrading';
 import { buildImportPlan } from '../repositories/vocabularyImportMapping';
 import { vocabularyImportRepository } from '../repositories/VocabularyImportRepository';
 import { authStore } from '../store/authStore';
@@ -185,8 +187,13 @@ export class CourseDownloader {
           (await this.fetch(grammarRuleResource(item.contentId, courseId, uiLanguage, containerOf))) !==
           null
         );
-      case 'exercise':
-        return (await this.fetch(exerciseDisplayResource(item.contentId, uiLanguage))) !== null;
+      case 'exercise': {
+        const display = await this.fetch(exerciseDisplayResource(item.contentId, uiLanguage));
+        if (display === null) return false;
+        // The key goes along only for the templates the phone grades itself offline.
+        if (!gradedOnPhone(display.templateCode, display.content)) return true;
+        return (await this.fetch(exerciseKeyResource(item.contentId))) !== null;
+      }
       case 'vocabulary_list': {
         const reader = await this.fetch(vocabularyListResource(item.contentId, uiLanguage));
         if (reader === null) return false;

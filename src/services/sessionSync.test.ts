@@ -5,6 +5,7 @@ jest.mock('../store/reviewQueueStore', () => ({ reviewQueueStore: {} }));
 jest.mock('../store/wordCaptureQueueStore', () => ({ wordCaptureQueueStore: {} }));
 jest.mock('./vocabularyReplica', () => ({ vocabularyReplica: {} }));
 jest.mock('./courseDownload', () => ({ courseDownloader: {} }));
+jest.mock('../store/exerciseOutboxStore', () => ({ exerciseOutboxStore: {} }));
 
 import { SessionSync, type SessionSyncDeps } from './sessionSync';
 import type { AuthState } from '../store/authStore';
