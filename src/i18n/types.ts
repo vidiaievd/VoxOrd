@@ -125,6 +125,11 @@ export interface Translations {
     offlineDownload: string;
     offlineDownloading: string;
     offlineNever: string;
+    offlineUnitsAhead: string;
+    offlineUnitsAll: string;
+    offlineMediaOnCellular: string;
+    offlineMediaClear: string;
+    offlineMediaClearMessage: string;
     developer: string;
     apiBaseUrl: string;
     apiBaseUrlSave: string;

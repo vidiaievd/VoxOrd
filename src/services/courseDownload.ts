@@ -1,7 +1,8 @@
 import { createAsyncStorage } from '@react-native-async-storage/async-storage';
+import NetInfo from '@react-native-community/netinfo';
 import { isNetworkError } from '../api/isNetworkError';
 import { getContainer, getMyCourses, type CourseListItem } from '../api/courses';
-import type { Container, UnitContentsItem } from '../api/types';
+import type { Container, UnitContentsItem, UnitSummary } from '../api/types';
 import { getVocabularyList, type VocabularyListReaderContent } from '../api/vocabulary';
 import { translate } from '../i18n';
 import {
@@ -14,18 +15,22 @@ import {
   vocabularyListResource,
   type CourseResource,
 } from '../lib/courseResources';
-import { setMemoryCache, writeCacheSnapshot } from '../lib/swrCache';
+import { collectMediaIds } from '../lib/mediaIds';
 import { gradedOnPhone } from '../lib/offlineGrading';
+import { setMemoryCache, writeCacheSnapshot } from '../lib/swrCache';
 import { buildImportPlan } from '../repositories/vocabularyImportMapping';
 import { vocabularyImportRepository } from '../repositories/VocabularyImportRepository';
 import { authStore } from '../store/authStore';
-import { settingsStore } from '../store/settingsStore';
+import { settingsStore, ALL_UNITS } from '../store/settingsStore';
+import { mediaCache } from './mediaCache';
 
 /** A course downloaded this recently is not walked again by the automatic run. */
 export const DOWNLOAD_INTERVAL_MS = 12 * 60 * 60 * 1000;
 
 /** Requests in flight at once — enough to be quick, few enough to leave the phone usable. */
 const CONCURRENCY = 4;
+/** Media files in flight at once: they are large, and the screen may be playing one. */
+const MEDIA_CONCURRENCY = 2;
 
 export interface CourseDownloadStatus {
   running: boolean;
@@ -35,18 +40,34 @@ export interface CourseDownloadStatus {
   lastFailed: number;
 }
 
+/** What the last walk of one course left, kept so a skipped course still knows its media. */
+export interface CourseRun {
+  at: number;
+  /** The media the course's window refers to. */
+  mediaIds: string[];
+  /** Whether those media were downloaded, or skipped (no Wi-Fi, media off). */
+  mediaDone: boolean;
+}
+
 export interface CourseDownloadDeps {
   getUserId(): string | null;
   getUiLanguage(): string;
+  /** Units to keep beyond the current one; `ALL_UNITS` for the whole course. */
+  getUnitsAhead(): number;
+  /** Whether media may be downloaded now — Wi-Fi, or the learner allowed mobile data. */
+  mediaAllowed(): Promise<boolean>;
   getMyCourses(): Promise<CourseListItem[]>;
   getContainer(courseId: string): Promise<Container>;
   /** Writes a fetched value where the screen with this key will read it. */
   store(key: string, value: unknown): Promise<void>;
   /** Puts a course vocabulary list into the phone's decks, unless it is there already. */
   importList(listId: string, reader: VocabularyListReaderContent, uiLanguage: string): Promise<void>;
-  /** When each course was last walked, per learner and language. */
-  getLastRun(key: string): Promise<number | null>;
-  setLastRun(key: string, at: number): Promise<void>;
+  media: {
+    download(id: string): Promise<boolean>;
+    retainOnly(ids: Set<string>): Promise<void>;
+  };
+  getRun(key: string): Promise<CourseRun | null>;
+  setRun(key: string, run: CourseRun): Promise<void>;
   now(): number;
 }
 
@@ -54,17 +75,34 @@ export interface CourseDownloadDeps {
 class OfflineAbort extends Error {}
 
 /**
- * Downloads the learner's courses for use without the network (offline plan, B3).
+ * The units kept on the phone: the one the learner is on and `ahead` after it. The one they
+ * are on is the first not done — under open gating every unit reads `active`, so «active»
+ * would always point at the first. A finished course keeps its last unit.
+ */
+export function unitWindow(units: UnitSummary[], ahead: number): UnitSummary[] {
+  if (units.length === 0) return [];
+  if (ahead === ALL_UNITS) return units;
+  const firstOpen = units.findIndex(unit => unit.status !== 'done');
+  const from = firstOpen === -1 ? units.length - 1 : firstOpen;
+  return units.slice(from, from + 1 + Math.max(0, ahead));
+}
+
+/**
+ * Downloads what the learner is about to study, for use without the network (offline plan, B3).
  *
- * Walks every active course — course home, every unit's contents, and each lesson, grammar
- * rule, vocabulary list and exercise in it — and writes each response under the cache key
- * the screen reading it uses (`lib/courseResources`). Offline, the screens find their content
- * in their ordinary cache. Vocabulary lists are also put into the phone's decks, which is
- * where the offline word review draws its words from (B1).
+ * For every active course: the course home, then — for the current unit and the number ahead
+ * the settings name — each unit's contents and every lesson, grammar rule, vocabulary list and
+ * exercise in it, written under the cache key the screen reading it uses
+ * (`lib/courseResources`). Offline the screens find their content in their ordinary cache.
+ * Vocabulary lists also go into the phone's decks, where offline word review draws its words
+ * (B1). The media those units refer to — narration, images, clips, pronunciations — go to
+ * `mediaCache`, over Wi-Fi unless the learner allowed mobile data; files outside every
+ * course's window are dropped, so the phone keeps what is ahead and nothing behind.
  *
- * Runs after the session comes online (`sessionSync`), at most every `DOWNLOAD_INTERVAL_MS`
- * per course; the settings screen can force it. Text only — media files are a later step.
- * A lost connection ends the walk; what was fetched stays, the next run starts over.
+ * Runs once the session comes online (`sessionSync`). A course is walked again when its window
+ * moved, when its media are still missing and may now be fetched, or after
+ * `DOWNLOAD_INTERVAL_MS`; the settings screen can force it. A lost connection ends the walk;
+ * what was fetched stays, and the next run starts over.
  */
 export class CourseDownloader {
   private status: CourseDownloadStatus = { running: false, lastFinishedAt: null, lastFailed: 0 };
@@ -81,8 +119,10 @@ export class CourseDownloader {
   async loadStatus(): Promise<void> {
     const userId = this.deps.getUserId();
     if (!userId || this.status.lastFinishedAt !== null) return;
-    const last = await this.deps.getLastRun(finishedKey(userId));
-    if (last !== null && this.status.lastFinishedAt === null) this.setStatus({ lastFinishedAt: last });
+    const last = await this.deps.getRun(finishedKey(userId));
+    if (last !== null && this.status.lastFinishedAt === null) {
+      this.setStatus({ lastFinishedAt: last.at });
+    }
   }
 
   subscribe(listener: () => void): () => void {
@@ -104,27 +144,62 @@ export class CourseDownloader {
     const userId = this.deps.getUserId();
     if (!userId) return;
     const uiLanguage = this.deps.getUiLanguage();
+    const ahead = this.deps.getUnitsAhead();
     this.setStatus({ running: true });
 
     let failed = 0;
     let finished = false;
+    // Every course's media, walked now or remembered from its last walk: what the cache keeps.
+    const keep = new Set<string>();
+    let keepComplete = true;
     try {
+      const mediaAllowed = await this.deps.mediaAllowed();
       const courses = await this.deps.getMyCourses();
       // The course list screen reads this key too.
       await this.deps.store(`courses:${userId}`, courses);
 
       for (const { container } of courses) {
-        const runKey = `${userId}:${container.id}:${uiLanguage}`;
-        const last = await this.deps.getLastRun(runKey);
-        if (!force && last !== null && this.deps.now() - last < DOWNLOAD_INTERVAL_MS) continue;
+        // Read every time: it is one request, and it says where the learner is now.
+        const home = await this.fetch(courseHomeResource(container.id));
+        if (home === null) {
+          failed += 1;
+          keepComplete = false;
+          continue;
+        }
+        const window = unitWindow(home.units, ahead);
+        const runKey = `${userId}:${container.id}:${uiLanguage}:${window.map(u => u.id).join(',')}`;
+        const last = await this.deps.getRun(runKey);
+        const fresh = last !== null && this.deps.now() - last.at < DOWNLOAD_INTERVAL_MS;
+        if (!force && last !== null && fresh && (last.mediaDone || !mediaAllowed)) {
+          last.mediaIds.forEach(id => keep.add(id));
+          continue;
+        }
 
-        failed += await this.walkCourse(container.id, uiLanguage);
+        const walked = await this.walkUnits(window, container.id, uiLanguage);
+        failed += walked.failed;
+        walked.mediaIds.forEach(id => keep.add(id));
+
+        let mediaDone = false;
+        if (mediaAllowed) {
+          failed += await this.downloadMedia(walked.mediaIds);
+          mediaDone = true;
+        }
         // A course whose session changed hands is not this learner's to mark.
         if (this.deps.getUserId() !== userId) return;
-        await this.deps.setLastRun(runKey, this.deps.now());
+        await this.deps.setRun(runKey, {
+          at: this.deps.now(),
+          mediaIds: [...walked.mediaIds],
+          mediaDone,
+        });
       }
+
+      if (keepComplete) await this.deps.media.retainOnly(keep);
       finished = true;
-      await this.deps.setLastRun(finishedKey(userId), this.deps.now());
+      await this.deps.setRun(finishedKey(userId), {
+        at: this.deps.now(),
+        mediaIds: [],
+        mediaDone: true,
+      });
     } catch (e) {
       if (!(e instanceof OfflineAbort) && !isNetworkError(e)) throw e;
     } finally {
@@ -135,9 +210,14 @@ export class CourseDownloader {
     }
   }
 
-  /** The number of items that could not be fetched. */
-  private async walkCourse(courseId: string, uiLanguage: string): Promise<number> {
+  /** The units' screens, stored; the items that could not be fetched and the media they name. */
+  private async walkUnits(
+    units: UnitSummary[],
+    courseId: string,
+    uiLanguage: string,
+  ): Promise<{ failed: number; mediaIds: Set<string> }> {
     let failed = 0;
+    const mediaIds = new Set<string>();
     // One container request per course, not one per lesson.
     const containers = new Map<string, Promise<Container>>();
     const containerOf = (id: string) => {
@@ -149,10 +229,7 @@ export class CourseDownloader {
       return container;
     };
 
-    const home = await this.fetch(courseHomeResource(courseId));
-    if (home === null) return 1;
-
-    for (const unit of home.units) {
+    for (const unit of units) {
       const contents = await this.fetch(unitContentsResource(unit.id));
       if (contents === null) {
         failed += 1;
@@ -163,11 +240,11 @@ export class CourseDownloader {
         ...contents.ungroupedItems,
       ];
       const results = await mapLimit(items, CONCURRENCY, item =>
-        this.fetchItem(item, courseId, uiLanguage, containerOf),
+        this.fetchItem(item, courseId, uiLanguage, containerOf, mediaIds),
       );
       failed += results.filter(ok => !ok).length;
     }
-    return failed;
+    return { failed, mediaIds };
   }
 
   private async fetchItem(
@@ -175,28 +252,31 @@ export class CourseDownloader {
     courseId: string,
     uiLanguage: string,
     containerOf: (id: string) => Promise<Container>,
+    mediaIds: Set<string>,
   ): Promise<boolean> {
+    const kept = <T>(value: T | null): value is T => {
+      if (value !== null) collectMediaIds(value, mediaIds);
+      return value !== null;
+    };
     switch (item.contentType) {
       case 'lesson':
-        return (
-          (await this.fetch(lessonReaderResource(item.contentId, courseId, uiLanguage, containerOf))) !==
-          null
+        return kept(
+          await this.fetch(lessonReaderResource(item.contentId, courseId, uiLanguage, containerOf)),
         );
       case 'grammar_rule':
-        return (
-          (await this.fetch(grammarRuleResource(item.contentId, courseId, uiLanguage, containerOf))) !==
-          null
+        return kept(
+          await this.fetch(grammarRuleResource(item.contentId, courseId, uiLanguage, containerOf)),
         );
       case 'exercise': {
         const display = await this.fetch(exerciseDisplayResource(item.contentId, uiLanguage));
-        if (display === null) return false;
+        if (!kept(display)) return false;
         // The key goes along only for the templates the phone grades itself offline.
         if (!gradedOnPhone(display.templateCode, display.content)) return true;
         return (await this.fetch(exerciseKeyResource(item.contentId))) !== null;
       }
       case 'vocabulary_list': {
         const reader = await this.fetch(vocabularyListResource(item.contentId, uiLanguage));
-        if (reader === null) return false;
+        if (!kept(reader)) return false;
         try {
           await this.deps.importList(item.contentId, reader, uiLanguage);
         } catch (e) {
@@ -210,6 +290,20 @@ export class CourseDownloader {
         // Nested containers and anything newer than this build: nothing to read offline.
         return true;
     }
+  }
+
+  /** The number of media files that could not be kept. A lost connection ends the walk. */
+  private async downloadMedia(ids: Set<string>): Promise<number> {
+    const results = await mapLimit([...ids], MEDIA_CONCURRENCY, async id => {
+      try {
+        return await this.deps.media.download(id);
+      } catch (e) {
+        if (isNetworkError(e)) throw new OfflineAbort();
+        console.warn(`[CourseDownload] Media ${id} not kept:`, e);
+        return false;
+      }
+    });
+    return results.filter(ok => !ok).length;
   }
 
   /** The value, stored where its screen reads it; null when refused. Offline ends the walk. */
@@ -257,6 +351,15 @@ const runStorage = createAsyncStorage('voxord_course_download');
 export const courseDownloader = new CourseDownloader({
   getUserId: () => authStore.getState().user?.id ?? null,
   getUiLanguage: () => settingsStore.getAll().uiLanguage,
+  getUnitsAhead: () => settingsStore.getAll().offlineUnitsAhead,
+  mediaAllowed: async () => {
+    if (settingsStore.getAll().offlineMediaOnCellular) return true;
+    try {
+      return (await NetInfo.fetch()).type === 'wifi';
+    } catch {
+      return false;
+    }
+  },
   getMyCourses,
   getContainer,
   store: async (key, value) => {
@@ -271,17 +374,24 @@ export const courseDownloader = new CourseDownloader({
       coursesGroupTitle: translate('vocabulary.coursesGroup'),
     });
   },
-  getLastRun: async key => {
+  media: {
+    download: id => mediaCache.download(id),
+    retainOnly: ids => mediaCache.retainOnly(ids),
+  },
+  getRun: async key => {
     try {
       const raw = await runStorage.getItem(key);
-      return raw ? Number(raw) : null;
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as CourseRun | number;
+      // Runs before the window was kept were a bare time.
+      return typeof parsed === 'number' ? { at: parsed, mediaIds: [], mediaDone: false } : parsed;
     } catch {
       return null;
     }
   },
-  setLastRun: async (key, at) => {
+  setRun: async (key, run) => {
     try {
-      await runStorage.setItem(key, String(at));
+      await runStorage.setItem(key, JSON.stringify(run));
     } catch {
       // Losing it costs one more walk, nothing else.
     }

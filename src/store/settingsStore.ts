@@ -5,6 +5,9 @@ export type ThemeMode = 'light' | 'dark' | 'system';
 export type CardMode = 'flip' | 'pronunciation' | 'writing' | 'test';
 export type SpellingHintMode = 'always' | 'after_mistake' | 'never';
 
+/** `offlineUnitsAhead` meaning the whole course rather than a number of units. */
+export const ALL_UNITS = -1;
+
 export interface AppSettings {
   uiLanguage: LanguageCode;
   learningLanguage: string;
@@ -14,6 +17,13 @@ export interface AppSettings {
   showWordForms: boolean;
   showOrdbokenLink: boolean;
   spellingHintMode: SpellingHintMode;
+  /**
+   * Units kept on the phone beyond the one the learner is on (offline plan, B3) — text and
+   * media alike. `ALL_UNITS` for the whole course.
+   */
+  offlineUnitsAhead: number;
+  /** Course media may be downloaded over mobile data too, not only Wi-Fi. */
+  offlineMediaOnCellular: boolean;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -25,6 +35,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   showWordForms: true,
   showOrdbokenLink: true,
   spellingHintMode: 'after_mistake',
+  offlineUnitsAhead: 2,
+  offlineMediaOnCellular: false,
 };
 
 const storage = createAsyncStorage('voxord_settings');
