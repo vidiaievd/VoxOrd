@@ -10787,5 +10787,1595 @@
     }
    }
   ]
+ },
+ {
+  "name": "minimal pairs dealt on the phone: second chance, refusals, A/B, submit",
+  "templateCode": "minimal_pairs",
+  "key": {
+   "templateCode": "minimal_pairs",
+   "content": {
+    "set": {
+     "probes": 6,
+     "options": "pair",
+     "autoplay": true,
+     "sampling": "balanced",
+     "allowRepeat": true,
+     "maxSameAnswer": 2,
+     "playsPerProbe": 2,
+     "shuffleOptions": true
+    },
+    "pairs": [
+     {
+      "id": "pairpb",
+      "words": [
+       {
+        "id": "wpare",
+        "ipa": "",
+        "clip": {
+         "voice": "no_NO-talesyntese-medium",
+         "assetId": "05dd5c25-8e2e-4ca4-894f-0e7ceac61c58",
+         "dialect": "",
+         "fileName": "",
+         "durationMs": 0,
+         "provenance": "tts"
+        },
+        "text": "pære",
+        "gloss": "frukt"
+       },
+       {
+        "id": "wbare",
+        "ipa": "",
+        "clip": {
+         "voice": "no_NO-talesyntese-medium",
+         "assetId": "dc60a59f-5496-45c2-9e31-b1f92ae48fe9",
+         "dialect": "",
+         "fileName": "",
+         "durationMs": 0,
+         "provenance": "tts"
+        },
+        "text": "bære",
+        "gloss": "å bære noe"
+       }
+      ],
+      "contrastId": ""
+     },
+     {
+      "id": "pairlv",
+      "words": [
+       {
+        "id": "wlare",
+        "ipa": "",
+        "clip": {
+         "voice": "no_NO-talesyntese-medium",
+         "assetId": "14012ca5-1a10-4e8b-a794-719d4702c806",
+         "dialect": "",
+         "fileName": "",
+         "durationMs": 0,
+         "provenance": "tts"
+        },
+        "text": "lære",
+        "gloss": "å lære"
+       },
+       {
+        "id": "wvare",
+        "ipa": "",
+        "clip": {
+         "voice": "no_NO-talesyntese-medium",
+         "assetId": "414cfa7a-771a-4087-b2e8-da1ee0b7e240",
+         "dialect": "",
+         "fileName": "",
+         "durationMs": 0,
+         "provenance": "tts"
+        },
+        "text": "være",
+        "gloss": "å være"
+       }
+      ],
+      "contrastId": ""
+     }
+    ],
+    "title": "Plan 72 live check — p/b, l/v",
+    "scoring": {
+     "memory": "contrast",
+     "passPct": 75,
+     "attempts": 0,
+     "logWordExposure": true
+    },
+    "feedback": {
+     "showIpa": false,
+     "abCompare": true,
+     "immediate": true,
+     "showGloss": "afterAnswer",
+     "secondChance": true,
+     "showSpelling": "always"
+    },
+    "language": "nb",
+    "contrastId": "consonant",
+    "instruction": "Du hører ett ord. Trykk på ordet du hørte."
+   },
+   "expectedAnswers": {
+    "pairs": {
+     "pairpb": {
+      "note": "Live check note — must never reach a student."
+     }
+    }
+   },
+   "answerCheckSettings": null,
+   "instructions": []
+  },
+  "projection": {
+   "title": "Plan 72 live check — p/b, l/v",
+   "instruction": "Du hører ett ord. Trykk på ordet du hørte.",
+   "language": "nb",
+   "contrast": {
+    "label": "Konsonant",
+    "ipa": "p – r – l"
+   },
+   "set": {
+    "probes": 6,
+    "playsPerProbe": 2,
+    "autoplay": true
+   },
+   "feedback": {
+    "immediate": true,
+    "abCompare": true,
+    "showSpelling": "always",
+    "showGloss": "afterAnswer",
+    "showIpa": false,
+    "secondChance": true
+   }
+  },
+  "ops": [
+   {
+    "op": "items"
+   },
+   {
+    "op": "answer",
+    "body": {
+     "questionId": "p1",
+     "optionId": "wpare"
+    }
+   },
+   {
+    "op": "items"
+   },
+   {
+    "op": "answer",
+    "body": {
+     "questionId": "p1",
+     "optionId": "wbare"
+    }
+   },
+   {
+    "op": "answer",
+    "body": {
+     "questionId": "p3",
+     "optionId": "wvare"
+    }
+   },
+   {
+    "op": "items"
+   },
+   {
+    "op": "answer",
+    "body": {
+     "questionId": "p2",
+     "optionId": "not-an-option"
+    }
+   },
+   {
+    "op": "answer",
+    "body": {
+     "questionId": "p2",
+     "optionId": "wlare"
+    }
+   },
+   {
+    "op": "answer",
+    "body": {
+     "questionId": "p3",
+     "optionId": "wlare"
+    }
+   },
+   {
+    "op": "answer",
+    "body": {
+     "questionId": "p3",
+     "optionId": "wlare"
+    }
+   },
+   {
+    "op": "answer",
+    "body": {
+     "questionId": "p3",
+     "optionId": "wvare"
+    }
+   },
+   {
+    "op": "answer",
+    "body": {
+     "questionId": "p4",
+     "optionId": "wpare"
+    }
+   },
+   {
+    "op": "answer",
+    "body": {
+     "questionId": "p5",
+     "optionId": "wlare"
+    }
+   },
+   {
+    "op": "answer",
+    "body": {
+     "questionId": "p5",
+     "optionId": "wvare"
+    }
+   },
+   {
+    "op": "answer",
+    "body": {
+     "questionId": "p6",
+     "optionId": "wbare"
+    }
+   },
+   {
+    "op": "items"
+   },
+   {
+    "op": "submit",
+    "body": {
+     "submittedAnswer": {},
+     "timeSpentSeconds": 40,
+     "locale": "nb"
+    }
+   }
+  ],
+  "responses": [
+   {
+    "status": 200,
+    "body": {
+     "n": 1,
+     "total": 6,
+     "questionId": "p1",
+     "clip": {
+      "url": "http://192.168.50.200:9000/ssz-private/9837beac-cb5d-42b8-9037-54e17f8b7c82/0c4e979c-9bea-4be8-98dd-ab4412bb5da8/variants/mp3.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20261015%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261015T204715Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=4bdf29a12f3d1fd7ca156d984f770f9fd11ebed604425155055854d5ea3c4602",
+      "expiresAt": "2026-10-15T21:47:15.469Z",
+      "durationMs": 708,
+      "provenance": "tts",
+      "dialect": ""
+     },
+     "options": [
+      {
+       "id": "wbare",
+       "text": "bære"
+      },
+      {
+       "id": "wpare",
+       "text": "pære"
+      }
+     ],
+     "state": {
+      "tries": 0,
+      "maxTries": 2,
+      "closed": false
+     },
+     "closedProbes": []
+    }
+   },
+   {
+    "status": 200,
+    "body": {
+     "attemptId": "fff24bc4-840c-41e5-be64-4982d2b71b34",
+     "templateCode": "minimal_pairs",
+     "answered": 0,
+     "total": 6,
+     "result": {
+      "questionId": "p1",
+      "n": 1,
+      "optionId": "wpare",
+      "correct": false,
+      "closed": false,
+      "tries": 1,
+      "triesLeft": 1,
+      "firstCorrect": false
+     },
+     "routedForReview": false
+    }
+   },
+   {
+    "status": 200,
+    "body": {
+     "n": 1,
+     "total": 6,
+     "questionId": "p1",
+     "clip": {
+      "url": "http://192.168.50.200:9000/ssz-private/9837beac-cb5d-42b8-9037-54e17f8b7c82/0c4e979c-9bea-4be8-98dd-ab4412bb5da8/variants/mp3.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20261015%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261015T204715Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=4bdf29a12f3d1fd7ca156d984f770f9fd11ebed604425155055854d5ea3c4602",
+      "expiresAt": "2026-10-15T21:47:15.489Z",
+      "durationMs": 708,
+      "provenance": "tts",
+      "dialect": ""
+     },
+     "options": [
+      {
+       "id": "wbare",
+       "text": "bære"
+      },
+      {
+       "id": "wpare",
+       "text": "pære"
+      }
+     ],
+     "state": {
+      "tries": 1,
+      "maxTries": 2,
+      "closed": false
+     },
+     "closedProbes": []
+    }
+   },
+   {
+    "status": 200,
+    "body": {
+     "attemptId": "fff24bc4-840c-41e5-be64-4982d2b71b34",
+     "templateCode": "minimal_pairs",
+     "answered": 1,
+     "total": 6,
+     "result": {
+      "questionId": "p1",
+      "n": 1,
+      "optionId": "wbare",
+      "correct": true,
+      "closed": true,
+      "tries": 2,
+      "triesLeft": 0,
+      "firstCorrect": false,
+      "keyOptionId": "wbare",
+      "options": [
+       {
+        "id": "wbare",
+        "text": "bære",
+        "gloss": "å bære noe"
+       },
+       {
+        "id": "wpare",
+        "text": "pære",
+        "gloss": "frukt"
+       }
+      ]
+     },
+     "routedForReview": false
+    }
+   },
+   {
+    "status": 422,
+    "body": {
+     "message": "This is not the probe the sitting is on — ask POST /items for it"
+    }
+   },
+   {
+    "status": 200,
+    "body": {
+     "n": 2,
+     "total": 6,
+     "questionId": "p2",
+     "clip": {
+      "url": "http://192.168.50.200:9000/ssz-private/9837beac-cb5d-42b8-9037-54e17f8b7c82/4e28dba5-83d2-4ec4-bffd-c4a7e0a3978b/variants/mp3.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20261015%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261015T204715Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=f016b2534b8e346c413ec634e5a9b71b0118c3f2983aa1bf2fc4aa705c8f9b83",
+      "expiresAt": "2026-10-15T21:47:15.509Z",
+      "durationMs": 673,
+      "provenance": "tts",
+      "dialect": ""
+     },
+     "options": [
+      {
+       "id": "wlare",
+       "text": "lære"
+      },
+      {
+       "id": "wvare",
+       "text": "være"
+      }
+     ],
+     "state": {
+      "tries": 0,
+      "maxTries": 2,
+      "closed": false
+     },
+     "closedProbes": [
+      {
+       "n": 1,
+       "correct": false
+      }
+     ]
+    }
+   },
+   {
+    "status": 400,
+    "body": {
+     "message": "That is not one of this probe’s options"
+    }
+   },
+   {
+    "status": 200,
+    "body": {
+     "attemptId": "fff24bc4-840c-41e5-be64-4982d2b71b34",
+     "templateCode": "minimal_pairs",
+     "answered": 2,
+     "total": 6,
+     "result": {
+      "questionId": "p2",
+      "n": 2,
+      "optionId": "wlare",
+      "correct": true,
+      "closed": true,
+      "tries": 1,
+      "triesLeft": 1,
+      "firstCorrect": true,
+      "keyOptionId": "wlare",
+      "options": [
+       {
+        "id": "wlare",
+        "text": "lære",
+        "gloss": "å lære"
+       },
+       {
+        "id": "wvare",
+        "text": "være",
+        "gloss": "å være"
+       }
+      ]
+     },
+     "routedForReview": false
+    }
+   },
+   {
+    "status": 200,
+    "body": {
+     "attemptId": "fff24bc4-840c-41e5-be64-4982d2b71b34",
+     "templateCode": "minimal_pairs",
+     "answered": 2,
+     "total": 6,
+     "result": {
+      "questionId": "p3",
+      "n": 3,
+      "optionId": "wlare",
+      "correct": false,
+      "closed": false,
+      "tries": 1,
+      "triesLeft": 1,
+      "firstCorrect": false
+     },
+     "routedForReview": false
+    }
+   },
+   {
+    "status": 200,
+    "body": {
+     "attemptId": "fff24bc4-840c-41e5-be64-4982d2b71b34",
+     "templateCode": "minimal_pairs",
+     "answered": 3,
+     "total": 6,
+     "result": {
+      "questionId": "p3",
+      "n": 3,
+      "optionId": "wlare",
+      "correct": false,
+      "closed": true,
+      "tries": 2,
+      "triesLeft": 0,
+      "firstCorrect": false,
+      "keyOptionId": "wvare",
+      "options": [
+       {
+        "id": "wvare",
+        "text": "være",
+        "gloss": "å være"
+       },
+       {
+        "id": "wlare",
+        "text": "lære",
+        "gloss": "å lære"
+       }
+      ],
+      "compare": {
+       "chosen": "http://192.168.50.200:9000/ssz-private/9837beac-cb5d-42b8-9037-54e17f8b7c82/4e28dba5-83d2-4ec4-bffd-c4a7e0a3978b/variants/mp3.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20261015%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261015T204715Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=f016b2534b8e346c413ec634e5a9b71b0118c3f2983aa1bf2fc4aa705c8f9b83",
+       "target": "http://192.168.50.200:9000/ssz-private/9837beac-cb5d-42b8-9037-54e17f8b7c82/34c5e5dc-1b10-4698-a80f-0c34dc70a040/variants/mp3.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20261015%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261015T204715Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=6874e5f53cf19e2015224734327951b2369f8234f755da33f6b85fa73f1705b9"
+      }
+     },
+     "routedForReview": false
+    }
+   },
+   {
+    "status": 422,
+    "body": {
+     "message": "This question is finished — it was answered, revealed, or all its attempts are spent"
+    }
+   },
+   {
+    "status": 200,
+    "body": {
+     "attemptId": "fff24bc4-840c-41e5-be64-4982d2b71b34",
+     "templateCode": "minimal_pairs",
+     "answered": 4,
+     "total": 6,
+     "result": {
+      "questionId": "p4",
+      "n": 4,
+      "optionId": "wpare",
+      "correct": true,
+      "closed": true,
+      "tries": 1,
+      "triesLeft": 1,
+      "firstCorrect": true,
+      "keyOptionId": "wpare",
+      "options": [
+       {
+        "id": "wbare",
+        "text": "bære",
+        "gloss": "å bære noe"
+       },
+       {
+        "id": "wpare",
+        "text": "pære",
+        "gloss": "frukt"
+       }
+      ]
+     },
+     "routedForReview": false
+    }
+   },
+   {
+    "status": 200,
+    "body": {
+     "attemptId": "fff24bc4-840c-41e5-be64-4982d2b71b34",
+     "templateCode": "minimal_pairs",
+     "answered": 4,
+     "total": 6,
+     "result": {
+      "questionId": "p5",
+      "n": 5,
+      "optionId": "wlare",
+      "correct": false,
+      "closed": false,
+      "tries": 1,
+      "triesLeft": 1,
+      "firstCorrect": false
+     },
+     "routedForReview": false
+    }
+   },
+   {
+    "status": 200,
+    "body": {
+     "attemptId": "fff24bc4-840c-41e5-be64-4982d2b71b34",
+     "templateCode": "minimal_pairs",
+     "answered": 5,
+     "total": 6,
+     "result": {
+      "questionId": "p5",
+      "n": 5,
+      "optionId": "wvare",
+      "correct": true,
+      "closed": true,
+      "tries": 2,
+      "triesLeft": 0,
+      "firstCorrect": false,
+      "keyOptionId": "wvare",
+      "options": [
+       {
+        "id": "wlare",
+        "text": "lære",
+        "gloss": "å lære"
+       },
+       {
+        "id": "wvare",
+        "text": "være",
+        "gloss": "å være"
+       }
+      ]
+     },
+     "routedForReview": false
+    }
+   },
+   {
+    "status": 200,
+    "body": {
+     "attemptId": "fff24bc4-840c-41e5-be64-4982d2b71b34",
+     "templateCode": "minimal_pairs",
+     "answered": 6,
+     "total": 6,
+     "result": {
+      "questionId": "p6",
+      "n": 6,
+      "optionId": "wbare",
+      "correct": true,
+      "closed": true,
+      "tries": 1,
+      "triesLeft": 1,
+      "firstCorrect": true,
+      "keyOptionId": "wbare",
+      "options": [
+       {
+        "id": "wbare",
+        "text": "bære",
+        "gloss": "å bære noe"
+       },
+       {
+        "id": "wpare",
+        "text": "pære",
+        "gloss": "frukt"
+       }
+      ]
+     },
+     "routedForReview": false
+    }
+   },
+   {
+    "status": 422,
+    "body": {
+     "message": "Every probe is answered — submit the attempt"
+    }
+   },
+   {
+    "status": 200,
+    "body": {
+     "attemptId": "fff24bc4-840c-41e5-be64-4982d2b71b34",
+     "correct": false,
+     "score": 50,
+     "requiresReview": false,
+     "feedback": {
+      "summary": "Incorrect. Please try again."
+     },
+     "details": {
+      "right": 3,
+      "total": 6,
+      "score": 50,
+      "passed": false,
+      "passPct": 75,
+      "memory": "contrast",
+      "pairs": [
+       {
+        "pairId": "pairpb",
+        "words": [
+         "pære",
+         "bære"
+        ],
+        "played": 3,
+        "correct": 2,
+        "clips": [
+         "http://192.168.50.200:9000/ssz-private/9837beac-cb5d-42b8-9037-54e17f8b7c82/18ed34cc-fb19-44aa-8f1b-3e1e0d142fbf/variants/mp3.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20261015%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261015T204715Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=965bf3f36a816bb37b2499378f664f5e2615ba455bf18b6cb5182fc8201ba4cc",
+         "http://192.168.50.200:9000/ssz-private/9837beac-cb5d-42b8-9037-54e17f8b7c82/0c4e979c-9bea-4be8-98dd-ab4412bb5da8/variants/mp3.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20261015%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261015T204715Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=4bdf29a12f3d1fd7ca156d984f770f9fd11ebed604425155055854d5ea3c4602"
+        ]
+       },
+       {
+        "pairId": "pairlv",
+        "words": [
+         "lære",
+         "være"
+        ],
+        "played": 3,
+        "correct": 1,
+        "clips": [
+         "http://192.168.50.200:9000/ssz-private/9837beac-cb5d-42b8-9037-54e17f8b7c82/4e28dba5-83d2-4ec4-bffd-c4a7e0a3978b/variants/mp3.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20261015%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261015T204715Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=f016b2534b8e346c413ec634e5a9b71b0118c3f2983aa1bf2fc4aa705c8f9b83",
+         "http://192.168.50.200:9000/ssz-private/9837beac-cb5d-42b8-9037-54e17f8b7c82/34c5e5dc-1b10-4698-a80f-0c34dc70a040/variants/mp3.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20261015%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261015T204715Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=6874e5f53cf19e2015224734327951b2369f8234f755da33f6b85fa73f1705b9"
+        ]
+       }
+      ]
+     }
+    }
+   }
+  ],
+  "seed": 11,
+  "startBody": {
+   "probeDraw": [
+    {
+     "n": 1,
+     "pairId": "pairpb",
+     "wordId": "wbare",
+     "side": 1,
+     "optionIds": [
+      "wbare",
+      "wpare"
+     ]
+    },
+    {
+     "n": 2,
+     "pairId": "pairlv",
+     "wordId": "wlare",
+     "side": 0,
+     "optionIds": [
+      "wlare",
+      "wvare"
+     ]
+    },
+    {
+     "n": 3,
+     "pairId": "pairlv",
+     "wordId": "wvare",
+     "side": 1,
+     "optionIds": [
+      "wvare",
+      "wlare"
+     ]
+    },
+    {
+     "n": 4,
+     "pairId": "pairpb",
+     "wordId": "wpare",
+     "side": 0,
+     "optionIds": [
+      "wbare",
+      "wpare"
+     ]
+    },
+    {
+     "n": 5,
+     "pairId": "pairlv",
+     "wordId": "wvare",
+     "side": 1,
+     "optionIds": [
+      "wlare",
+      "wvare"
+     ]
+    },
+    {
+     "n": 6,
+     "pairId": "pairpb",
+     "wordId": "wbare",
+     "side": 1,
+     "optionIds": [
+      "wbare",
+      "wpare"
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "minimal pairs dealt on the phone: one try, misses, unanswered probes, submit",
+  "templateCode": "minimal_pairs",
+  "key": {
+   "templateCode": "minimal_pairs",
+   "content": {
+    "set": {
+     "probes": 12,
+     "options": "pair",
+     "autoplay": true,
+     "sampling": "weakest",
+     "allowRepeat": true,
+     "maxSameAnswer": 2,
+     "playsPerProbe": 2,
+     "shuffleOptions": true
+    },
+    "pairs": [
+     {
+      "id": "bjcyy3",
+      "words": [
+       {
+        "id": "5e7w1l",
+        "ipa": "",
+        "clip": {
+         "voice": "no_NO-talesyntese-medium",
+         "assetId": "3751f4d6-c2ba-46a6-936b-200e949ed120",
+         "dialect": "",
+         "fileName": "kjøre.mp3",
+         "durationMs": 615,
+         "provenance": "tts"
+        },
+        "text": "kjøre",
+        "gloss": ""
+       },
+       {
+        "id": "gz1lsh",
+        "ipa": "",
+        "clip": {
+         "voice": "no_NO-talesyntese-medium",
+         "assetId": "fd933d58-3e39-47c4-afe8-2dd892cc437d",
+         "dialect": "",
+         "fileName": "kjøpe.mp3",
+         "durationMs": 662,
+         "provenance": "tts"
+        },
+        "text": "kjøpe",
+        "gloss": ""
+       }
+      ],
+      "contrastId": ""
+     },
+     {
+      "id": "vzj8c2",
+      "words": [
+       {
+        "id": "p91ojy",
+        "ipa": "",
+        "clip": {
+         "voice": "no_NO-talesyntese-medium",
+         "assetId": "56b09293-65b5-46e8-b1b7-412f6cf66753",
+         "dialect": "",
+         "fileName": "kule.mp3",
+         "durationMs": 569,
+         "provenance": "tts"
+        },
+        "text": "kule",
+        "gloss": ""
+       },
+       {
+        "id": "qcxae3",
+        "ipa": "",
+        "clip": {
+         "voice": "no_NO-talesyntese-medium",
+         "assetId": "bd77f13c-718b-4db9-b664-692a53197d55",
+         "dialect": "",
+         "fileName": "kure.mp3",
+         "durationMs": 697,
+         "provenance": "tts"
+        },
+        "text": "kure",
+        "gloss": ""
+       }
+      ],
+      "contrastId": ""
+     },
+     {
+      "id": "2mw7k7",
+      "words": [
+       {
+        "id": "mnal6e",
+        "ipa": "",
+        "clip": {
+         "voice": "no_NO-talesyntese-medium",
+         "assetId": "5b397ed1-88d3-456e-ab26-6fe52ee257a3",
+         "dialect": "",
+         "fileName": "hel.mp3",
+         "durationMs": 581,
+         "provenance": "tts"
+        },
+        "text": "hel",
+        "gloss": ""
+       },
+       {
+        "id": "z2ydd8",
+        "ipa": "",
+        "clip": {
+         "voice": "no_NO-talesyntese-medium",
+         "assetId": "e05c6d7f-c815-4e1b-bf58-1097eeb95141",
+         "dialect": "",
+         "fileName": "her.mp3",
+         "durationMs": 569,
+         "provenance": "tts"
+        },
+        "text": "her",
+        "gloss": ""
+       }
+      ],
+      "contrastId": ""
+     },
+     {
+      "id": "i90d5h",
+      "words": [
+       {
+        "id": "fws5o7",
+        "ipa": "",
+        "clip": {
+         "voice": "no_NO-talesyntese-medium",
+         "assetId": "e002ed16-7953-4bd0-95df-952a46163450",
+         "dialect": "",
+         "fileName": "pære.mp3",
+         "durationMs": 673,
+         "provenance": "tts"
+        },
+        "text": "pære",
+        "gloss": ""
+       },
+       {
+        "id": "vm7mlh",
+        "ipa": "",
+        "clip": {
+         "voice": "no_NO-talesyntese-medium",
+         "assetId": "37dd8190-c674-4b1c-8428-db04dbf0a69b",
+         "dialect": "",
+         "fileName": "lære.mp3",
+         "durationMs": 673,
+         "provenance": "tts"
+        },
+        "text": "lære",
+        "gloss": ""
+       }
+      ],
+      "contrastId": ""
+     }
+    ],
+    "title": "Hører du r eller l?",
+    "scoring": {
+     "memory": "contrast",
+     "passPct": 75,
+     "attempts": 0,
+     "logWordExposure": true
+    },
+    "feedback": {
+     "showIpa": false,
+     "abCompare": true,
+     "immediate": true,
+     "showGloss": "afterAnswer",
+     "secondChance": false,
+     "showSpelling": "always"
+    },
+    "language": "nb",
+    "contrastId": "consonant",
+    "instruction": ""
+   },
+   "expectedAnswers": {
+    "pairs": {}
+   },
+   "answerCheckSettings": null,
+   "instructions": [
+    {
+     "id": "4da53e92-5ffe-4261-aba8-e2404e5bfacc",
+     "exerciseId": "348335de-1bc7-4317-8d0f-c8f903bc63dd",
+     "instructionLanguage": "en",
+     "instructionText": "Complete the exercise.",
+     "hintText": null,
+     "textOverrides": null,
+     "createdAt": "2026-10-10T09:11:18.433Z",
+     "updatedAt": "2026-10-10T09:11:18.433Z"
+    }
+   ]
+  },
+  "projection": {},
+  "ops": [
+   {
+    "op": "items"
+   },
+   {
+    "op": "answer",
+    "body": {
+     "questionId": "p1",
+     "optionId": "p91ojy"
+    }
+   },
+   {
+    "op": "answer",
+    "body": {
+     "questionId": "p2",
+     "optionId": "5e7w1l"
+    }
+   },
+   {
+    "op": "answer",
+    "body": {
+     "questionId": "p3",
+     "optionId": "fws5o7"
+    }
+   },
+   {
+    "op": "answer",
+    "body": {
+     "questionId": "p4",
+     "optionId": "fws5o7"
+    }
+   },
+   {
+    "op": "answer",
+    "body": {
+     "questionId": "p5",
+     "optionId": "p91ojy"
+    }
+   },
+   {
+    "op": "answer",
+    "body": {
+     "questionId": "p6",
+     "optionId": "mnal6e"
+    }
+   },
+   {
+    "op": "answer",
+    "body": {
+     "questionId": "p7",
+     "optionId": "mnal6e"
+    }
+   },
+   {
+    "op": "answer",
+    "body": {
+     "questionId": "p8",
+     "optionId": "gz1lsh"
+    }
+   },
+   {
+    "op": "answer",
+    "body": {
+     "questionId": "p1",
+     "optionId": "qcxae3"
+    }
+   },
+   {
+    "op": "items"
+   },
+   {
+    "op": "submit",
+    "body": {
+     "submittedAnswer": {},
+     "timeSpentSeconds": 40,
+     "locale": "nb"
+    }
+   },
+   {
+    "op": "submit",
+    "body": {
+     "submittedAnswer": {},
+     "timeSpentSeconds": 40,
+     "locale": "nb"
+    }
+   }
+  ],
+  "responses": [
+   {
+    "status": 200,
+    "body": {
+     "n": 1,
+     "total": 12,
+     "questionId": "p1",
+     "clip": {
+      "url": "http://192.168.50.200:9000/ssz-private/0b2f2404-854a-4ea5-9d33-816db353983f/7e87c585-0bcb-40ec-848d-c67bacccb955/variants/mp3.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20261015%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261015T204715Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=b6cfc5c99b2a7d6e1cc0eb27f24cbd9f5aa069f4d12e86af99c6de6efadf38ce",
+      "expiresAt": "2026-10-15T21:47:15.670Z",
+      "durationMs": 697,
+      "provenance": "tts",
+      "dialect": ""
+     },
+     "options": [
+      {
+       "id": "qcxae3",
+       "text": "kure"
+      },
+      {
+       "id": "p91ojy",
+       "text": "kule"
+      }
+     ],
+     "state": {
+      "tries": 0,
+      "maxTries": 1,
+      "closed": false
+     },
+     "closedProbes": []
+    }
+   },
+   {
+    "status": 200,
+    "body": {
+     "attemptId": "e970cde1-9289-4420-9335-16a91702b308",
+     "templateCode": "minimal_pairs",
+     "answered": 1,
+     "total": 12,
+     "result": {
+      "questionId": "p1",
+      "n": 1,
+      "optionId": "p91ojy",
+      "correct": false,
+      "closed": true,
+      "tries": 1,
+      "triesLeft": 0,
+      "firstCorrect": false,
+      "keyOptionId": "qcxae3",
+      "options": [
+       {
+        "id": "qcxae3",
+        "text": "kure"
+       },
+       {
+        "id": "p91ojy",
+        "text": "kule"
+       }
+      ],
+      "compare": {
+       "chosen": "http://192.168.50.200:9000/ssz-private/0b2f2404-854a-4ea5-9d33-816db353983f/1eaa5461-be4b-4456-905b-afcc42231130/variants/mp3.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20261015%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261015T204715Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=e139c2bbb05cbb452d6af3e7dd63741905ff81a2db647d03006a7dfe7b9aad2c",
+       "target": "http://192.168.50.200:9000/ssz-private/0b2f2404-854a-4ea5-9d33-816db353983f/7e87c585-0bcb-40ec-848d-c67bacccb955/variants/mp3.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20261015%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261015T204715Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=b6cfc5c99b2a7d6e1cc0eb27f24cbd9f5aa069f4d12e86af99c6de6efadf38ce"
+      }
+     },
+     "routedForReview": false
+    }
+   },
+   {
+    "status": 200,
+    "body": {
+     "attemptId": "e970cde1-9289-4420-9335-16a91702b308",
+     "templateCode": "minimal_pairs",
+     "answered": 2,
+     "total": 12,
+     "result": {
+      "questionId": "p2",
+      "n": 2,
+      "optionId": "5e7w1l",
+      "correct": true,
+      "closed": true,
+      "tries": 1,
+      "triesLeft": 0,
+      "firstCorrect": true,
+      "keyOptionId": "5e7w1l",
+      "options": [
+       {
+        "id": "5e7w1l",
+        "text": "kjøre"
+       },
+       {
+        "id": "gz1lsh",
+        "text": "kjøpe"
+       }
+      ]
+     },
+     "routedForReview": false
+    }
+   },
+   {
+    "status": 200,
+    "body": {
+     "attemptId": "e970cde1-9289-4420-9335-16a91702b308",
+     "templateCode": "minimal_pairs",
+     "answered": 3,
+     "total": 12,
+     "result": {
+      "questionId": "p3",
+      "n": 3,
+      "optionId": "fws5o7",
+      "correct": true,
+      "closed": true,
+      "tries": 1,
+      "triesLeft": 0,
+      "firstCorrect": true,
+      "keyOptionId": "fws5o7",
+      "options": [
+       {
+        "id": "vm7mlh",
+        "text": "lære"
+       },
+       {
+        "id": "fws5o7",
+        "text": "pære"
+       }
+      ]
+     },
+     "routedForReview": false
+    }
+   },
+   {
+    "status": 200,
+    "body": {
+     "attemptId": "e970cde1-9289-4420-9335-16a91702b308",
+     "templateCode": "minimal_pairs",
+     "answered": 4,
+     "total": 12,
+     "result": {
+      "questionId": "p4",
+      "n": 4,
+      "optionId": "fws5o7",
+      "correct": false,
+      "closed": true,
+      "tries": 1,
+      "triesLeft": 0,
+      "firstCorrect": false,
+      "keyOptionId": "vm7mlh",
+      "options": [
+       {
+        "id": "vm7mlh",
+        "text": "lære"
+       },
+       {
+        "id": "fws5o7",
+        "text": "pære"
+       }
+      ],
+      "compare": {
+       "chosen": "http://192.168.50.200:9000/ssz-private/0b2f2404-854a-4ea5-9d33-816db353983f/f1b2f61a-a1d3-4151-ab9b-bafd079d4251/variants/mp3.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20261015%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261015T204715Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=c863407db1ef7ae04e19eedf876970844e258e310d469c1c17b7089d4b27d785",
+       "target": "http://192.168.50.200:9000/ssz-private/0b2f2404-854a-4ea5-9d33-816db353983f/046b0dcb-3807-40c9-ad49-1514de6e3ffe/variants/mp3.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20261015%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261015T204715Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=6023de0e0d5656322a79f579610d7af82a98b30df775724e5bc501910163ac33"
+      }
+     },
+     "routedForReview": false
+    }
+   },
+   {
+    "status": 200,
+    "body": {
+     "attemptId": "e970cde1-9289-4420-9335-16a91702b308",
+     "templateCode": "minimal_pairs",
+     "answered": 5,
+     "total": 12,
+     "result": {
+      "questionId": "p5",
+      "n": 5,
+      "optionId": "p91ojy",
+      "correct": true,
+      "closed": true,
+      "tries": 1,
+      "triesLeft": 0,
+      "firstCorrect": true,
+      "keyOptionId": "p91ojy",
+      "options": [
+       {
+        "id": "p91ojy",
+        "text": "kule"
+       },
+       {
+        "id": "qcxae3",
+        "text": "kure"
+       }
+      ]
+     },
+     "routedForReview": false
+    }
+   },
+   {
+    "status": 200,
+    "body": {
+     "attemptId": "e970cde1-9289-4420-9335-16a91702b308",
+     "templateCode": "minimal_pairs",
+     "answered": 6,
+     "total": 12,
+     "result": {
+      "questionId": "p6",
+      "n": 6,
+      "optionId": "mnal6e",
+      "correct": true,
+      "closed": true,
+      "tries": 1,
+      "triesLeft": 0,
+      "firstCorrect": true,
+      "keyOptionId": "mnal6e",
+      "options": [
+       {
+        "id": "z2ydd8",
+        "text": "her"
+       },
+       {
+        "id": "mnal6e",
+        "text": "hel"
+       }
+      ]
+     },
+     "routedForReview": false
+    }
+   },
+   {
+    "status": 200,
+    "body": {
+     "attemptId": "e970cde1-9289-4420-9335-16a91702b308",
+     "templateCode": "minimal_pairs",
+     "answered": 7,
+     "total": 12,
+     "result": {
+      "questionId": "p7",
+      "n": 7,
+      "optionId": "mnal6e",
+      "correct": false,
+      "closed": true,
+      "tries": 1,
+      "triesLeft": 0,
+      "firstCorrect": false,
+      "keyOptionId": "z2ydd8",
+      "options": [
+       {
+        "id": "mnal6e",
+        "text": "hel"
+       },
+       {
+        "id": "z2ydd8",
+        "text": "her"
+       }
+      ],
+      "compare": {
+       "chosen": "http://192.168.50.200:9000/ssz-private/0b2f2404-854a-4ea5-9d33-816db353983f/5cefa336-6518-41a0-9708-21dad2f97285/variants/mp3.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20261015%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261015T204715Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=6beafe5250a5e1fbe3c0aa2570a4e139ef76d0946da0f9fb11079ed9a0232fa7",
+       "target": "http://192.168.50.200:9000/ssz-private/0b2f2404-854a-4ea5-9d33-816db353983f/509c6101-c54b-4cac-9c45-487585ca4160/variants/mp3.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20261015%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261015T204715Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=b881ad61908b4fc2478eb010e66a25d234b1457bc85e663d8515ca8c36b68bad"
+      }
+     },
+     "routedForReview": false
+    }
+   },
+   {
+    "status": 200,
+    "body": {
+     "attemptId": "e970cde1-9289-4420-9335-16a91702b308",
+     "templateCode": "minimal_pairs",
+     "answered": 8,
+     "total": 12,
+     "result": {
+      "questionId": "p8",
+      "n": 8,
+      "optionId": "gz1lsh",
+      "correct": true,
+      "closed": true,
+      "tries": 1,
+      "triesLeft": 0,
+      "firstCorrect": true,
+      "keyOptionId": "gz1lsh",
+      "options": [
+       {
+        "id": "gz1lsh",
+        "text": "kjøpe"
+       },
+       {
+        "id": "5e7w1l",
+        "text": "kjøre"
+       }
+      ]
+     },
+     "routedForReview": false
+    }
+   },
+   {
+    "status": 422,
+    "body": {
+     "message": "This question is finished — it was answered, revealed, or all its attempts are spent"
+    }
+   },
+   {
+    "status": 200,
+    "body": {
+     "n": 9,
+     "total": 12,
+     "questionId": "p9",
+     "clip": {
+      "url": "http://192.168.50.200:9000/ssz-private/0b2f2404-854a-4ea5-9d33-816db353983f/1eaa5461-be4b-4456-905b-afcc42231130/variants/mp3.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20261015%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261015T204715Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=e139c2bbb05cbb452d6af3e7dd63741905ff81a2db647d03006a7dfe7b9aad2c",
+      "expiresAt": "2026-10-15T21:47:15.757Z",
+      "durationMs": 569,
+      "provenance": "tts",
+      "dialect": ""
+     },
+     "options": [
+      {
+       "id": "p91ojy",
+       "text": "kule"
+      },
+      {
+       "id": "qcxae3",
+       "text": "kure"
+      }
+     ],
+     "state": {
+      "tries": 0,
+      "maxTries": 1,
+      "closed": false
+     },
+     "closedProbes": [
+      {
+       "n": 1,
+       "correct": false
+      },
+      {
+       "n": 2,
+       "correct": true
+      },
+      {
+       "n": 3,
+       "correct": true
+      },
+      {
+       "n": 4,
+       "correct": false
+      },
+      {
+       "n": 5,
+       "correct": true
+      },
+      {
+       "n": 6,
+       "correct": true
+      },
+      {
+       "n": 7,
+       "correct": false
+      },
+      {
+       "n": 8,
+       "correct": true
+      }
+     ]
+    }
+   },
+   {
+    "status": 200,
+    "body": {
+     "attemptId": "e970cde1-9289-4420-9335-16a91702b308",
+     "correct": false,
+     "score": 42,
+     "requiresReview": false,
+     "feedback": {
+      "summary": "Incorrect. Please try again."
+     },
+     "details": {
+      "right": 5,
+      "total": 12,
+      "score": 42,
+      "passed": false,
+      "passPct": 75,
+      "memory": "contrast",
+      "pairs": [
+       {
+        "pairId": "bjcyy3",
+        "words": [
+         "kjøre",
+         "kjøpe"
+        ],
+        "played": 2,
+        "correct": 2,
+        "clips": [
+         "http://192.168.50.200:9000/ssz-private/0b2f2404-854a-4ea5-9d33-816db353983f/0e6dd0a7-a0c4-4654-bd12-270aa3914efc/variants/mp3.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20261015%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261015T204715Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=d459964c71926211861c83e8cca4953ee13bd6a705f0b2d144330ed8a4493d88",
+         "http://192.168.50.200:9000/ssz-private/0b2f2404-854a-4ea5-9d33-816db353983f/a235b525-0050-4c62-8a7c-361b6d747521/variants/mp3.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20261015%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261015T204715Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=ad818356954da6c17b5ccbe12beec2f47e3f31f5e55872d1156345887913fca8"
+        ]
+       },
+       {
+        "pairId": "vzj8c2",
+        "words": [
+         "kule",
+         "kure"
+        ],
+        "played": 4,
+        "correct": 1,
+        "clips": [
+         "http://192.168.50.200:9000/ssz-private/0b2f2404-854a-4ea5-9d33-816db353983f/1eaa5461-be4b-4456-905b-afcc42231130/variants/mp3.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20261015%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261015T204715Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=e139c2bbb05cbb452d6af3e7dd63741905ff81a2db647d03006a7dfe7b9aad2c",
+         "http://192.168.50.200:9000/ssz-private/0b2f2404-854a-4ea5-9d33-816db353983f/7e87c585-0bcb-40ec-848d-c67bacccb955/variants/mp3.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20261015%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261015T204715Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=b6cfc5c99b2a7d6e1cc0eb27f24cbd9f5aa069f4d12e86af99c6de6efadf38ce"
+        ]
+       },
+       {
+        "pairId": "2mw7k7",
+        "words": [
+         "hel",
+         "her"
+        ],
+        "played": 3,
+        "correct": 1,
+        "clips": [
+         "http://192.168.50.200:9000/ssz-private/0b2f2404-854a-4ea5-9d33-816db353983f/5cefa336-6518-41a0-9708-21dad2f97285/variants/mp3.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20261015%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261015T204715Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=6beafe5250a5e1fbe3c0aa2570a4e139ef76d0946da0f9fb11079ed9a0232fa7",
+         "http://192.168.50.200:9000/ssz-private/0b2f2404-854a-4ea5-9d33-816db353983f/509c6101-c54b-4cac-9c45-487585ca4160/variants/mp3.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20261015%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261015T204715Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=b881ad61908b4fc2478eb010e66a25d234b1457bc85e663d8515ca8c36b68bad"
+        ]
+       },
+       {
+        "pairId": "i90d5h",
+        "words": [
+         "pære",
+         "lære"
+        ],
+        "played": 3,
+        "correct": 1,
+        "clips": [
+         "http://192.168.50.200:9000/ssz-private/0b2f2404-854a-4ea5-9d33-816db353983f/f1b2f61a-a1d3-4151-ab9b-bafd079d4251/variants/mp3.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20261015%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261015T204715Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=c863407db1ef7ae04e19eedf876970844e258e310d469c1c17b7089d4b27d785",
+         "http://192.168.50.200:9000/ssz-private/0b2f2404-854a-4ea5-9d33-816db353983f/046b0dcb-3807-40c9-ad49-1514de6e3ffe/variants/mp3.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=minioadmin%2F20261015%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20261015T204715Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=6023de0e0d5656322a79f579610d7af82a98b30df775724e5bc501910163ac33"
+        ]
+       }
+      ]
+     }
+    }
+   },
+   {
+    "status": 422,
+    "body": {
+     "message": "No checks left on this attempt (1 allowed)"
+    }
+   }
+  ],
+  "seed": 5,
+  "startBody": {
+   "probeDraw": [
+    {
+     "n": 1,
+     "pairId": "vzj8c2",
+     "wordId": "qcxae3",
+     "side": 1,
+     "optionIds": [
+      "qcxae3",
+      "p91ojy"
+     ]
+    },
+    {
+     "n": 2,
+     "pairId": "bjcyy3",
+     "wordId": "5e7w1l",
+     "side": 0,
+     "optionIds": [
+      "5e7w1l",
+      "gz1lsh"
+     ]
+    },
+    {
+     "n": 3,
+     "pairId": "i90d5h",
+     "wordId": "fws5o7",
+     "side": 0,
+     "optionIds": [
+      "vm7mlh",
+      "fws5o7"
+     ]
+    },
+    {
+     "n": 4,
+     "pairId": "i90d5h",
+     "wordId": "vm7mlh",
+     "side": 1,
+     "optionIds": [
+      "vm7mlh",
+      "fws5o7"
+     ]
+    },
+    {
+     "n": 5,
+     "pairId": "vzj8c2",
+     "wordId": "p91ojy",
+     "side": 0,
+     "optionIds": [
+      "p91ojy",
+      "qcxae3"
+     ]
+    },
+    {
+     "n": 6,
+     "pairId": "2mw7k7",
+     "wordId": "mnal6e",
+     "side": 0,
+     "optionIds": [
+      "z2ydd8",
+      "mnal6e"
+     ]
+    },
+    {
+     "n": 7,
+     "pairId": "2mw7k7",
+     "wordId": "z2ydd8",
+     "side": 1,
+     "optionIds": [
+      "mnal6e",
+      "z2ydd8"
+     ]
+    },
+    {
+     "n": 8,
+     "pairId": "bjcyy3",
+     "wordId": "gz1lsh",
+     "side": 1,
+     "optionIds": [
+      "gz1lsh",
+      "5e7w1l"
+     ]
+    },
+    {
+     "n": 9,
+     "pairId": "vzj8c2",
+     "wordId": "p91ojy",
+     "side": 0,
+     "optionIds": [
+      "p91ojy",
+      "qcxae3"
+     ]
+    },
+    {
+     "n": 10,
+     "pairId": "vzj8c2",
+     "wordId": "qcxae3",
+     "side": 1,
+     "optionIds": [
+      "p91ojy",
+      "qcxae3"
+     ]
+    },
+    {
+     "n": 11,
+     "pairId": "i90d5h",
+     "wordId": "vm7mlh",
+     "side": 1,
+     "optionIds": [
+      "fws5o7",
+      "vm7mlh"
+     ]
+    },
+    {
+     "n": 12,
+     "pairId": "2mw7k7",
+     "wordId": "mnal6e",
+     "side": 0,
+     "optionIds": [
+      "z2ydd8",
+      "mnal6e"
+     ]
+    }
+   ]
+  }
  }
 ]

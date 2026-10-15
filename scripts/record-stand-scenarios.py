@@ -28,7 +28,7 @@ AUTH = os.environ.get('STAND_AUTH', 'http://localhost:5062')
 FIXTURE = os.path.join(os.path.dirname(__file__), '..', 'src', 'offline', 'engine',
                        '__fixtures__', 'stand-scenarios.json')
 PATHS = {'submit': 'submit', 'answer': 'answers', 'checkRow': 'rows', 'reveal': 'reveal',
-         'selfCheck': 'self-check'}
+         'selfCheck': 'self-check', 'items': 'items'}
 
 
 def login(email):
@@ -67,8 +67,9 @@ def main():
         _, page = call('GET', f'/api/v1/exercises/{ex}/attempts?status=IN_PROGRESS&limit=20')
         for a in (page or {}).get('items', []):
             call('DELETE', f"/api/v1/exercises/{ex}/attempts/{a['id']}")
+        # `startBody` adds to the start — a `minimal_pairs` sitting brings the draw it was dealt.
         status, start = call('POST', f'/api/v1/exercises/{ex}/attempts',
-                             {'language': 'nb', 'mode': 'PRACTICE'})
+                             {'language': 'nb', 'mode': 'PRACTICE', **sc.get('startBody', {})})
         if status >= 300:
             print('start refused', sc['name'], status, start)
             continue
@@ -83,8 +84,8 @@ def main():
                 status, body = call('PUT', f'{path}/draft', {'draftAnswer': op['draftAnswer']})
             elif kind == 'selfCheck':
                 status, body = call('POST', f'{path}/self-check', {'draftAnswer': op['draftAnswer']})
-            elif kind == 'reveal':
-                status, body = call('POST', f'{path}/reveal', {})
+            elif kind in ('reveal', 'items'):
+                status, body = call('POST', f'{path}/{PATHS[kind]}', {})
             else:
                 status, body = call('POST', f'{path}/{PATHS[kind]}', op['body'])
             replies.append({'status': status,
@@ -96,6 +97,7 @@ def main():
                                              'answerCheckSettings', 'instructions')},
             'projection': (display or {}).get('content', {}),
             'ops': sc['ops'], 'responses': replies,
+            **({'seed': sc['seed'], 'startBody': sc['startBody']} if 'startBody' in sc else {}),
         })
     json.dump(fixture, open(FIXTURE, 'w'), ensure_ascii=False, indent=1)
     print(len(fixture), 'scenarios in the fixture')
