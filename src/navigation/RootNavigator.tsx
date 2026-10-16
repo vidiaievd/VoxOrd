@@ -36,6 +36,7 @@ import { MyWordsScreen } from '../screens/MyWordsScreen';
 import { backTarget, tabOf, type Screen, type Tab } from './screens';
 import { BackInterceptProvider } from './backIntercept';
 import { AuthScreen } from '../screens/AuthScreen';
+import { OfflineSessionBanner } from '../components/OfflineSessionBanner';
 import { useAuth } from '../hooks/useAuth';
 import { setLastCourseId } from '../store/lastCourseStore';
 
@@ -480,6 +481,7 @@ export function RootNavigator() {
       <View style={styles.content}>
         <BackInterceptProvider handlerRef={interceptRef}>{renderScreen()}</BackInterceptProvider>
       </View>
+      {showTabBar && <OfflineSessionBanner />}
       {showTabBar && (
         <SafeAreaView edges={['bottom']} style={styles.tabBar}>
           <TabItem

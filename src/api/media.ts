@@ -29,8 +29,34 @@ export interface MediaAsset {
   peaks?: number[] | null;
 }
 
-export function getMediaAsset(id: string): Promise<MediaAsset> {
+/** The asset as media-service has it, never from the phone's cache. */
+export function fetchMediaAsset(id: string): Promise<MediaAsset> {
   return apiClient.get<MediaAsset>(MEDIA_ASSET_PATH(id));
+}
+
+/** A kept copy of an asset on the phone, or null — set by `services/mediaCache`. */
+type LocalMediaResolver = (id: string) => Promise<MediaAsset | null>;
+let localResolver: LocalMediaResolver | null = null;
+
+export function setLocalMediaResolver(resolver: LocalMediaResolver | null): void {
+  localResolver = resolver;
+}
+
+/**
+ * The asset to play or show: the copy kept on the phone for offline use when there is one
+ * (`url` is then a `file://` path, offline plan B3), the server's otherwise. A failing cache
+ * never stands in the way of the server.
+ */
+export async function getMediaAsset(id: string): Promise<MediaAsset> {
+  if (localResolver) {
+    try {
+      const local = await localResolver(id);
+      if (local) return local;
+    } catch (e) {
+      console.warn('[Media] Local lookup failed, asking the server:', e);
+    }
+  }
+  return fetchMediaAsset(id);
 }
 
 export function deleteMediaAsset(id: string): Promise<void> {

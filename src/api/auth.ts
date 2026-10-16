@@ -1,6 +1,7 @@
 import { apiClient, ApiError } from './client';
 import { decodeJwtPayload } from './jwt';
 import { clearRefreshToken, loadRefreshToken, saveRefreshToken, BiometricLockedError } from './tokenStorage';
+import { clearSessionUser, loadSessionUser, saveSessionUser } from './sessionUser';
 import { authStore, AuthUser } from '../store/authStore';
 import type { AuthTokensResponse } from './types';
 
@@ -23,6 +24,23 @@ export class MfaNotSupportedError extends Error {
 
 type LoginResponse = AuthTokensResponse | { mfaRequired: true; challenge: unknown };
 
+/**
+ * How a refresh ended. `unreachable` — the server was not reached, or answered as a server
+ * that is down (5xx, 429) rather than one that looked at the token: the session is kept and
+ * the app carries on without it. `failed` — no token, a token the server refused, or one
+ * locked behind the fingerprint: there is no session to carry on with.
+ */
+type RefreshOutcome = 'refreshed' | 'unreachable' | 'failed';
+
+/**
+ * Whether a refresh error says nothing about the token. A gateway answering 502 while the
+ * auth service starts must not cost the learner their session.
+ */
+function isUnreachable(e: unknown): boolean {
+  if (!(e instanceof ApiError)) return false;
+  return e.retriable || e.status === 429 || (e.status !== null && e.status >= 500);
+}
+
 function isMfaChallenge(res: LoginResponse): res is { mfaRequired: true; challenge: unknown } {
   return (res as { mfaRequired?: boolean }).mfaRequired === true;
 }
@@ -42,7 +60,7 @@ class AuthService {
    * request — otherwise parallel screen loads would each burn a refresh token
    * and race each other into a signed-out state.
    */
-  private refreshInFlight: Promise<boolean> | null = null;
+  private refreshInFlight: Promise<RefreshOutcome> | null = null;
 
   getAccessToken(): string | null {
     return this.accessToken;
@@ -55,9 +73,11 @@ class AuthService {
   }
 
   async login(email: string, password: string): Promise<void> {
+    // `mobile` buys the phone's session lifetime (ssz-platform ADR-012) — a student's month,
+    // so weeks of offline practice end with a sync, not a password prompt.
     const res = await apiClient.post<LoginResponse>(
       LOGIN_PATH,
-      { email, password },
+      { email, password, clientType: 'mobile' },
       { skipAuth: true },
     );
 
@@ -69,8 +89,10 @@ class AuthService {
   }
 
   /**
-   * Cold-start session restore. Resolves once the store has left the
-   * 'restoring' state, so app bootstrap can await it before rendering.
+   * Cold-start session restore. With a stored session whose user is known the app opens at
+   * once, offline, and the refresh confirms it in the background — a phone without a route to
+   * the server would otherwise sit on a spinner until the request timed out. Resolves once the
+   * refresh has settled.
    */
   async restore(): Promise<void> {
     authStore.setRestoring();
@@ -90,15 +112,36 @@ class AuthService {
       return;
     }
 
-    const refreshed = await this.refreshTokens();
-    if (!refreshed) {
-      // No usable session right now. Storage is left alone here on purpose:
-      // performRefresh() already dropped the token if the server rejected it,
-      // and keeps it when the failure was merely a network blip — which is how
-      // an offline start is told apart from a session that is gone.
-      const kept = (await loadRefreshToken()) !== null;
-      this.clearSession(kept);
+    const storedUser = await loadSessionUser();
+    if (storedUser) authStore.setSignedIn(storedUser, true);
+
+    const outcome = await this.refresh();
+    if (outcome === 'unreachable') {
+      // performRefresh() kept the token: the server is out of reach, not the session gone.
+      await this.continueOffline();
+    } else if (outcome === 'failed') {
+      // performRefresh() already dropped a token the server refused.
+      this.clearSession();
     }
+  }
+
+  /**
+   * The connection may be back — the network came up, the app came to the foreground. Working
+   * offline, try the server again: a refresh that gets through clears the flag; one refused
+   * signs out; one that still cannot reach the server changes nothing. A session waiting on
+   * the sign-in screen for the connection is restored. Anything else is left alone.
+   */
+  async reconnect(): Promise<void> {
+    const { status, offline } = authStore.getState();
+    if (!offline) return;
+    if (status === 'signedOut') {
+      await this.restore();
+      return;
+    }
+    if (status !== 'signedIn') return;
+
+    const outcome = await this.refresh();
+    if (outcome === 'failed') this.clearSession();
   }
 
   /**
@@ -106,7 +149,7 @@ class AuthService {
    * the way out for a finger that is not accepted, or a device whose biometrics changed.
    */
   async forgetLockedSession(): Promise<void> {
-    await clearRefreshToken();
+    await this.forgetStoredSession();
     this.clearSession();
   }
 
@@ -118,12 +161,16 @@ class AuthService {
     } catch (e) {
       console.warn('[Auth] Logout request failed, clearing local session anyway:', e);
     }
-    await clearRefreshToken();
+    await this.forgetStoredSession();
     this.clearSession();
   }
 
   /** Refreshes tokens, collapsing concurrent callers onto one request. */
-  refreshTokens(): Promise<boolean> {
+  async refreshTokens(): Promise<boolean> {
+    return (await this.refresh()) === 'refreshed';
+  }
+
+  private refresh(): Promise<RefreshOutcome> {
     if (!this.refreshInFlight) {
       this.refreshInFlight = this.performRefresh().finally(() => {
         this.refreshInFlight = null;
@@ -132,25 +179,32 @@ class AuthService {
     return this.refreshInFlight;
   }
 
-  /** Invoked by the API client on a 401. Returns true to retry the request. */
+  /**
+   * Invoked by the API client on a 401. Returns true to retry the request. A refresh that
+   * did not reach the server leaves the learner in the app, working from the device —
+   * signing out over a dropped connection is what kept the app shut without one.
+   */
   private async handleUnauthorized(): Promise<boolean> {
-    const refreshed = await this.refreshTokens();
-    if (!refreshed) {
+    const outcome = await this.refresh();
+    if (outcome === 'refreshed') return true;
+    if (outcome === 'unreachable') {
+      await this.continueOffline();
+    } else {
       this.clearSession();
     }
-    return refreshed;
+    return false;
   }
 
-  /** Never throws — returns false on any failure so callers can branch simply. */
-  private async performRefresh(): Promise<boolean> {
+  /** Never throws — every failure is an outcome so callers can branch simply. */
+  private async performRefresh(): Promise<RefreshOutcome> {
     let refreshToken: string | null;
     try {
       refreshToken = await loadRefreshToken();
     } catch {
       // Locked behind the fingerprint: no refresh now; restore() is what offers the unlock.
-      return false;
+      return 'failed';
     }
-    if (!refreshToken) return false;
+    if (!refreshToken) return 'failed';
 
     try {
       const tokens = await apiClient.post<AuthTokensResponse>(
@@ -158,46 +212,65 @@ class AuthService {
         { refreshToken },
         { skipAuth: true },
       );
-      await this.applyTokens(tokens);
-      return true;
+      return (await this.applyTokens(tokens)) ? 'refreshed' : 'failed';
     } catch (e) {
-      if (e instanceof ApiError && e.retriable) {
-        // Network blip rather than a rejected token — keep it in storage so a
-        // later attempt (or the next cold start) can still restore the session.
-        console.warn('[Auth] Refresh failed (network):', e.message);
-      } else {
-        // The server rejected this token; it will never work again. Drop it so
-        // we stop replaying a doomed refresh on every start-up.
-        console.warn('[Auth] Refresh rejected, discarding stored token:', e);
-        await clearRefreshToken();
+      if (isUnreachable(e)) {
+        // No answer about the token — keep it in storage so a later attempt (or the next
+        // cold start) can still restore the session.
+        console.warn('[Auth] Refresh failed (server unreachable):', (e as Error).message);
+        return 'unreachable';
       }
-      return false;
+      // The server rejected this token; it will never work again. Drop it so
+      // we stop replaying a doomed refresh on every start-up.
+      console.warn('[Auth] Refresh rejected, discarding stored token:', e);
+      await this.forgetStoredSession();
+      return 'failed';
     }
   }
 
-  private async applyTokens(tokens: AuthTokensResponse): Promise<void> {
+  /** True when the tokens gave a session; false when the access token was unusable. */
+  private async applyTokens(tokens: AuthTokensResponse): Promise<boolean> {
     this.accessToken = tokens.accessToken;
     await saveRefreshToken(tokens.refreshToken);
 
     const user = toAuthUser(tokens.accessToken);
     if (user) {
+      await saveSessionUser(user);
       authStore.setSignedIn(user);
-    } else {
-      // A token we cannot even decode is unusable — fail closed rather than
-      // pretending to be signed in with an unknown identity.
-      console.warn('[Auth] Access token could not be decoded');
-      await clearRefreshToken();
-      this.clearSession();
+      return true;
     }
+    // A token we cannot even decode is unusable — fail closed rather than
+    // pretending to be signed in with an unknown identity.
+    console.warn('[Auth] Access token could not be decoded');
+    await this.forgetStoredSession();
+    this.clearSession();
+    return false;
   }
 
   /**
-   * Drops the in-memory session only; storage is handled by the caller. `offline`: the
-   * session is still stored and only the server was out of reach.
+   * The server is out of reach and the session stored: carry on as the user of the last
+   * sign-in, without an access token. A session stored by a build that did not keep its user
+   * has no one to carry on as — that one waits on the sign-in screen for the connection.
    */
-  private clearSession(offline = false): void {
+  private async continueOffline(): Promise<void> {
+    const user = await loadSessionUser();
     this.accessToken = null;
-    authStore.setSignedOut(offline);
+    if (user) {
+      authStore.setSignedIn(user, true);
+    } else {
+      authStore.setSignedOut(true);
+    }
+  }
+
+  /** Drops the stored session: the refresh token and whose it was. */
+  private async forgetStoredSession(): Promise<void> {
+    await Promise.all([clearRefreshToken(), clearSessionUser()]);
+  }
+
+  /** Drops the in-memory session only; storage is handled by the caller. */
+  private clearSession(): void {
+    this.accessToken = null;
+    authStore.setSignedOut();
   }
 }
 

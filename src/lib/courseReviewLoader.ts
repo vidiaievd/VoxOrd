@@ -1,4 +1,5 @@
 import { getDueCards, type SrsCard } from '../api/srs';
+import { shouldUseReplica, vocabularyReplica } from '../services/vocabularyReplica';
 import { courseReviewRepository } from '../repositories/CourseReviewRepository';
 import {
   buildReviewSet,
@@ -43,6 +44,11 @@ export interface CourseReviewOverview {
    */
   reviewedToday: number;
   dailyLimit: number;
+  /**
+   * The server could not be reached and the sets come from the phone's copy of the
+   * learner's cards (offline plan, B1): the ratings go out with the connection.
+   */
+  fromReplica: boolean;
 }
 
 export interface LoadCourseReviewOptions {
@@ -61,26 +67,40 @@ const DEFAULT_DUE_LIMIT = 100;
 export async function loadCourseReviewSets(
   options: LoadCourseReviewOptions,
 ): Promise<CourseReviewOverview> {
-  const [envelope, linkedWords] = await Promise.all([
-    getDueCards({
+  const linkedWords = courseReviewRepository.getLinkedWords();
+  // Awaited on either path below; a failure here must not go unhandled while the other
+  // path's error is the one being thrown.
+  linkedWords.catch(() => undefined);
+  try {
+    const envelope = await getDueCards({
       limit: options.limit ?? DEFAULT_DUE_LIMIT,
       language: options.language,
       includeExamples: false,
-    }),
-    courseReviewRepository.getLinkedWords(),
-  ]);
-
-  return composeReviewSets(envelope.cards, linkedWords, {
-    reviewedToday: envelope.reviewedToday,
-    dailyLimit: envelope.dailyLimit,
-  });
+    });
+    return composeReviewSets(envelope.cards, await linkedWords, {
+      reviewedToday: envelope.reviewedToday,
+      dailyLimit: envelope.dailyLimit,
+      fromReplica: false,
+    });
+  } catch (e) {
+    if (!shouldUseReplica(e)) throw e;
+    // Without the server, the phone's copy of the cards gives the queue — or, never taken,
+    // nothing, and the original failure stands.
+    const replica = await vocabularyReplica.dueQueue();
+    if (!replica) throw e;
+    return composeReviewSets(replica.cards, await linkedWords, {
+      reviewedToday: replica.reviewedToday,
+      dailyLimit: replica.dailyLimit,
+      fromReplica: true,
+    });
+  }
 }
 
 /** Split out from the fetch so a caller with cards in hand can reuse it. */
 async function composeReviewSets(
   cards: SrsCard[],
   linkedWords: Awaited<ReturnType<typeof courseReviewRepository.getLinkedWords>>,
-  quota: { reviewedToday: number; dailyLimit: number },
+  quota: { reviewedToday: number; dailyLimit: number; fromReplica: boolean },
 ): Promise<CourseReviewOverview> {
   const { resolved, unresolvedCardIds, unresolvedListIds } = resolveDueWords(cards, linkedWords);
   const byDeck = groupByDeck(resolved);
@@ -114,5 +134,6 @@ async function composeReviewSets(
     unresolvedListIds,
     reviewedToday: quota.reviewedToday,
     dailyLimit: quota.dailyLimit,
+    fromReplica: quota.fromReplica,
   };
 }

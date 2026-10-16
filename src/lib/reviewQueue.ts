@@ -21,14 +21,28 @@ export interface QueuedReview {
    * hours later, and it has to arrive with the same permission it was given.
    */
   carryOnPastLimit?: boolean;
+  /**
+   * Who answered. An answer given offline can outlive the session it was given in — the
+   * refresh token expires, someone else signs in — and must only ever go out as its own
+   * learner's. Absent on answers queued by a build from before it was recorded.
+   */
+  userId?: string;
 }
 
 /**
- * Cap on the stored queue. A user reviewing offline for days should not be
- * able to grow it unboundedly; past this point the oldest entries are dropped,
- * because the newest answers describe the card's current state best.
+ * Cap on the stored queue. A user reviewing offline should not be able to grow it without
+ * end; past this point the oldest entries are dropped, because the newest answers describe
+ * the card's current state best.
+ *
+ * A dropped answer is evidence the schedule never sees (offline plan, B7.5), so the cap is
+ * sized for a month offline — the phone's session lifetime — at a heavy 100 reviews a day.
+ * It stays well inside what one stored value can hold: an entry is about 200 bytes, the
+ * queue about 600 KB at the cap, and Android reads a stored value through a 2 MB window.
  */
-export const MAX_QUEUED_REVIEWS = 500;
+export const MAX_QUEUED_REVIEWS = 3000;
+
+/** The share of a queue's cap at which the learner is told it is filling up. */
+export const NEARLY_FULL_SHARE = 0.8;
 
 export function enqueueReview(
   queue: QueuedReview[],
@@ -64,6 +78,16 @@ export function shouldRetry(status: number | null): boolean {
   if (status === null) return true;
   if (status === 401 || status === 429) return true;
   return status >= 500;
+}
+
+/**
+ * Whether an entry queued by `entryUserId` may go out in the session of `userId`. Without a
+ * session nothing goes out. An entry from before the owner was recorded goes with whoever is
+ * signed in — the phone only ever had one learner when such entries were written.
+ */
+export function isOwnedBy(entryUserId: string | undefined, userId: string | null): boolean {
+  if (userId === null) return false;
+  return entryUserId === undefined || entryUserId === userId;
 }
 
 export function makeIdempotencyKey(

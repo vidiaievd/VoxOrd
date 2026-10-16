@@ -12,6 +12,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
+import { OfflineBanner } from '../../components/OfflineBanner';
+import { isNetworkError } from '../../api/isNetworkError';
 import { useUnitContents } from '../../hooks/useUnitContents';
 import { exercisesForLesson, findSourceLessonId } from '../../lib/sourceLesson';
 import { ContentItemRow } from './ContentItemRow';
@@ -61,7 +63,7 @@ export function UnitContentsScreen({
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const { status, data, error, refreshing, refresh } = useUnitContents(unitId);
+  const { status, data, error, refreshing, stale, refresh } = useUnitContents(unitId);
 
   const sections: Section[] = data
     ? [
@@ -114,6 +116,7 @@ export function UnitContentsScreen({
           {data?.moduleTitle ?? t('unitContents.title')}
         </Text>
       </View>
+      {stale && isNetworkError(error) && <OfflineBanner />}
 
       {status === 'loading' && (
         <View style={styles.centerFill}>

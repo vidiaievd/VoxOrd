@@ -111,13 +111,28 @@ describe('resolveDueWords', () => {
     expect(unresolvedCardIds).toEqual([]);
   });
 
-  it('ignores a vocabulary card whose content lookup failed server-side', () => {
+  it('drills a card without content when its word is in a local deck', () => {
+    // The offline copy never carries content, and a failed lookup server-side
+    // leaves none either; the deck has the word all the same.
     const { resolved } = resolveDueWords(
       [card({ id: 'c1', contentId: 'item-1', front: null })],
       [row(5, 'item-1')],
     );
 
+    expect(resolved).toEqual([
+      expect.objectContaining({ cardId: 'c1', wordId: 5, word: '' }),
+    ]);
+  });
+
+  it('leaves out a card with neither content nor a local word', () => {
+    const { resolved, unresolvedCardIds } = resolveDueWords(
+      [card({ id: 'c1', contentId: 'item-1', front: null })],
+      [],
+    );
+
     expect(resolved).toEqual([]);
+    // Nothing to name and no list to offer for import.
+    expect(unresolvedCardIds).toEqual([]);
   });
 
   it('never resolves two cards onto the same local word', () => {

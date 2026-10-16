@@ -3,6 +3,7 @@ import { useTranslation } from '../../../i18n';
 import { SettingsSection } from '../components/SettingsSection';
 import { SettingsRow } from '../components/SettingsRow';
 import { useAuth } from '../../../hooks/useAuth';
+import { usePendingSync } from '../../../hooks/usePendingSync';
 import { useModal } from '../../../providers/ModalProvider';
 import { authService } from '../../../api/auth';
 import { biometryAvailable, setBiometricSignIn } from '../../../api/biometric';
@@ -14,7 +15,8 @@ import { biometricStore } from '../../../store/biometricStore';
  */
 export function AccountSection() {
   const { t } = useTranslation();
-  const { status, user } = useAuth();
+  const { status, user, offline } = useAuth();
+  const pending = usePendingSync();
   const { show } = useModal();
   const [canBiometric, setCanBiometric] = useState(false);
   const [biometricOn, setBiometricOn] = useState(biometricStore.isEnabled());
@@ -30,6 +32,15 @@ export function AccountSection() {
   };
 
   if (status !== 'signedIn' || !user) return null;
+
+  // Signing out keeps what is not sent yet — it waits for this learner — but offline there
+  // is no signing back in until the connection returns, and the learner should know both.
+  const signOutMessage = [
+    pending > 0
+      ? t('settings.signOutPendingMessage', { count: pending })
+      : t('settings.signOutConfirmMessage'),
+    ...(offline ? [t('settings.signOutOfflineNote')] : []),
+  ].join('\n\n');
 
   return (
     <SettingsSection title={t('settings.account')}>
@@ -56,7 +67,7 @@ export function AccountSection() {
           show({
             type: 'confirm',
             title: t('settings.signOutConfirmTitle'),
-            message: t('settings.signOutConfirmMessage'),
+            message: signOutMessage,
             confirmLabel: t('settings.signOut'),
             cancelLabel: t('common.cancel'),
             onConfirm: () => {

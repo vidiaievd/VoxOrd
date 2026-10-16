@@ -19,6 +19,11 @@ export interface Translations {
     subtitle: string;
     offlineTitle: string;
     offlineBody: string;
+    /** Above the tab bar while the app works from the stored session, without the server. */
+    offlineSessionBanner: string;
+    offlineSessionPending: string; // '{count}'
+    /** A sync queue near its cap: the oldest answers are about to be dropped. */
+    offlineQueueNearlyFull: string;
   };
   nav: {
     pressAgainToExit: string;
@@ -115,6 +120,20 @@ export interface Translations {
     signOut: string;
     signOutConfirmTitle: string;
     signOutConfirmMessage: string;
+    signOutPendingMessage: string; // '{count}'
+    signOutOfflineNote: string;
+    /** Downloading the courses for use without the network. */
+    offline: string;
+    offlineDownload: string;
+    offlineDownloading: string;
+    offlineNever: string;
+    /** The last download skipped media: the phone had too little free space. */
+    offlineLowStorage: string;
+    offlineUnitsAhead: string;
+    offlineUnitsAll: string;
+    offlineMediaOnCellular: string;
+    offlineMediaClear: string;
+    offlineMediaClearMessage: string;
     developer: string;
     apiBaseUrl: string;
     apiBaseUrlSave: string;

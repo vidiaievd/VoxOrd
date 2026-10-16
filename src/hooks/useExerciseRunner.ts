@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 import {
   answerQuestion as answerQuestionRequest,
   checkRow as checkRowRequest,
-  getExerciseDisplay,
   startAttempt,
   startOrJoinAttempt,
   submitAttempt,
@@ -27,6 +26,10 @@ import {
   type RunnerState,
 } from '../screens/ExerciseRunner/runnerMachine';
 import { useSettings } from './useSettings';
+import { exerciseDisplayResource } from '../lib/courseResources';
+import { isServerOutOfReach as serverOutOfReach } from '../api/isNetworkError';
+import { OFFLINE_ATTEMPT_PREFIX } from '../offline/engine/attempt';
+import { exerciseOutboxStore } from '../store/exerciseOutboxStore';
 
 export type ProgressPostStatus = 'idle' | 'posting' | 'done' | 'error';
 
@@ -182,12 +185,13 @@ export function useExerciseRunner(
     // A fresh item is a fresh attempt; the previous one is closed or abandoned.
     attemptIdRef.current = null;
     openingRef.current = null;
-    const cacheKey = `exercise-display:${exerciseId}:${uiLanguage}`;
+    const resource = exerciseDisplayResource(exerciseId, uiLanguage);
+    const cacheKey = resource.key;
 
     let cancelled = false;
     (async () => {
       try {
-        const display = await getExerciseDisplay(exerciseId, uiLanguage);
+        const display = await resource.load();
         if (cancelled || !mounted.current) return;
         answeringStartedAtRef.current = Date.now();
         setMemoryCache(cacheKey, display);
@@ -388,11 +392,26 @@ export function useExerciseRunner(
     setProgressPostStatus('posting');
     (async () => {
       try {
-        await Promise.all(
-          state.results.map(({ exerciseId, verdict, timeSpentSeconds }) =>
-            upsertProgress(buildExerciseCompletionRequest(exerciseId, verdict, timeSpentSeconds)),
-          ),
+        const requests = state.results.map(({ exerciseId, verdict, timeSpentSeconds }) =>
+          buildExerciseCompletionRequest(exerciseId, verdict, timeSpentSeconds),
         );
+        // A set with an attempt graded offline sends nothing now: its progress goes out
+        // through the outbox, behind the attempts it records.
+        const answeredOffline = state.results.some(({ verdict }) =>
+          verdict.attemptId.startsWith(OFFLINE_ATTEMPT_PREFIX),
+        );
+        let queued = answeredOffline;
+        if (!answeredOffline) {
+          try {
+            await Promise.all(requests.map(request => upsertProgress(request)));
+          } catch (e) {
+            if (!serverOutOfReach(e)) throw e;
+            queued = true;
+          }
+        }
+        if (queued) {
+          for (const request of requests) await exerciseOutboxStore.enqueueProgress(request);
+        }
         if (!mounted.current) return;
         setProgressPostStatus('done');
       } catch (e) {

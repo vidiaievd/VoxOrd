@@ -263,6 +263,12 @@ export interface UpsertProgressRequest {
   timeSpentSeconds: number;
   score?: number;
   completed: boolean;
+  /**
+   * When the work was done, for a record replayed from the offline queue (offline plan, B4).
+   * Absent online: the server dates it. Bounded there — never in the future, ignored past
+   * seven days.
+   */
+  occurredAt?: string;
 }
 
 export interface ProgressRecord {

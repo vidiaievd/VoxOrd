@@ -383,7 +383,113 @@ export const migrations: Migration[] = [
       await backfillFsrsCards(db);
     },
   },
+  {
+    version: 11,
+    up: async db => {
+      // The phone's copy of the learner's vocabulary cards (offline plan, B1): what lets
+      // course words be reviewed without the server. The server stays the owner of the
+      // schedule — a refresh replaces these rows, a review offline only previews them.
+      // Keyed by the SRS card id and scoped by user: a phone can change hands, and one
+      // learner's schedule must never be drilled as another's.
+      await db.execute(`
+      CREATE TABLE IF NOT EXISTS srs_card_replica (
+        cardId TEXT PRIMARY KEY,
+        userId TEXT NOT NULL,
+        contentId TEXT NOT NULL,
+        state TEXT NOT NULL,
+        stability REAL NOT NULL,
+        difficulty REAL NOT NULL,
+        dueAt INTEGER NOT NULL,
+        elapsedDays REAL NOT NULL,
+        scheduledDays REAL NOT NULL,
+        learningSteps INTEGER NOT NULL,
+        reps INTEGER NOT NULL,
+        lapses INTEGER NOT NULL,
+        lastReviewedAt INTEGER,
+        createdAt TEXT NOT NULL,
+        updatedAt TEXT NOT NULL
+      );
+    `);
+      await db.execute(`
+      CREATE INDEX IF NOT EXISTS idx_srs_card_replica_due
+        ON srs_card_replica(userId, dueAt);
+    `);
+      // The day's vocabulary budget as the last refresh saw it, counted on by reviews
+      // given offline. One row per learner.
+      await db.execute(`
+      CREATE TABLE IF NOT EXISTS srs_replica_meta (
+        userId TEXT PRIMARY KEY,
+        dailyLimit INTEGER NOT NULL,
+        reviewedToday INTEGER NOT NULL,
+        day TEXT NOT NULL,
+        syncedAt INTEGER NOT NULL
+      );
+    `);
+    },
+  },
+  {
+    version: 12,
+    up: async db => {
+      await removeDemoData(db);
+    },
+  },
 ];
+
+/**
+ * The demo decks the first build seeded — «Базовый норвежский», «Технологии», «Еда и быт» and
+ * their words — removed (offline plan, B1.5). Since the home screen moved to courses nothing
+ * shows them, and their words could only ever be drilled from screens no longer reachable.
+ *
+ * Told apart by what they lack, not by their titles: every deck the app makes now carries a
+ * `platformListId` (a course vocabulary list, or `personal:<language>` for «My words»), every
+ * word made since carries a `platformItemId`. A word goes only if no other deck holds it.
+ * The user's profile, stats, daily goal and activity are not demo data and stay; a learning
+ * session over a demo deck stays in the history with its deck unset.
+ *
+ * `PRAGMA foreign_keys` is off in this app, so nothing cascades: every table that points at
+ * a word or a deck is cleared by hand, children first, in one batch.
+ */
+async function removeDemoData(db: DB): Promise<void> {
+  const demoDecks = 'SELECT id FROM decks WHERE platformListId IS NULL';
+  const demoWords = `SELECT id FROM words
+    WHERE platformItemId IS NULL
+      AND id NOT IN (
+        SELECT wordId FROM deck_words WHERE deckId NOT IN (${demoDecks})
+      )`;
+
+  // Fixed before anything is deleted: removing `deck_words` would change who counts as demo.
+  await db.execute(`CREATE TEMP TABLE IF NOT EXISTS v12_demo_decks AS ${demoDecks};`);
+  await db.execute(`CREATE TEMP TABLE IF NOT EXISTS v12_demo_words AS ${demoWords};`);
+
+  const decks = 'SELECT id FROM v12_demo_decks';
+  const words = 'SELECT id FROM v12_demo_words';
+  await db.executeBatch([
+    [
+      `DELETE FROM word_example_translations WHERE exampleId IN
+         (SELECT id FROM word_examples WHERE wordId IN (${words}));`,
+    ],
+    [`DELETE FROM word_examples WHERE wordId IN (${words});`],
+    [`DELETE FROM word_relations WHERE wordId IN (${words}) OR relatedWordId IN (${words});`],
+    [`DELETE FROM word_forms WHERE wordId IN (${words});`],
+    [`DELETE FROM translations WHERE wordId IN (${words});`],
+    [`DELETE FROM session_results WHERE wordId IN (${words});`],
+    [`DELETE FROM word_mode_strength WHERE wordId IN (${words}) OR deckId IN (${decks});`],
+    [`DELETE FROM word_progress WHERE wordId IN (${words}) OR deckId IN (${decks});`],
+    [`DELETE FROM deck_words WHERE deckId IN (${decks}) OR wordId IN (${words});`],
+    [`DELETE FROM deck_user_settings WHERE deckId IN (${decks});`],
+    [`UPDATE learning_sessions SET deckId = NULL WHERE deckId IN (${decks});`],
+    [`DELETE FROM decks WHERE id IN (${decks});`],
+    [`DELETE FROM words WHERE id IN (${words});`],
+    // The demo groups; a group the importer made has a `systemKey`.
+    [
+      `DELETE FROM deck_groups WHERE systemKey IS NULL
+         AND id NOT IN (SELECT groupId FROM decks WHERE groupId IS NOT NULL);`,
+    ],
+  ]);
+
+  await db.execute('DROP TABLE IF EXISTS v12_demo_decks;');
+  await db.execute('DROP TABLE IF EXISTS v12_demo_words;');
+}
 
 /**
  * One-time conversion of existing 6-stage progress into FSRS cards.

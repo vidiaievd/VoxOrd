@@ -4,6 +4,7 @@ import {
   findOpenAttempt,
   findOpenBoardCheck,
   recentAttempts,
+  remoteAttempts,
   saveDraft,
   startOrJoinAttempt,
 } from './exercises';
@@ -355,5 +356,34 @@ describe('read_aloud draft and history', () => {
     expect(mockGet).toHaveBeenCalledWith('/api/v1/exercises/ex-1/attempts', { query: { limit: 5 } });
     mockGet.mockRejectedValueOnce(new Error('offline'));
     await expect(recentAttempts('ex-1')).resolves.toEqual([]);
+  });
+});
+
+describe('a call replayed from the offline journal (offline plan, B4)', () => {
+  it('sends when the phone made it, and its clock as it sends', async () => {
+    mockPost.mockResolvedValue({ attemptId: 'att-1', correct: true, score: 100 });
+
+    await remoteAttempts.submitAttempt(
+      'ex-1',
+      'att-1',
+      { submittedAnswer: { x: 1 }, timeSpentSeconds: 5, locale: 'ru' },
+      { clientAt: '2026-10-14T08:02:00.000Z' },
+    );
+
+    const options = mockPost.mock.calls[0][2] as { headers: Record<string, string> };
+    expect(options.headers['X-Client-At']).toBe('2026-10-14T08:02:00.000Z');
+    expect(Number.isNaN(Date.parse(options.headers['X-Client-Sent-At']))).toBe(false);
+  });
+
+  it('an online call carries no time of its own', async () => {
+    mockPost.mockResolvedValue({ attemptId: 'att-1', correct: true, score: 100 });
+
+    await remoteAttempts.submitAttempt('ex-1', 'att-1', {
+      submittedAnswer: { x: 1 },
+      timeSpentSeconds: 5,
+      locale: 'ru',
+    });
+
+    expect(mockPost.mock.calls[0]).toHaveLength(2);
   });
 });

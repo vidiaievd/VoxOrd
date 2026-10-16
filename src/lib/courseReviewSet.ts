@@ -83,9 +83,11 @@ export interface ResolvedDueWords {
 }
 
 /**
- * Matches due cards against local rows. Only VOCABULARY_WORD cards that
- * arrived with content are considered — an EXERCISE card has no word to drill,
- * and a card whose content lookup failed server-side has no `front.word`.
+ * Matches due cards against local rows. Only VOCABULARY_WORD cards are
+ * considered — an EXERCISE card has no word to drill. A card without content
+ * (a server-side lookup that failed, or a card from the offline copy, which
+ * never carries any) is drillable when its word is in a local deck; without
+ * one there is neither a word nor a list to offer, and it is left out.
  */
 export function resolveDueWords(
   cards: SrsCard[],
@@ -105,10 +107,10 @@ export function resolveDueWords(
 
   for (const card of cards) {
     if (card.contentType !== 'VOCABULARY_WORD') continue;
-    const word = card.front?.word;
-    if (!word) continue;
+    const word = card.front?.word ?? '';
 
     const row = byItemId.get(card.contentId);
+    if (!row && !word) continue;
     if (!row) {
       unresolvedCardIds.push(card.id);
       if (card.front?.listId) unresolvedListIds.add(card.front.listId);

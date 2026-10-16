@@ -1,8 +1,12 @@
 import { createAsyncStorage } from '@react-native-async-storage/async-storage';
 import { ApiError } from '../api/client';
 import { reviewCard, type ReviewRating, type SrsCard } from '../api/srs';
+import { authStore } from './authStore';
 import {
+  MAX_QUEUED_REVIEWS,
+  NEARLY_FULL_SHARE,
   enqueueReview,
+  isOwnedBy,
   makeIdempotencyKey,
   randomNonce,
   removeReviews,
@@ -22,6 +26,9 @@ const STORAGE_KEY = 'queue';
  *
  * Kept entirely separate from personal-word state (`word_progress` in SQLite),
  * which is offline-first and never talks to the server.
+ *
+ * Each answer carries who gave it, and goes out only in that learner's session: answers
+ * outlive a session that expired offline, and wait for the same learner to sign back in.
  */
 class ReviewQueueStore {
   private queue: QueuedReview[] = [];
@@ -41,8 +48,30 @@ class ReviewQueueStore {
     this.notify();
   }
 
+  /** Answers of the signed-in learner still waiting for the server. */
   get pendingCount(): number {
-    return this.queue.length;
+    const userId = currentUserId();
+    return this.queue.filter(review => isOwnedBy(review.userId, userId)).length;
+  }
+
+  /**
+   * Close enough to the cap that the oldest answers are about to be dropped (offline plan,
+   * B7.5). Counts every learner's answers: they share the stored queue, and its cap.
+   */
+  get nearlyFull(): boolean {
+    return this.queue.length >= MAX_QUEUED_REVIEWS * NEARLY_FULL_SHARE;
+  }
+
+  /**
+   * Cards of the signed-in learner with an answer still on its way to the server — a copy
+   * of the schedule refreshed now would not have seen it yet.
+   */
+  async pendingCardIds(): Promise<Set<string>> {
+    await this.load();
+    const userId = currentUserId();
+    return new Set(
+      this.queue.filter(review => isOwnedBy(review.userId, userId)).map(review => review.cardId),
+    );
   }
 
   /**
@@ -65,6 +94,7 @@ class ReviewQueueStore {
       reviewedAt: reviewedAt.toISOString(),
       idempotencyKey: makeIdempotencyKey(cardId, reviewedAt.toISOString(), randomNonce()),
       ...(options.carryOnPastLimit ? { carryOnPastLimit: true } : {}),
+      ...withOwner(),
     };
 
     this.queue = enqueueReview(this.queue, review);
@@ -91,7 +121,7 @@ class ReviewQueueStore {
    * while a flush is running joins it instead of sending the same reviews
    * twice. Stops at the first entry that deserves a retry, so answers keep
    * their order — a card answered AGAIN then GOOD must not land the other way
-   * round.
+   * round. Answers of another learner are passed over and stay queued.
    */
   async flush(): Promise<Map<string, SrsCard>> {
     if (this.flushing) return this.flushing;
@@ -107,8 +137,10 @@ class ReviewQueueStore {
 
     const delivered = new Map<string, SrsCard>();
     const settled: string[] = [];
+    const userId = currentUserId();
 
     for (const review of [...this.queue]) {
+      if (!isOwnedBy(review.userId, userId)) continue;
       const result = await this.deliver(review);
       if (result === 'kept') break;
       if (result !== 'rejected') delivered.set(review.idempotencyKey, result);
@@ -165,6 +197,16 @@ class ReviewQueueStore {
   private notify(): void {
     this.listeners.forEach((l) => l());
   }
+}
+
+function currentUserId(): string | null {
+  return authStore.getState().user?.id ?? null;
+}
+
+/** The signed-in learner as the owner of a new entry; nothing without a session. */
+function withOwner(): { userId?: string } {
+  const userId = currentUserId();
+  return userId ? { userId } : {};
 }
 
 export const reviewQueueStore = new ReviewQueueStore();

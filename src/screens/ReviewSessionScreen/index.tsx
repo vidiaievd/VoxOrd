@@ -88,6 +88,8 @@ export function ReviewSessionScreen({ onBack }: ReviewSessionScreenProps) {
     const unresolvedListIds = overview?.unresolvedListIds ?? [];
     return (
       <Frame onBack={onBack} styles={styles} title={t('review.title')}>
+        {/* «Nothing due» from the phone's copy is as of its last refresh. */}
+        {overview?.fromReplica && <OfflineBanner />}
         <View style={styles.centered}>
           <Text style={styles.doneTitle}>{t('review.nothingDue')}</Text>
           {unresolved > 0 && (

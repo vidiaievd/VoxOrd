@@ -6,6 +6,7 @@ import { AppearanceSection } from './sections/AppearanceSection';
 import { LearningSection } from './sections/LearningSection';
 import { StatisticsSection } from './sections/StatisticsSection';
 import { AccountSection } from './sections/AccountSection';
+import { OfflineSection } from './sections/OfflineSection';
 import { DeveloperSection } from './sections/DeveloperSection';
 import { SettingsSection } from './components/SettingsSection';
 import { SettingsRow } from './components/SettingsRow';
@@ -34,6 +35,7 @@ export function SettingsScreen() {
         <AppearanceSection />
         <LearningSection />
         <AccountSection />
+        <OfflineSection />
         <DeveloperSection />
 
         <SettingsSection title={t('settings.about')}>

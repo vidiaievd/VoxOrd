@@ -22,9 +22,15 @@ export interface AuthState {
   status: AuthStatus;
   user: AuthUser | null;
   /**
-   * Signed out only because the server could not be reached: a session is still stored and
-   * will come back with the connection. The sign-in screen says «no connection» and offers a
-   * retry instead of asking for a password the learner already gave.
+   * The server could not be reached and a session is still stored.
+   *
+   * - `signedIn` + offline: the app carries on with the stored session — the user of the last
+   *   sign-in, no access token. Also the state of a cold start until the server confirms the
+   *   session. Requests fail as network errors; the first one to reach the server again
+   *   exchanges the refresh token and clears the flag.
+   * - `signedOut` + offline: a session is stored but not who it belongs to (kept by a build
+   *   from before offline starts). The sign-in screen says «no connection» and offers a retry
+   *   instead of asking for a password the learner already gave.
    */
   offline: boolean;
 }
@@ -50,8 +56,8 @@ class AuthStore {
     this.notify();
   }
 
-  setSignedIn(user: AuthUser): void {
-    this.state = { status: 'signedIn', user, offline: false };
+  setSignedIn(user: AuthUser, offline = false): void {
+    this.state = { status: 'signedIn', user, offline };
     this.notify();
   }
 

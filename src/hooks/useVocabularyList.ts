@@ -1,8 +1,6 @@
-import { useCallback } from 'react';
-import {
-  getVocabularyListReader,
-  type VocabularyListReaderContent,
-} from '../api/vocabulary';
+import { useMemo } from 'react';
+import type { VocabularyListReaderContent } from '../api/vocabulary';
+import { vocabularyListResource } from '../lib/courseResources';
 import { useSettings } from './useSettings';
 import { useSwrResource } from './useSwrResource';
 
@@ -30,21 +28,12 @@ export interface VocabularyListState {
  */
 export function useVocabularyList(listId: string): VocabularyListState {
   const { uiLanguage } = useSettings();
-  const loader = useCallback(
-    () =>
-      getVocabularyListReader(listId, {
-        translationLanguage: uiLanguage,
-        includeExamples: true,
-        examplesLimit: 3,
-      }),
+  const resource = useMemo(
+    () => vocabularyListResource(listId, uiLanguage),
     [listId, uiLanguage],
   );
-
   const { status, data, error, refreshing, stale, refresh } =
-    useSwrResource<VocabularyListReaderContent>(
-      `vocab-reader:${listId}:${uiLanguage}`,
-      loader,
-    );
+    useSwrResource<VocabularyListReaderContent>(resource.key, resource.load);
 
   return { status, data, error, refreshing, stale, refresh };
 }

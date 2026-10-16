@@ -18,6 +18,12 @@ jest.mock('../api/srs', () => ({
 
 import { reviewCard } from '../api/srs';
 import { reviewQueueStore } from './reviewQueueStore';
+import { authStore } from './authStore';
+import { ApiError } from '../api/client';
+
+const LEARNER = { id: 'user-1', email: 'a@b.c', roles: ['student'] };
+const OTHER = { id: 'user-2', email: 'x@y.z', roles: ['student'] };
+const offline = () => new ApiError({ message: 'offline', status: null, code: 'NETWORK_ERROR' });
 
 const mockReviewCard = reviewCard as jest.Mock;
 
@@ -40,6 +46,7 @@ const CARD: SrsCard = {
 };
 
 beforeEach(() => {
+  authStore.setSignedIn(LEARNER);
   mockStorage.clear();
   mockReviewCard.mockReset();
   mockReviewCard.mockResolvedValue(CARD);
@@ -83,5 +90,73 @@ describe('reviewQueueStore.submit', () => {
     expect(reviewQueueStore.pendingCount).toBe(0);
     const lastBody = mockReviewCard.mock.calls[mockReviewCard.mock.calls.length - 1][1];
     expect(lastBody).toMatchObject({ carryOnPastLimit: true });
+  });
+});
+
+describe('reviewQueueStore and whose answers they are', () => {
+  /** Leaves nothing queued for the next test, whoever's it is. */
+  afterEach(async () => {
+    mockReviewCard.mockReset();
+    mockReviewCard.mockResolvedValue(CARD);
+    for (const user of [LEARNER, OTHER]) {
+      authStore.setSignedIn(user);
+      await reviewQueueStore.flush();
+    }
+  });
+
+  it('records who answered', async () => {
+    mockReviewCard.mockRejectedValue(offline());
+
+    await reviewQueueStore.submit('card-1', 'GOOD');
+
+    expect(JSON.parse(mockStorage.get('queue')!)).toEqual([
+      expect.objectContaining({ cardId: 'card-1', userId: 'user-1' }),
+    ]);
+  });
+
+  it('keeps answers through a lost session and sends them when the same learner is back', async () => {
+    mockReviewCard.mockRejectedValue(offline());
+    await reviewQueueStore.submit('card-1', 'GOOD');
+
+    authStore.setSignedOut();
+    mockReviewCard.mockReset();
+    mockReviewCard.mockResolvedValue(CARD);
+    await reviewQueueStore.flush();
+    expect(mockReviewCard).not.toHaveBeenCalled();
+
+    authStore.setSignedIn(LEARNER);
+    await reviewQueueStore.flush();
+    expect(mockReviewCard).toHaveBeenCalledTimes(1);
+    expect(reviewQueueStore.pendingCount).toBe(0);
+  });
+
+  it('never sends one learner’s answers in another learner’s session', async () => {
+    mockReviewCard.mockRejectedValue(offline());
+    await reviewQueueStore.submit('card-1', 'GOOD');
+
+    authStore.setSignedIn(OTHER);
+    mockReviewCard.mockReset();
+    mockReviewCard.mockResolvedValue(CARD);
+    await reviewQueueStore.flush();
+
+    expect(mockReviewCard).not.toHaveBeenCalled();
+    expect(reviewQueueStore.pendingCount).toBe(0);
+
+    authStore.setSignedIn(LEARNER);
+    expect(reviewQueueStore.pendingCount).toBe(1);
+  });
+
+  it('sends the other learner’s answers past one it must hold back', async () => {
+    mockReviewCard.mockRejectedValue(offline());
+    await reviewQueueStore.submit('card-1', 'GOOD');
+    authStore.setSignedIn(OTHER);
+    await reviewQueueStore.submit('card-2', 'HARD');
+
+    mockReviewCard.mockReset();
+    mockReviewCard.mockResolvedValue(CARD);
+    await reviewQueueStore.flush();
+
+    expect(mockReviewCard).toHaveBeenCalledTimes(1);
+    expect(mockReviewCard.mock.calls[0][0]).toBe('card-2');
   });
 });

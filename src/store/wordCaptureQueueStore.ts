@@ -5,7 +5,8 @@ import {
   type CaptureWordRequest,
   type CaptureWordResponse,
 } from '../api/personalVocabulary';
-import { randomNonce, shouldRetry } from '../lib/reviewQueue';
+import { isOwnedBy, randomNonce, shouldRetry } from '../lib/reviewQueue';
+import { authStore } from './authStore';
 
 const storage = createAsyncStorage('voxord_word_capture_queue');
 const STORAGE_KEY = 'queue';
@@ -14,6 +15,8 @@ interface QueuedCapture {
   id: string;
   request: CaptureWordRequest;
   queuedAt: string;
+  /** Who captured it — goes out only in that learner's session (see `QueuedReview.userId`). */
+  userId?: string;
 }
 
 export type CaptureOutcome =
@@ -25,7 +28,8 @@ export type CaptureOutcome =
  * Words the student added from a text, on their way to «My words» (plan 75). Each is
  * written here first and sent at once, so a word tapped without a connection is kept and
  * goes out with the next flush rather than being lost. The server treats a word captured
- * twice as the same word, which makes a replay harmless.
+ * twice as the same word, which makes a replay harmless. Words of another learner wait for
+ * theirs to sign back in.
  */
 class WordCaptureQueueStore {
   private queue: QueuedCapture[] = [];
@@ -45,16 +49,20 @@ class WordCaptureQueueStore {
     this.notify();
   }
 
+  /** Words of the signed-in learner still waiting for the server. */
   get pendingCount(): number {
-    return this.queue.length;
+    const userId = currentUserId();
+    return this.queue.filter(entry => isOwnedBy(entry.userId, userId)).length;
   }
 
   async submit(request: CaptureWordRequest): Promise<CaptureOutcome> {
     await this.load();
+    const userId = currentUserId();
     const entry: QueuedCapture = {
       id: randomNonce(),
       request,
       queuedAt: new Date().toISOString(),
+      ...(userId ? { userId } : {}),
     };
 
     // Sent directly first, so a refusal (an empty form, a phrase) reaches the person who
@@ -88,8 +96,10 @@ class WordCaptureQueueStore {
     await this.load();
     const delivered = new Map<string, CaptureWordResponse>();
     const settled: string[] = [];
+    const userId = currentUserId();
 
     for (const entry of [...this.queue]) {
+      if (!isOwnedBy(entry.userId, userId)) continue;
       try {
         delivered.set(entry.id, await captureWord(entry.request));
         settled.push(entry.id);
@@ -128,6 +138,10 @@ class WordCaptureQueueStore {
   private notify(): void {
     this.listeners.forEach(l => l());
   }
+}
+
+function currentUserId(): string | null {
+  return authStore.getState().user?.id ?? null;
 }
 
 export const wordCaptureQueueStore = new WordCaptureQueueStore();
