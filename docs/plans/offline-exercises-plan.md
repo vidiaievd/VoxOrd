@@ -175,9 +175,18 @@ PR #15 → #16 → #17 → #18 → #19 в `dev` по порядку (у аген
 упражнения, feedback — как `RuleBasedFeedbackGenerator` в PRACTICE. Раннер: сервер недоступен
 (сеть/5xx) → вердикт на телефоне, попытка в `exerciseOutboxStore`; прогресс набора с такой
 попыткой — туда же, за попытками. Отправка — шаг `sessionSync` после отзывов: `startOrJoinAttempt`
-+ `submitAttempt` с тем же ответом, движок судит заново, его оценка записывается. **Отличие от
-плана:** время попытки сервер ставит своё (момент отправки), `answeredAt` хранится в очереди под
-будущий `POST /attempts/offline`. Группы 2–4 офлайн по-прежнему «нужна сеть».
++ `submitAttempt` с тем же ответом, движок судит заново, его оценка записывается. Группы 2–4
+офлайн по-прежнему «нужна сеть».
+
+**16.10 — исходное время (вместо `POST /attempts/offline`).** Каждая операция журнала хранит `at`
+(часы телефона), запись попытки — `startedAt`; проигрыш шлёт `X-Client-At` + `X-Client-Sent-At`
+на start/submit/answers/rows/draft. Движок (ssz-platform `47a6f926`): поправка на скос часов, не в
+будущем, не раньше последнего момента попытки, старше 7 дней — серверное время (работа не
+теряется); `attempts.recorded_offline`; `attemptedAt`/`recordedOffline` в `exercise.attempt.completed`.
+learning (`40fe6298`): FSRS, дневные лимиты, серия и прогресс по `attemptedAt`, клэмп к
+`lastReviewedAt` карточки; те же границы у `POST /srs/cards/:id/review`; `POST /progress` принимает
+`occurredAt`. analytics (`5c948aa3`): `attempt_evidence`/`atom_evidence`/профиль по `attemptedAt`,
+`attempt_evidence.recorded_offline`. VoxOrd `6451d8a`. Попутно снята 429 диктанта при пачке проигрыша.
 
 
 - exercise-engine: `POST /exercises/:id/attempts/offline` — `{ clientAttemptId (идемпотентность),
