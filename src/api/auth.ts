@@ -73,9 +73,11 @@ class AuthService {
   }
 
   async login(email: string, password: string): Promise<void> {
+    // `mobile` buys the phone's session lifetime (ssz-platform ADR-012) — a student's month,
+    // so weeks of offline practice end with a sync, not a password prompt.
     const res = await apiClient.post<LoginResponse>(
       LOGIN_PATH,
-      { email, password },
+      { email, password, clientType: 'mobile' },
       { skipAuth: true },
     );
 

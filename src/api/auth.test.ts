@@ -121,6 +121,22 @@ describe('authService', () => {
       expect(JSON.parse(mockStorage.get('user')!)).toEqual(STORED_USER);
     });
 
+    it('signs in as a mobile client, for the phone session lifetime (ADR-012)', async () => {
+      const fetchMock = routeFetch({
+        '/auth/login': () => jsonResponse(200, tokensResponse()),
+      });
+      globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+      await authService.login('a@b.c', 'pw');
+
+      const init = (fetchMock.mock.calls[0] as unknown[])[1] as RequestInit;
+      expect(JSON.parse(String(init.body))).toEqual({
+        email: 'a@b.c',
+        password: 'pw',
+        clientType: 'mobile',
+      });
+    });
+
     it('throws MfaNotSupportedError when the account requires 2FA', async () => {
       globalThis.fetch = routeFetch({
         '/auth/login': () =>
