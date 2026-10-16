@@ -197,12 +197,38 @@ export function getExerciseAnswers(id: string): Promise<ExerciseAnswersResponse>
   return apiClient.get<ExerciseAnswersResponse>(EXERCISE_ANSWERS_PATH(id));
 }
 
+/**
+ * When a call replayed from the offline journal was made on the phone (offline plan, B4), as
+ * the engine reads it: `X-Client-At` the moment, `X-Client-Sent-At` the phone's clock as it
+ * sends, so the server can correct for a clock that is wrong by a constant amount. The engine
+ * bounds what it believes — never in the future, never before the attempt's last moment,
+ * ignored past seven days. Absent on every online call, which the server dates itself.
+ */
+export interface ReplayTime {
+  /** ISO 8601, by the phone's clock. */
+  clientAt?: string;
+}
+
+/** `time` as a trailing argument, or none — an online call is made exactly as before. */
+function timeArg(time?: ReplayTime): [] | [ReplayTime] {
+  return time?.clientAt ? [time] : [];
+}
+
+/** The request options a replayed call adds — none at all for an online one. */
+function replayHeaders(time?: ReplayTime): [] | [{ headers: Record<string, string> }] {
+  if (!time?.clientAt) return [];
+  return [
+    { headers: { 'X-Client-At': time.clientAt, 'X-Client-Sent-At': new Date().toISOString() } },
+  ];
+}
+
 /** `POST /exercises/:exerciseId/attempts` — start (create) an attempt. */
 function remoteStartAttempt(
   exerciseId: string,
   body: StartAttemptRequest,
+  time?: ReplayTime,
 ): Promise<StartAttemptResponse> {
-  return apiClient.post<StartAttemptResponse>(ATTEMPTS_PATH(exerciseId), body);
+  return apiClient.post<StartAttemptResponse>(ATTEMPTS_PATH(exerciseId), body, ...replayHeaders(time));
 }
 
 /**
@@ -223,8 +249,13 @@ function remoteSubmitAttempt(
   exerciseId: string,
   attemptId: string,
   body: SubmitAttemptRequest,
+  time?: ReplayTime,
 ): Promise<SubmitAttemptResponse> {
-  return apiClient.post<SubmitAttemptResponse>(SUBMIT_PATH(exerciseId, attemptId), body);
+  return apiClient.post<SubmitAttemptResponse>(
+    SUBMIT_PATH(exerciseId, attemptId),
+    body,
+    ...replayHeaders(time),
+  );
 }
 
 /**
@@ -347,8 +378,13 @@ function remoteAnswerQuestion(
   exerciseId: string,
   attemptId: string,
   body: AnswerQuestionRequest,
+  time?: ReplayTime,
 ): Promise<AnswerQuestionResponse> {
-  return apiClient.post<AnswerQuestionResponse>(ANSWERS_PATH(exerciseId, attemptId), body);
+  return apiClient.post<AnswerQuestionResponse>(
+    ANSWERS_PATH(exerciseId, attemptId),
+    body,
+    ...replayHeaders(time),
+  );
 }
 
 /**
@@ -438,8 +474,9 @@ function remoteCheckRow(
   exerciseId: string,
   attemptId: string,
   body: CheckRowRequest,
+  time?: ReplayTime,
 ): Promise<CheckRowResponse> {
-  return apiClient.post<CheckRowResponse>(ROWS_PATH(exerciseId, attemptId), body);
+  return apiClient.post<CheckRowResponse>(ROWS_PATH(exerciseId, attemptId), body, ...replayHeaders(time));
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -644,13 +681,14 @@ export interface AttemptRow {
 async function remoteStartOrJoinAttempt(
   exerciseId: string,
   body: StartAttemptRequest,
+  time?: ReplayTime,
 ): Promise<StartAttemptResponse> {
   try {
-    return await remoteStartAttempt(exerciseId, body);
+    return await remoteStartAttempt(exerciseId, body, ...timeArg(time));
   } catch (e) {
     const open = conflictAttemptId(e);
     if (open === null) throw e;
-    return remoteStartAttempt(exerciseId, { ...body, joinAttemptId: open });
+    return remoteStartAttempt(exerciseId, { ...body, joinAttemptId: open }, ...timeArg(time));
   }
 }
 
@@ -669,8 +707,13 @@ function remoteSaveDraft(
   exerciseId: string,
   attemptId: string,
   draftAnswer: unknown,
+  time?: ReplayTime,
 ): Promise<{ savedAt: string }> {
-  return apiClient.put<{ savedAt: string }>(DRAFT_PATH(exerciseId, attemptId), { draftAnswer });
+  return apiClient.put<{ savedAt: string }>(
+    DRAFT_PATH(exerciseId, attemptId),
+    { draftAnswer },
+    ...replayHeaders(time),
+  );
 }
 
 /** `GET /exercises/:exerciseId/attempts/:attemptId` — one attempt, to see how a failed submit left it. */

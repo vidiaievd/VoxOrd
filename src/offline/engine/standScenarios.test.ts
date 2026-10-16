@@ -93,12 +93,23 @@ describe('the local engine replies as exercise-engine did on the stand', () => {
     const accepted = (s.ops as ScenarioOp[]).filter(
       (op, i) => op.op !== 'items' && s.responses[i].status < 300,
     );
-    expect(journal.map(entry => entry.op)).toEqual(
+    expect(
+      journal.map(entry => {
+        const call: Record<string, unknown> = { ...entry.op };
+        delete call.at;
+        return call;
+      }),
+    ).toEqual(
       accepted.map(op => {
         const rest: Record<string, unknown> = { ...op };
         delete rest.delayMs;
         return rest;
       }),
     );
+    // Each call dated when it was made, in order, on the clock the scenario advanced
+    // (offline plan, B4) — the replay hands these to the server.
+    const times = journal.map(entry => entry.op.at ?? '');
+    expect(times.every(at => !Number.isNaN(Date.parse(at)))).toBe(true);
+    expect([...times].sort()).toEqual(times);
   });
 });

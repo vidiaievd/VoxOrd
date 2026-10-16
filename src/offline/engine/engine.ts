@@ -49,13 +49,21 @@ import { LocalRefusal, OFFLINE_ATTEMPT_PREFIX, type LocalAttempt } from './attem
 import { feedbackFor, isGradedOffline, validate, type ExerciseKey } from './grading';
 
 /** One call made on a local attempt, kept to be made again on the server (offline plan, B4). */
-export type JournalOp =
+export type JournalOp = (
   | { op: 'submit'; body: SubmitAttemptRequest }
   | { op: 'answer'; body: AnswerQuestionRequest }
   | { op: 'checkRow'; body: CheckRowRequest }
   | { op: 'reveal' }
   | { op: 'selfCheck'; draftAnswer: unknown }
-  | { op: 'draft'; draftAnswer: unknown };
+  | { op: 'draft'; draftAnswer: unknown }
+) & {
+  /**
+   * When the call was made, by the phone's clock (offline plan, B4). The replay hands it to
+   * the server, which records the call then rather than on the day of the sync. Absent in
+   * journals written before it existed; those are dated by the server.
+   */
+  at?: string;
+};
 
 export interface LocalEngineDeps {
   now(): Date;
@@ -877,7 +885,7 @@ export class LocalEngine {
 
   private async commit(a: LocalAttempt, op: JournalOp): Promise<void> {
     await this.deps.attempts.put(a);
-    await this.deps.journal(a, op);
+    await this.deps.journal(a, { ...op, at: this.deps.now().toISOString() });
   }
 
   private async load(attemptId: string): Promise<LocalAttempt> {

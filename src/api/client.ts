@@ -45,6 +45,8 @@ export interface RequestOptions {
   timeoutMs?: number;
   /** Skip attaching the Authorization header (login/refresh calls). */
   skipAuth?: boolean;
+  /** Extra headers, sent as given; the client's own headers win on a clash. */
+  headers?: Record<string, string>;
 }
 
 /**
@@ -98,6 +100,7 @@ class ApiClient {
     const url = `${baseUrl}${path}${query}`;
 
     const headers: Record<string, string> = {
+      ...options.headers,
       Accept: 'application/json',
     };
     if (options.body !== undefined) {

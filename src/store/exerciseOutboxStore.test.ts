@@ -81,7 +81,8 @@ describe('exerciseOutboxStore', () => {
     const serverId = (await mockRemote.startOrJoinAttempt.mock.results[0].value).attemptId;
     expect(mockRemote.submitAttempt).toHaveBeenCalledWith('ex-a', serverId, submitOp({ x: 1 }).body);
     expect(mockRemote.revealAnswers).toHaveBeenCalledWith('ex-a', serverId);
-    expect(mockUpsert).toHaveBeenCalledWith(progress('ex-a'));
+    // Dated when it was queued: it was queued because the server could not be reached.
+    expect(mockUpsert).toHaveBeenCalledWith({ ...progress('ex-a'), occurredAt: expect.any(String) });
     expect(exerciseOutboxStore.pendingCount).toBe(0);
   });
 
@@ -166,6 +167,37 @@ describe('exerciseOutboxStore', () => {
     expect(exerciseOutboxStore.pendingCount).toBe(1);
     await exerciseOutboxStore.flush();
     expect(mockRemote.submitAttempt).toHaveBeenCalledTimes(1);
+  });
+
+  it('replays each call dated when the phone made it, and the start when it began (offline plan, B4)', async () => {
+    const dated = { ...attempt('t'), startedAt: '2026-10-14T08:00:00.000Z' };
+    await exerciseOutboxStore.recordLocalOp(dated, {
+      op: 'answer',
+      body: { questionId: 'q1', text: 'x' },
+      at: '2026-10-14T08:01:00.000Z',
+    });
+    await exerciseOutboxStore.recordLocalOp(dated, { ...submitOp({ x: 1 }), at: '2026-10-14T08:02:00.000Z' });
+    await exerciseOutboxStore.recordLocalOp(dated, { op: 'reveal', at: '2026-10-14T08:03:00.000Z' });
+
+    await exerciseOutboxStore.flush();
+
+    expect(mockRemote.startOrJoinAttempt).toHaveBeenCalledWith(
+      'ex-t',
+      { language: 'nb', mode: 'PRACTICE' },
+      { clientAt: '2026-10-14T08:00:00.000Z' },
+    );
+    const serverId = (await mockRemote.startOrJoinAttempt.mock.results[0].value).attemptId;
+    expect(mockRemote.answerQuestion).toHaveBeenCalledWith(
+      'ex-t',
+      serverId,
+      { questionId: 'q1', text: 'x' },
+      { clientAt: '2026-10-14T08:01:00.000Z' },
+    );
+    expect(mockRemote.submitAttempt).toHaveBeenCalledWith('ex-t', serverId, submitOp({ x: 1 }).body, {
+      clientAt: '2026-10-14T08:02:00.000Z',
+    });
+    // The server keeps no time for a reveal.
+    expect(mockRemote.revealAnswers).toHaveBeenCalledWith('ex-t', serverId);
   });
 
   describe('a minimal_pairs sitting dealt on the phone (offline plan, B6)', () => {

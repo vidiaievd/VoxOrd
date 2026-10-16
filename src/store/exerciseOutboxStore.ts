@@ -1,6 +1,6 @@
 import { createAsyncStorage } from '@react-native-async-storage/async-storage';
 import { ApiError } from '../api/client';
-import { remoteAttempts } from '../api/exercises';
+import { remoteAttempts, type ReplayTime } from '../api/exercises';
 import { upsertProgress } from '../api/progress';
 import type { UpsertProgressRequest } from '../api/types';
 import { isOwnedBy, randomNonce, shouldRetry } from '../lib/reviewQueue';
@@ -45,6 +45,11 @@ export interface QueuedSession {
   /** How many of `ops` have reached the server. */
   sent: number;
   /**
+   * When the phone started the attempt (offline plan, B4), handed to the server's start so
+   * the attempt begins then. Absent in entries written before it existed.
+   */
+  startedAt?: string;
+  /**
    * `minimal_pairs`: the sitting the phone dealt (offline plan, B6). The replay's start hands it
    * over so the answers land on the probes they were given to; absent for every other template.
    */
@@ -72,7 +77,8 @@ export const MAX_OUTBOX_ENTRIES = 500;
  * already queued for it, so they reach the server on the same attempt; one sent in part goes on
  * from where it stopped. A refused call is dropped and the rest go on — the engine refuses what
  * it would have refused online. A progress record is an upsert, so sending one twice changes
- * nothing. The engine stamps every call with the time it arrives.
+ * nothing. Every call is dated when the phone made it (offline plan, B4); the engine bounds
+ * what it believes of the phone's clock.
  */
 class ExerciseOutboxStore {
   private queue: OutboxEntry[] = [];
@@ -109,6 +115,7 @@ class ExerciseOutboxStore {
       userId: string;
       exerciseId: string;
       targetLanguage: string;
+      startedAt?: string;
       probeDraw?: unknown;
     },
     op: JournalOp,
@@ -132,6 +139,7 @@ class ExerciseOutboxStore {
       language: attempt.targetLanguage,
       ops: [op],
       sent: 0,
+      ...(attempt.startedAt ? { startedAt: attempt.startedAt } : {}),
       ...(Array.isArray(attempt.probeDraw) ? { probeDraw: attempt.probeDraw } : {}),
     });
   }
@@ -188,18 +196,27 @@ class ExerciseOutboxStore {
     if (entry.kind === 'session') return this.deliverSession(entry);
     try {
       if (entry.kind === 'progress') {
-        await upsertProgress(entry.request);
+        // Queued because the server could not be reached, so the moment it was queued is the
+        // moment the work was finished.
+        await upsertProgress({ occurredAt: entry.queuedAt, ...entry.request });
         return 'sent';
       }
-      const attempt = await remoteAttempts.startOrJoinAttempt(entry.exerciseId, {
-        language: entry.language,
-        mode: 'PRACTICE',
-      });
-      await remoteAttempts.submitAttempt(entry.exerciseId, attempt.attemptId, {
-        submittedAnswer: entry.submittedAnswer,
-        timeSpentSeconds: entry.timeSpentSeconds,
-        locale: entry.locale,
-      });
+      const time = replayTime(entry.answeredAt);
+      const attempt = await remoteAttempts.startOrJoinAttempt(
+        entry.exerciseId,
+        { language: entry.language, mode: 'PRACTICE' },
+        ...timeArg(time),
+      );
+      await remoteAttempts.submitAttempt(
+        entry.exerciseId,
+        attempt.attemptId,
+        {
+          submittedAnswer: entry.submittedAnswer,
+          timeSpentSeconds: entry.timeSpentSeconds,
+          locale: entry.locale,
+        },
+        ...timeArg(time),
+      );
       return 'sent';
     } catch (e) {
       const status = e instanceof ApiError ? e.status : null;
@@ -238,10 +255,11 @@ class ExerciseOutboxStore {
       try {
         // Joining matters: a start that reached the server before the connection died left
         // an attempt in progress there, and the calls belong on it.
-        const started = await remoteAttempts.startOrJoinAttempt(entry.exerciseId, {
-          language: entry.language,
-          mode: 'PRACTICE',
-        });
+        const started = await remoteAttempts.startOrJoinAttempt(
+          entry.exerciseId,
+          { language: entry.language, mode: 'PRACTICE' },
+          ...timeArg(replayTime(entry.startedAt)),
+        );
         serverId = started.attemptId;
       } catch (e) {
         if (shouldRetry(e instanceof ApiError ? e.status : null)) return 'kept';
@@ -307,8 +325,9 @@ class ExerciseOutboxStore {
  */
 async function startDealtSitting(entry: QueuedSession, probeDraw: unknown[]): Promise<string> {
   const body = { language: entry.language, mode: 'PRACTICE' as const, probeDraw };
+  const time = replayTime(entry.startedAt);
   try {
-    return (await remoteAttempts.startAttempt(entry.exerciseId, body)).attemptId;
+    return (await remoteAttempts.startAttempt(entry.exerciseId, body, ...timeArg(time))).attemptId;
   } catch (e) {
     const open =
       e instanceof ApiError && e.status === 409 && e.code === 'MP_DRAW_CONFLICT'
@@ -316,21 +335,25 @@ async function startDealtSitting(entry: QueuedSession, probeDraw: unknown[]): Pr
         : null;
     if (typeof open !== 'string' || open === '') throw e;
     await remoteAttempts.abandonAttempt(entry.exerciseId, open);
-    return (await remoteAttempts.startAttempt(entry.exerciseId, body)).attemptId;
+    return (await remoteAttempts.startAttempt(entry.exerciseId, body, ...timeArg(time))).attemptId;
   }
 }
 
-/** One journalled call, made again on the server attempt. */
+/**
+ * One journalled call, made again on the server attempt — dated when the phone made it. The
+ * reveal and the self-check carry no time on the server, so they are sent without one.
+ */
 async function replay(exerciseId: string, attemptId: string, op: JournalOp): Promise<void> {
+  const time = replayTime(op.at);
   switch (op.op) {
     case 'submit':
-      await remoteAttempts.submitAttempt(exerciseId, attemptId, op.body);
+      await remoteAttempts.submitAttempt(exerciseId, attemptId, op.body, ...timeArg(time));
       return;
     case 'answer':
-      await remoteAttempts.answerQuestion(exerciseId, attemptId, op.body);
+      await remoteAttempts.answerQuestion(exerciseId, attemptId, op.body, ...timeArg(time));
       return;
     case 'checkRow':
-      await remoteAttempts.checkRow(exerciseId, attemptId, op.body);
+      await remoteAttempts.checkRow(exerciseId, attemptId, op.body, ...timeArg(time));
       return;
     case 'reveal':
       await remoteAttempts.revealAnswers(exerciseId, attemptId);
@@ -339,9 +362,19 @@ async function replay(exerciseId: string, attemptId: string, op: JournalOp): Pro
       await remoteAttempts.selfCheck(exerciseId, attemptId, op.draftAnswer);
       return;
     case 'draft':
-      await remoteAttempts.saveDraft(exerciseId, attemptId, op.draftAnswer);
+      await remoteAttempts.saveDraft(exerciseId, attemptId, op.draftAnswer, ...timeArg(time));
       return;
   }
+}
+
+/** The phone's time for a replayed call, or nothing for an entry written before it was kept. */
+function replayTime(at: string | undefined): ReplayTime | undefined {
+  return at ? { clientAt: at } : undefined;
+}
+
+/** `time` as a trailing argument, or none: an undated entry is sent exactly as before. */
+function timeArg(time: ReplayTime | undefined): [] | [ReplayTime] {
+  return time ? [time] : [];
 }
 
 function currentUserId(): string | null {
