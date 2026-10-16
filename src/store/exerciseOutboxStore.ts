@@ -3,7 +3,7 @@ import { ApiError } from '../api/client';
 import { remoteAttempts, type ReplayTime } from '../api/exercises';
 import { upsertProgress } from '../api/progress';
 import type { UpsertProgressRequest } from '../api/types';
-import { isOwnedBy, randomNonce, shouldRetry } from '../lib/reviewQueue';
+import { NEARLY_FULL_SHARE, isOwnedBy, randomNonce, shouldRetry } from '../lib/reviewQueue';
 import type { JournalOp } from '../offline/engine/engine';
 import { authStore } from './authStore';
 
@@ -67,8 +67,13 @@ export interface QueuedProgress {
 
 export type OutboxEntry = QueuedAttempt | QueuedSession | QueuedProgress;
 
-/** Bounded like the review queue: a week offline must not grow storage without end. */
-export const MAX_OUTBOX_ENTRIES = 500;
+/**
+ * Bounded like the review queue, and for the same reason sized generously (offline plan,
+ * B7.5): a dropped entry is a finished exercise the SRS never hears about. An entry is a
+ * whole attempt — up to a couple of kilobytes with its answers — so a thousand keeps the queue
+ * under the 2 MB Android reads a stored value through; that is a month of 30 exercises a day.
+ */
+export const MAX_OUTBOX_ENTRIES = 1000;
 
 /**
  * Exercise work done without the server (offline plan, B4): the attempts worked on the phone
@@ -106,6 +111,14 @@ class ExerciseOutboxStore {
   get pendingCount(): number {
     const userId = currentUserId();
     return this.queue.filter(entry => isOwnedBy(entry.userId, userId)).length;
+  }
+
+  /**
+   * Close enough to the cap that the oldest work is about to be dropped (offline plan, B7.5).
+   * Counts every learner's entries: they share the stored queue, and its cap.
+   */
+  get nearlyFull(): boolean {
+    return this.queue.length >= MAX_OUTBOX_ENTRIES * NEARLY_FULL_SHARE;
   }
 
   /** One call made on a local attempt; it joins the entry already queued for that attempt. */

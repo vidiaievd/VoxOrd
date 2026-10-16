@@ -4,7 +4,7 @@ import { ColorScheme } from '../theme/colors';
 import { useTheme } from '../providers/ThemeProvider';
 import { useTranslation } from '../i18n';
 import { useAuth } from '../hooks/useAuth';
-import { usePendingSync } from '../hooks/usePendingSync';
+import { usePendingSync, useSyncQueueNearlyFull } from '../hooks/usePendingSync';
 
 /**
  * A cold start is offline until the server confirms the session, which online takes a moment.
@@ -23,6 +23,7 @@ export function OfflineSessionBanner() {
   const styles = makeStyles(colors);
   const { status, offline } = useAuth();
   const pending = usePendingSync();
+  const nearlyFull = useSyncQueueNearlyFull();
   const offlineSession = status === 'signedIn' && offline;
   const [visible, setVisible] = useState(false);
 
@@ -45,6 +46,7 @@ export function OfflineSessionBanner() {
           {t('auth.offlineSessionPending', { count: pending })}
         </Text>
       )}
+      {nearlyFull && <Text style={styles.pending}>{t('auth.offlineQueueNearlyFull')}</Text>}
     </View>
   );
 }

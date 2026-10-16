@@ -19,6 +19,7 @@ export const ru: Translations = {
     offlineBody: 'Вход сохранён — как только связь появится, приложение откроется.',
     offlineSessionBanner: 'Нет связи с сервером — ответы сохраняются на телефоне',
     offlineSessionPending: 'Ждут отправки: {count}',
+    offlineQueueNearlyFull: 'Очередь почти заполнена — подключитесь к сети, иначе самые старые ответы будут потеряны',
   },
   nav: {
     pressAgainToExit: 'Нажмите «Назад» ещё раз, чтобы выйти',

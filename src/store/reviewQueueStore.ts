@@ -3,6 +3,8 @@ import { ApiError } from '../api/client';
 import { reviewCard, type ReviewRating, type SrsCard } from '../api/srs';
 import { authStore } from './authStore';
 import {
+  MAX_QUEUED_REVIEWS,
+  NEARLY_FULL_SHARE,
   enqueueReview,
   isOwnedBy,
   makeIdempotencyKey,
@@ -50,6 +52,14 @@ class ReviewQueueStore {
   get pendingCount(): number {
     const userId = currentUserId();
     return this.queue.filter(review => isOwnedBy(review.userId, userId)).length;
+  }
+
+  /**
+   * Close enough to the cap that the oldest answers are about to be dropped (offline plan,
+   * B7.5). Counts every learner's answers: they share the stored queue, and its cap.
+   */
+  get nearlyFull(): boolean {
+    return this.queue.length >= MAX_QUEUED_REVIEWS * NEARLY_FULL_SHARE;
   }
 
   /**

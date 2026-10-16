@@ -38,3 +38,24 @@ export function usePendingSync(): number {
 
   return pending;
 }
+
+function nearlyFull(): boolean {
+  return reviewQueueStore.nearlyFull || exerciseOutboxStore.nearlyFull;
+}
+
+/**
+ * A queue close to its cap (offline plan, B7.5): past it the oldest work is dropped, and the
+ * schedule never hears of it. The learner is told while connecting can still save it.
+ */
+export function useSyncQueueNearlyFull(): boolean {
+  const [full, setFull] = useState(nearlyFull);
+
+  useEffect(() => {
+    const update = () => setFull(nearlyFull());
+    const unsubscribes = [reviewQueueStore.subscribe(update), exerciseOutboxStore.subscribe(update)];
+    update();
+    return () => unsubscribes.forEach(u => u());
+  }, []);
+
+  return full;
+}

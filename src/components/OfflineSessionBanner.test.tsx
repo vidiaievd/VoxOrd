@@ -19,8 +19,10 @@ jest.mock('../providers/ThemeProvider', () => ({
 }));
 
 let mockPending = 0;
+let mockNearlyFull = false;
 jest.mock('../hooks/usePendingSync', () => ({
   usePendingSync: () => mockPending,
+  useSyncQueueNearlyFull: () => mockNearlyFull,
 }));
 
 const USER = { id: 'user-1', email: 'a@b.c', roles: ['student'] };
@@ -33,6 +35,7 @@ describe('OfflineSessionBanner', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     mockPending = 0;
+    mockNearlyFull = false;
   });
 
   afterEach(() => {
@@ -69,6 +72,19 @@ describe('OfflineSessionBanner', () => {
 
     act(() => authStore.setSignedIn(USER));
     expect(texts(renderer)).toEqual([]);
+  });
+
+  it('warns when a queue is close to dropping the oldest answers (offline plan, B7.5)', () => {
+    mockPending = 2500;
+    mockNearlyFull = true;
+    authStore.setSignedIn(USER, true);
+    let renderer!: ReactTestRenderer.ReactTestRenderer;
+    act(() => {
+      renderer = ReactTestRenderer.create(<OfflineSessionBanner />);
+    });
+    act(() => jest.advanceTimersByTime(2000));
+
+    expect(texts(renderer)).toContain('auth.offlineQueueNearlyFull');
   });
 
   it('says nothing about waiting answers when there are none', () => {

@@ -19,6 +19,7 @@ export const uk: Translations = {
     offlineBody: 'Вхід збережено — щойно з’явиться зв’язок, застосунок відкриється.',
     offlineSessionBanner: 'Немає зв’язку з сервером — відповіді зберігаються на телефоні',
     offlineSessionPending: 'Чекають на надсилання: {count}',
+    offlineQueueNearlyFull: 'Черга майже заповнена — підключіться до мережі, інакше найстаріші відповіді буде втрачено',
   },
   nav: {
     pressAgainToExit: 'Натисніть «Назад» ще раз, щоб вийти',

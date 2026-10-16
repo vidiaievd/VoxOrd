@@ -30,11 +30,19 @@ export interface QueuedReview {
 }
 
 /**
- * Cap on the stored queue. A user reviewing offline for days should not be
- * able to grow it unboundedly; past this point the oldest entries are dropped,
- * because the newest answers describe the card's current state best.
+ * Cap on the stored queue. A user reviewing offline should not be able to grow it without
+ * end; past this point the oldest entries are dropped, because the newest answers describe
+ * the card's current state best.
+ *
+ * A dropped answer is evidence the schedule never sees (offline plan, B7.5), so the cap is
+ * sized for a month offline — the phone's session lifetime — at a heavy 100 reviews a day.
+ * It stays well inside what one stored value can hold: an entry is about 200 bytes, the
+ * queue about 600 KB at the cap, and Android reads a stored value through a 2 MB window.
  */
-export const MAX_QUEUED_REVIEWS = 500;
+export const MAX_QUEUED_REVIEWS = 3000;
+
+/** The share of a queue's cap at which the learner is told it is filling up. */
+export const NEARLY_FULL_SHARE = 0.8;
 
 export function enqueueReview(
   queue: QueuedReview[],

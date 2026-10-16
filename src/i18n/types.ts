@@ -22,6 +22,8 @@ export interface Translations {
     /** Above the tab bar while the app works from the stored session, without the server. */
     offlineSessionBanner: string;
     offlineSessionPending: string; // '{count}'
+    /** A sync queue near its cap: the oldest answers are about to be dropped. */
+    offlineQueueNearlyFull: string;
   };
   nav: {
     pressAgainToExit: string;

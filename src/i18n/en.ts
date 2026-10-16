@@ -19,6 +19,7 @@ export const en: Translations = {
     offlineBody: 'You are still signed in — the app opens as soon as the connection is back.',
     offlineSessionBanner: 'No connection to the server — your answers are kept on the phone',
     offlineSessionPending: 'Waiting to sync: {count}',
+    offlineQueueNearlyFull: 'The queue is nearly full — connect soon, or the oldest answers will be lost',
   },
   nav: {
     pressAgainToExit: 'Press Back again to exit',
