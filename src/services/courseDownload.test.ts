@@ -38,6 +38,7 @@ import {
   unitWindow,
   type CourseDownloadDeps,
   type CourseRun,
+  MIN_FREE_BYTES,
 } from './courseDownload';
 
 const offline = () => new ApiError({ message: 'offline', status: null, code: 'NETWORK_ERROR' });
@@ -67,6 +68,7 @@ function makeDeps(overrides: Partial<CourseDownloadDeps> = {}) {
     getUiLanguage: () => 'ru',
     getUnitsAhead: () => 1,
     mediaAllowed: async () => true,
+    freeBytes: async () => 10 * 1024 * 1024 * 1024,
     getMyCourses: async () => [{ container: { id: 'course-1' } } as never],
     getContainer: jest.fn(async () => ({ difficultyLevel: 'A2', targetLanguage: 'nb' }) as never),
     store: async (key, value) => {
@@ -183,6 +185,31 @@ describe('CourseDownloader', () => {
 
     wifi = true;
     await downloader.run();
+    expect(downloaded.sort()).toEqual([NARRATION, CLIP].sort());
+  });
+
+  it('leaves media when the phone is nearly full, says so, and fetches them once there is room (offline plan, B7.2)', async () => {
+    let free = MIN_FREE_BYTES - 1;
+    const { deps, downloaded, stored } = makeDeps({ freeBytes: async () => free });
+    const downloader = new CourseDownloader(deps);
+
+    await downloader.run();
+    expect(downloaded).toEqual([]);
+    expect(downloader.getStatus().lowStorage).toBe(true);
+    // The text of the units is downloaded all the same: it is small, and it is the course.
+    expect(stored.has('lesson-reader:les-1:course-1:ru')).toBe(true);
+
+    free = MIN_FREE_BYTES;
+    await downloader.run();
+    expect(downloaded.sort()).toEqual([NARRATION, CLIP].sort());
+    expect(downloader.getStatus().lowStorage).toBe(false);
+  });
+
+  it('fetches media when the free space cannot be read', async () => {
+    const { deps, downloaded } = makeDeps({ freeBytes: async () => null });
+
+    await new CourseDownloader(deps).run();
+
     expect(downloaded.sort()).toEqual([NARRATION, CLIP].sort());
   });
 

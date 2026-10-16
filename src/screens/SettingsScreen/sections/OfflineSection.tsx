@@ -60,9 +60,11 @@ export function OfflineSection() {
 
   const downloadValue = status.running
     ? t('settings.offlineDownloading')
-    : status.lastFinishedAt !== null
-      ? formatTime(status.lastFinishedAt)
-      : t('settings.offlineNever');
+    : status.lowStorage
+      ? t('settings.offlineLowStorage')
+      : status.lastFinishedAt !== null
+        ? formatTime(status.lastFinishedAt)
+        : t('settings.offlineNever');
 
   /** A changed window or allowance is worth acting on at once, not at the next sync. */
   const downloadNow = () => {

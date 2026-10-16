@@ -178,6 +178,17 @@ export class MediaCache {
 
 const indexStorage = createAsyncStorage('voxord_media_cache');
 
+/**
+ * Bytes free on the storage the media are kept on, or null when the phone will not say
+ * (offline plan, B7.2). Android reports strings and iOS numbers; the app's files live on
+ * internal storage.
+ */
+export async function freeStorageBytes(): Promise<number | null> {
+  const df = await ReactNativeBlobUtil.fs.df();
+  const free = Number(df.internal_free ?? df.free);
+  return Number.isFinite(free) ? free : null;
+}
+
 const blobFiles: MediaFiles = {
   dir: () => `${ReactNativeBlobUtil.fs.dirs.DocumentDir}/media`,
   ensureDir: async path => {

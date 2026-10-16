@@ -24,7 +24,7 @@ import { buildImportPlan } from '../repositories/vocabularyImportMapping';
 import { vocabularyImportRepository } from '../repositories/VocabularyImportRepository';
 import { authStore } from '../store/authStore';
 import { settingsStore, ALL_UNITS } from '../store/settingsStore';
-import { mediaCache } from './mediaCache';
+import { freeStorageBytes, mediaCache } from './mediaCache';
 
 /** A course downloaded this recently is not walked again by the automatic run. */
 export const DOWNLOAD_INTERVAL_MS = 12 * 60 * 60 * 1000;
@@ -34,12 +34,21 @@ const CONCURRENCY = 4;
 /** Media files in flight at once: they are large, and the screen may be playing one. */
 const MEDIA_CONCURRENCY = 2;
 
+/**
+ * Free space the phone keeps for itself (offline plan, B7.2): below it media are not
+ * downloaded. The course window bounds what is kept, not what the phone has left, and a full
+ * phone fails worse than a missing clip — the app's own database stops taking answers.
+ */
+export const MIN_FREE_BYTES = 500 * 1024 * 1024;
+
 export interface CourseDownloadStatus {
   running: boolean;
   /** Epoch ms of the last walk that finished, or null when none has. */
   lastFinishedAt: number | null;
   /** Items the last walk could not fetch — locked, removed, refused. */
   lastFailed: number;
+  /** The last walk skipped media because the phone had less than `MIN_FREE_BYTES` free. */
+  lowStorage?: boolean;
 }
 
 /** What the last walk of one course left, kept so a skipped course still knows its media. */
@@ -58,6 +67,8 @@ export interface CourseDownloadDeps {
   getUnitsAhead(): number;
   /** Whether media may be downloaded now — Wi-Fi, or the learner allowed mobile data. */
   mediaAllowed(): Promise<boolean>;
+  /** Bytes free on the phone's storage; null when it cannot be read. */
+  freeBytes(): Promise<number | null>;
   getMyCourses(): Promise<CourseListItem[]>;
   getContainer(courseId: string): Promise<Container>;
   /** Writes a fetched value where the screen with this key will read it. */
@@ -151,6 +162,7 @@ export class CourseDownloader {
 
     let failed = 0;
     let finished = false;
+    let lowStorage = false;
     // Every course's media, walked now or remembered from its last walk: what the cache keeps.
     const keep = new Set<string>();
     let keepComplete = true;
@@ -182,7 +194,9 @@ export class CourseDownloader {
         walked.mediaIds.forEach(id => keep.add(id));
 
         let mediaDone = false;
-        if (mediaAllowed) {
+        // Read per course: the previous course's media may have just taken the room.
+        if (mediaAllowed && !(await this.hasRoom())) lowStorage = true;
+        if (mediaAllowed && !lowStorage) {
           failed += await this.downloadMedia(walked.mediaIds);
           mediaDone = true;
         }
@@ -207,8 +221,18 @@ export class CourseDownloader {
     } finally {
       this.setStatus({
         running: false,
-        ...(finished ? { lastFinishedAt: this.deps.now(), lastFailed: failed } : {}),
+        ...(finished ? { lastFinishedAt: this.deps.now(), lastFailed: failed, lowStorage } : {}),
       });
+    }
+  }
+
+  /** Room for media, or nothing known against it — an unreadable reading does not block them. */
+  private async hasRoom(): Promise<boolean> {
+    try {
+      const free = await this.deps.freeBytes();
+      return free === null || free >= MIN_FREE_BYTES;
+    } catch {
+      return true;
     }
   }
 
@@ -374,6 +398,7 @@ export const courseDownloader = new CourseDownloader({
       return false;
     }
   },
+  freeBytes: () => freeStorageBytes(),
   getMyCourses,
   getContainer,
   store: async (key, value) => {

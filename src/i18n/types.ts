@@ -127,6 +127,8 @@ export interface Translations {
     offlineDownload: string;
     offlineDownloading: string;
     offlineNever: string;
+    /** The last download skipped media: the phone had too little free space. */
+    offlineLowStorage: string;
     offlineUnitsAhead: string;
     offlineUnitsAll: string;
     offlineMediaOnCellular: string;

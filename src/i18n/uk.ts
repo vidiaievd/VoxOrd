@@ -129,6 +129,7 @@ export const uk: Translations = {
     offlineDownload: 'Завантажити курси',
     offlineDownloading: 'Завантажується…',
     offlineNever: 'ще не завантажені',
+    offlineLowStorage: 'Медіа не завантажено: на телефоні менше 500 МБ',
     offlineUnitsAhead: 'Юнітів наперед',
     offlineUnitsAll: 'увесь курс',
     offlineMediaOnCellular: 'Медіа мобільною мережею',

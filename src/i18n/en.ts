@@ -129,6 +129,7 @@ export const en: Translations = {
     offlineDownload: 'Download courses',
     offlineDownloading: 'Downloading…',
     offlineNever: 'not downloaded yet',
+    offlineLowStorage: 'Media skipped: less than 500 MB free',
     offlineUnitsAhead: 'Units ahead',
     offlineUnitsAll: 'whole course',
     offlineMediaOnCellular: 'Media over mobile data',

@@ -129,6 +129,7 @@ export const ru: Translations = {
     offlineDownload: 'Скачать курсы',
     offlineDownloading: 'Скачивается…',
     offlineNever: 'ещё не скачаны',
+    offlineLowStorage: 'Медиа не скачаны: на телефоне меньше 500 МБ',
     offlineUnitsAhead: 'Юнитов вперёд',
     offlineUnitsAll: 'весь курс',
     offlineMediaOnCellular: 'Медиа по мобильной сети',
