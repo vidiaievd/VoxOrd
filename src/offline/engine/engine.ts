@@ -154,7 +154,12 @@ export class LocalEngine {
       !display ||
       !key ||
       !isGradedOffline(display.templateCode) ||
-      sittingsLimited(display.templateCode, key)
+      sittingsLimited(display.templateCode, key) ||
+      // Graded work and assignments stay online (offline plan, B7.3): the replay is a
+      // PRACTICE attempt, and a graded answer counted as practice would weigh in the SRS and
+      // in the teacher's results as something it was not.
+      body.mode === 'GRADED' ||
+      Boolean(body.assignmentId)
     ) {
       throw new LocalRefusal(422, 'This exercise is not available offline');
     }
