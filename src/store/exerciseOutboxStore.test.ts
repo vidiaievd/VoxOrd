@@ -18,6 +18,7 @@ const mockRemote = {
   revealAnswers: jest.fn(),
   selfCheck: jest.fn(),
   saveDraft: jest.fn(),
+  getAttempt: jest.fn(),
 };
 jest.mock('../api/exercises', () => ({
   get remoteAttempts() {
@@ -57,6 +58,12 @@ let serverIds = 0;
 beforeEach(async () => {
   Object.values(mockRemote).forEach(fn => fn.mockReset());
   mockRemote.startOrJoinAttempt.mockImplementation(async () => ({ attemptId: `srv-${++serverIds}` }));
+  // By default the server attempt is the phone's own start, dated as the phone dated it.
+  mockRemote.getAttempt.mockImplementation(async (_ex: string, id: string) => ({
+    id,
+    status: 'IN_PROGRESS',
+    startedAt: '2026-10-14T08:00:00.000Z',
+  }));
   mockUpsert.mockReset().mockResolvedValue({});
   // Drain whatever a previous test left, whoever's it is.
   for (const user of [OTHER, LEARNER]) {
@@ -198,6 +205,66 @@ describe('exerciseOutboxStore', () => {
     });
     // The server keeps no time for a reveal.
     expect(mockRemote.revealAnswers).toHaveBeenCalledWith('ex-t', serverId);
+  });
+
+  describe('an attempt left open on the web (offline plan, B7.1)', () => {
+    const dated = (id: string) => ({ ...attempt(id), startedAt: '2026-10-14T08:00:00.000Z' });
+
+    it('is abandoned, and the replay starts its own, when it began well before the phone', async () => {
+      mockRemote.getAttempt.mockImplementationOnce(async (_ex: string, id: string) => ({
+        id,
+        status: 'IN_PROGRESS',
+        startedAt: '2026-10-13T18:00:00.000Z',
+      }));
+      await exerciseOutboxStore.recordLocalOp(dated('w1'), { ...submitOp({ x: 1 }), at: '2026-10-14T08:02:00.000Z' });
+
+      await exerciseOutboxStore.flush();
+
+      const [first, second] = mockRemote.startOrJoinAttempt.mock.results;
+      const web = (await first.value).attemptId;
+      const own = (await second.value).attemptId;
+      expect(mockRemote.abandonAttempt).toHaveBeenCalledWith('ex-w1', web);
+      expect(mockRemote.submitAttempt).toHaveBeenCalledWith('ex-w1', own, submitOp({ x: 1 }).body, {
+        clientAt: '2026-10-14T08:02:00.000Z',
+      });
+    });
+
+    it('is joined when it began moments before — the phone’s own start that got through', async () => {
+      mockRemote.getAttempt.mockImplementationOnce(async (_ex: string, id: string) => ({
+        id,
+        status: 'IN_PROGRESS',
+        startedAt: '2026-10-14T07:59:40.000Z',
+      }));
+      await exerciseOutboxStore.recordLocalOp(dated('w2'), { ...submitOp({ x: 1 }), at: '2026-10-14T08:02:00.000Z' });
+
+      await exerciseOutboxStore.flush();
+
+      expect(mockRemote.abandonAttempt).not.toHaveBeenCalled();
+      expect(mockRemote.startOrJoinAttempt).toHaveBeenCalledTimes(1);
+    });
+
+    it('is joined when the server will not abandon it', async () => {
+      mockRemote.getAttempt.mockImplementationOnce(async (_ex: string, id: string) => ({
+        id,
+        status: 'SCORED',
+        startedAt: '2026-10-13T18:00:00.000Z',
+      }));
+      mockRemote.abandonAttempt.mockRejectedValueOnce(
+        new ApiError({ message: 'board', status: 422, code: null }),
+      );
+      await exerciseOutboxStore.recordLocalOp(dated('w3'), { ...submitOp({ x: 1 }), at: '2026-10-14T08:02:00.000Z' });
+
+      await exerciseOutboxStore.flush();
+
+      const web = (await mockRemote.startOrJoinAttempt.mock.results[0].value).attemptId;
+      expect(mockRemote.submitAttempt).toHaveBeenCalledWith(
+        'ex-w3',
+        web,
+        submitOp({ x: 1 }).body,
+        expect.anything(),
+      );
+      expect(exerciseOutboxStore.pendingCount).toBe(0);
+    });
   });
 
   describe('a minimal_pairs sitting dealt on the phone (offline plan, B6)', () => {

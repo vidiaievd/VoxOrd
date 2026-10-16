@@ -655,6 +655,8 @@ async function remoteFindOpenAttempt(exerciseId: string): Promise<OpenAttempt | 
 export interface AttemptRow {
   id: string;
   status: string;
+  /** When the attempt began, ISO 8601 — read by the offline replay to tell its own from another's. */
+  startedAt?: string;
   templateCode: string;
   submittedAnswer: unknown;
   draftAnswer: unknown;
@@ -778,6 +780,7 @@ export const remoteAttempts = {
   startAttempt: remoteStartAttempt,
   startOrJoinAttempt: remoteStartOrJoinAttempt,
   abandonAttempt: remoteAbandonAttempt,
+  getAttempt: remoteGetAttempt,
   submitAttempt: remoteSubmitAttempt,
   answerQuestion: remoteAnswerQuestion,
   checkRow: remoteCheckRow,

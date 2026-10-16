@@ -253,14 +253,7 @@ class ExerciseOutboxStore {
     }
     if (!serverId) {
       try {
-        // Joining matters: a start that reached the server before the connection died left
-        // an attempt in progress there, and the calls belong on it.
-        const started = await remoteAttempts.startOrJoinAttempt(
-          entry.exerciseId,
-          { language: entry.language, mode: 'PRACTICE' },
-          ...timeArg(replayTime(entry.startedAt)),
-        );
-        serverId = started.attemptId;
+        serverId = await startForReplay(entry);
       } catch (e) {
         if (shouldRetry(e instanceof ApiError ? e.status : null)) return 'kept';
         console.warn(`[ExerciseOutbox] Dropping attempt at ${entry.exerciseId} — start refused.`);
@@ -336,6 +329,50 @@ async function startDealtSitting(entry: QueuedSession, probeDraw: unknown[]): Pr
     if (typeof open !== 'string' || open === '') throw e;
     await remoteAttempts.abandonAttempt(entry.exerciseId, open);
     return (await remoteAttempts.startAttempt(entry.exerciseId, body, ...timeArg(time))).attemptId;
+  }
+}
+
+/**
+ * How long before the phone's own start an attempt open on the server may have begun and still
+ * be taken for that start: the phone opens a local attempt only after the server failed to
+ * answer, so a start that reached it anyway is seconds older, never minutes.
+ */
+const OWN_START_WINDOW_MS = 2 * 60 * 1000;
+
+/**
+ * The server attempt a local one is replayed onto (offline plan, B7.1).
+ *
+ * Joining matters: a start that reached the server before the connection died left an attempt
+ * in progress there, and the calls belong on it. But the start also joins an attempt opened on
+ * the web and left unfinished — and then the phone's checks land on top of the web's, the
+ * author's budget is spent twice, and the replay loses the checks past it. Such an attempt
+ * began well before the phone's own start; it is abandoned, as the web does with a stale
+ * attempt, and a fresh one is started. The finished work outweighs the unfinished, and the
+ * SRS gets the whole of it. An entry from before start times were kept joins, as it did.
+ */
+async function startForReplay(entry: QueuedSession): Promise<string> {
+  const body = { language: entry.language, mode: 'PRACTICE' as const };
+  const time = timeArg(replayTime(entry.startedAt));
+  const started = await remoteAttempts.startOrJoinAttempt(entry.exerciseId, body, ...time);
+  if (!entry.startedAt) return started.attemptId;
+
+  try {
+    const row = await remoteAttempts.getAttempt(entry.exerciseId, started.attemptId);
+    const openedAt = row.startedAt ? Date.parse(row.startedAt) : NaN;
+    const ownStartFrom = Date.parse(entry.startedAt) - OWN_START_WINDOW_MS;
+    if (!Number.isFinite(openedAt) || openedAt >= ownStartFrom) return started.attemptId;
+
+    await remoteAttempts.abandonAttempt(entry.exerciseId, started.attemptId);
+    console.warn(
+      `[ExerciseOutbox] ${entry.exerciseId}: an attempt open since ${row.startedAt} was not ` +
+        "this phone's — abandoned, and the replay starts its own.",
+    );
+    return (await remoteAttempts.startOrJoinAttempt(entry.exerciseId, body, ...time)).attemptId;
+  } catch (e) {
+    // The server away: the entry waits. Refused — an open board cannot be abandoned — the
+    // replay joins it, which is what it did before this check existed.
+    if (shouldRetry(e instanceof ApiError ? e.status : null)) throw e;
+    return started.attemptId;
   }
 }
 
