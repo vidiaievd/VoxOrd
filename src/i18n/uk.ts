@@ -180,6 +180,7 @@ export const uk: Translations = {
     untitled: 'Без назви',
     duration: '{minutes} хв',
     statusCompleted: 'Пройдено',
+    statusSubmitted: 'Здано',
     statusInProgress: 'У процесі',
     statusAvailable: 'Доступно',
     statusLocked: 'Закрито',

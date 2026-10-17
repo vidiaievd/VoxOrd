@@ -107,6 +107,31 @@ describe('getCourseHome', () => {
     ]);
   });
 
+  // Plan 76, Q11-A: work with a teacher opens the next unit, a failed task does not.
+  it.each([
+    ['SUBMITTED', ['done', 'active']],
+    ['IN_PROGRESS', ['active', 'locked']],
+  ])('sequential gating: an exercise %s leaves the units %j', async (exerciseStatus, statuses) => {
+    routeGet({
+      '/progress/course/': overlay([
+        { contentType: 'lesson', contentId: 'l1', status: 'COMPLETED', moduleId: 'unit-1', isRequired: true },
+        { contentType: 'exercise', contentId: 'e1', status: exerciseStatus, moduleId: 'unit-1', isRequired: true },
+        { contentType: 'lesson', contentId: 'l2', status: 'NOT_STARTED', moduleId: 'unit-2', isRequired: true },
+      ]),
+      '/containers/course-1/versions/version-1/items': [
+        unitItem({ id: 'item-1', position: 1, itemId: 'unit-1', title: 'Unit 1' }),
+        unitItem({ id: 'item-2', position: 2, itemId: 'unit-2', title: 'Unit 2' }),
+      ],
+      '/containers/course-1': container({ gatingMode: 'sequential' }),
+    });
+
+    const result = await getCourseHome('course-1');
+
+    expect(result.units.map((u) => u.status)).toEqual(statuses);
+    // The count shown is the passed ones only.
+    expect(result.units[0]!.completedLessons).toBe(1);
+  });
+
   it('open gating: every incomplete unit is active, none locked', async () => {
     routeGet({
       '/progress/course/': overlay([

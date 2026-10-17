@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import {
   answerQuestion as answerQuestionRequest,
   checkRow as checkRowRequest,
@@ -10,7 +10,6 @@ import {
   type CheckRowResponse,
   type SubmitAttemptResponse,
 } from '../api/exercises';
-import { buildExerciseCompletionRequest, upsertProgress } from '../api/progress';
 import type { ExerciseDisplay } from '../api/types';
 import {
   getMemoryCache,
@@ -27,11 +26,7 @@ import {
 } from '../screens/ExerciseRunner/runnerMachine';
 import { useSettings } from './useSettings';
 import { exerciseDisplayResource } from '../lib/courseResources';
-import { isServerOutOfReach as serverOutOfReach } from '../api/isNetworkError';
-import { OFFLINE_ATTEMPT_PREFIX } from '../offline/engine/attempt';
-import { exerciseOutboxStore } from '../store/exerciseOutboxStore';
 
-export type ProgressPostStatus = 'idle' | 'posting' | 'done' | 'error';
 
 function errorMessage(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
@@ -119,8 +114,6 @@ export interface ExerciseRunnerController {
   retry: () => void;
   /** Footer "Try again": re-answer the same wrong item as a fresh attempt. */
   retryAttempt: () => void;
-  /** Status of posting each result's progress once the set reaches 'complete'. */
-  progressPostStatus: ProgressPostStatus;
 }
 
 /**
@@ -375,52 +368,10 @@ export function useExerciseRunner(
     dispatch({ type: 'ADVANCE' });
   }, []);
 
-  // Post one progress record per finished exercise once the set completes.
-  // There's no backend "set" endpoint (EXERCISE is a singular content
-  // type — see buildExerciseCompletionRequest), so this mirrors the web
-  // reader's per-item POST /progress, just fired in a loop here. Fires once
-  // per mount via progressPostedRef; best-effort — a failure here shouldn't
-  // block the results screen the user is already looking at.
-  const [progressPostStatus, setProgressPostStatus] = useState<ProgressPostStatus>('idle');
-  const progressPostedRef = useRef(false);
-
-  useEffect(() => {
-    if (state.phase !== 'complete' || state.results.length === 0) return;
-    if (progressPostedRef.current) return;
-    progressPostedRef.current = true;
-
-    setProgressPostStatus('posting');
-    (async () => {
-      try {
-        const requests = state.results.map(({ exerciseId, verdict, timeSpentSeconds }) =>
-          buildExerciseCompletionRequest(exerciseId, verdict, timeSpentSeconds),
-        );
-        // A set with an attempt graded offline sends nothing now: its progress goes out
-        // through the outbox, behind the attempts it records.
-        const answeredOffline = state.results.some(({ verdict }) =>
-          verdict.attemptId.startsWith(OFFLINE_ATTEMPT_PREFIX),
-        );
-        let queued = answeredOffline;
-        if (!answeredOffline) {
-          try {
-            await Promise.all(requests.map(request => upsertProgress(request)));
-          } catch (e) {
-            if (!serverOutOfReach(e)) throw e;
-            queued = true;
-          }
-        }
-        if (queued) {
-          for (const request of requests) await exerciseOutboxStore.enqueueProgress(request);
-        }
-        if (!mounted.current) return;
-        setProgressPostStatus('done');
-      } catch (e) {
-        if (!mounted.current) return;
-        console.warn('[ExerciseRunner] Failed to post set progress:', e);
-        setProgressPostStatus('error');
-      }
-    })();
-  }, [state.phase, state.results]);
+  // Nothing is posted to progress when the set completes (plan 76, 2.6): whether an
+  // exercise passed, or went to a teacher, is the engine's to record, and it does —
+  // from the attempt this hook submitted, online or replayed from the outbox. Posting
+  // `completed: true` per item here marked failed exercises and unjudged work as done.
 
   const retry = useCallback(() => {
     dispatch({ type: 'LOAD_START' });
@@ -457,6 +408,5 @@ export function useExerciseRunner(
     advance,
     retry,
     retryAttempt,
-    progressPostStatus,
   };
 }

@@ -1,6 +1,5 @@
 import { apiClient } from './client';
 import type { ProgressRecord, UpsertProgressRequest } from './types';
-import type { SubmitAttemptResponse } from './exercises';
 
 const PROGRESS_PATH = '/api/v1/progress';
 
@@ -12,6 +11,9 @@ const PROGRESS_PATH = '/api/v1/progress';
  * the lesson id, not a variant id). Confirmed against
  * upsert-progress.request.ts + how the web reader's "Next" action posts
  * lesson completion (reader-shell.tsx `handleNext`).
+ *
+ * Never for an `EXERCISE` (plan 76, 2.6): the engine writes an exercise's progress from
+ * its attempts, and the server answers such a request without changing anything.
  */
 export async function upsertProgress(
   request: UpsertProgressRequest,
@@ -34,28 +36,6 @@ export function buildLessonCompletionRequest(
     contentType: 'LESSON',
     contentId: lessonId,
     timeSpentSeconds: Math.max(0, Math.round((nowMs - startedAtMs) / 1000)),
-    completed: true,
-  };
-}
-
-/**
- * One `POST /progress` per finished exercise (there is no "set" concept on
- * the backend — `EXERCISE` is a singular content type, see
- * `VALID_CONTENT_TYPES` in learning-service's content-ref.ts — so the
- * runner posts once per item in the set it just completed). `score` is the
- * server's 0-100 verdict score passed straight through: exercise-engine's
- * validators and the progress DTO already share that scale.
- */
-export function buildExerciseCompletionRequest(
-  exerciseId: string,
-  verdict: SubmitAttemptResponse,
-  timeSpentSeconds: number,
-): UpsertProgressRequest {
-  return {
-    contentType: 'EXERCISE',
-    contentId: exerciseId,
-    timeSpentSeconds,
-    score: verdict.score ?? undefined,
     completed: true,
   };
 }

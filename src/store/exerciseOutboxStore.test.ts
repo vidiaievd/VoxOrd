@@ -46,11 +46,11 @@ const submitOp = (answer: unknown) => ({
   op: 'submit' as const,
   body: { submittedAnswer: answer, timeSpentSeconds: 5, locale: 'ru' },
 });
+// A lesson read offline: the one kind of progress still queued (plan 76, 2.6).
 const progress = (contentId: string) => ({
-  contentType: 'EXERCISE' as const,
+  contentType: 'LESSON' as const,
   contentId,
   timeSpentSeconds: 12,
-  score: 100,
   completed: true,
 });
 
@@ -90,6 +90,16 @@ describe('exerciseOutboxStore', () => {
     expect(mockRemote.revealAnswers).toHaveBeenCalledWith('ex-a', serverId);
     // Dated when it was queued: it was queued because the server could not be reached.
     expect(mockUpsert).toHaveBeenCalledWith({ ...progress('ex-a'), occurredAt: expect.any(String) });
+    expect(exerciseOutboxStore.pendingCount).toBe(0);
+  });
+
+  it('settles an exercise\'s progress queued by an older build without sending it', async () => {
+    await exerciseOutboxStore.enqueueProgress({ ...progress('ex-old'), contentType: 'EXERCISE' });
+
+    await exerciseOutboxStore.flush();
+
+    // The attempt ahead of it records the exercise; the server would ignore this anyway.
+    expect(mockUpsert).not.toHaveBeenCalled();
     expect(exerciseOutboxStore.pendingCount).toBe(0);
   });
 

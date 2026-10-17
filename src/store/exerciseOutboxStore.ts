@@ -209,6 +209,10 @@ class ExerciseOutboxStore {
     if (entry.kind === 'session') return this.deliverSession(entry);
     try {
       if (entry.kind === 'progress') {
+        // A set's progress, queued by a build before plan 76 (2.6). The attempt queued ahead
+        // of it is what records the exercise now, and the server ignores this one — so it
+        // settles here, without a request.
+        if (entry.request.contentType === 'EXERCISE') return 'sent';
         // Queued because the server could not be reached, so the moment it was queued is the
         // moment the work was finished.
         await upsertProgress({ occurredAt: entry.queuedAt, ...entry.request });
