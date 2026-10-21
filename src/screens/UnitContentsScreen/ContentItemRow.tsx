@@ -26,6 +26,7 @@ export function ContentItemRow({ item, onPress }: ContentItemRowProps) {
 
   const badge = {
     completed: { label: t('unitContents.statusCompleted'), color: colors.success },
+    submitted: { label: t('unitContents.statusSubmitted'), color: colors.textSecondary },
     in_progress: { label: t('unitContents.statusInProgress'), color: colors.accent },
     available: { label: t('unitContents.statusAvailable'), color: colors.textMuted },
     locked: { label: t('unitContents.statusLocked'), color: colors.textMuted },

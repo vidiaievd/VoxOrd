@@ -180,6 +180,7 @@ export const en: Translations = {
     untitled: 'Untitled',
     duration: '{minutes} min',
     statusCompleted: 'Completed',
+    statusSubmitted: 'Submitted',
     statusInProgress: 'In progress',
     statusAvailable: 'Available',
     statusLocked: 'Locked',

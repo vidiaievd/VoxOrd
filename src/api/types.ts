@@ -320,7 +320,8 @@ export interface CanDoResponse {
   items: CanDoItem[];
 }
 
-export type UnitContentsItemStatus = 'locked' | 'available' | 'in_progress' | 'completed';
+/** `submitted`: handed to a teacher, no verdict yet (plan 76, 2.6). */
+export type UnitContentsItemStatus = 'locked' | 'available' | 'in_progress' | 'submitted' | 'completed';
 
 /**
  * Normalized (lowercase) content type used across the app's UI layer.

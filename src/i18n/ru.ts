@@ -180,6 +180,7 @@ export const ru: Translations = {
     untitled: 'Без названия',
     duration: '{minutes} мин',
     statusCompleted: 'Пройдено',
+    statusSubmitted: 'Сдано',
     statusInProgress: 'В процессе',
     statusAvailable: 'Доступно',
     statusLocked: 'Закрыто',

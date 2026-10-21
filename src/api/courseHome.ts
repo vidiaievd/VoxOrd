@@ -24,7 +24,7 @@ const PROGRESS_OVERLAY_PATH = (containerId: string) =>
  * Source: ssz-platform/services/learning-service/src/modules/progress/
  * application/queries/get-course-progress-overlay.handler.ts
  */
-type ItemProgressStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
+type ItemProgressStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'SUBMITTED' | 'COMPLETED' | 'NEEDS_REVIEW';
 
 interface ItemProgressEntry {
   contentType: string;
@@ -54,7 +54,9 @@ interface UnitRollup {
  * Buckets progress items by unit (`moduleId`). Items with `moduleId === null`
  * sit directly under the course, not under a unit, and are skipped.
  * A unit is complete once all its *required* items are completed (falls back
- * to all items if none are marked required).
+ * to all items if none are marked required). Work handed to a teacher counts for the
+ * gate — the learner has done their part — and a task failed by the machine does not
+ * (plan 76, Q11-A); the count shown stays the passed ones.
  * Mirrors `rollUpByUnit` in
  * ssz-platform-web/src/app/api/learning/course-home/[courseId]/route.ts.
  */
@@ -74,7 +76,7 @@ function rollUpByUnit(items: ItemProgressEntry[]): Map<string, UnitRollup> {
     rollups.set(unitId, {
       total: unitItems.length,
       completed: unitItems.filter((i) => i.status === 'COMPLETED').length,
-      isComplete: gate.every((i) => i.status === 'COMPLETED'),
+      isComplete: gate.every((i) => i.status === 'COMPLETED' || i.status === 'SUBMITTED'),
     });
   }
   return rollups;

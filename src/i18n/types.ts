@@ -178,6 +178,7 @@ export interface Translations {
     untitled: string;
     duration: string; // '{minutes} min'
     statusCompleted: string;
+    statusSubmitted: string;
     statusInProgress: string;
     statusAvailable: string;
     statusLocked: string;
