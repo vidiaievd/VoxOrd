@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import { useTranslation } from '../../../i18n';
 import { useTheme } from '../../../providers/ThemeProvider';
 import { ColorScheme } from '../../../theme/colors';
 import { SettingsSection } from '../components/SettingsSection';
 import { apiSettingsStore } from '../../../store/apiSettingsStore';
 import { useApiSettings } from '../../../hooks/useApiSettings';
+import { UiKitScreen } from '../UiKitScreen';
 
 const SAVED_INDICATOR_MS = 1500;
 
@@ -23,6 +24,7 @@ export function DeveloperSection() {
 
   const [value, setValue] = useState(apiSettings.baseUrl);
   const [justSaved, setJustSaved] = useState(false);
+  const [uiKitOpen, setUiKitOpen] = useState(false);
 
   // Keep the field in sync if the stored value changes elsewhere.
   useEffect(() => {
@@ -71,6 +73,17 @@ export function DeveloperSection() {
           </TouchableOpacity>
         </View>
       </View>
+      {__DEV__ ? (
+        <View style={styles.row}>
+          {/* Dev-only, English on purpose: redesign UI kit (plan 01, step 3). */}
+          <TouchableOpacity onPress={() => setUiKitOpen(true)} activeOpacity={0.8}>
+            <Text style={styles.label}>UI kit (Nocturne primitives)</Text>
+          </TouchableOpacity>
+          <Modal visible={uiKitOpen} animationType="slide" onRequestClose={() => setUiKitOpen(false)}>
+            <UiKitScreen onClose={() => setUiKitOpen(false)} />
+          </Modal>
+        </View>
+      ) : null}
     </SettingsSection>
   );
 }

@@ -30,3 +30,12 @@ jest.mock('phosphor-react-native', () => {
     },
   );
 });
+
+jest.mock('react-native-linear-gradient', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  return {
+    __esModule: true,
+    default: props => React.createElement(View, { testID: 'linear-gradient', ...props }),
+  };
+});
