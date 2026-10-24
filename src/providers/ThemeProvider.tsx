@@ -4,19 +4,22 @@ import React, {
   useMemo,
   ReactNode,
 } from 'react';
-import { useColorScheme } from 'react-native';
+import { Platform, StatusBar, useColorScheme } from 'react-native';
 import { ColorScheme, lightColors, darkColors } from '../theme/colors';
+import { typography, Typography } from '../theme/typography';
 import { useSettings } from '../hooks/useSettings';
 import { ThemeMode } from '../store/settingsStore';
 
 interface ThemeContextValue {
   colors:    ColorScheme;
+  typography: Typography;
   isDark:    boolean;
   themeMode: ThemeMode;
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
   colors:    lightColors,
+  typography,
   isDark:    false,
   themeMode: 'system',
 });
@@ -38,8 +41,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     [isDark]
   );
 
+  const value = useMemo(
+    () => ({ colors, typography, isDark, themeMode: theme }),
+    [colors, isDark, theme],
+  );
+
   return (
-    <ThemeContext.Provider value={{ colors, isDark, themeMode: theme }}>
+    <ThemeContext.Provider value={value}>
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor={Platform.OS === 'android' ? colors.bg : undefined}
+      />
       {children}
     </ThemeContext.Provider>
   );
