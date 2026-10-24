@@ -1,9 +1,42 @@
 import type { Deck } from '../repositories/DeckRepository';
 
-export type Tab = 'Home' | 'Courses' | 'Settings';
+export type Tab =
+  | 'Today'
+  | 'Courses'
+  | 'Practice'
+  | 'Notifications'
+  | 'Profile';
+
+/**
+ * What the assistant is opened about (Home spec §6.2). Plan 03 fills in what each kind
+ * carries into the conversation; the route only has to hold it.
+ */
+export type AssistantContext =
+  | { kind: 'unit'; unitId: string; courseId: string }
+  | { kind: 'submission'; submissionId: string }
+  | { kind: 'class'; lessonId: string };
 
 export type Screen =
-  | { name: 'Home' }
+  | { name: 'Today' }
+  | { name: 'Practice' }
+  | { name: 'Notifications' }
+  | { name: 'Profile' }
+  | {
+      name: 'Assistant';
+      context?: AssistantContext;
+      /** Open straight into voice input — the microphone beside the inline prompt. */
+      startVoice?: boolean;
+      /** Sent once as the first message. */
+      prompt?: string;
+      /** The screen it was opened over — the assistant belongs to no tab of its own. */
+      returnTo: Screen;
+    }
+  | {
+      name: 'Submission';
+      submissionId: string;
+      /** The AI review is addressed by exercise and attempt both (`src/api/aiReview.ts`). */
+      exerciseId: string;
+    }
   | { name: 'ModeSelector'; deck: Deck }
   | { name: 'Card'; deck: Deck; mode?: 'assessment' }
   | { name: 'Matching'; deckId: number }
@@ -28,7 +61,12 @@ export type Screen =
       alreadyRead?: boolean;
     }
   | { name: 'VocabularyList'; listId: string; unitId: string; courseId: string }
-  | { name: 'GrammarRuleReader'; ruleId: string; unitId: string; courseId: string }
+  | {
+      name: 'GrammarRuleReader';
+      ruleId: string;
+      unitId: string;
+      courseId: string;
+    }
   | { name: 'ReviewSession'; courseId?: string }
   | { name: 'MyWords' }
   | {
@@ -52,17 +90,25 @@ export type Screen =
  *
  * The navigator holds one screen rather than a history, and the way back is the screen's
  * place in the app rather than the path that reached it: a lesson opened from the exercise
- * runner goes back to its unit, as the arrow there always did. `null` is the Home tab — the
- * one place Back may leave the app.
+ * runner goes back to its unit, as the arrow there always did. The root of every tab goes
+ * back to Today, and `null` is Today itself — the one place Back may leave the app. The
+ * assistant is the exception: it sits over whatever opened it and goes back there.
  */
 export function backTarget(screen: Screen): Screen | null {
   switch (screen.name) {
-    case 'Home':
+    case 'Today':
       return null;
     case 'Courses':
+    case 'Practice':
+    case 'Notifications':
+    case 'Profile':
+      return { name: 'Today' };
+    case 'Assistant':
+      return screen.returnTo;
+    case 'Submission':
+      return { name: 'Notifications' };
     case 'Settings':
-    case 'MyWords':
-      return { name: 'Home' };
+      return { name: 'Profile' };
     case 'CourseHome':
       return { name: 'Courses' };
     case 'UnitContents':
@@ -71,31 +117,52 @@ export function backTarget(screen: Screen): Screen | null {
     case 'VocabularyList':
     case 'GrammarRuleReader':
     case 'ExerciseRunner':
-      return { name: 'UnitContents', unitId: screen.unitId, courseId: screen.courseId };
+      return {
+        name: 'UnitContents',
+        unitId: screen.unitId,
+        courseId: screen.courseId,
+      };
     case 'ReviewSession':
-      return screen.courseId ? { name: 'CourseHome', courseId: screen.courseId } : { name: 'Home' };
+      return screen.courseId
+        ? { name: 'CourseHome', courseId: screen.courseId }
+        : { name: 'Practice' };
     case 'Card':
       return { name: 'ModeSelector', deck: screen.deck };
-    default:
-      // The word-deck screens: every one of them went back to Home.
-      return { name: 'Home' };
+    case 'MyWords':
+    case 'ModeSelector':
+    case 'Matching':
+    case 'Quiz':
+    case 'Spelling':
+    case 'Listening':
+    case 'Pronunciation':
+    case 'Context':
+    case 'DeepSession':
+    case 'SessionResults':
+      // The word decks. The modes carry only a deck id, so they cannot go back to their
+      // ModeSelector yet — plan 05 puts the deck on the route.
+      return { name: 'Practice' };
   }
 }
 
-/** The tab a screen belongs to, for the tab bar's highlight. */
-export function tabOf(screen: Screen): Tab | null {
-  if (screen.name === 'Home' || screen.name === 'MyWords') return 'Home';
-  if (screen.name === 'Settings') return 'Settings';
-  if (
-    screen.name === 'Courses' ||
-    screen.name === 'CourseHome' ||
-    screen.name === 'UnitContents' ||
-    screen.name === 'LessonReader' ||
-    screen.name === 'VocabularyList' ||
-    screen.name === 'GrammarRuleReader' ||
-    screen.name === 'ExerciseRunner'
-  ) {
-    return 'Courses';
+const TAB_ROOTS: Record<Tab, Screen['name']> = {
+  Today: 'Today',
+  Courses: 'Courses',
+  Practice: 'Practice',
+  Notifications: 'Notifications',
+  Profile: 'Profile',
+};
+
+/**
+ * The tab a screen belongs to, for the tab bar's highlight: a tab's root is its own, and
+ * every other screen belongs where its Back leads — so going back never moves the highlight
+ * to another tab. A review started from a course is the course's; one started anywhere else
+ * is Practice's.
+ */
+export function tabOf(screen: Screen): Tab {
+  for (const tab of Object.keys(TAB_ROOTS) as Tab[]) {
+    if (TAB_ROOTS[tab] === screen.name) return tab;
   }
-  return null;
+  const target = backTarget(screen);
+  // Only Today goes back to nothing, and Today is a root.
+  return target === null ? 'Today' : tabOf(target);
 }

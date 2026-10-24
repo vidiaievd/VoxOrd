@@ -40,13 +40,15 @@ import { OfflineSessionBanner } from '../components/OfflineSessionBanner';
 import { useAuth } from '../hooks/useAuth';
 import { setLastCourseId } from '../store/lastCourseStore';
 
-/** How long a second Back on Home has to follow the first to leave the app. */
+/** How long a second Back on Today has to follow the first to leave the app. */
 const EXIT_WINDOW_MS = 2000;
 
 const SCREEN_FOR_TAB: Record<Tab, Screen> = {
-  Home: { name: 'Home' },
+  Today: { name: 'Today' },
   Courses: { name: 'Courses' },
-  Settings: { name: 'Settings' },
+  Practice: { name: 'Practice' },
+  Notifications: { name: 'Notifications' },
+  Profile: { name: 'Profile' },
 };
 
 export function RootNavigator() {
@@ -54,16 +56,16 @@ export function RootNavigator() {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
 
-  const [screen, setScreen] = useState<Screen>({ name: 'Home' });
-  const [activeTab, setActiveTab] = useState<Tab>('Home');
+  const [screen, setScreen] = useState<Screen>({ name: 'Today' });
+  const [activeTab, setActiveTab] = useState<Tab>('Today');
   const { status: authStatus } = useAuth();
 
   // Signed out — by the Settings button or by a session the server dropped — the next
-  // sign-in starts from Home, not from wherever the last one left off.
+  // sign-in starts from Today, not from wherever the last one left off.
   useEffect(() => {
     if (authStatus !== 'signedOut') return;
-    setScreen({ name: 'Home' });
-    setActiveTab('Home');
+    setScreen({ name: 'Today' });
+    setActiveTab('Today');
   }, [authStatus]);
 
   const navigateTo = useCallback((s: Screen) => setScreen(s), []);
@@ -71,8 +73,7 @@ export function RootNavigator() {
   /** Go to `target` with the tab bar following it — what Back does everywhere. */
   const goTo = useCallback((target: Screen) => {
     setScreen(target);
-    const tab = tabOf(target);
-    if (tab !== null) setActiveTab(tab);
+    setActiveTab(tabOf(target));
   }, []);
 
   /** The current screen's way back, for its own arrow. */
@@ -83,12 +84,12 @@ export function RootNavigator() {
 
   /** A screen's own handler for Back, if it registered one — see `useBackIntercept`. */
   const interceptRef = useRef<(() => boolean) | null>(null);
-  const lastHomeBack = useRef(0);
+  const lastTodayBack = useRef(0);
 
   /*
     The phone's Back button. Without this every press left the app, wherever it was pressed.
     A screen with work in progress is asked first; otherwise Back goes where the screen's own
-    arrow goes. On Home it takes two presses to leave, with a toast between them. An open
+    arrow goes. On Today it takes two presses to leave, with a toast between them. An open
     sheet never gets here: React Native's Modal takes Back itself and closes.
   */
   useEffect(() => {
@@ -102,8 +103,8 @@ export function RootNavigator() {
       }
 
       const now = Date.now();
-      if (now - lastHomeBack.current < EXIT_WINDOW_MS) return false;
-      lastHomeBack.current = now;
+      if (now - lastTodayBack.current < EXIT_WINDOW_MS) return false;
+      lastTodayBack.current = now;
       ToastAndroid.show(t('nav.pressAgainToExit'), ToastAndroid.SHORT);
       return true;
     });
@@ -117,17 +118,12 @@ export function RootNavigator() {
     [navigateTo],
   );
 
-  const navigateBack = useCallback(() => {
-    setScreen({ name: 'Home' });
-    setActiveTab('Home');
-  }, []);
-
   // Navigate back to ModeSelector if we came from there
   const navigateBackToSelector = useCallback((deck: Deck) => {
     setScreen({ name: 'ModeSelector', deck });
   }, []);
 
-  /** Open a course, and remember it as the one Home's «Continue» picks up. */
+  /** Open a course, and remember it as the one Today's «Continue» picks up. */
   const openCourse = useCallback(
     (courseId: string) => {
       setLastCourseId(courseId);
@@ -185,7 +181,7 @@ export function RootNavigator() {
           <ModeSelector
             deck={screen.deck}
             onSelectMode={handleModeSelect}
-            onBack={navigateBack}
+            onBack={goBack}
           />
         );
 
@@ -204,7 +200,7 @@ export function RootNavigator() {
             deckId={screen.deckId}
             onBack={() =>
               setScreen(prev =>
-                prev.name === 'Matching' ? { name: 'Home' } : prev,
+                prev.name === 'Matching' ? (backTarget(prev) ?? prev) : prev,
               )
             }
             onSessionDone={sid => navigateToResults(sid, screen.deckId)}
@@ -215,7 +211,7 @@ export function RootNavigator() {
         return (
           <QuizExercise
             deckId={screen.deckId}
-            onBack={navigateBack}
+            onBack={goBack}
             onSessionDone={sid => navigateToResults(sid, screen.deckId)}
           />
         );
@@ -224,7 +220,7 @@ export function RootNavigator() {
         return (
           <SpellingExercise
             deckId={screen.deckId}
-            onBack={navigateBack}
+            onBack={goBack}
             onSessionDone={sid => navigateToResults(sid, screen.deckId)}
           />
         );
@@ -233,7 +229,7 @@ export function RootNavigator() {
         return (
           <ListeningExercise
             deckId={screen.deckId}
-            onBack={navigateBack}
+            onBack={goBack}
             onSessionDone={sid => navigateToResults(sid, screen.deckId)}
           />
         );
@@ -242,7 +238,7 @@ export function RootNavigator() {
         return (
           <PronunciationExercise
             deckId={screen.deckId}
-            onBack={navigateBack}
+            onBack={goBack}
             onSessionDone={sid => navigateToResults(sid, screen.deckId)}
           />
         );
@@ -251,7 +247,7 @@ export function RootNavigator() {
         return (
           <ContextExercise
             deckId={screen.deckId}
-            onBack={navigateBack}
+            onBack={goBack}
             onSessionDone={sid => navigateToResults(sid, screen.deckId)}
           />
         );
@@ -260,7 +256,7 @@ export function RootNavigator() {
         return (
           <DeepSessionScreen
             deck={screen.deck}
-            onBack={navigateBack}
+            onBack={goBack}
             onSessionDone={sid => navigateToResults(sid, screen.deck.id)}
           />
         );
@@ -269,7 +265,7 @@ export function RootNavigator() {
         return (
           <SessionResultsScreen
             sessionId={screen.sessionId}
-            onContinue={navigateBack}
+            onContinue={goBack}
             onRepeat={() => {
               // Go back to ModeSelector for the same deck
               // We need a minimal deck — ModeSelector will show full info
@@ -435,10 +431,18 @@ export function RootNavigator() {
         );
 
       case 'Settings':
+      // Until step 5 builds Profile, its tab opens Settings as it always did.
+      case 'Profile':
         return <SettingsScreen />;
 
-      case 'Home':
-      default:
+      // Until step 5 builds them, Practice and Notifications show what Today shows — Today
+      // holds the review and My words links Practice will take over. Assistant and
+      // Submission have no way in yet.
+      case 'Practice':
+      case 'Notifications':
+      case 'Assistant':
+      case 'Submission':
+      case 'Today':
         return (
           <HomeScreen
             onOpenCourse={openCourse}
@@ -487,8 +491,8 @@ export function RootNavigator() {
           <TabItem
             icon="🏠"
             label={t('nav.home')}
-            isActive={activeTab === 'Home'}
-            onPress={() => handleTabPress('Home')}
+            isActive={activeTab === 'Today'}
+            onPress={() => handleTabPress('Today')}
             colors={colors}
           />
           <TabItem
@@ -501,8 +505,8 @@ export function RootNavigator() {
           <TabItem
             icon="⚙️"
             label={t('nav.settings')}
-            isActive={activeTab === 'Settings'}
-            onPress={() => handleTabPress('Settings')}
+            isActive={activeTab === 'Profile'}
+            onPress={() => handleTabPress('Profile')}
             colors={colors}
           />
         </SafeAreaView>
