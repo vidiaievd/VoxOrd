@@ -42,10 +42,14 @@ describe('resolveVariant', () => {
     }
   });
 
-  it('a membership still in onboarding, or with no group, is not a school yet', () => {
+  it('placement makes a school, even while the application is still onboarding', () => {
+    expect(resolveVariant({ schools: [school('onboarding', 'g1')], entitlements: entitled() })).toBe('school');
+  });
+
+  it('no group, or an application that ended, is not a school', () => {
     expect(
       resolveVariant({
-        schools: [school('onboarding', 'g1'), school('active', null)],
+        schools: [school('active', null), school('left', 'g1'), school('rejected', 'g2')],
         entitlements: entitled('ai.review_draft'),
       }),
     ).toBe('solo');

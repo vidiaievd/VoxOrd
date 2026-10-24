@@ -1,6 +1,8 @@
+import { isPlaced } from '../../api/schools';
+
 /**
  * Which of the four Today layouts a learner gets (Home spec §5). Two independent facts decide
- * it: a school (an active membership with a group) and AI (any AI feature the payer has on).
+ * it: a school (placed in a group there) and AI (any AI feature the payer has on).
  */
 export type HomeVariant = 'school' | 'solo' | 'school_ai' | 'solo_ai';
 
@@ -42,9 +44,12 @@ export interface AiCaps {
   directCredits: string | null;
 }
 
-/** As the web's next class and group access count it: an active membership with a group. */
+/**
+ * Placed in a group at some school. The spec asked for an active membership as well; placement
+ * is what opens a group, and a school can place a learner still `onboarding` (see `isPlaced`).
+ */
 export function hasSchool(schools: readonly SchoolMembershipLike[] | null): boolean {
-  return (schools ?? []).some((s) => s.status === 'active' && !!s.groupId);
+  return (schools ?? []).some(isPlaced);
 }
 
 export function aiCaps(e: EntitlementsLike | null): AiCaps {
