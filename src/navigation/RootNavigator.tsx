@@ -36,8 +36,7 @@ import { AuthScreen } from '../screens/AuthScreen';
 import { OfflineSessionBanner } from '../components/OfflineSessionBanner';
 import { useAuth } from '../hooks/useAuth';
 import { setLastCourseId } from '../store/lastCourseStore';
-import { useSwrResource } from '../hooks/useSwrResource';
-import { getSrsStats, type SrsStats } from '../api/srs';
+import { useDueCount } from '../hooks/useDueCount';
 
 /** How long a second Back on Today has to follow the first to leave the app. */
 const EXIT_WINDOW_MS = 2000;
@@ -59,12 +58,8 @@ function Navigator() {
   const { status: authStatus } = useAuth();
   const scrollTabToTop = useScrollTabToTop();
 
-  // The Practice badge: cards due now, under the key Today already reads. Step 6 moves this
-  // into `useDueCount()`, which also answers offline from the replica.
-  const srs = useSwrResource<SrsStats>(
-    authStatus === 'signedIn' ? 'srs-stats' : null,
-    getSrsStats,
-  );
+  // The Practice badge, fetched again on arrival at a screen when over a minute old.
+  const due = useDueCount(screen.name);
 
   // Signed out — by the Settings button or by a session the server dropped — the next
   // sign-in starts from Today, not from wherever the last one left off.
@@ -500,7 +495,7 @@ function Navigator() {
         <TabBar
           activeTab={activeTab}
           onTabPress={handleTabPress}
-          badges={{ Practice: srs.data?.dueNowCount ?? null, Notifications: 0 }}
+          badges={{ Practice: due.count, Notifications: 0 }}
         />
       )}
     </View>

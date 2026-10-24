@@ -186,11 +186,31 @@ describe('vocabularyReplica', () => {
     expect(mockRows.size).toBe(0);
   });
 
+  it('counts every due card, past the queue limit, and none before the first refresh', async () => {
+    const now = Date.now();
+    expect(await vocabularyReplica.dueCount(now)).toBeNull();
+
+    mockGetReplica.mockResolvedValue({
+      serverTime: new Date(now).toISOString(),
+      reviewedToday: 0,
+      dailyLimit: 200,
+      cards: [
+        ...Array.from({ length: 120 }, (_, i) => card(`d${i}`, now - HOUR)),
+        card('later', now + HOUR),
+        card('paused', now - HOUR, { state: 'SUSPENDED' }),
+      ],
+    });
+    await vocabularyReplica.refresh();
+
+    expect(await vocabularyReplica.dueCount(now)).toBe(120);
+  });
+
   it('does nothing without a session', async () => {
     authStore.setSignedOut();
     await vocabularyReplica.refresh();
     expect(mockGetReplica).not.toHaveBeenCalled();
     expect(await vocabularyReplica.dueQueue()).toBeNull();
+    expect(await vocabularyReplica.dueCount()).toBeNull();
   });
 });
 
