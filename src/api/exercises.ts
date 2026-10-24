@@ -677,6 +677,11 @@ export interface AttemptRow {
   rubricMarks?: unknown;
   /** The rubric frozen when the work was queued, only once a verdict is delivered. */
   rubricSnapshot?: unknown;
+  /**
+   * Whose verdict closed it (plan 79, 2.3a): a teacher's, a model's on the work of a learner
+   * nobody reviews, or nobody's yet. Absent from older engines and the phone's own.
+   */
+  reviewedBy?: 'teacher' | 'ai' | null;
 }
 
 /**

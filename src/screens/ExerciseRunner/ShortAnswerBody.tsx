@@ -137,6 +137,7 @@ function ShortAnswerSet({
   finishTable,
   setFooterAction,
   set,
+  verdict: closingVerdict,
 }: ExerciseBodyProps & { set: Set }) {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -446,8 +447,14 @@ function ShortAnswerSet({
             {t('exerciseRunner.shortAnswer.doneSkipped', { count: unanswered })}
           </Text>
         ) : null}
-        {withTeacher ? (
-          <Text style={styles.doneNote}>{t('exerciseRunner.shortAnswer.doneTeacher')}</Text>
+        {/* Who reads it is the hand-in's answer (plan 79, 2.1c): a model's review lands
+            under the set, and with nobody to read it the footer says so. */}
+        {withTeacher && closingVerdict?.reviewer !== 'none' ? (
+          <Text style={styles.doneNote}>
+            {closingVerdict?.reviewer === 'ai'
+              ? t('exerciseRunner.shortAnswer.doneAi')
+              : t('exerciseRunner.shortAnswer.doneTeacher')}
+          </Text>
         ) : null}
       </View>
     );

@@ -352,6 +352,49 @@ export interface Translations {
     /** Free-form work with nobody to read it — `reviewer: none` (plan 79, step 2.1c). */
     noReviewer: string;
     noReviewerNote: string;
+    /** Free-form work a model reads — `reviewer: ai` (plan 79, step 2.3d). */
+    aiHandedIn: string;
+    aiHandedInNote: string;
+    /** A model's review of the work of a learner nobody reviews (plan 79, step 2.3d). */
+    aiReview: {
+      reading: string;
+      slow: string;
+      askAgain: string;
+      dropped: string;
+      approved: string;
+      returned: string;
+      label: string;
+      caveat: string;
+      failed: string;
+      retry: string;
+      noRemarks: string;
+      sentence: string; // '{n}'
+      question: string; // '{n}'
+      wholeText: string;
+      wholeAnswer: string;
+      marksTitle: string;
+      mark: string; // '{mark}'
+      unnamed: string;
+      dispute: string;
+      reasonLabel: string;
+      reasonPlaceholder: string;
+      disputeNote: string;
+      send: string;
+      sending: string;
+      sendFailed: string;
+      disputed: string;
+      aspect: {
+        grammar: string;
+        order: string;
+        lexis: string;
+        register: string;
+        meaning: string;
+        alternative: string;
+        task: string;
+        structure: string;
+        content: string;
+      };
+    };
     setComplete: string;
     setCompleteDesc: string;
     done: string;
@@ -516,6 +559,7 @@ export interface Translations {
       doneTitle: string;
       doneTally: string; // '{pass}', '{partial}', '{fail}'
       doneTeacher: string;
+      doneAi: string;
       sendFailed: string;
       handedInAlready: string;
       empty: string;

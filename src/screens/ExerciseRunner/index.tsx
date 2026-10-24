@@ -17,6 +17,7 @@ import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
 import { useExerciseRunner } from '../../hooks/useExerciseRunner';
 import { bodyOwnsCheck, ExerciseBody, type FooterAction } from './ExerciseBody';
+import { AiVerdict } from './AiVerdict';
 import { FeedbackBar } from './FeedbackBar';
 import { SetResultsScreen } from './SetResultsScreen';
 
@@ -183,6 +184,18 @@ export function ExerciseRunnerScreen({
                 onOpenSourceLesson={onOpenSourceLesson}
                 setFooterAction={setFooterAction}
               />
+              {/* A model reads the work of a learner nobody reviews (plan 79, 2.3d): its
+                  verdict and review land under the work, while the footer says it went in. */}
+              {state.phase === 'feedback' &&
+              state.verdict?.requiresReview &&
+              state.verdict.reviewer === 'ai' ? (
+                <AiVerdict
+                  key={state.verdict.attemptId}
+                  exerciseId={state.exerciseIds[state.idx]}
+                  attemptId={state.verdict.attemptId}
+                  templateCode={state.display.templateCode}
+                />
+              ) : null}
             </ScrollView>
 
             {/* A body that runs its own checks draws its own controls, so while
