@@ -35,6 +35,7 @@ export interface ColorScheme {
   bg: string;
   surface: string;
   text: string;
+  accentBase: string;
   accent100: string;
   accent200: string;
   accent300: string;
@@ -58,14 +59,14 @@ export interface ColorScheme {
 // NOTE: Nocturne also defines `accent` (dark #9184d9 / light #796cbf), which
 // clashes with the legacy `accent` (#7c74ff / #6c63ff). Left legacy for now.
 type NocturneKeys =
-  | 'bg' | 'surface' | 'text'
+  | 'bg' | 'surface' | 'text' | 'accentBase'
   | 'accent100' | 'accent200' | 'accent300' | 'accent400' | 'accent500'
   | 'accent600' | 'accent700' | 'accent800' | 'accent900'
   | 'neutral100' | 'neutral200' | 'neutral300' | 'neutral400' | 'neutral500'
   | 'neutral600' | 'neutral700' | 'neutral800' | 'neutral900';
 
 export const NOCTURNE_KEYS: readonly NocturneKeys[] = [
-  'bg', 'surface', 'text',
+  'bg', 'surface', 'text', 'accentBase',
   'accent100', 'accent200', 'accent300', 'accent400', 'accent500',
   'accent600', 'accent700', 'accent800', 'accent900',
   'neutral100', 'neutral200', 'neutral300', 'neutral400', 'neutral500',
@@ -73,7 +74,7 @@ export const NOCTURNE_KEYS: readonly NocturneKeys[] = [
 ];
 
 const nocturneDark: Pick<ColorScheme, NocturneKeys> = {
-  bg: '#161826', surface: '#232532', text: '#e9e9ed',
+  bg: '#161826', surface: '#232532', text: '#e9e9ed', accentBase: '#9184d9',
   accent100: '#f5f4ff', accent200: '#e7e5fe', accent300: '#d2cefd',
   accent400: '#b5abfc', accent500: '#968ae0', accent600: '#796cbf',
   accent700: '#5d5294', accent800: '#423a6a', accent900: '#2b2741',
@@ -83,7 +84,7 @@ const nocturneDark: Pick<ColorScheme, NocturneKeys> = {
 };
 
 const nocturneLight: Pick<ColorScheme, NocturneKeys> = {
-  bg: '#eceef7', surface: '#f8f9fe', text: '#1d1f2c',
+  bg: '#eceef7', surface: '#f8f9fe', text: '#1d1f2c', accentBase: '#796cbf',
   accent100: '#2b2741', accent200: '#423a6a', accent300: '#5d5294',
   accent400: '#6a5fae', accent500: '#796cbf', accent600: '#968ae0',
   accent700: '#d2cefd', accent800: '#e1ddfb', accent900: '#efedfd',

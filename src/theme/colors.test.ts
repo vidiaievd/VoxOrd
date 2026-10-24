@@ -21,6 +21,12 @@ describe('Nocturne tokens', () => {
     }
   });
 
+  it('exposes the Nocturne accent as accentBase', () => {
+    expect(darkColors.accentBase).toBe('#9184d9');
+    expect(lightColors.accentBase).toBe('#796cbf');
+    expect(darkColors.accent).toBe('#7c74ff');
+  });
+
   it('mirrors the ramps between schemes', () => {
     expect(lightColors.accent900).not.toBe(darkColors.accent900);
     expect(lightColors.accent800).toBe('#e1ddfb');
