@@ -1,20 +1,17 @@
 import { Platform, TextStyle } from 'react-native';
 
-// Inter 400/500 only (redesign plan 01). The font file names are resolved here
-// and nowhere else. Android picks a file by family name, iOS by family + weight.
-const FAMILY_REGULAR = 'Inter-Regular';
-const FAMILY_MEDIUM = 'Inter-Medium';
+// Inter 400/500 only (redesign plan 01), the optical-size 24pt static cut.
+// The font names are resolved here and nowhere else. Android picks a file by its
+// file name (assets/fonts/Inter-*.ttf); iOS by the font's PostScript name.
+const FAMILY = Platform.select({
+  android: { regular: 'Inter-Regular', medium: 'Inter-Medium' },
+  default: { regular: 'Inter24pt-Regular', medium: 'Inter24pt-Medium' },
+});
 
 type Weight = 'regular' | 'medium';
 
-function face(weight: Weight): Pick<TextStyle, 'fontFamily' | 'fontWeight'> {
-  if (Platform.OS === 'android') {
-    return { fontFamily: weight === 'medium' ? FAMILY_MEDIUM : FAMILY_REGULAR };
-  }
-  return {
-    fontFamily: weight === 'medium' ? FAMILY_MEDIUM : FAMILY_REGULAR,
-    fontWeight: weight === 'medium' ? '500' : '400',
-  };
+function face(weight: Weight): Pick<TextStyle, 'fontFamily'> {
+  return { fontFamily: FAMILY[weight] };
 }
 
 function style(
