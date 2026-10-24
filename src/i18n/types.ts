@@ -27,9 +27,22 @@ export interface Translations {
   };
   nav: {
     pressAgainToExit: string;
-    home: string;
-    settings: string;
+    today: string;
     courses: string;
+    practice: string;
+    notifications: string;
+    profile: string;
+    /** The Practice badge in words, for screen readers: «Practice, 18 due». */
+    practiceDue: PluralForms; // '{count}'
+    /** The Notifications badge in words. */
+    notificationsUnread: PluralForms; // '{count}'
+  };
+
+  /** The Notifications tab (plan 06 fills in the feed). */
+  notifications: {
+    title: string;
+    empty: string;
+    emptyBody: string;
   };
 
   /** Home — «Today»: carry on with a course, review what is due, open another course. */

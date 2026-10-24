@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -19,6 +19,7 @@ import { useSwrResource } from '../../hooks/useSwrResource';
 import { getSrsStats, type SrsStats } from '../../api/srs';
 import { getLastCourseId } from '../../store/lastCourseStore';
 import { nextUnit, pickCourseId } from './today';
+import { useTabScrollToTop } from '../../navigation/tabScroll';
 
 interface HomeScreenProps {
   onOpenCourse: (courseId: string) => void;
@@ -52,6 +53,8 @@ export function HomeScreen({
   const { user } = useAuth();
   const courses = useMyCourses();
   const srs = useSwrResource<SrsStats>('srs-stats', getSrsStats);
+  const scrollRef = useRef<ScrollView>(null);
+  useTabScrollToTop('Today', scrollRef);
 
   const [lastId, setLastId] = useState<string | null>(null);
   useEffect(() => {
@@ -70,6 +73,7 @@ export function HomeScreen({
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={styles.scroll}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />

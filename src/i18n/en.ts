@@ -23,9 +23,18 @@ export const en: Translations = {
   },
   nav: {
     pressAgainToExit: 'Press Back again to exit',
-    home: 'Home',
-    settings: 'Settings',
+    today: 'Today',
     courses: 'Courses',
+    practice: 'Practice',
+    notifications: 'Notifications',
+    profile: 'Profile',
+    practiceDue: { one: '{count} due', few: '{count} due', many: '{count} due' },
+    notificationsUnread: { one: '{count} unread', few: '{count} unread', many: '{count} unread' },
+  },
+  notifications: {
+    title: 'Notifications',
+    empty: 'No notifications yet',
+    emptyBody: 'Reviews of your work and course news will appear here.',
   },
   today: {
     greeting: 'Hi, {name}!',

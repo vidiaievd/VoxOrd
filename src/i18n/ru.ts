@@ -23,9 +23,26 @@ export const ru: Translations = {
   },
   nav: {
     pressAgainToExit: 'Нажмите «Назад» ещё раз, чтобы выйти',
-    home: 'Главная',
-    settings: 'Настройки',
+    today: 'Сегодня',
     courses: 'Курсы',
+    practice: 'Практика',
+    notifications: 'Уведомления',
+    profile: 'Профиль',
+    practiceDue: {
+      one: '{count} к повторению',
+      few: '{count} к повторению',
+      many: '{count} к повторению',
+    },
+    notificationsUnread: {
+      one: '{count} непрочитанное',
+      few: '{count} непрочитанных',
+      many: '{count} непрочитанных',
+    },
+  },
+  notifications: {
+    title: 'Уведомления',
+    empty: 'Пока нет уведомлений',
+    emptyBody: 'Здесь появятся результаты проверки работ и новости курса.',
   },
   today: {
     greeting: 'Привет, {name}!',

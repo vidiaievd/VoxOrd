@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, FlatList, RefreshControl, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from '../../i18n';
@@ -9,6 +9,7 @@ import { CourseCard } from './CourseCard';
 import { CourseListItem } from '../../api/courses';
 import { OfflineBanner } from '../../components/OfflineBanner';
 import { isNetworkError } from '../../api/isNetworkError';
+import { useTabScrollToTop } from '../../navigation/tabScroll';
 
 interface CoursesScreenProps {
   onCoursePress: (courseId: string) => void;
@@ -19,9 +20,11 @@ export function CoursesScreen({ onCoursePress }: CoursesScreenProps) {
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const { status: coursesStatus, courses, error, refreshing, stale, refresh } = useMyCourses();
+  const listRef = useRef<FlatList<CourseListItem>>(null);
+  useTabScrollToTop('Courses', listRef);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.title}>{t('courses.title')}</Text>
       </View>
@@ -63,6 +66,7 @@ export function CoursesScreen({ onCoursePress }: CoursesScreenProps) {
 
       {coursesStatus === 'loaded' && courses.length > 0 && (
         <FlatList
+          ref={listRef}
           data={courses}
           keyExtractor={(item: CourseListItem) => item.enrollment.id}
           renderItem={({ item }) => (

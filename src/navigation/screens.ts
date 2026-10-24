@@ -144,13 +144,16 @@ export function backTarget(screen: Screen): Screen | null {
   }
 }
 
-const TAB_ROOTS: Record<Tab, Screen['name']> = {
-  Today: 'Today',
-  Courses: 'Courses',
-  Practice: 'Practice',
-  Notifications: 'Notifications',
-  Profile: 'Profile',
+/** The screen each tab opens on, and goes back to when it is tapped again. */
+export const TAB_ROOT: Record<Tab, Screen> = {
+  Today: { name: 'Today' },
+  Courses: { name: 'Courses' },
+  Practice: { name: 'Practice' },
+  Notifications: { name: 'Notifications' },
+  Profile: { name: 'Profile' },
 };
+
+export const TABS = Object.keys(TAB_ROOT) as Tab[];
 
 /**
  * The tab a screen belongs to, for the tab bar's highlight: a tab's root is its own, and
@@ -159,10 +162,32 @@ const TAB_ROOTS: Record<Tab, Screen['name']> = {
  * is Practice's.
  */
 export function tabOf(screen: Screen): Tab {
-  for (const tab of Object.keys(TAB_ROOTS) as Tab[]) {
-    if (TAB_ROOTS[tab] === screen.name) return tab;
+  for (const tab of TABS) {
+    if (TAB_ROOT[tab].name === screen.name) return tab;
   }
   const target = backTarget(screen);
   // Only Today goes back to nothing, and Today is a root.
   return target === null ? 'Today' : tabOf(target);
+}
+
+/**
+ * The screens that show the tab bar — a list of those that do rather than those that do not,
+ * so a new screen opens full-screen until someone decides otherwise. A course's home and a
+ * deck's mode list keep the bar (Courses §4.1, Practice §4.1); a unit and everything opened
+ * from it, a lesson, a review, a session and the assistant take the whole screen.
+ */
+const WITH_TAB_BAR: ReadonlySet<Screen['name']> = new Set<Screen['name']>([
+  'Today',
+  'Courses',
+  'CourseHome',
+  'Practice',
+  'ModeSelector',
+  'MyWords',
+  'Notifications',
+  'Profile',
+  'Settings',
+]);
+
+export function showsTabBar(screen: Screen): boolean {
+  return WITH_TAB_BAR.has(screen.name);
 }

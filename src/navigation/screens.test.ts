@@ -1,5 +1,13 @@
 import type { Deck } from '../repositories/DeckRepository';
-import { backTarget, tabOf, type Screen, type Tab } from './screens';
+import {
+  TABS,
+  TAB_ROOT,
+  backTarget,
+  showsTabBar,
+  tabOf,
+  type Screen,
+  type Tab,
+} from './screens';
 
 const deck = { id: 7 } as Deck;
 const unit = { unitId: 'u1', courseId: 'c1' };
@@ -165,5 +173,50 @@ describe('the way back', () => {
       if (back === null || roots.includes(screen.name)) continue;
       expect(tabOf(back)).toBe(tabOf(screen));
     }
+  });
+});
+
+describe('showsTabBar', () => {
+  const withBar = [
+    'Today',
+    'Courses',
+    'CourseHome',
+    'Practice',
+    'ModeSelector',
+    'MyWords',
+    'Notifications',
+    'Profile',
+    'Settings',
+  ];
+
+  it('shows the bar on tab roots and their lists, and nowhere else', () => {
+    for (const [screen] of all) {
+      expect([screen.name, showsTabBar(screen)]).toEqual([
+        screen.name,
+        withBar.includes(screen.name),
+      ]);
+    }
+  });
+
+  it('opens a unit, a lesson, a session and the assistant full-screen', () => {
+    expect(showsTabBar({ name: 'UnitContents', ...unit })).toBe(false);
+    expect(
+      showsTabBar({
+        name: 'ExerciseRunner',
+        exerciseIds: [],
+        startIndex: 0,
+        ...unit,
+      }),
+    ).toBe(false);
+    expect(showsTabBar({ name: 'ReviewSession' })).toBe(false);
+    expect(
+      showsTabBar({ name: 'Assistant', returnTo: { name: 'Today' } }),
+    ).toBe(false);
+  });
+});
+
+describe('TAB_ROOT', () => {
+  it('opens every tab on a screen of that tab', () => {
+    for (const tab of TABS) expect(tabOf(TAB_ROOT[tab])).toBe(tab);
   });
 });

@@ -13,15 +13,18 @@ import { SettingsRow } from './components/SettingsRow';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
+import { NavHeader } from '../../components/ui';
 
-export function SettingsScreen() {
+/** `onBack`: Settings opened from Profile, with the way back to it in a header. */
+export function SettingsScreen({ onBack }: { onBack?: () => void } = {}) {
   const { t } = useTranslation();
 
   const { colors } = useTheme();
   const styles = makeStyles(colors);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {onBack && <NavHeader parentLabel={t('nav.profile')} onBack={onBack} />}
       <View style={styles.header}>
         <Text style={styles.title}>{t('settings.title')}</Text>
       </View>

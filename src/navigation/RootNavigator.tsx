@@ -1,15 +1,10 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import {
-  View,
-  TouchableOpacity,
-  Text,
-  StyleSheet,
-  BackHandler,
-  ToastAndroid,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, StyleSheet, BackHandler, ToastAndroid } from 'react-native';
 import { useTranslation } from '../i18n';
-import { HomeScreen } from '../screens/HomeScreen';
+import { TodayScreen } from '../screens/TodayScreen';
+import { PracticeScreen } from '../screens/PracticeScreen';
+import { NotificationsScreen } from '../screens/NotificationsScreen';
+import { ProfileScreen } from '../screens/ProfileScreen';
 import { CardScreen } from '../screens/CardScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { ModeSelector } from '../screens/LearningScreen/ModeSelector';
@@ -33,48 +28,59 @@ import { VocabularyListScreen } from '../screens/VocabularyListScreen';
 import { GrammarRuleReaderScreen } from '../screens/GrammarRuleReaderScreen';
 import { ReviewSessionScreen } from '../screens/ReviewSessionScreen';
 import { MyWordsScreen } from '../screens/MyWordsScreen';
-import { backTarget, tabOf, type Screen, type Tab } from './screens';
+import { TAB_ROOT, backTarget, showsTabBar, tabOf, type Screen, type Tab } from './screens';
+import { TabBar } from './TabBar';
+import { TabScrollProvider, useScrollTabToTop } from './tabScroll';
 import { BackInterceptProvider } from './backIntercept';
 import { AuthScreen } from '../screens/AuthScreen';
 import { OfflineSessionBanner } from '../components/OfflineSessionBanner';
 import { useAuth } from '../hooks/useAuth';
 import { setLastCourseId } from '../store/lastCourseStore';
+import { useSwrResource } from '../hooks/useSwrResource';
+import { getSrsStats, type SrsStats } from '../api/srs';
 
 /** How long a second Back on Today has to follow the first to leave the app. */
 const EXIT_WINDOW_MS = 2000;
 
-const SCREEN_FOR_TAB: Record<Tab, Screen> = {
-  Today: { name: 'Today' },
-  Courses: { name: 'Courses' },
-  Practice: { name: 'Practice' },
-  Notifications: { name: 'Notifications' },
-  Profile: { name: 'Profile' },
-};
-
 export function RootNavigator() {
+  return (
+    <TabScrollProvider>
+      <Navigator />
+    </TabScrollProvider>
+  );
+}
+
+function Navigator() {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
 
   const [screen, setScreen] = useState<Screen>({ name: 'Today' });
-  const [activeTab, setActiveTab] = useState<Tab>('Today');
   const { status: authStatus } = useAuth();
+  const scrollTabToTop = useScrollTabToTop();
+
+  // The Practice badge: cards due now, under the key Today already reads. Step 6 moves this
+  // into `useDueCount()`, which also answers offline from the replica.
+  const srs = useSwrResource<SrsStats>(
+    authStatus === 'signedIn' ? 'srs-stats' : null,
+    getSrsStats,
+  );
 
   // Signed out — by the Settings button or by a session the server dropped — the next
   // sign-in starts from Today, not from wherever the last one left off.
   useEffect(() => {
     if (authStatus !== 'signedOut') return;
     setScreen({ name: 'Today' });
-    setActiveTab('Today');
   }, [authStatus]);
+
+  // The lit tab is the screen's own — derived, so no way of reaching a screen can leave
+  // another tab lit.
+  const activeTab = tabOf(screen);
 
   const navigateTo = useCallback((s: Screen) => setScreen(s), []);
 
-  /** Go to `target` with the tab bar following it — what Back does everywhere. */
-  const goTo = useCallback((target: Screen) => {
-    setScreen(target);
-    setActiveTab(tabOf(target));
-  }, []);
+  /** Go to `target` — what Back does everywhere. */
+  const goTo = navigateTo;
 
   /** The current screen's way back, for its own arrow. */
   const goBack = useCallback(() => {
@@ -132,10 +138,20 @@ export function RootNavigator() {
     [goTo],
   );
 
-  const handleTabPress = useCallback((tab: Tab) => {
-    setActiveTab(tab);
-    setScreen(SCREEN_FOR_TAB[tab]);
-  }, []);
+  /**
+   * A tab opens its root. Tapped again while already at its root, it scrolls the root to the
+   * top instead; tapped from deeper in the tab, it goes back to the root.
+   */
+  const handleTabPress = useCallback(
+    (tab: Tab) => {
+      if (screen.name === TAB_ROOT[tab].name) {
+        scrollTabToTop(tab);
+        return;
+      }
+      setScreen(TAB_ROOT[tab]);
+    },
+    [screen.name, scrollTabToTop],
+  );
 
   const handleModeSelect = useCallback(
     (modeId: string, deck: Deck) => {
@@ -431,20 +447,30 @@ export function RootNavigator() {
         );
 
       case 'Settings':
-      // Until step 5 builds Profile, its tab opens Settings as it always did.
-      case 'Profile':
-        return <SettingsScreen />;
+        return <SettingsScreen onBack={goBack} />;
 
-      // Until step 5 builds them, Practice and Notifications show what Today shows — Today
-      // holds the review and My words links Practice will take over. Assistant and
-      // Submission have no way in yet.
+      case 'Profile':
+        return <ProfileScreen onOpenSettings={() => navigateTo({ name: 'Settings' })} />;
+
       case 'Practice':
+        return (
+          <PracticeScreen
+            onStartReview={() => navigateTo({ name: 'ReviewSession' })}
+            onOpenMyWords={() => navigateTo({ name: 'MyWords' })}
+            onOpenDeck={deck => navigateTo({ name: 'ModeSelector', deck })}
+          />
+        );
+
       case 'Notifications':
+        return <NotificationsScreen />;
+
+      // Nothing opens these yet — plans 02 and 03 build them. Should one be reached, Today
+      // is a safe place to land.
       case 'Assistant':
       case 'Submission':
       case 'Today':
         return (
-          <HomeScreen
+          <TodayScreen
             onOpenCourse={openCourse}
             onOpenUnit={(unitId, courseId) => {
               setLastCourseId(courseId);
@@ -458,23 +484,7 @@ export function RootNavigator() {
     }
   };
 
-  const showTabBar =
-    screen.name !== 'Card' &&
-    screen.name !== 'ModeSelector' &&
-    screen.name !== 'Matching' &&
-    screen.name !== 'Quiz' &&
-    screen.name !== 'Spelling' &&
-    screen.name !== 'SessionResults' &&
-    screen.name !== 'DeepSession' &&
-    screen.name !== 'Pronunciation' &&
-    screen.name !== 'Listening' &&
-    screen.name !== 'CourseHome' &&
-    screen.name !== 'UnitContents' &&
-    screen.name !== 'LessonReader' &&
-    screen.name !== 'VocabularyList' &&
-    screen.name !== 'GrammarRuleReader' &&
-    screen.name !== 'ReviewSession' &&
-    screen.name !== 'ExerciseRunner';
+  const showTabBar = showsTabBar(screen);
 
   // Every screen past this point is the learner's own; without a session there is only
   // the way in.
@@ -487,60 +497,13 @@ export function RootNavigator() {
       </View>
       {showTabBar && <OfflineSessionBanner />}
       {showTabBar && (
-        <SafeAreaView edges={['bottom']} style={styles.tabBar}>
-          <TabItem
-            icon="🏠"
-            label={t('nav.home')}
-            isActive={activeTab === 'Today'}
-            onPress={() => handleTabPress('Today')}
-            colors={colors}
-          />
-          <TabItem
-            icon="🎓"
-            label={t('nav.courses')}
-            isActive={activeTab === 'Courses'}
-            onPress={() => handleTabPress('Courses')}
-            colors={colors}
-          />
-          <TabItem
-            icon="⚙️"
-            label={t('nav.settings')}
-            isActive={activeTab === 'Profile'}
-            onPress={() => handleTabPress('Profile')}
-            colors={colors}
-          />
-        </SafeAreaView>
+        <TabBar
+          activeTab={activeTab}
+          onTabPress={handleTabPress}
+          badges={{ Practice: srs.data?.dueNowCount ?? null, Notifications: 0 }}
+        />
       )}
     </View>
-  );
-}
-
-function TabItem({
-  icon,
-  label,
-  isActive,
-  onPress,
-  colors,
-}: {
-  icon: string;
-  label: string;
-  isActive: boolean;
-  onPress: () => void;
-  colors: ColorScheme;
-}) {
-  const styles = makeStyles(colors);
-  return (
-    <TouchableOpacity
-      style={styles.tabItem}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      <Text style={styles.tabIcon}>{icon}</Text>
-      <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
-        {label}
-      </Text>
-      {isActive && <View style={styles.tabIndicator} />}
-    </TouchableOpacity>
   );
 }
 
@@ -552,38 +515,5 @@ const makeStyles = (colors: ColorScheme) =>
     },
     content: {
       flex: 1,
-    },
-    tabBar: {
-      flexDirection: 'row',
-      backgroundColor: colors.tabBar,
-      borderTopWidth: 1,
-      borderTopColor: colors.tabBarBorder,
-      paddingTop: 8,
-    },
-    tabItem: {
-      flex: 1,
-      alignItems: 'center',
-      paddingBottom: 4,
-      position: 'relative',
-    },
-    tabIcon: {
-      fontSize: 22,
-    },
-    tabLabel: {
-      fontSize: 11,
-      color: colors.textMuted,
-      marginTop: 2,
-      fontWeight: '500',
-    },
-    tabLabelActive: {
-      color: colors.accent,
-    },
-    tabIndicator: {
-      position: 'absolute',
-      top: 0,
-      width: 24,
-      height: 3,
-      backgroundColor: colors.accent,
-      borderRadius: 2,
     },
   });

@@ -23,9 +23,26 @@ export const uk: Translations = {
   },
   nav: {
     pressAgainToExit: 'Натисніть «Назад» ще раз, щоб вийти',
-    home: 'Головна',
-    settings: 'Налаштування',
+    today: 'Сьогодні',
     courses: 'Курси',
+    practice: 'Практика',
+    notifications: 'Сповіщення',
+    profile: 'Профіль',
+    practiceDue: {
+      one: '{count} до повторення',
+      few: '{count} до повторення',
+      many: '{count} до повторення',
+    },
+    notificationsUnread: {
+      one: '{count} непрочитане',
+      few: '{count} непрочитані',
+      many: '{count} непрочитаних',
+    },
+  },
+  notifications: {
+    title: 'Сповіщення',
+    empty: 'Поки немає сповіщень',
+    emptyBody: 'Тут з’являться результати перевірки робіт і новини курсу.',
   },
   today: {
     greeting: 'Привіт, {name}!',

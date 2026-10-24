@@ -99,7 +99,7 @@ export function MyWordsScreen({ onBack }: MyWordsScreenProps) {
   const translated = words.filter(w => w.status === 'resolved');
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backBtn}>
           <Text style={styles.backText}>←</Text>
