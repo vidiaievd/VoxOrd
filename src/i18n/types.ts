@@ -349,6 +349,9 @@ export interface Translations {
     submittedForReview: string;
     expectedAnswer: string; // '{answer}'
     reviewNote: string;
+    /** Free-form work with nobody to read it — `reviewer: none` (plan 79, step 2.1c). */
+    noReviewer: string;
+    noReviewerNote: string;
     setComplete: string;
     setCompleteDesc: string;
     done: string;

@@ -18,6 +18,8 @@ const STOCK = new Set([
   'Correct!',
   'Incorrect. Please try again.',
   'Your answer has been submitted for review.',
+  // `reviewer: none` (plan 79, step 2.1c) — the title and note say it in the learner's language.
+  'Your answer has been saved. Nobody can check it: there is no teacher to review it and no AI review on your plan.',
 ]);
 
 const EXPECTED_PREFIX = 'Incorrect. Expected:';

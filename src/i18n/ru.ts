@@ -337,6 +337,8 @@ export const ru: Translations = {
     submittedForReview: 'Отправлено на проверку',
     expectedAnswer: 'Ожидаемый ответ: {answer}',
     reviewNote: 'Преподаватель посмотрит работу.',
+    noReviewer: 'Сохранено — проверить некому',
+    noReviewerNote: 'Вы занимаетесь без учителя, а проверки ИИ в вашем тарифе нет.',
     setComplete: 'Упражнения пройдены',
     setCompleteDesc: 'Отлично — вы завершили этот набор.',
     done: 'Готово',

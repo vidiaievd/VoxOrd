@@ -337,6 +337,8 @@ export const uk: Translations = {
     submittedForReview: 'Надіслано на перевірку',
     expectedAnswer: 'Очікувана відповідь: {answer}',
     reviewNote: 'Викладач перегляне роботу.',
+    noReviewer: 'Збережено — перевірити нікому',
+    noReviewerNote: 'Ви навчаєтеся без викладача, а перевірки ШІ у вашому тарифі немає.',
     setComplete: 'Вправи пройдено',
     setCompleteDesc: 'Чудова робота — ви завершили цей набір.',
     done: 'Готово',

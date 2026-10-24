@@ -141,6 +141,21 @@ describe('openingOf', () => {
     });
   });
 
+  // Plan 79, step 2.1c: self-study recordings close as NO_REVIEWER — final, nobody listens.
+  it('opens on work nobody will listen to, below a draft', () => {
+    const unread = [
+      row({ id: 'n', status: 'NO_REVIEWER', submittedAnswer: SUBMITTED }),
+    ];
+    expect(openingOf(unread, 'return')).toEqual({
+      stage: 'unread',
+      attemptId: 'n',
+      recordings: SUBMITTED.recordings,
+    });
+    expect(
+      openingOf([row({ id: 'o', draftAnswer: DRAFT }), ...unread], 'return'),
+    ).toMatchObject({ stage: 'draft', attemptId: 'o' });
+  });
+
   it('puts takes on a draft ahead of a verdict', () => {
     const rows = [
       row({ id: 'o', draftAnswer: DRAFT }),

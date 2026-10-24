@@ -159,6 +159,13 @@ export interface SubmitAttemptResponse {
   correct: boolean;
   score: number | null;
   requiresReview: boolean;
+  /**
+   * Who will read an answer that `requiresReview` (plan 79, step 2.1c): the school's teacher,
+   * a model, or nobody. `none` means the attempt is already closed as `NO_REVIEWER` — no
+   * verdict is coming. Absent when nothing went to review, from older engines, and from the
+   * phone's own engine (offline work is decided when it reaches the server).
+   */
+  reviewer?: 'teacher' | 'ai' | 'none';
   feedback: AttemptFeedback;
   /**
    * Per-item verdicts, for the templates graded item by item and only where the

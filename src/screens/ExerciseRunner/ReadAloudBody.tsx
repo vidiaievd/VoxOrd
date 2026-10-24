@@ -144,7 +144,7 @@ export function ReadAloudBody({
         /** The projection the attempt's start answered — it knows the carried prompts. */
         content: ReadAloudContent;
       }
-    | { kind: 'sent'; recordings: SubmittedRecording[] }
+    | { kind: 'sent'; recordings: SubmittedRecording[]; unread: boolean }
     | {
         kind: 'graded';
         attemptId: string;
@@ -171,8 +171,12 @@ export function ReadAloudBody({
       if (!live) return;
       const opening = openingOf(rows, revision);
       if (opening.stage === 'sent') {
-        setStage({ kind: 'sent', recordings: opening.recordings });
+        setStage({ kind: 'sent', recordings: opening.recordings, unread: false });
         finish(handedInVerdict(opening.attemptId));
+      } else if (opening.stage === 'unread') {
+        // Final like a verdict with no redo: the item closes, and the runner says why.
+        setStage({ kind: 'sent', recordings: opening.recordings, unread: true });
+        finish(handedInVerdict(opening.attemptId, 'none'));
       } else if (opening.stage === 'graded') {
         setStage({
           kind: 'graded',
@@ -331,6 +335,7 @@ export function ReadAloudBody({
           recordings={stage.recordings}
           content={content}
           sourceOf={assetId => ({ path: null, assetId, peaks: null })}
+          unread={stage.unread}
           t={t}
           styles={styles}
         />
@@ -499,6 +504,8 @@ function ReadAloudSession({
     [content],
   );
   const [stage, setStage] = useState<'draft' | 'sent'>('draft');
+  /** `sent` with nobody to listen — `reviewer: none` (plan 79, step 2.1c). */
+  const [unread, setUnread] = useState(false);
   const [submitted, setSubmitted] = useState<SubmittedRecording[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -650,6 +657,7 @@ function ReadAloudSession({
       playback.stop();
       setSubmitted(submission.recordings);
       setStage('sent');
+      setUnread(verdict.reviewer === 'none');
       // The takes the teacher will not hear go (DECISIONS §1); a failed delete costs nothing
       // but storage (§8 item 5).
       for (const id of unsentAssets(state, submission)) {
@@ -681,6 +689,10 @@ function ReadAloudSession({
           delivered(handedInVerdict(attemptId));
           return;
         }
+        if (row.status === 'NO_REVIEWER') {
+          delivered(handedInVerdict(attemptId, 'none'));
+          return;
+        }
       } catch {
         // Unknown either way — say it did not go; the draft is intact.
       }
@@ -698,6 +710,7 @@ function ReadAloudSession({
         content={content}
         sourceOf={sourceOfAsset}
         playback={playback}
+        unread={unread}
         t={t}
         styles={styles}
       />
@@ -1264,6 +1277,7 @@ function SentView({
   sourceOf: given,
   playback: givenPlayback,
   graded,
+  unread = false,
   t,
   styles,
 }: {
@@ -1278,6 +1292,8 @@ function SentView({
     labelOf: (itemId: string) => string,
     sourceOf: (assetId: string) => TakeSource,
   ) => React.ReactNode;
+  /** Handed in with nobody to listen (plan 79, step 2.1c): no «with the teacher» step. */
+  unread?: boolean;
   t: T;
   styles: Styles;
 }) {
@@ -1314,7 +1330,9 @@ function SentView({
   return (
     <View style={styles.col}>
       <Text style={styles.title}>{title}</Text>
-      <ReviewSteps graded={graded !== undefined} t={t} styles={styles} />
+      {unread ? null : (
+        <ReviewSteps graded={graded !== undefined} t={t} styles={styles} />
+      )}
       <View style={styles.takes}>
         {recordings.map((r, i) => {
           const label = labelOf(r.itemId);

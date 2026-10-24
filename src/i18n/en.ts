@@ -337,6 +337,8 @@ export const en: Translations = {
     submittedForReview: 'Submitted for review',
     expectedAnswer: 'Expected answer: {answer}',
     reviewNote: 'Your teacher will look at it.',
+    noReviewer: 'Saved — nobody will check it',
+    noReviewerNote: "You're studying without a teacher, and AI review isn't part of your plan.",
     setComplete: 'Exercises complete',
     setCompleteDesc: 'Nice work — you finished this set.',
     done: 'Done',

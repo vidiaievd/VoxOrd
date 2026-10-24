@@ -255,6 +255,8 @@ function readRecording(raw: unknown): Recording {
  *   draft   takes uploaded onto the attempt in progress — the learner was mid-way (RA-R10);
  *   graded  a verdict — the last thing that happened; `redo` when the teacher sent the work
  *           back and the author allows another try;
+ *   unread  work handed in with nobody to listen (`NO_REVIEWER`, plan 79, step 2.1c) — final,
+ *           and below a draft like a verdict;
  *   fresh   none of these.
  *
  * The order is the web solver's: takes on a draft outrank a verdict — after «Ta opp på nytt
@@ -264,6 +266,7 @@ export type Opening =
   | { stage: 'fresh' }
   | { stage: 'draft'; attemptId: string; draft: Draft }
   | { stage: 'sent'; attemptId: string; recordings: SubmittedRecording[] }
+  | { stage: 'unread'; attemptId: string; recordings: SubmittedRecording[] }
   | {
       stage: 'graded';
       attemptId: string;
@@ -324,7 +327,7 @@ export function readDecisions(value: unknown): ReviewDecision[] {
   });
 }
 
-const FINISHED = new Set(['ROUTED_FOR_REVIEW', 'SCORED', 'RETURNED']);
+const FINISHED = new Set(['ROUTED_FOR_REVIEW', 'SCORED', 'RETURNED', 'NO_REVIEWER']);
 
 export function openingOf(
   rows: readonly AttemptRow[],
@@ -342,6 +345,9 @@ export function openingOf(
     const draft = readDraft(open.draftAnswer);
     if (Object.keys(draft.takes).length > 0)
       return { stage: 'draft', attemptId: open.id, draft };
+  }
+  if (last && last.status === 'NO_REVIEWER') {
+    return { stage: 'unread', attemptId: last.id, recordings: handedIn };
   }
   if (last) {
     return {
@@ -429,12 +435,17 @@ export function recordingRefusal(
  * in, rebuilt for a runner that opens on it. The engine never scores a recording, so this is
  * the whole of what it said.
  */
-export function handedInVerdict(attemptId: string): SubmitAttemptResponse {
+export function handedInVerdict(
+  attemptId: string,
+  reviewer?: 'none',
+): SubmitAttemptResponse {
   return {
     attemptId,
     correct: false,
     score: null,
     requiresReview: true,
+    // `none` for work nobody will listen to (plan 79, step 2.1c), so the runner says so.
+    ...(reviewer === undefined ? {} : { reviewer }),
     feedback: { summary: '' },
   };
 }
