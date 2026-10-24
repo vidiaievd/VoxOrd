@@ -56,6 +56,35 @@ export const en: Translations = {
     allCourses: 'All courses',
     noCourses: 'No courses yet',
     noCoursesDesc: 'When a school or a teacher enrolls you in a course, it shows up here.',
+    dayLine: {
+      offline: 'Working with what is saved on your phone',
+      welcome: 'Welcome to VoxOrd',
+      reviewsAndClassToday: {
+        one: '{count} card to review and a class today',
+        few: '{count} cards to review and a class today',
+        many: '{count} cards to review and a class today',
+      },
+      reviewsAndClassOn: {
+        one: '{count} card to review and a class {weekday}',
+        few: '{count} cards to review and a class {weekday}',
+        many: '{count} cards to review and a class {weekday}',
+      },
+      classToday: 'Class today at {time}',
+      reviewsOnly: {
+        one: '{count} card to review',
+        few: '{count} cards to review',
+        many: '{count} cards to review',
+      },
+    },
+    weekdayOn: {
+      sun: 'on Sunday',
+      mon: 'on Monday',
+      tue: 'on Tuesday',
+      wed: 'on Wednesday',
+      thu: 'on Thursday',
+      fri: 'on Friday',
+      sat: 'on Saturday',
+    },
   },
   home: {
     appSubtitle: 'Norsk ordbok',

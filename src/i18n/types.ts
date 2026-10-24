@@ -62,6 +62,25 @@ export interface Translations {
     allCourses: string;
     noCourses: string;
     noCoursesDesc: string;
+    /** The third header line: the one thing that is on today, in order of priority. */
+    dayLine: {
+      offline: string;
+      welcome: string;
+      reviewsAndClassToday: PluralForms; // '{count}'
+      reviewsAndClassOn: PluralForms; // '{count}', '{weekday}' — a `weekdayOn` value
+      classToday: string; // '{time}'
+      reviewsOnly: PluralForms; // '{count}'
+    };
+    /** «в понедельник» — a weekday as the time of something, keyed like `Date.getDay()`. */
+    weekdayOn: {
+      sun: string;
+      mon: string;
+      tue: string;
+      wed: string;
+      thu: string;
+      fri: string;
+      sat: string;
+    };
   };
   home: {
     appSubtitle: string;

@@ -18,7 +18,7 @@ import { useCourseHome } from '../../hooks/useCourseHome';
 import { useSwrResource } from '../../hooks/useSwrResource';
 import { getSrsStats, type SrsStats } from '../../api/srs';
 import { getLastCourseId } from '../../store/lastCourseStore';
-import { nextUnit, pickCourseId } from './today';
+import { nextUnit, pickCourseId } from '../TodayScreen/today';
 import { useTabScrollToTop } from '../../navigation/tabScroll';
 
 interface HomeScreenProps {

@@ -64,6 +64,35 @@ export const ru: Translations = {
     allCourses: 'Все курсы',
     noCourses: 'Курсов пока нет',
     noCoursesDesc: 'Когда школа или преподаватель запишет вас на курс, он появится здесь.',
+    dayLine: {
+      offline: 'Работаем с тем, что сохранено на телефоне',
+      welcome: 'Добро пожаловать в VoxOrd',
+      reviewsAndClassToday: {
+        one: '{count} карточка на повторение и занятие сегодня',
+        few: '{count} карточки на повторение и занятие сегодня',
+        many: '{count} карточек на повторение и занятие сегодня',
+      },
+      reviewsAndClassOn: {
+        one: '{count} карточка на повторение и занятие {weekday}',
+        few: '{count} карточки на повторение и занятие {weekday}',
+        many: '{count} карточек на повторение и занятие {weekday}',
+      },
+      classToday: 'Сегодня занятие в {time}',
+      reviewsOnly: {
+        one: '{count} карточка на повторение',
+        few: '{count} карточки на повторение',
+        many: '{count} карточек на повторение',
+      },
+    },
+    weekdayOn: {
+      sun: 'в воскресенье',
+      mon: 'в понедельник',
+      tue: 'во вторник',
+      wed: 'в среду',
+      thu: 'в четверг',
+      fri: 'в пятницу',
+      sat: 'в субботу',
+    },
   },
   home: {
     appSubtitle: 'Norsk ordbok',

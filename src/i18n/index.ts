@@ -41,7 +41,8 @@ export function translate(path: string, vars?: Record<string, string | number>):
   return translateIn(settingsStore.getAll().uiLanguage, path, vars);
 }
 
-function translateIn(
+/** A string in a named language — for pure functions handed `t`, and for their tests. */
+export function translateIn(
   uiLanguage: string,
   path: string,
   vars?: Record<string, string | number>,
