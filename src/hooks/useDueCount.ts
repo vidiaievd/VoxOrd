@@ -16,6 +16,10 @@ export interface DueCount {
   /** Counted from the phone's copy because the server was out of reach. */
   fromReplica: boolean;
   status: 'loading' | 'loaded' | 'unavailable';
+  /** Reviews done today, when the server has said; `null` otherwise (never from the copy). */
+  reviewedToday: number | null;
+  /** Fetch the count again — Today's pull-to-refresh. */
+  refresh: () => Promise<void>;
 }
 
 /**
@@ -77,21 +81,25 @@ export function useDueCount(focusKey?: string): DueCount {
 
   if (offline) {
     if (fromCopy === undefined)
-      return { count: null, fromReplica: false, status: 'loading' };
+      return { count: null, fromReplica: false, status: 'loading', refresh: srs.refresh, reviewedToday: null };
     if (fromCopy === null)
-      return { count: null, fromReplica: false, status: 'unavailable' };
-    return { count: fromCopy, fromReplica: true, status: 'loaded' };
+      return { count: null, fromReplica: false, status: 'unavailable', refresh: srs.refresh, reviewedToday: null };
+    return { count: fromCopy, fromReplica: true, status: 'loaded', refresh: srs.refresh, reviewedToday: null };
   }
   if (srs.data !== null) {
     return {
       count: srs.data.dueNowCount,
       fromReplica: false,
       status: 'loaded',
+      reviewedToday: srs.data.reviewedTodayCount,
+      refresh: srs.refresh,
     };
   }
   return {
     count: null,
     fromReplica: false,
     status: srs.status === 'error' || !signedIn ? 'unavailable' : 'loading',
+    reviewedToday: null,
+    refresh: srs.refresh,
   };
 }

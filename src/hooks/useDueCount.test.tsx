@@ -63,7 +63,7 @@ beforeEach(() => {
 describe('useDueCount', () => {
   it('online: the server count, under the key Today reads', async () => {
     await render();
-    expect(seen).toEqual({ count: 18, fromReplica: false, status: 'loaded' });
+    expect(seen).toMatchObject({ count: 18, fromReplica: false, status: 'loaded' });
     expect(mockSwrKeys).toContain('srs-stats');
     expect(mockReplicaCount).not.toHaveBeenCalled();
   });
@@ -77,7 +77,7 @@ describe('useDueCount', () => {
     };
     mockReplicaCount.mockResolvedValue(11);
     await render();
-    expect(seen).toEqual({ count: 11, fromReplica: true, status: 'loaded' });
+    expect(seen).toMatchObject({ count: 11, fromReplica: true, status: 'loaded' });
   });
 
   it('offline without a copy: unknown, so no badge', async () => {
@@ -89,7 +89,7 @@ describe('useDueCount', () => {
     };
     mockReplicaCount.mockResolvedValue(null);
     await render();
-    expect(seen).toEqual({
+    expect(seen).toMatchObject({
       count: null,
       fromReplica: false,
       status: 'unavailable',
@@ -104,7 +104,7 @@ describe('useDueCount', () => {
       stale: false,
     };
     await render();
-    expect(seen).toEqual({
+    expect(seen).toMatchObject({
       count: null,
       fromReplica: false,
       status: 'unavailable',

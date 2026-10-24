@@ -466,14 +466,9 @@ function Navigator() {
       case 'Today':
         return (
           <TodayScreen
-            onOpenCourse={openCourse}
-            onOpenUnit={(unitId, courseId) => {
-              setLastCourseId(courseId);
-              goTo({ name: 'UnitContents', unitId, courseId });
-            }}
-            onStartReview={() => navigateTo({ name: 'ReviewSession' })}
-            onAllCourses={() => handleTabPress('Courses')}
-            onOpenMyWords={() => navigateTo({ name: 'MyWords' })}
+            due={due}
+            onNavigate={navigateTo}
+            onOpenTab={handleTabPress}
           />
         );
     }
@@ -490,7 +485,8 @@ function Navigator() {
       <View style={styles.content}>
         <BackInterceptProvider handlerRef={interceptRef}>{renderScreen()}</BackInterceptProvider>
       </View>
-      {showTabBar && <OfflineSessionBanner />}
+      {/* Today shows the same news in its own card, so it takes no second banner. */}
+      {showTabBar && screen.name !== 'Today' && <OfflineSessionBanner />}
       {showTabBar && (
         <TabBar
           activeTab={activeTab}

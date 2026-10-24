@@ -81,6 +81,34 @@ export interface Translations {
       fri: string;
       sat: string;
     };
+    minutes: string; // '{min}'
+    onPhone: string;
+    needsNetwork: string;
+    nextInUnit: string;
+    courseDone: string;
+    courseDoneHint: string;
+    courseDoneCta: string;
+    unlockOnline: string;
+    continueA11y: string; // '{title}', '{meta}'
+    reviewDueNow: string; // '{min}'
+    reviewSplit: string; // '{words}', '{exercises}'
+    reviewStartShort: string;
+    reviewOffline: string;
+    reviewUnavailableHint: string;
+    first: {
+      title: string;
+      bodyCatalogue: string;
+      bodySchool: string;
+      cta: string;
+      offlineHint: string;
+    };
+  };
+  /** What kind of material an item is, for «Lesson · 5 min». */
+  itemType: {
+    lesson: string;
+    vocabulary_list: string;
+    grammar_rule: string;
+    exercise: string;
   };
   home: {
     appSubtitle: string;
