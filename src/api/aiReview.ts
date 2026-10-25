@@ -53,6 +53,15 @@ export interface AiReview {
   reviewedAt: string;
   /** When the learner said the review is wrong; `null` until they do. */
   disputedAt: string | null;
+  /**
+   * A school's work under a model-first policy (plan 80): the verdict does not count yet — a
+   * teacher will read the work. The engine takes no dispute on it while it waits.
+   */
+  provisional: boolean;
+  /** For a provisional one: when it counts by itself if no teacher answers; null otherwise. */
+  countsAt: string | null;
+  /** It counted by itself — the school's term ran out with no teacher's answer (plan 80). */
+  acceptedAtTerm: boolean;
 }
 
 /** As long as the engine takes it. */
@@ -92,6 +101,9 @@ export async function getAiReview(exerciseId: string, attemptId: string): Promis
           })),
     reviewedAt: review.reviewedAt,
     disputedAt: review.disputedAt ?? null,
+    provisional: review.provisional === true,
+    countsAt: review.provisional === true ? (review.countsAt ?? null) : null,
+    acceptedAtTerm: review.acceptedAtTerm === true,
   };
 }
 

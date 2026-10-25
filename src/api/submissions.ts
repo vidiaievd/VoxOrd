@@ -1,6 +1,7 @@
 import { ApiError, apiClient } from './client';
 import { isRecord, isString, stringOrNull } from './guards';
 import { isServerOutOfReach } from './isNetworkError';
+import type { ProvisionalVerdict } from './exercises';
 
 /* ─────────────────────────────────────────────────────────────────────────
  * The learner's work that went to a reviewer (mobile redesign 02, step 5).
@@ -9,6 +10,10 @@ import { isServerOutOfReach } from './isNetworkError';
  * step 4): the rows the web reads from `internal/attempts/review/mine` through its BFF. Never
  * the answer itself — only what became of it. Status is `pending | returned | approved`: the
  * engine has two verdicts, so the spec's «Частично» / «Не зачтено» never occur.
+ *
+ * At a school with a model-first policy (plan 80) a model's verdict comes first: on a
+ * `pending` row as `provisional` (a teacher will still read it), and on a closed one as a
+ * model's decision with `acceptedAtTerm` when the term ran out with no teacher's answer.
  *
  * Teachers' names come from user-profile-service `GET /api/v1/profiles?userIds=`, as the
  * web's BFF joins them; a name that cannot be read leaves the review without one.
@@ -28,6 +33,8 @@ export interface SubmissionDecision {
   comment: string | null;
   /** The teacher sent or edited a model's draft (plan 79 `review_draft`). */
   aiDrafted: boolean;
+  /** A model's verdict at a school that counted by itself at the term (plan 80). */
+  acceptedAtTerm: boolean;
 }
 
 export interface Submission {
@@ -44,6 +51,8 @@ export interface Submission {
   status: SubmissionStatus;
   attemptNo: number;
   decision: SubmissionDecision | null;
+  /** A model's verdict waiting for the school's teacher (plan 80); only on `pending` rows. */
+  provisional: ProvisionalVerdict | null;
   canResubmit: boolean;
 }
 
@@ -87,6 +96,20 @@ function parseDecision(raw: unknown): SubmissionDecision | null | undefined {
     at: raw.at,
     comment: stringOrNull(raw.comment),
     aiDrafted: raw.aiDrafted === true,
+    acceptedAtTerm: raw.acceptedAtTerm === true,
+  };
+}
+
+/** A model's provisional verdict; null for anything else — the row is then simply waiting. */
+export function parseProvisional(raw: unknown): ProvisionalVerdict | null {
+  if (!isRecord(raw) || (raw.outcome !== 'approved' && raw.outcome !== 'returned') || !isIsoDate(raw.at)) {
+    return null;
+  }
+  return {
+    outcome: raw.outcome,
+    comment: stringOrNull(raw.comment),
+    at: raw.at,
+    countsAt: isIsoDate(raw.countsAt) ? raw.countsAt : null,
   };
 }
 
@@ -119,6 +142,7 @@ export function parseSubmission(raw: unknown): Submission | null {
     status: raw.status as SubmissionStatus,
     attemptNo: typeof raw.attemptNo === 'number' ? raw.attemptNo : 1,
     decision,
+    provisional: raw.status === 'pending' ? parseProvisional(raw.provisional) : null,
     canResubmit: raw.canResubmit === true,
   };
 }
@@ -196,6 +220,40 @@ export function latestReviewed(
     const at = Date.parse(s.decision.at);
     if (at < since) continue;
     if (!latest || at > Date.parse(latest.decision!.at)) latest = s;
+  }
+  return latest;
+}
+
+/**
+ * When the school last told the learner something about this work, or null: a teacher's
+ * verdict, a model's verdict on the school's behalf (plan 80 — at once under sampling, or at
+ * the term), or a model's provisional one while the teacher is awaited. A model's verdict on
+ * the work of a learner nobody reviews is not the school's and has no place here.
+ */
+function schoolFeedbackAt(s: Submission): string | null {
+  // A row cached before plan 80 has no `provisional` at all.
+  if (s.status === 'pending') return s.provisional?.at ?? null;
+  if (!s.decision) return null;
+  if (s.decision.by === 'ai' && s.schoolId === null) return null;
+  return s.decision.at;
+}
+
+/**
+ * Block 6's row: what the school last said, within the horizon — `latestReviewed` for a
+ * teacher, widened to a model's word at a school with a model-first policy (plan 80), which
+ * the card then labels as the model's.
+ */
+export function latestSchoolFeedback(items: readonly Submission[], now: Date = new Date()): Submission | null {
+  const since = now.getTime() - FEEDBACK_HORIZON_DAYS * 24 * 60 * 60 * 1000;
+  let latest: Submission | null = null;
+  let latestAt = -Infinity;
+  for (const s of items) {
+    const raw = schoolFeedbackAt(s);
+    if (raw === null) continue;
+    const at = Date.parse(raw);
+    if (at < since || at <= latestAt) continue;
+    latest = s;
+    latestAt = at;
   }
   return latest;
 }

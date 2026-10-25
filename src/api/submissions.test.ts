@@ -1,6 +1,12 @@
 import { ApiError, apiClient } from './client';
 import { recordedSubmissions as recorded } from './__fixtures__/submissionsRecorded';
-import { getMySubmissions, latestReviewed, parseSubmission, parseSubmissionsPage } from './submissions';
+import {
+  getMySubmissions,
+  latestReviewed,
+  latestSchoolFeedback,
+  parseSubmission,
+  parseSubmissionsPage,
+} from './submissions';
 
 jest.mock('./client', () => ({
   apiClient: { get: jest.fn() },
@@ -102,6 +108,36 @@ describe('parseSubmission', () => {
     expect(parseSubmission({ ...row, exercisePath: { course: 'C', module: null, exercise: null } })?.title).toBe('C');
     expect(parseSubmission({ ...row, exercisePath: null })?.title).toBeNull();
   });
+
+  it('reads a model’s provisional verdict on waiting work, and only there (plan 80)', () => {
+    const provisional = {
+      outcome: 'approved',
+      comment: 'Bra jobbet.',
+      at: '2026-10-25T09:01:00.000Z',
+      countsAt: '2026-11-01T09:00:00.000Z',
+      model: 'secret',
+    };
+    const waiting = { ...row, status: 'pending', decision: null, provisional };
+
+    expect(parseSubmission(waiting)?.provisional).toEqual({
+      outcome: 'approved',
+      comment: 'Bra jobbet.',
+      at: '2026-10-25T09:01:00.000Z',
+      countsAt: '2026-11-01T09:00:00.000Z',
+    });
+    expect(parseSubmission({ ...row, provisional })?.provisional).toBeNull();
+    expect(parseSubmission({ ...waiting, provisional: { ...provisional, outcome: 'maybe' } })).toMatchObject({
+      status: 'pending',
+      provisional: null,
+    });
+  });
+
+  it('says when a model’s verdict counted at the school’s term (plan 80)', () => {
+    const decision = { ...row.decision, by: 'ai', byUserId: null, acceptedAtTerm: true };
+
+    expect(parseSubmission({ ...row, decision })?.decision?.acceptedAtTerm).toBe(true);
+    expect(parseSubmission(row)?.decision?.acceptedAtTerm).toBe(false);
+  });
 });
 
 describe('latestReviewed', () => {
@@ -119,5 +155,45 @@ describe('latestReviewed', () => {
 
   it('keeps a teacher’s and a model’s reviews apart', () => {
     expect(latestReviewed(items, 'ai', now)).toBeNull();
+  });
+});
+
+describe('latestSchoolFeedback (plan 80)', () => {
+  const [base] = parseSubmissionsPage(recorded.mine)!;
+  const row = (over: Partial<typeof base>) => ({ ...base, ...over });
+  const teacher = row({
+    attemptId: 'teacher',
+    status: 'approved',
+    decision: { ...base.decision!, by: 'teacher', at: '2026-10-22T10:00:00.000Z' },
+  });
+
+  it('takes a model’s provisional verdict at a school when it is the newest word', () => {
+    const waiting = row({
+      attemptId: 'waiting',
+      status: 'pending',
+      decision: null,
+      provisional: { outcome: 'returned', comment: null, at: '2026-10-23T10:00:00.000Z', countsAt: null },
+    });
+
+    expect(latestSchoolFeedback([teacher, waiting], now)?.attemptId).toBe('waiting');
+  });
+
+  it('takes a model’s verdict at a school, not one on the work of a learner nobody reviews', () => {
+    const atTerm = row({
+      attemptId: 'term',
+      schoolId: 'school-1',
+      decision: { ...base.decision!, by: 'ai', byUserId: null, at: '2026-10-23T10:00:00.000Z', acceptedAtTerm: true },
+    });
+    const solo = row({ ...atTerm, attemptId: 'solo', schoolId: null });
+
+    expect(latestSchoolFeedback([teacher, atTerm], now)?.attemptId).toBe('term');
+    expect(latestSchoolFeedback([teacher, solo], now)?.attemptId).toBe('teacher');
+  });
+
+  it('reads plainly waiting work, and rows cached before plan 80, as nothing said yet', () => {
+    const waiting = row({ attemptId: 'waiting', status: 'pending', decision: null, provisional: null });
+    const cached = { ...waiting, provisional: undefined } as unknown as typeof base;
+
+    expect(latestSchoolFeedback([waiting, cached], now)).toBeNull();
   });
 });

@@ -57,9 +57,14 @@ type Load =
  * remarks follow the order of the work, item by item, then an essay's marks with the reason
  * for each. «This review is wrong» is offered once; the verdict does not change, and the
  * panel says so rather than letting the button look like an appeal.
+ *
+ * At a school with a model-first policy (plan 80) the review is the school's stand-in: it
+ * says whether it waits for the teacher — and when it counts by itself — or counted at the
+ * term. A review that does not count yet takes no dispute (the engine refuses one): the
+ * teacher's verdict is still to come.
  */
 export function AiReviewPanel({ exerciseId, attemptId, templateCode, criteria }: AiReviewPanelProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const [load, setLoad] = useState<Load>({ kind: 'loading' });
@@ -105,6 +110,7 @@ export function AiReviewPanel({ exerciseId, attemptId, templateCode, criteria }:
         </Text>
       ) : load.review === null ? null : (
         <>
+          <Standing styles={styles} t={t} language={language} review={load.review} />
           {load.review.summary !== null && load.review.summary.trim() !== '' ? (
             <Text style={styles.summary}>{load.review.summary}</Text>
           ) : null}
@@ -112,12 +118,14 @@ export function AiReviewPanel({ exerciseId, attemptId, templateCode, criteria }:
           {load.review.marks !== null && load.review.marks.length > 0 ? (
             <Marks t={t} styles={styles} marks={load.review.marks} criteria={criteria} />
           ) : null}
-          <Dispute
-            exerciseId={exerciseId}
-            attemptId={attemptId}
-            disputedAt={load.review.disputedAt}
-            onDisputed={onDisputed}
-          />
+          {load.review.provisional ? null : (
+            <Dispute
+              exerciseId={exerciseId}
+              attemptId={attemptId}
+              disputedAt={load.review.disputedAt}
+              onDisputed={onDisputed}
+            />
+          )}
         </>
       )}
     </View>
@@ -125,6 +133,44 @@ export function AiReviewPanel({ exerciseId, attemptId, templateCode, criteria }:
 }
 
 type Styles = ReturnType<typeof makeStyles>;
+
+/** «Tue 1 Nov» in the app's language; the ISO day if the device cannot say it. */
+function shortDate(iso: string, language: string): string {
+  try {
+    return new Date(iso).toLocaleDateString(language, { weekday: 'short', day: 'numeric', month: 'short' });
+  } catch {
+    return iso.slice(0, 10);
+  }
+}
+
+/** Where a school's review stands (plan 80); nothing for a review that simply counts. */
+function Standing({
+  styles,
+  t,
+  language,
+  review,
+}: {
+  styles: Styles;
+  t: T;
+  language: string;
+  review: AiReview;
+}) {
+  if (!review.provisional && !review.acceptedAtTerm) return null;
+  const title = review.provisional
+    ? t('exerciseRunner.aiReview.provisionalTitle')
+    : t('exerciseRunner.aiReview.acceptedAtTermTitle');
+  const note = !review.provisional
+    ? t('exerciseRunner.aiReview.acceptedAtTermNote')
+    : review.countsAt !== null
+      ? t('exerciseRunner.aiReview.provisionalNote', { date: shortDate(review.countsAt, language) })
+      : t('exerciseRunner.aiReview.provisionalNoteNoTerm');
+  return (
+    <View style={styles.standing}>
+      <Text style={styles.standingTitle}>{title}</Text>
+      <Text style={styles.muted}>{note}</Text>
+    </View>
+  );
+}
 
 /** The remarks, grouped under the item they are about, in the order of the work. */
 function Remarks({
@@ -370,6 +416,18 @@ const makeStyles = (colors: ColorScheme) =>
     },
     spinner: {
       marginVertical: 8,
+    },
+    standing: {
+      borderRadius: 10,
+      backgroundColor: colors.backgroundInput,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      gap: 2,
+    },
+    standingTitle: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.textPrimary,
     },
     failed: {
       fontSize: 13,

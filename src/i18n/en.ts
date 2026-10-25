@@ -113,6 +113,10 @@ export const en: Translations = {
       waiting: 'With the teacher: {count}',
       offline: 'New reviews will arrive when you are back online',
       aiDrafted: 'A model drafted the review, the teacher checked it',
+      aiProvisional: 'Checked by AI, waiting for the teacher',
+      aiAcceptedAtTerm: 'Counted automatically — the teacher did not answer in time',
+      aiVerdict: "Checked by AI under the school's rules",
+      aiQuote: 'AI: “{comment}”',
     },
     soloWriting: {
       title: 'Writing and speaking',
@@ -506,6 +510,11 @@ export const en: Translations = {
       sending: 'Sending…',
       sendFailed: "Couldn't send. Please try again.",
       disputed: "You marked this review as wrong. Thank you — we'll take it into account.",
+      provisionalTitle: 'Waiting for the teacher',
+      provisionalNote: "The teacher will still look at this work, and their mark is the one that counts. If they don't answer, this review counts by itself on {date}.",
+      provisionalNoteNoTerm: 'The teacher will still look at this work, and their mark is the one that counts.',
+      acceptedAtTermTitle: 'Counted automatically',
+      acceptedAtTermNote: "The teacher didn't answer in time, so this review counted. The teacher can still revise it.",
       aspect: {
         grammar: 'grammar',
         order: 'word order',

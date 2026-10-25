@@ -682,6 +682,21 @@ export interface AttemptRow {
    * nobody reviews, or nobody's yet. Absent from older engines and the phone's own.
    */
   reviewedBy?: 'teacher' | 'ai' | null;
+  /**
+   * A model's verdict on a school's work while its teacher is awaited (plan 80): shown at
+   * once, labelled as not counting yet. Only on work still `ROUTED_FOR_REVIEW`.
+   */
+  provisionalVerdict?: ProvisionalVerdict | null;
+}
+
+/** A model's word on work a teacher has yet to answer — engine `PendingAiVerdictDto`. */
+export interface ProvisionalVerdict {
+  outcome: 'approved' | 'returned';
+  comment: string | null;
+  /** ISO 8601 — when the model gave it. */
+  at: string;
+  /** ISO 8601 — when it counts by itself if no teacher answers; null if it waits for one. */
+  countsAt: string | null;
 }
 
 /**

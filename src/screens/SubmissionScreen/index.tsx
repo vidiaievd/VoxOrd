@@ -34,6 +34,9 @@ function statusOf(attempt: AttemptRow): SubmissionStatus {
  * review is shown whole by the runner's `AiReviewPanel`, under its label; a teacher's is the
  * status, the comment and — for an essay — the marks. The title and the teacher's name come
  * from the submissions list Today has cached; the attempt itself carries neither.
+ *
+ * At a school with a model-first policy (plan 80) waiting work may already carry a model's
+ * verdict: it is shown in the same panel, which says the teacher is still to answer.
  */
 export function SubmissionScreen({ submissionId, exerciseId, parentLabel, onBack }: SubmissionScreenProps) {
   const { t } = useTranslation();
@@ -64,15 +67,16 @@ export function SubmissionScreen({ submissionId, exerciseId, parentLabel, onBack
     const { attempt } = load;
     const status = statusOf(attempt);
     const byAi = (attempt.reviewedBy ?? entry?.decision?.by) === 'ai';
+    const provisional = status === 'pending' && attempt.provisionalVerdict != null;
     const tag = statusTag(status);
     const criteria = criterionNames(attempt.rubricSnapshot);
 
     return (
       <>
         <Tag label={t(tag.key)} variant={tag.variant} />
-        {status === 'pending' ? (
+        {status === 'pending' && !provisional ? (
           <Text style={[typography.body, { color: colors.neutral400 }]}>{t('submission.waiting')}</Text>
-        ) : byAi ? (
+        ) : byAi || provisional ? (
           <AiReviewPanel
             exerciseId={exerciseId}
             attemptId={submissionId}

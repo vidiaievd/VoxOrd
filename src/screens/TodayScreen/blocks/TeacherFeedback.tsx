@@ -1,6 +1,6 @@
 import React from 'react';
 import { Text, View } from 'react-native';
-import { latestReviewed } from '../../../api/submissions';
+import { latestSchoolFeedback, type Submission } from '../../../api/submissions';
 import { Icon, PressableScale, Tag } from '../../../components/ui';
 import { useMySubmissions } from '../../../hooks/useMySubmissions';
 import { useTranslation } from '../../../i18n';
@@ -19,7 +19,9 @@ interface TeacherFeedbackProps {
 
 /**
  * Block 6: the teacher's latest review within two weeks, and how much is still waiting.
- * Shown when there is either. The waiting line names no deadline: the phone has no school's
+ * Shown when there is either. At a school with a model-first policy (plan 80) the latest
+ * word may be a model's — waiting for the teacher, counted at the term, or given under
+ * sampling — and the card says so under the quote, never passing it off as the teacher's. The waiting line names no deadline: the phone has no school's
  * response promise to quote (the web's BFF works it out), and «48 h» would be invented.
  */
 export function TeacherFeedback({ offline, showAiDrafted = false, onNavigate }: TeacherFeedbackProps) {
@@ -29,17 +31,23 @@ export function TeacherFeedback({ offline, showAiDrafted = false, onNavigate }: 
   useRegisterRefresh(refresh);
 
   if (!submissions) return null;
-  const latest = latestReviewed(submissions.items, 'teacher');
+  const latest = latestSchoolFeedback(submissions.items);
   const waiting = submissions.pendingCount;
   if (!latest && waiting === 0) return null;
 
   const tag = statusTag(latest ? latest.status : 'pending');
   const decision = latest?.decision ?? null;
-  const quote = decision?.comment
-    ? decision.byName
-      ? `${decision.byName}: «${decision.comment}»`
-      : `«${decision.comment}»`
-    : null;
+  const aiLine = latest !== null && aiStanding(latest);
+  const aiComment = latest?.provisional?.comment ?? decision?.comment ?? null;
+  const quote = aiLine
+    ? aiComment
+      ? t('today.teacher.aiQuote', { comment: aiComment })
+      : null
+    : decision?.comment
+      ? decision.byName
+        ? `${decision.byName}: «${decision.comment}»`
+        : `«${decision.comment}»`
+      : null;
   const waitingText = t('today.teacher.waiting', {
     count: submissions.pendingCapped ? `${waiting}+` : waiting,
   });
@@ -62,6 +70,12 @@ export function TeacherFeedback({ offline, showAiDrafted = false, onNavigate }: 
         <Text style={[typography.secondary, { color: colors.neutral400 }]} numberOfLines={2}>
           {quote}
         </Text>
+      ) : null}
+      {aiLine ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Icon name="Sparkle" size={14} color={colors.neutral500} />
+          <Text style={[typography.meta, { color: colors.neutral500, flex: 1 }]}>{t(aiLine)}</Text>
+        </View>
       ) : null}
       {showAiDrafted && decision?.aiDrafted ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -98,7 +112,9 @@ export function TeacherFeedback({ offline, showAiDrafted = false, onNavigate }: 
   return (
     <PressableScale
       accessibilityRole="button"
-      accessibilityLabel={[t('today.teacher.title'), t(tag.key), latest.title, quote].filter(Boolean).join('. ')}
+      accessibilityLabel={[t('today.teacher.title'), t(tag.key), latest.title, quote, aiLine && t(aiLine)]
+        .filter(Boolean)
+        .join('. ')}
       onPress={() =>
         onNavigate({
           name: 'Submission',
@@ -112,4 +128,11 @@ export function TeacherFeedback({ offline, showAiDrafted = false, onNavigate }: 
       {body}
     </PressableScale>
   );
+}
+
+/** The line a model's word on the school's behalf carries (plan 80); false for a teacher's. */
+function aiStanding(s: Submission): string | false {
+  if (s.status === 'pending') return 'today.teacher.aiProvisional';
+  if (s.decision?.by !== 'ai') return false;
+  return s.decision.acceptedAtTerm ? 'today.teacher.aiAcceptedAtTerm' : 'today.teacher.aiVerdict';
 }

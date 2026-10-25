@@ -111,6 +111,11 @@ export interface Translations {
       waiting: string; // '{count}'
       offline: string;
       aiDrafted: string;
+      /** A model's word on the school's behalf (plan 80): waiting for the teacher, counted at the term, or given. */
+      aiProvisional: string;
+      aiAcceptedAtTerm: string;
+      aiVerdict: string;
+      aiQuote: string; // '{comment}'
     };
     /** Block 10. */
     soloWriting: {
@@ -521,6 +526,12 @@ export interface Translations {
       sending: string;
       sendFailed: string;
       disputed: string;
+      /** A school's work under a model-first policy (plan 80). */
+      provisionalTitle: string;
+      provisionalNote: string; // '{date}'
+      provisionalNoteNoTerm: string;
+      acceptedAtTermTitle: string;
+      acceptedAtTermNote: string;
       aspect: {
         grammar: string;
         order: string;

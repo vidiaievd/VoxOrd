@@ -44,6 +44,49 @@ describe('getAiReview (plan 79, 2.3d)', () => {
       marks: [{ criterionId: 'c1', mark: 2, reason: 'r' }],
       reviewedAt: '2026-10-24T10:00:00.000Z',
       disputedAt: null,
+      provisional: false,
+      countsAt: null,
+      acceptedAtTerm: false,
+    });
+  });
+
+  it('says a school’s review does not count yet, and when it will by itself (plan 80)', async () => {
+    mockGet.mockResolvedValue({
+      outcome: 'approved',
+      items: [],
+      summary: null,
+      marks: null,
+      reviewedAt: '2026-10-25T09:01:00.000Z',
+      disputedAt: null,
+      provisional: true,
+      countsAt: '2026-11-01T09:00:00.000Z',
+      acceptedAtTerm: false,
+    });
+
+    expect(await getAiReview('ex-1', 'att-1')).toMatchObject({
+      provisional: true,
+      countsAt: '2026-11-01T09:00:00.000Z',
+      acceptedAtTerm: false,
+    });
+  });
+
+  it('says a school’s review counted at the term', async () => {
+    mockGet.mockResolvedValue({
+      outcome: 'returned',
+      items: [],
+      summary: null,
+      marks: null,
+      reviewedAt: '2026-11-01T09:00:00.000Z',
+      disputedAt: null,
+      provisional: false,
+      countsAt: '2026-11-01T09:00:00.000Z',
+      acceptedAtTerm: true,
+    });
+
+    expect(await getAiReview('ex-1', 'att-1')).toMatchObject({
+      provisional: false,
+      countsAt: null,
+      acceptedAtTerm: true,
     });
   });
 

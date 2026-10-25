@@ -118,6 +118,45 @@ describe('TeacherFeedback, AI-drafted line', () => {
   });
 });
 
+describe('TeacherFeedback, a model’s word at a school (plan 80)', () => {
+  const items = () => parseSubmissionsPage(recordedSubmissions.mine)!;
+
+  it('leads with a provisional verdict, labelled as the model’s and waiting for the teacher', () => {
+    const [first, ...rest] = items();
+    const waiting = {
+      ...first,
+      attemptId: 'waiting',
+      status: 'pending' as const,
+      decision: null,
+      provisional: { outcome: 'approved' as const, comment: 'Bra jobbet.', at: '2026-10-24T11:00:00.000Z', countsAt: null },
+    };
+    mockSubmissions = { items: [waiting, first, ...rest], pendingCount: 1, pendingCapped: false };
+    const onNavigate = jest.fn();
+    const tree = render(<TeacherFeedback offline={false} onNavigate={onNavigate} />);
+    const all = texts(tree);
+
+    expect(all).toContain('ИИ: «Bra jobbet.»');
+    expect(all).toContain('Проверено ИИ, ждёт преподавателя');
+    act(() => {
+      tree.root.findByProps({ accessibilityRole: 'button' }).props.onPress();
+    });
+    expect(onNavigate).toHaveBeenCalledWith(expect.objectContaining({ name: 'Submission', submissionId: 'waiting' }));
+  });
+
+  it('says a model’s verdict counted at the term, not the teacher’s', () => {
+    const [first, ...rest] = items();
+    const atTerm = {
+      ...first,
+      attemptId: 'term',
+      decision: { ...first.decision!, by: 'ai' as const, byUserId: null, byName: null, at: '2026-10-24T11:00:00.000Z', acceptedAtTerm: true },
+    };
+    mockSubmissions = { items: [atTerm, ...rest], pendingCount: 0, pendingCapped: false };
+    const all = texts(render(<TeacherFeedback offline={false} onNavigate={jest.fn()} />));
+
+    expect(all).toContain('Засчитано автоматически — преподаватель не ответил в срок');
+  });
+});
+
 describe('SoloWriting', () => {
   const flush = () => act(async () => {});
 
