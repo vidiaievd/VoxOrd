@@ -1,12 +1,12 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { LayoutAnimation, RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../hooks/useAuth';
 import type { DueCount } from '../../hooks/useDueCount';
 import { classStart } from '../../api/nextClass';
 import { useMyCourses } from '../../hooks/useMyCourses';
 import { useNextClass } from '../../hooks/useNextClass';
-import { useSchools } from '../../hooks/useSchools';
+import { useHomeVariant } from '../../hooks/useHomeVariant';
 import { hasSchool } from './variant';
 import { useTabScrollToTop } from '../../navigation/tabScroll';
 import type { Screen } from '../../navigation/screens';
@@ -19,12 +19,13 @@ import { GroupAccess } from './blocks/GroupAccess';
 import { Header } from './blocks/Header';
 import { NextClass } from './blocks/NextClass';
 import { OfflineCard } from './blocks/OfflineCard';
+import { SoloWriting } from './blocks/SoloWriting';
 import { Review } from './blocks/Review';
 import { Resume } from './blocks/Resume';
 import { ResumeSkeleton } from './blocks/Skeleton';
 import { TeacherFeedback } from './blocks/TeacherFeedback';
 import { WorkOnThis } from './blocks/WorkOnThis';
-import { HOME_LAYOUT, type HomeBlockId } from './layout';
+import { layoutFor, type HomeBlockId } from './layout';
 import { pickCourseId } from './today';
 import { RefreshRegistry } from './refresh';
 
@@ -32,7 +33,7 @@ interface TodayScreenProps {
   due: DueCount;
   onNavigate: (screen: Screen) => void;
   /** Switch to a tab's root. */
-  onOpenTab: (tab: 'Courses' | 'Practice') => void;
+  onOpenTab: (tab: 'Courses' | 'Practice' | 'Profile') => void;
 }
 
 /** Blocks that stay when there are no courses: the rest give way to the first-run card. */
@@ -43,19 +44,31 @@ const KEPT_WITHOUT_COURSES: ReadonlySet<HomeBlockId> = new Set([
   'groupAccess',
 ]);
 
+/** Blocks of the layouts that are not built yet; `layoutFor` swaps in the fallback or drops them. */
+const NOT_BUILT: ReadonlySet<HomeBlockId> = new Set([
+  'aiPlan',
+  'aiReviewed',
+  'assistInline',
+  'assistSuggestions',
+  'aiCredits',
+  'goal',
+  'catalogPicks',
+]);
+
 /**
  * «Today» (Home spec §6): walks the layout of its variant, and each block loads its own data
  * and shows nothing when it has nothing to say.
  *
- * Only variant A (school) is walked so far; the variant is resolved in step 7, and the
- * blocks it needs that do not exist yet render nothing.
+ * Variants A, B and C are walked; D and the assistant blocks are plan 03, so a block that does
+ * not exist yet is left out and D falls back to Continue and Review.
  */
 export function TodayScreen({ due, onNavigate, onOpenTab }: TodayScreenProps) {
   const { colors } = useTheme();
   const { user, offline } = useAuth();
   const courses = useMyCourses();
-  const schools = useSchools();
-  const next = useNextClass(schools.schools);
+  const home = useHomeVariant();
+  const { schools } = home;
+  const next = useNextClass(schools);
   const scrollRef = useRef<ScrollView>(null);
   useTabScrollToTop('Today', scrollRef);
 
@@ -71,7 +84,7 @@ export function TodayScreen({ due, onNavigate, onOpenTab }: TodayScreenProps) {
     try {
       await Promise.all([
         courses.refresh(),
-        schools.refresh(),
+        home.refresh(),
         next.refresh(),
         due.refresh(),
         ...[...registry].map((run) => run()),
@@ -79,7 +92,7 @@ export function TodayScreen({ due, onNavigate, onOpenTab }: TodayScreenProps) {
     } finally {
       setPulling(false);
     }
-  }, [courses, schools, next, due, registry]);
+  }, [courses, home, next, due, registry]);
 
   const openCourse = useCallback(
     (courseId: string) => {
@@ -96,12 +109,23 @@ export function TodayScreen({ due, onNavigate, onOpenTab }: TodayScreenProps) {
   const noCourses = courses.status === 'loaded' && courseIds.length === 0;
   const name = user?.email?.split('@')[0] ?? null;
 
+  const { variant } = home;
   const ids = useMemo(() => {
-    const layout = HOME_LAYOUT.school;
+    const layout = layoutFor(variant, NOT_BUILT);
     return noCourses
       ? [...layout.filter((id) => KEPT_WITHOUT_COURSES.has(id)), 'first' as const]
       : layout;
-  }, [noCourses]);
+  }, [variant, noCourses]);
+
+  // AI blocks arrive after the first paint (entitlements load later); ease the others down
+  // once instead of jumping. Not on the first layout, and not on every pull.
+  const shownVariant = useRef(variant);
+  useEffect(() => {
+    if (shownVariant.current !== variant) {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      shownVariant.current = variant;
+    }
+  }, [variant]);
 
   const renderBlock = (id: HomeBlockId | 'first') => {
     switch (id) {
@@ -118,13 +142,28 @@ export function TodayScreen({ due, onNavigate, onOpenTab }: TodayScreenProps) {
           />
         );
       case 'groupAccess':
-        return <GroupAccess key={id} schools={schools.schools} onOpenCourse={openCourse} />;
+        return <GroupAccess key={id} schools={schools} onOpenCourse={openCourse} />;
       case 'teacherFeedback':
-        return <TeacherFeedback key={id} offline={offline} onNavigate={onNavigate} />;
+        return (
+          <TeacherFeedback
+            key={id}
+            offline={offline}
+            showAiDrafted={home.caps.reviewDraft}
+            onNavigate={onNavigate}
+          />
+        );
       case 'nextClass':
         return <NextClass key={id} nextClass={nextClass} />;
       case 'assignment':
         return <Assignment key={id} />;
+      case 'soloWriting':
+        return (
+          <SoloWriting
+            key={id}
+            onConnectAi={() => onOpenTab('Profile')}
+            onFindSchool={() => onOpenTab('Courses')}
+          />
+        );
       case 'workOnThis':
         return <WorkOnThis key={id} onOpenPractice={() => onOpenTab('Practice')} />;
       case 'resume':
@@ -147,13 +186,13 @@ export function TodayScreen({ due, onNavigate, onOpenTab }: TodayScreenProps) {
         return (
           <FirstRun
             key={id}
-            inSchool={hasSchool(schools.schools)}
+            inSchool={hasSchool(schools)}
             offline={offline}
             onOpenCourses={() => onOpenTab('Courses')}
           />
         );
       default:
-        // Blocks of step 7 and plan 03 render nothing yet.
+        // Goal has no data, CatalogPicks waits for plan 04, the rest is plan 03.
         return null;
     }
   };

@@ -12,6 +12,8 @@ import { useRegisterRefresh } from '../refresh';
 
 interface TeacherFeedbackProps {
   offline: boolean;
+  /** Variant C (`ai.review_draft`): say when a model drafted the review the teacher sent. */
+  showAiDrafted?: boolean;
   onNavigate: (screen: Screen) => void;
 }
 
@@ -20,7 +22,7 @@ interface TeacherFeedbackProps {
  * Shown when there is either. The waiting line names no deadline: the phone has no school's
  * response promise to quote (the web's BFF works it out), and «48 h» would be invented.
  */
-export function TeacherFeedback({ offline, onNavigate }: TeacherFeedbackProps) {
+export function TeacherFeedback({ offline, showAiDrafted = false, onNavigate }: TeacherFeedbackProps) {
   const { t } = useTranslation();
   const { colors, typography } = useTheme();
   const { submissions, refresh } = useMySubmissions();
@@ -60,6 +62,14 @@ export function TeacherFeedback({ offline, onNavigate }: TeacherFeedbackProps) {
         <Text style={[typography.secondary, { color: colors.neutral400 }]} numberOfLines={2}>
           {quote}
         </Text>
+      ) : null}
+      {showAiDrafted && decision?.aiDrafted ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Icon name="Sparkle" size={14} color={colors.neutral500} />
+          <Text style={[typography.meta, { color: colors.neutral500, flex: 1 }]}>
+            {t('today.teacher.aiDrafted')}
+          </Text>
+        </View>
       ) : null}
       {offline ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>

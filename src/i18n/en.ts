@@ -114,6 +114,13 @@ export const en: Translations = {
       title: 'From your teacher',
       waiting: 'With the teacher: {count}',
       offline: 'New reviews will arrive when you are back online',
+      aiDrafted: 'A model drafted the review, the teacher checked it',
+    },
+    soloWriting: {
+      title: 'Writing and speaking',
+      body: 'Without a teacher, tasks like these are checked against a sample answer. A model or a school can check them for you.',
+      connectAi: 'Connect AI review',
+      findSchool: 'Find a school',
     },
     status: {
       passed: 'Passed',

@@ -112,6 +112,14 @@ export interface Translations {
       title: string;
       waiting: string; // '{count}'
       offline: string;
+      aiDrafted: string;
+    };
+    /** Block 10. */
+    soloWriting: {
+      title: string;
+      body: string;
+      connectAi: string;
+      findSchool: string;
     };
     /** A submission's state, as a tag. The engine has two verdicts, so no «partial» or «failed». */
     status: {
