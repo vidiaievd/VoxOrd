@@ -52,8 +52,6 @@ export const en: Translations = {
     reviewNone: 'All caught up for today',
     reviewedToday: 'Reviewed today: {count}',
     reviewStart: 'Start reviewing',
-    myCourses: 'My courses',
-    allCourses: 'All courses',
     noCourses: 'No courses yet',
     noCoursesDesc: 'When a school or a teacher enrolls you in a course, it shows up here.',
     dayLine: {

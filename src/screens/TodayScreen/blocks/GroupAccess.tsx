@@ -69,7 +69,7 @@ export function GroupAccess({ schools, onOpenCourse }: GroupAccessProps) {
                 accessibilityRole="link"
                 accessibilityLabel={`${t('today.openCourse')}: ${n.courseName ?? ''}`}
                 onPress={() => onOpenCourse(n.courseId)}
-                hitSlop={10}
+                style={{ minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' }}
               >
                 <Text style={[typography.secondary, { color: colors.accent300 }]}>
                   {t('today.openCourse')}
@@ -80,8 +80,7 @@ export function GroupAccess({ schools, onOpenCourse }: GroupAccessProps) {
               accessibilityRole="button"
               accessibilityLabel={t('today.dismiss')}
               onPress={() => hide(n.membershipId)}
-              hitSlop={6}
-              style={{ width: 32, height: 32, alignItems: 'center', justifyContent: 'center', marginTop: -6, marginRight: -6 }}
+              style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginTop: -12, marginRight: -12 }}
             >
               <Icon name="XCircle" size={18} color={colors.neutral500} />
             </Pressable>

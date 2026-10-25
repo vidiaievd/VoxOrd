@@ -60,8 +60,6 @@ export const ru: Translations = {
     reviewNone: 'На сегодня всё повторено',
     reviewedToday: 'Сегодня повторено: {count}',
     reviewStart: 'Начать повторение',
-    myCourses: 'Мои курсы',
-    allCourses: 'Все курсы',
     noCourses: 'Курсов пока нет',
     noCoursesDesc: 'Когда школа или преподаватель запишет вас на курс, он появится здесь.',
     dayLine: {

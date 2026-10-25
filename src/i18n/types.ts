@@ -58,8 +58,6 @@ export interface Translations {
     reviewNone: string;
     reviewedToday: string; // '{count}'
     reviewStart: string;
-    myCourses: string;
-    allCourses: string;
     noCourses: string;
     noCoursesDesc: string;
     /** The third header line: the one thing that is on today, in order of priority. */
