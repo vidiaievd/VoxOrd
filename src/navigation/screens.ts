@@ -1,3 +1,4 @@
+import type { AssistContext } from '../api/assistant';
 import type { Deck } from '../repositories/DeckRepository';
 
 export type Tab =
@@ -8,13 +9,11 @@ export type Tab =
   | 'Profile';
 
 /**
- * What the assistant is opened about (Home spec §6.2). Plan 03 fills in what each kind
- * carries into the conversation; the route only has to hold it.
+ * What the assistant is opened about (Home spec §6.2) — the context the server reads the
+ * course, the payer and the material from (`src/api/assistant.ts`, platform plan 83 §3).
+ * Without one, the question is free.
  */
-export type AssistantContext =
-  | { kind: 'unit'; unitId: string; courseId: string }
-  | { kind: 'submission'; submissionId: string }
-  | { kind: 'class'; lessonId: string };
+export type AssistantContext = AssistContext;
 
 export type Screen =
   | { name: 'Today' }
