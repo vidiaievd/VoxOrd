@@ -102,6 +102,78 @@ export interface Translations {
       cta: string;
       offlineHint: string;
     };
+    /** Block 3: a group opened a course to the learner. */
+    groupAccess: string; // '{group}', '{school}', '{course}'
+    groupAccessNoCourse: string; // '{group}', '{school}' — the course's name could not be read
+    openCourse: string;
+    dismiss: string;
+    /** Block 6: the latest review, and what is still waiting. */
+    teacher: {
+      title: string;
+      waiting: string; // '{count}'
+      offline: string;
+    };
+    /** A submission's state, as a tag. The engine has two verdicts, so no «partial» or «failed». */
+    status: {
+      passed: string;
+      rewrite: string;
+      atTeacher: string;
+    };
+    /** Block 7. */
+    nextClass: {
+      title: string;
+      today: string;
+      tomorrow: string;
+      inDays: PluralForms; // '{count}'
+      room: string; // '{room}'
+    };
+    /** «пн» — a weekday on a date tile, keyed like `Date.getDay()`. */
+    weekdayShort: {
+      sun: string;
+      mon: string;
+      tue: string;
+      wed: string;
+      thu: string;
+      fri: string;
+      sat: string;
+    };
+    /** Block 8. */
+    assignment: {
+      title: string; // '{title}'
+      due: string; // '{date}'
+    };
+    /** Block 11: what the profile says is weak — topics only, never numbers. */
+    workOnThis: {
+      title: string;
+      body: string;
+      cta: string;
+      skill: {
+        listening: string;
+        reading: string;
+        spoken: string;
+        written: string;
+      };
+      focus: {
+        vocabulary: string;
+        grammar: string;
+        orthography: string;
+        pronunciation: string;
+        phonology: string;
+        pragmatics: string;
+      };
+    };
+  };
+  /** One piece of work handed to a reviewer, opened from Today or a notification. */
+  submission: {
+    fallbackTitle: string;
+    waiting: string;
+    commentBy: string; // '{teacher}'
+    commentUnsigned: string;
+    approvedNoComment: string;
+    returnedNoComment: string;
+    marks: string;
+    mark: string; // '{mark}'
+    loadFailed: string;
   };
   /** What kind of material an item is, for «Lesson · 5 min». */
   itemType: {

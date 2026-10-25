@@ -36,6 +36,11 @@ export type Screen =
       submissionId: string;
       /** The AI review is addressed by exercise and attempt both (`src/api/aiReview.ts`). */
       exerciseId: string;
+      /**
+       * Opened from Today rather than from a notification: Back returns there instead of
+       * jumping to the Notifications tab (owner's decision 2026-10-25, against Home §4.2).
+       */
+      returnTo?: Screen;
     }
   | { name: 'ModeSelector'; deck: Deck }
   | { name: 'Card'; deck: Deck; mode?: 'assessment' }
@@ -106,7 +111,7 @@ export function backTarget(screen: Screen): Screen | null {
     case 'Assistant':
       return screen.returnTo;
     case 'Submission':
-      return { name: 'Notifications' };
+      return screen.returnTo ?? { name: 'Notifications' };
     case 'Settings':
       return { name: 'Profile' };
     case 'CourseHome':

@@ -50,6 +50,11 @@ const CASES: {
       { name: 'Notifications' },
       'Notifications',
     ],
+    [
+      { name: 'Submission', submissionId: 's1', exerciseId: 'e1', returnTo: { name: 'Today' } },
+      { name: 'Today' },
+      'Today',
+    ],
   ],
   CourseHome: [
     [{ name: 'CourseHome', courseId: 'c1' }, { name: 'Courses' }, 'Courses'],

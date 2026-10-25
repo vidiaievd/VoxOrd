@@ -3,20 +3,27 @@ import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../hooks/useAuth';
 import type { DueCount } from '../../hooks/useDueCount';
+import { classStart } from '../../api/nextClass';
 import { useMyCourses } from '../../hooks/useMyCourses';
+import { useNextClass } from '../../hooks/useNextClass';
 import { useSchools } from '../../hooks/useSchools';
 import { hasSchool } from './variant';
 import { useTabScrollToTop } from '../../navigation/tabScroll';
 import type { Screen } from '../../navigation/screens';
 import { useTheme } from '../../providers/ThemeProvider';
-import { getLastCourseId } from '../../store/lastCourseStore';
+import { getLastCourseId, setLastCourseId } from '../../store/lastCourseStore';
 import { spacing } from '../../theme/spacing';
+import { Assignment } from './blocks/Assignment';
 import { FirstRun } from './blocks/FirstRun';
+import { GroupAccess } from './blocks/GroupAccess';
 import { Header } from './blocks/Header';
+import { NextClass } from './blocks/NextClass';
 import { OfflineCard } from './blocks/OfflineCard';
 import { Review } from './blocks/Review';
 import { Resume } from './blocks/Resume';
 import { ResumeSkeleton } from './blocks/Skeleton';
+import { TeacherFeedback } from './blocks/TeacherFeedback';
+import { WorkOnThis } from './blocks/WorkOnThis';
 import { HOME_LAYOUT, type HomeBlockId } from './layout';
 import { pickCourseId } from './today';
 import { RefreshRegistry } from './refresh';
@@ -48,6 +55,7 @@ export function TodayScreen({ due, onNavigate, onOpenTab }: TodayScreenProps) {
   const { user, offline } = useAuth();
   const courses = useMyCourses();
   const schools = useSchools();
+  const next = useNextClass(schools.schools);
   const scrollRef = useRef<ScrollView>(null);
   useTabScrollToTop('Today', scrollRef);
 
@@ -64,13 +72,24 @@ export function TodayScreen({ due, onNavigate, onOpenTab }: TodayScreenProps) {
       await Promise.all([
         courses.refresh(),
         schools.refresh(),
+        next.refresh(),
         due.refresh(),
         ...[...registry].map((run) => run()),
       ]);
     } finally {
       setPulling(false);
     }
-  }, [courses, schools, due, registry]);
+  }, [courses, schools, next, due, registry]);
+
+  const openCourse = useCallback(
+    (courseId: string) => {
+      void setLastCourseId(courseId);
+      onNavigate({ name: 'CourseHome', courseId });
+    },
+    [onNavigate],
+  );
+  // A cancelled class is not the day's news.
+  const nextClass = next.nextClass?.status === 'cancelled' ? null : next.nextClass;
 
   const courseIds = courses.courses.map((c) => c.container.id);
   const leadId = lastId === undefined ? null : pickCourseId(courseIds, lastId);
@@ -95,9 +114,19 @@ export function TodayScreen({ due, onNavigate, onOpenTab }: TodayScreenProps) {
             // Until the list is known, do not greet a learner who has courses as a newcomer.
             hasCourses={courses.status !== 'loaded' || courseIds.length > 0}
             dueCount={due.count ?? 0}
-            nextClassAt={null}
+            nextClassAt={nextClass ? classStart(nextClass) : null}
           />
         );
+      case 'groupAccess':
+        return <GroupAccess key={id} schools={schools.schools} onOpenCourse={openCourse} />;
+      case 'teacherFeedback':
+        return <TeacherFeedback key={id} offline={offline} onNavigate={onNavigate} />;
+      case 'nextClass':
+        return <NextClass key={id} nextClass={nextClass} />;
+      case 'assignment':
+        return <Assignment key={id} />;
+      case 'workOnThis':
+        return <WorkOnThis key={id} onOpenPractice={() => onOpenTab('Practice')} />;
       case 'resume':
         if (leadId) {
           return <Resume key={id} courseId={leadId} offline={offline} onNavigate={onNavigate} />;
@@ -124,7 +153,7 @@ export function TodayScreen({ due, onNavigate, onOpenTab }: TodayScreenProps) {
           />
         );
       default:
-        // Blocks of later steps (6 and 7) render nothing yet.
+        // Blocks of step 7 and plan 03 render nothing yet.
         return null;
     }
   };

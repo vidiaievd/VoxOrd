@@ -28,6 +28,7 @@ import { VocabularyListScreen } from '../screens/VocabularyListScreen';
 import { GrammarRuleReaderScreen } from '../screens/GrammarRuleReaderScreen';
 import { ReviewSessionScreen } from '../screens/ReviewSessionScreen';
 import { MyWordsScreen } from '../screens/MyWordsScreen';
+import { SubmissionScreen } from '../screens/SubmissionScreen';
 import { TAB_ROOT, backTarget, showsTabBar, tabOf, type Screen, type Tab } from './screens';
 import { TabBar } from './TabBar';
 import { TabScrollProvider, useScrollTabToTop } from './tabScroll';
@@ -459,10 +460,21 @@ function Navigator() {
       case 'Notifications':
         return <NotificationsScreen />;
 
-      // Nothing opens these yet — plans 02 and 03 build them. Should one be reached, Today
-      // is a safe place to land.
-      case 'Assistant':
       case 'Submission':
+        return (
+          <SubmissionScreen
+            submissionId={screen.submissionId}
+            exerciseId={screen.exerciseId}
+            parentLabel={
+              screen.returnTo?.name === 'Today' ? t('nav.today') : t('nav.notifications')
+            }
+            onBack={goBack}
+          />
+        );
+
+      // Nothing opens this yet — plan 03 builds it. Should it be reached, Today is a safe
+      // place to land.
+      case 'Assistant':
       case 'Today':
         return (
           <TodayScreen

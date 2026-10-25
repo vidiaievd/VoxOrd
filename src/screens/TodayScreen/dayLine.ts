@@ -11,13 +11,13 @@ export interface DayLineInput {
   now: Date;
 }
 
-const WEEKDAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
+export const WEEKDAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
 
 /** A class this many days ahead or fewer is near enough for the day line to name its day. */
 const SOON_DAYS = 7;
 
 /** Whole calendar days from `now` to `at`, in local time: 0 today, 1 tomorrow. */
-function calendarDaysUntil(at: Date, now: Date): number {
+export function calendarDaysUntil(at: Date, now: Date): number {
   const day = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
   return Math.round((day(at) - day(now)) / 86_400_000);
 }

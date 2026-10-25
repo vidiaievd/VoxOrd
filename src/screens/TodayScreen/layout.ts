@@ -20,11 +20,27 @@ export type HomeBlockId =
   | 'aiCredits';
 
 /**
+ * The assignment block in variant A too. Off: in A assignments live in Notifications — a
+ * deliberate asymmetry with C that the owner tests for usability (Home §15 q5).
+ */
+export const HOME_SHOW_ASSIGNMENT = false;
+
+/**
  * The order of Today's blocks per variant (Home spec §6.3). Each block decides for itself
  * whether it has anything to say; the screen only walks the list.
  */
 export const HOME_LAYOUT: Record<HomeVariant, readonly HomeBlockId[]> = {
-  school: ['offline', 'header', 'groupAccess', 'resume', 'review', 'teacherFeedback', 'nextClass', 'workOnThis'],
+  school: [
+    'offline',
+    'header',
+    'groupAccess',
+    'resume',
+    'review',
+    'teacherFeedback',
+    'nextClass',
+    ...(HOME_SHOW_ASSIGNMENT ? (['assignment'] as const) : []),
+    'workOnThis',
+  ],
   solo: ['offline', 'header', 'resume', 'review', 'goal', 'soloWriting', 'workOnThis', 'catalogPicks'],
   school_ai: [
     'offline',
