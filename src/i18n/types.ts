@@ -1519,6 +1519,132 @@ export interface Translations {
     phaseSpelling: string;
   };
 
+  // Practice tab (mobile redesign 05, Practice §11).
+  practice: {
+    title: string;
+    reviewKicker: string;
+    todayOf: string; // 'Today {done} of {limit}'
+    dueNow: string;
+    srcCourseWords: PluralForms; // '{count} words from courses'
+    srcMyWords: PluralForms; // '{count} from My words'
+    srcRules: PluralForms;
+    srcExercises: PluralForms;
+    reviewCta: string; // 'Review · ~{min} min'
+    forecast: string; // 'Next: {first} · {second}'
+    forecastOne: string; // 'Next: {first}'
+    forecastTomorrow: string; // 'tomorrow {count}'
+    forecastWeekday: string; // '{weekday} {count}'
+    weekdayIn: {
+      sun: string;
+      mon: string;
+      tue: string;
+      wed: string;
+      thu: string;
+      fri: string;
+      sat: string;
+    };
+    queueEmpty: string;
+    loadError: string;
+    grammarSection: string;
+    grammarRowSub: PluralForms; // 'Unit {unit} · {count} days without practice'
+    mistakesSection: string;
+    mistakeRowSub: string; // 'Unit {unit} · mistake {when}'
+    whenToday: string;
+    whenYesterday: string;
+    decksSection: string;
+    decksAll: string; // 'All {count}'
+    deckMeta: PluralForms; // '{course} · unit {unit} · {count} words'
+    deckMetaPersonal: PluralForms; // '{count} words'
+    myWordsTitle: string;
+    myWordsRow: PluralForms; // '{count} words'
+    myWordsPending: PluralForms; // '{count} waiting for translation'
+  };
+
+  reviewSession: {
+    newWord: string;
+    tapToFlip: string;
+    next: string;
+    check: string;
+    dontKnow: string;
+    pickTranslation: string;
+    listenPick: string;
+    writeIn: string; // 'Write {langIn}'
+    langIn: { nb: string; de: string; en: string };
+    langInOther: string;
+    correct: string;
+    almost: string; // 'Almost: {answer}'
+    correctIs: string; // 'Correct: {answer}'
+    todayOfLeft: string;
+    done: string;
+    nextSession: PluralForms; // 'Next: {when}, {count} cards'
+    statCards: string;
+    statTime: string;
+    statHard: string;
+    byPhase: string;
+    hardWords: string;
+    queuedOffline: PluralForms;
+    unresolvedRowSub: PluralForms; // 'Unit {unit} · {count} words waiting'
+    saveList: string;
+    exitTitle: string;
+    exitBody: string;
+    exitConfirm: string;
+    phaseOf: string; // 'Phase {i} of {n}'
+    phaseCorrect: string; // '{correct} of {total} correct'
+    tomorrow: string;
+  };
+
+  modes: {
+    deep: string;
+    deepSub: string; // '… · ~{min} min'
+    deepCooldown: string; // 'Available in {time}'
+    assessment: string;
+    assessmentSub: string;
+    section: string;
+    soon: string;
+    learned: string;
+    new: string;
+    repeat: string;
+    wordList: string;
+    deckMeta: PluralForms; // '{course} · unit {unit} · {count} words'
+    flashcard: string;
+    flashcardDesc: string;
+    matching: string;
+    matchingDesc: string;
+    quiz: string;
+    quizDesc: string;
+    spelling: string;
+    spellingDesc: string;
+    listening: string;
+    listeningDesc: string;
+    pronunciation: string;
+    pronunciationDesc: string;
+    context: string;
+    contextDesc: string;
+  };
+
+  grammarReview: {
+    kicker: string; // 'Rule · unit {unit}'
+    lastPractice: string; // 'Last practice {when}'
+    mastery: string;
+    masteryWas: string; // '{now}% · was {peak}%'
+    openRule: string;
+    weakSection: string;
+    weakRow: string; // '{wrong} of {total} wrong'
+    poolNote: PluralForms; // '{count} tasks in the review: {types}. …'
+    cta: PluralForms; // 'Review · {count} tasks · ~{min} min'
+  };
+
+  results: {
+    excellent: string;
+    good: string;
+    okay: string;
+    keepGoing: string;
+    accuracy: string;
+    correct: string;
+    byMode: string;
+    again: string;
+  };
+
   audioLesson: {
     stageListen: string;
     stageGapFill: string;
