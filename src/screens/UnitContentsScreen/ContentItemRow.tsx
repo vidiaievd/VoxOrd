@@ -4,6 +4,7 @@ import { useTheme } from '../../providers/ThemeProvider';
 import { useTranslation } from '../../i18n';
 import { radii } from '../../theme/spacing';
 import { Icon } from '../../components/ui/Icon';
+import { Spinner } from '../../components/ui/Spinner';
 import { Tag, type TagVariant } from '../../components/ui/Tag';
 import type { UnitContentsItem } from '../../api/types';
 import { contentIcon } from './contentIcon';
@@ -14,6 +15,8 @@ interface ContentItemRowProps {
   onPress?: () => void;
   /** Tap on a locked row: the screen says why with a toast. */
   onLockedPress?: () => void;
+  /** The material is being fetched for the phone (spinner), or could not be (crossed cloud). */
+  download?: 'fetching' | 'failed';
 }
 
 const TAG_BY_STATUS: Record<UnitContentsItem['status'], TagVariant> = {
@@ -48,7 +51,7 @@ function useMeta(item: UnitContentsItem): string {
   }
 }
 
-export function ContentItemRow({ item, onPress, onLockedPress }: ContentItemRowProps) {
+export function ContentItemRow({ item, onPress, onLockedPress, download }: ContentItemRowProps) {
   const { colors, typography } = useTheme();
   const { t } = useTranslation();
   const locked = item.status === 'locked';
@@ -96,6 +99,8 @@ export function ContentItemRow({ item, onPress, onLockedPress }: ContentItemRowP
           </Text>
         )}
       </View>
+      {download === 'fetching' && <Spinner size={16} color={colors.neutral400} />}
+      {download === 'failed' && <Icon name="CloudSlash" size={16} color={colors.neutral500} />}
       <Tag label={statusLabel} variant={TAG_BY_STATUS[item.status]} />
     </Pressable>
   );

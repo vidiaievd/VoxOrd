@@ -5,7 +5,7 @@ import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { spacing } from '../../theme/spacing';
 import { OfflineBanner } from '../../components/OfflineBanner';
-import { Button, Icon, NavHeader, Overline, Skeleton, useToast } from '../../components/ui';
+import { Button, Icon, NavHeader, Overline, Skeleton, Spinner, useToast } from '../../components/ui';
 import { isNetworkError } from '../../api/isNetworkError';
 import { useCourseHome } from '../../hooks/useCourseHome';
 import { useDownloadState } from '../../hooks/useDownloadState';
@@ -26,6 +26,12 @@ interface UnitContentsScreenProps {
   onOpen: (screen: Screen) => void;
 }
 
+/** «64 МБ», «< 1 МБ» — whole megabytes (Courses spec §11). */
+function formatSize(bytes: number, t: ReturnType<typeof useTranslation>['t']): string {
+  const mb = Math.round(bytes / (1024 * 1024));
+  return mb < 1 ? t('unitContents.sizeUnderMb') : t('unitContents.sizeMb', { mb });
+}
+
 const isDone = (i: UnitContentsItem) => i.status === 'completed' || i.status === 'submitted';
 
 export function UnitContentsScreen({
@@ -42,7 +48,7 @@ export function UnitContentsScreen({
   // The course home gives the unit its number, the next unit and the parent label; it is
   // cached from the screen the learner came through.
   const home = useCourseHome(courseId).data;
-  const download = useDownloadState(unitId, home?.units ?? null);
+  const download = useDownloadState(unitId, courseId, home?.units ?? null);
   const listRef = useRef<SectionList<UnitContentsItem, UnitSection>>(null);
 
   const sections = useMemo(() => (data ? groupSections(data) : []), [data]);
@@ -102,14 +108,32 @@ export function UnitContentsScreen({
     }
   };
 
+  const size = download.sizeBytes === null ? null : formatSize(download.sizeBytes, t);
   const downloadLine = {
-    done: { icon: 'DeviceMobile', label: t('unitContents.saved') },
+    done: {
+      icon: 'DeviceMobile',
+      label: size ? t('unitContents.savedSize', { size }) : t('unitContents.saved'),
+    },
     none: { icon: 'CloudArrowDown', label: t('unitContents.notSaved') },
-    downloading: { icon: 'CircleNotch', label: t('unitContents.saving') },
+    downloading: {
+      icon: 'CircleNotch',
+      label:
+        download.progress === null
+          ? t('unitContents.saving')
+          : t('unitContents.savingPct', { pct: Math.round(download.progress * 100) }),
+    },
   }[download.state] as { icon: 'DeviceMobile' | 'CloudArrowDown' | 'CircleNotch'; label: string };
 
+  // A spinner on a material only while the unit is being walked; a failure stays after it.
+  const itemDownload = (item: UnitContentsItem): 'fetching' | 'failed' | undefined => {
+    const st = download.items[item.id];
+    if (st === 'failed') return 'failed';
+    if (download.state === 'downloading' && (st === 'queued' || st === 'downloading')) return 'fetching';
+    return undefined;
+  };
+
   const onDownloadPress = () => {
-    if (download.state === 'done') toast.show(t('unitContents.saved'));
+    if (download.state === 'done') toast.show(downloadLine.label);
     else if (download.state === 'downloading') toast.show(t('unitContents.saving'));
     else if (!download.inWindow) toast.show(t('unitContents.outsideWindowToast'));
     else download.start();
@@ -128,7 +152,11 @@ export function UnitContentsScreen({
         {data?.moduleTitle ?? t('unitContents.title')}
       </Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-        <Icon name={downloadLine.icon} size={14} color={colors.neutral400} />
+        {download.state === 'downloading' ? (
+          <Spinner size={14} color={colors.neutral400} />
+        ) : (
+          <Icon name={downloadLine.icon} size={14} color={colors.neutral400} />
+        )}
         <Text style={[typography.meta, { color: colors.neutral400 }]}>{downloadLine.label}</Text>
       </View>
     </View>
@@ -165,6 +193,7 @@ export function UnitContentsScreen({
               : download.state === 'downloading'
               ? 'CircleNotch'
               : 'DownloadSimple',
+          spinning: download.state === 'downloading',
           accessibilityLabel: downloadLine.label,
           onPress: onDownloadPress,
         }}
@@ -211,6 +240,7 @@ export function UnitContentsScreen({
               <ContentItemRow
                 item={item}
                 onPress={open(item)}
+                download={itemDownload(item)}
                 onLockedPress={() => toast.show(t('unitContents.lockedToast'))}
               />
             </View>

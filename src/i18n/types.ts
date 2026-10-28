@@ -405,6 +405,10 @@ export interface Translations {
     saved: string;
     notSaved: string;
     saving: string;
+    savedSize: string; // '{size}'
+    savingPct: string; // '{pct}'
+    sizeMb: string; // '{mb}'
+    sizeUnderMb: string;
     secTexts: string;
     secWordsGrammar: string;
     secExercises: string; // '{count}'

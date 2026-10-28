@@ -7,5 +7,6 @@ export * from './PressableScale';
 export * from './ProgressTrack';
 export * from './SegmentedControl';
 export * from './Skeleton';
+export * from './Spinner';
 export * from './Tag';
 export * from './Toast';
