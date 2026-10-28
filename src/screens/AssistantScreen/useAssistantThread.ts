@@ -4,6 +4,7 @@ import {
   sendFeedback,
   sendMessage,
   type AssistContext,
+  type AssistDraft,
   type AssistReason,
   type SendOutcome,
 } from '../../api/assistant';
@@ -21,9 +22,17 @@ import type { Unanswered } from './assistantLogic';
  * A question still waiting for its answer, by user and context. Kept outside the screen: a
  * citation opens another screen in its place (the navigator holds one), and the answer that
  * arrives meanwhile is written to the thread all the same — coming back shows it, or the
- * wait if it is still out.
+ * wait (and the answer as written so far) if it is still out.
  */
-const inFlight = new Map<string, { text: string; outcome: Promise<SendOutcome> }>();
+interface Flight {
+  text: string;
+  outcome: Promise<SendOutcome>;
+  /** The streamed answer so far; empty until its first piece. */
+  draft: AssistDraft;
+  watchers: Set<(draft: AssistDraft) => void>;
+}
+
+const inFlight = new Map<string, Flight>();
 
 export interface FailedTurn {
   text: string;
@@ -36,6 +45,8 @@ export interface AssistantThread {
   loaded: boolean;
   /** The learner's question while its answer is awaited. */
   pending: string | null;
+  /** The answer being written for `pending` — unchecked, empty until the first piece. */
+  draft: AssistDraft;
   /** The last question when it brought no answer — shown with it, not kept in the thread. */
   failed: FailedTurn | null;
   send: (text: string) => void;
@@ -59,6 +70,9 @@ export function useAssistantThread(context: AssistContext): AssistantThread {
   const [turns, setTurns] = useState<ThreadTurn[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [pending, setPending] = useState<string | null>(null);
+  const [draft, setDraft] = useState<AssistDraft>([]);
+  /** Stops following the draft of the flight shown. */
+  const unwatch = useRef<(() => void) | null>(null);
   const [failed, setFailed] = useState<FailedTurn | null>(null);
 
   // The context as of this render, for callbacks that outlive it.
@@ -70,15 +84,22 @@ export function useAssistantThread(context: AssistContext): AssistantThread {
     [],
   );
 
-  /** Waits for a question in flight, then shows the thread as stored. */
+  /** Waits for a question in flight, showing its draft, then shows the thread as stored. */
   const follow = useCallback(
-    (key: string, text: string, outcome: Promise<SendOutcome>) => {
-      setPending(text);
+    (key: string, flight: Flight) => {
+      unwatch.current?.();
+      flight.watchers.add(setDraft);
+      unwatch.current = () => flight.watchers.delete(setDraft);
+      setPending(flight.text);
+      setDraft(flight.draft);
       setFailed(null);
-      void outcome.then(async (result) => {
+      const { text } = flight;
+      void flight.outcome.then(async (result) => {
+        flight.watchers.delete(setDraft);
         if (live.current.ctxKey !== key) return;
         setTurns(await assistantThreadStore.getThread(key));
         setPending(null);
+        setDraft([]);
         if (result.kind !== 'answer') {
           setFailed({
             text,
@@ -95,16 +116,19 @@ export function useAssistantThread(context: AssistContext): AssistantThread {
     let current = true;
     setLoaded(false);
     setPending(null);
+    setDraft([]);
     setFailed(null);
     void assistantThreadStore.getThread(ctxKey).then((stored) => {
       if (!current) return;
       setTurns(stored);
       setLoaded(true);
       const flight = inFlight.get(flightKey(ctxKey));
-      if (flight) follow(ctxKey, flight.text, flight.outcome);
+      if (flight) follow(ctxKey, flight);
     });
     return () => {
       current = false;
+      unwatch.current?.();
+      unwatch.current = null;
     };
   }, [ctxKey, flightKey, follow]);
 
@@ -116,16 +140,24 @@ export function useAssistantThread(context: AssistContext): AssistantThread {
       if (text === '' || inFlight.has(fKey)) return;
 
       const question = turn('user', text);
-      const outcome = sendMessage(ctx, toHistory(shown), text).then(async (result) => {
-        if (result.kind === 'answer') {
-          const reply = turn('assistant', answerText(result.answer), { answer: result.answer });
-          await assistantThreadStore.append(key, [question, reply]);
-        }
-        return result;
-      });
-      inFlight.set(fKey, { text, outcome });
-      void outcome.finally(() => inFlight.delete(fKey));
-      follow(key, text, outcome);
+      const flight: Flight = {
+        text,
+        draft: [],
+        watchers: new Set(),
+        outcome: sendMessage(ctx, toHistory(shown), text, (next) => {
+          flight.draft = next;
+          flight.watchers.forEach((watch) => watch(next));
+        }).then(async (result) => {
+          if (result.kind === 'answer') {
+            const reply = turn('assistant', answerText(result.answer), { answer: result.answer });
+            await assistantThreadStore.append(key, [question, reply]);
+          }
+          return result;
+        }),
+      };
+      inFlight.set(fKey, flight);
+      void flight.outcome.finally(() => inFlight.delete(fKey));
+      follow(key, flight);
     },
     [flightKey, follow],
   );
@@ -145,5 +177,5 @@ export function useAssistantThread(context: AssistContext): AssistantThread {
     return true;
   }, []);
 
-  return { turns, loaded, pending, failed, send, retry, giveFeedback };
+  return { turns, loaded, pending, draft, failed, send, retry, giveFeedback };
 }

@@ -1,6 +1,12 @@
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
-import type { AssistAnswer, AssistBlock, AssistCitation, AssistSuggestion } from '../../api/assistant';
+import type {
+  AssistAnswer,
+  AssistBlock,
+  AssistCitation,
+  AssistDraft,
+  AssistSuggestion,
+} from '../../api/assistant';
 import { Icon } from '../../components/ui';
 import { useTranslation } from '../../i18n';
 import type { Screen } from '../../navigation/screens';
@@ -62,6 +68,23 @@ export function AnswerView({ turn, targetOf, onOpen, onAsk, onAddWord, onFeedbac
         </View>
       ) : null}
       <FeedbackRow given={turn.feedback ?? null} onFeedback={onFeedback} />
+    </View>
+  );
+}
+
+/**
+ * The answer while it is being written (step 6): its text only. Stresses, citations, chips and
+ * the marks come with the checked answer that replaces it. Kept from the screen reader, which
+ * hears the finished answer once instead of every piece.
+ */
+export function DraftView({ draft }: { draft: AssistDraft }) {
+  return (
+    <View style={{ gap: 10 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      {draft.map((block, i) =>
+        block.text.trim() === '' ? null : (
+          <BlockText key={i} block={{ type: block.type ?? 'text', text: block.text, emphasis: [] }} />
+        ),
+      )}
     </View>
   );
 }

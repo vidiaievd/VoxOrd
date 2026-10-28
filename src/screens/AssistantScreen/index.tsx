@@ -25,7 +25,7 @@ import type { Screen } from '../../navigation/screens';
 import { useTheme } from '../../providers/ThemeProvider';
 import { createASRService, type ASRService } from '../../services/asr';
 import { radii, spacing } from '../../theme/spacing';
-import { AnswerView } from './AnswerView';
+import { AnswerView, DraftView } from './AnswerView';
 import { canRetry, citationTarget, contextCourseId, speechLocale } from './assistantLogic';
 import { useAssistantThread, type FailedTurn } from './useAssistantThread';
 
@@ -201,6 +201,7 @@ export function AssistantScreen({ route, onBack, onNavigate }: AssistantScreenPr
           {thread.pending !== null ? (
             <>
               <UserBubble text={thread.pending} />
+              {thread.draft.length > 0 ? <DraftView draft={thread.draft} /> : null}
               <TypingDots />
             </>
           ) : null}
@@ -355,7 +356,7 @@ function UserBubble({ text }: { text: string }) {
   );
 }
 
-/** Three dots pulsing one after another while the answer is awaited (plan 83 Q2 = A). */
+/** Three dots pulsing one after another until the answer is in, under its text as it streams. */
 function TypingDots() {
   const { t } = useTranslation();
   const { colors } = useTheme();

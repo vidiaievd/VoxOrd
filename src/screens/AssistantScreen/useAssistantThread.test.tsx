@@ -1,13 +1,14 @@
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
-import type { AssistAnswer, AssistContext, AssistTurn, SendOutcome } from '../../api/assistant';
+import type { AssistAnswer, AssistContext, AssistDraft, AssistTurn, SendOutcome } from '../../api/assistant';
 import type { ThreadTurn } from '../../store/assistantThreadStore';
 
-const mockSend = jest.fn<Promise<SendOutcome>, [AssistContext, readonly AssistTurn[], string]>();
+type SendArgs = [AssistContext, readonly AssistTurn[], string, ((draft: AssistDraft) => void)?];
+const mockSend = jest.fn<Promise<SendOutcome>, SendArgs>();
 const mockFeedback = jest.fn<Promise<boolean>, [string, boolean]>();
 jest.mock('../../api/assistant', () => ({
   ...jest.requireActual('../../api/assistant'),
-  sendMessage: (...args: [AssistContext, readonly AssistTurn[], string]) => mockSend(...args),
+  sendMessage: (...args: SendArgs) => mockSend(...args),
   sendFeedback: (...args: [string, boolean]) => mockFeedback(...args),
 }));
 
@@ -102,7 +103,7 @@ it('keeps the thread as it was when the question brings no answer, and asks agai
 
   const second = deferredSend();
   await act(async () => seen.retry());
-  expect(mockSend).toHaveBeenLastCalledWith(unit, [], 'Hvorfor?');
+  expect(mockSend).toHaveBeenLastCalledWith(unit, [], 'Hvorfor?', expect.any(Function));
   await second({ kind: 'answer', answer });
   expect(seen.failed).toBeNull();
   expect(seen.turns).toHaveLength(2);
@@ -123,6 +124,7 @@ it('sends the thread so far as history', async () => {
       { role: 'assistant', text: 'Svar' },
     ],
     'Andre',
+    expect.any(Function),
   );
 });
 
@@ -169,4 +171,37 @@ it('keeps a thread per context', async () => {
   expect(seen.turns).toEqual([]);
   await act(async () => tree.update(<Probe context={{ kind: 'free' }} />));
   expect(seen.turns.map((t) => t.text)).toEqual(['Fri']);
+});
+
+it('shows the answer as it streams, keeps it across leaving the screen, and swaps it for the answer', async () => {
+  const first = await mount();
+  const answerWith = deferredSend();
+  await act(async () => seen.send('Hvorfor?'));
+  const onDraft = mockSend.mock.calls[0][3]!;
+  expect(seen.draft).toEqual([]);
+
+  await act(async () => onDraft([{ type: 'text', text: 'Verbet ' }]));
+  expect(seen.draft).toEqual([{ type: 'text', text: 'Verbet ' }]);
+
+  // A citation took the screen; the text goes on arriving meanwhile.
+  await act(async () => first.unmount());
+  await act(async () => onDraft([{ type: 'text', text: 'Verbet står' }]));
+  await mount();
+  expect(seen.pending).toBe('Hvorfor?');
+  expect(seen.draft).toEqual([{ type: 'text', text: 'Verbet står' }]);
+
+  await answerWith({ kind: 'answer', answer });
+  expect(seen.draft).toEqual([]);
+  expect(seen.turns.map((t) => t.text)).toEqual(['Hvorfor?', 'Verbet står på plass to.']);
+});
+
+it('drops the streamed text when the turn ends without an answer', async () => {
+  await mount();
+  const refuse = deferredSend();
+  await act(async () => seen.send('Hvorfor?'));
+  await act(async () => mockSend.mock.calls[0][3]!([{ type: 'text', text: 'Verbet' }]));
+  await refuse({ kind: 'refused', reason: 'quota' });
+  expect(seen.draft).toEqual([]);
+  expect(seen.turns).toEqual([]);
+  expect(seen.failed?.kind).toBe('refused');
 });
