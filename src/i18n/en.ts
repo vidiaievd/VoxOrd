@@ -400,6 +400,8 @@ export const en: Translations = {
     level: 'Level',
     allLanguages: 'All languages',
     allLevels: 'All levels',
+    skill: 'Skill',
+    allSkills: 'All skills',
     group: '{lang} · {level}',
     mine: 'My course',
     units: { one: '{count} unit', few: '{count} units', many: '{count} units' },

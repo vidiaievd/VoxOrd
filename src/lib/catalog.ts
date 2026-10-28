@@ -1,19 +1,21 @@
-import type { AccessTier, Container, DifficultyLevel } from '../api/types';
+import type { AccessTier, Container, ContainerTag, DifficultyLevel, TagCategory } from '../api/types';
 
 /**
- * The catalogue's client side (Courses spec §5.3): search, the language and level chips,
- * grouping by «{language} · {level}», and what a course's screen may offer. The «Skill» and
- * «Offline» chips are not here — a course carries neither a skill focus nor an offline-pack
- * flag (plan 04 step 9 notes).
+ * The catalogue's client side (Courses spec §5.3): search, the language, level and skill chips,
+ * grouping by «{language} · {level}», and what a course's screen may offer. The skill chip is
+ * fed by `skill` tags (plan 04 step 9b); the «Offline» chip is not here — a course carries no
+ * offline-pack flag (plan 04 step 9 notes).
  */
 
 export interface CatalogFilters {
   query: string;
   lang: string | null;
   level: DifficultyLevel | null;
+  /** A `skill` tag id. */
+  skill: string | null;
 }
 
-export const NO_FILTERS: CatalogFilters = { query: '', lang: null, level: null };
+export const NO_FILTERS: CatalogFilters = { query: '', lang: null, level: null, skill: null };
 
 const LEVEL_ORDER: readonly DifficultyLevel[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 
@@ -23,7 +25,21 @@ export const NAMED_LANGUAGES: readonly string[] = ['nb', 'nn', 'no', 'en', 'de',
 /** The chips start on the course being studied (spec §5.3), or on nothing. */
 export function defaultFilters(current: Container | null): CatalogFilters {
   if (!current) return NO_FILTERS;
-  return { query: '', lang: current.targetLanguage, level: current.difficultyLevel };
+  return { query: '', lang: current.targetLanguage, level: current.difficultyLevel, skill: null };
+}
+
+/** A course's tags of the given categories, by name. */
+export function tagsOf(c: Container, categories: readonly TagCategory[]): ContainerTag[] {
+  return (c.tags ?? [])
+    .filter((t) => categories.includes(t.category))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** What the search field matches: title, description, goals and tag names. */
+function searchText(c: Container): string {
+  return [c.title, c.description ?? '', ...(c.learningGoals ?? []), ...(c.tags ?? []).map((t) => t.name)]
+    .join(' ')
+    .toLowerCase();
 }
 
 export function filterCatalog(list: readonly Container[], f: CatalogFilters): Container[] {
@@ -31,7 +47,8 @@ export function filterCatalog(list: readonly Container[], f: CatalogFilters): Co
   return list.filter((c) => {
     if (f.lang && c.targetLanguage !== f.lang) return false;
     if (f.level && c.difficultyLevel !== f.level) return false;
-    if (q && !`${c.title} ${c.description ?? ''}`.toLowerCase().includes(q)) return false;
+    if (f.skill && !(c.tags ?? []).some((t) => t.id === f.skill)) return false;
+    if (q && !searchText(c).includes(q)) return false;
     return true;
   });
 }
@@ -59,11 +76,24 @@ export function groupCatalog(list: readonly Container[]): CatalogGroup[] {
   );
 }
 
-/** The choices a chip's sheet offers: the values the catalogue holds, in a stable order. */
-export function filterChoices(list: readonly Container[]): { langs: string[]; levels: DifficultyLevel[] } {
+/**
+ * The choices a chip's sheet offers: the values the catalogue holds, in a stable order.
+ * No skill tags anywhere → no skill chip.
+ */
+export function filterChoices(list: readonly Container[]): {
+  langs: string[];
+  levels: DifficultyLevel[];
+  skills: ContainerTag[];
+} {
   const langs = [...new Set(list.map((c) => c.targetLanguage))].sort();
   const present = new Set(list.map((c) => c.difficultyLevel));
-  return { langs, levels: LEVEL_ORDER.filter((l) => present.has(l)) };
+  const skills = new Map<string, ContainerTag>();
+  for (const c of list) for (const t of tagsOf(c, ['skill'])) skills.set(t.id, t);
+  return {
+    langs,
+    levels: LEVEL_ORDER.filter((l) => present.has(l)),
+    skills: [...skills.values()].sort((a, b) => a.name.localeCompare(b.name)),
+  };
 }
 
 /**

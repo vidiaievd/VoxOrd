@@ -408,6 +408,8 @@ export const uk: Translations = {
     level: 'Рівень',
     allLanguages: 'Усі мови',
     allLevels: 'Усі рівні',
+    skill: 'Навичка',
+    allSkills: 'Усі навички',
     group: '{lang} · {level}',
     mine: 'Мій курс',
     units: { one: '{count} юніт', few: '{count} юніти', many: '{count} юнітів' },

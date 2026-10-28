@@ -39,9 +39,19 @@ export interface Container {
   accessTier?: AccessTier;
   /** «What you will learn» — authored per course, often empty. */
   learningGoals?: string[];
+  /** Catalogue tags (content-service, plan 04 step 9b); empty on most courses. */
+  tags?: ContainerTag[];
   ownerSchoolId?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export type TagCategory = 'topic' | 'situation' | 'skill' | 'level' | 'other';
+
+export interface ContainerTag {
+  id: string;
+  name: string;
+  category: TagCategory;
 }
 
 export type ContainerItemType =
@@ -60,6 +70,8 @@ export interface ContainerItem {
   isRequired: boolean;
   sectionId?: string | null;
   title: string | null;
+  /** A unit row's own goals — the programme's subtitle; other rows omit it. */
+  learningGoals?: string[];
   addedAt: string;
 }
 

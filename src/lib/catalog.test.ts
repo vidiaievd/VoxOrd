@@ -26,15 +26,25 @@ function course(id: string, overrides: Partial<Container> = {}): Container {
 }
 
 const list = [
-  course('Ny i Norge', { description: 'Hverdag og jobb' }),
-  course('Norsk på jobben', { difficultyLevel: 'B1' }),
+  course('Ny i Norge', {
+    description: 'Hverdag og jobb',
+    learningGoals: ['Записаться к врачу'],
+    tags: [
+      { id: 't-read', name: 'Чтение', category: 'skill' },
+      { id: 't-health', name: 'Здоровье', category: 'topic' },
+    ],
+  }),
+  course('Norsk på jobben', {
+    difficultyLevel: 'B1',
+    tags: [{ id: 't-write', name: 'Письмо', category: 'skill' }],
+  }),
   course('Nynorsk start', { targetLanguage: 'nn', difficultyLevel: 'A1' }),
   course('English basics', { targetLanguage: 'en', difficultyLevel: 'A1', accessTier: 'public_paid' }),
 ];
 
 describe('defaultFilters', () => {
   it('starts on the current course language and level', () => {
-    expect(defaultFilters(list[1])).toEqual({ query: '', lang: 'nb', level: 'B1' });
+    expect(defaultFilters(list[1])).toEqual({ query: '', lang: 'nb', level: 'B1', skill: null });
   });
   it('starts on nothing without a course', () => {
     expect(defaultFilters(null)).toBe(NO_FILTERS);
@@ -49,7 +59,16 @@ describe('filterCatalog', () => {
     ]);
   });
   it('applies language and level together', () => {
-    expect(filterCatalog(list, { query: '', lang: 'nb', level: 'B1' }).map((c) => c.id)).toEqual([
+    expect(filterCatalog(list, { ...NO_FILTERS, lang: 'nb', level: 'B1' }).map((c) => c.id)).toEqual([
+      'Norsk på jobben',
+    ]);
+  });
+  it('searches goals and tag names too', () => {
+    expect(filterCatalog(list, { ...NO_FILTERS, query: 'врач' }).map((c) => c.id)).toEqual(['Ny i Norge']);
+    expect(filterCatalog(list, { ...NO_FILTERS, query: 'здоров' }).map((c) => c.id)).toEqual(['Ny i Norge']);
+  });
+  it('keeps the courses carrying the skill tag', () => {
+    expect(filterCatalog(list, { ...NO_FILTERS, skill: 't-write' }).map((c) => c.id)).toEqual([
       'Norsk på jobben',
     ]);
   });
@@ -71,7 +90,15 @@ describe('groupCatalog', () => {
 
 describe('filterChoices', () => {
   it('offers the languages and levels the catalogue holds', () => {
-    expect(filterChoices(list)).toEqual({ langs: ['en', 'nb', 'nn'], levels: ['A1', 'A2', 'B1'] });
+    const choices = filterChoices(list);
+    expect(choices.langs).toEqual(['en', 'nb', 'nn']);
+    expect(choices.levels).toEqual(['A1', 'A2', 'B1']);
+  });
+  it('offers only skill tags, by name', () => {
+    expect(filterChoices(list).skills.map((t) => t.name)).toEqual(['Письмо', 'Чтение']);
+  });
+  it('offers no skills when no course has any', () => {
+    expect(filterChoices(list.slice(2)).skills).toEqual([]);
   });
 });
 

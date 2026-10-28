@@ -401,6 +401,8 @@ export interface Translations {
     level: string;
     allLanguages: string;
     allLevels: string;
+    skill: string;
+    allSkills: string;
     group: string; // '{lang}', '{level}'
     mine: string;
     units: PluralForms; // '{count}'

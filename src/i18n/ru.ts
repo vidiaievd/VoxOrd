@@ -408,6 +408,8 @@ export const ru: Translations = {
     level: 'Уровень',
     allLanguages: 'Все языки',
     allLevels: 'Все уровни',
+    skill: 'Навык',
+    allSkills: 'Все навыки',
     group: '{lang} · {level}',
     mine: 'Мой курс',
     units: { one: '{count} юнит', few: '{count} юнита', many: '{count} юнитов' },

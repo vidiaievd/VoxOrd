@@ -14,6 +14,7 @@ import {
   filterCatalog,
   filterChoices,
   groupCatalog,
+  tagsOf,
   type CatalogFilters,
 } from '../../lib/catalog';
 
@@ -98,6 +99,20 @@ export function CatalogList({ catalog, current, enrolledIds, onOpen }: Props) {
       onSelect: (value: string) => setFilters({ ...filters, level: (value || null) as DifficultyLevel | null }),
     });
 
+  const pickSkill = () =>
+    modal.show({
+      type: 'picker',
+      title: t('catalog.skill'),
+      options: [
+        { value: '', label: t('catalog.allSkills') },
+        ...choices.skills.map(tag => ({ value: tag.id, label: tag.name })),
+      ],
+      current: filters.skill ?? '',
+      closeLabel: t('common.close'),
+      onSelect: (value: string) => setFilters({ ...filters, skill: value || null }),
+    });
+  const skillName = choices.skills.find(tag => tag.id === filters.skill)?.name;
+
   const reset = () => {
     setTyped('');
     setFilters(NO_FILTERS);
@@ -166,6 +181,8 @@ export function CatalogList({ catalog, current, enrolledIds, onOpen }: Props) {
           t('catalog.language'),
         )}
         {chip(filters.level ?? t('catalog.level'), !!filters.level, pickLevel, t('catalog.level'))}
+        {(choices.skills.length > 0 || filters.skill) &&
+          chip(skillName ?? t('catalog.skill'), !!filters.skill, pickSkill, t('catalog.skill'))}
       </ScrollView>
 
       {catalog.status === 'loading' && (
@@ -200,6 +217,9 @@ export function CatalogList({ catalog, current, enrolledIds, onOpen }: Props) {
             </View>
             {group.courses.map((course, i) => {
               const mine = enrolledIds.has(course.id);
+              // The skill tags say more than the description does; the description stays the fallback.
+              const skills = tagsOf(course, ['skill']).map(tag => tag.name);
+              const meta = skills.length > 0 ? skills.join(' · ') : course.description;
               return (
                 <Pressable
                   key={course.id}
@@ -223,9 +243,9 @@ export function CatalogList({ catalog, current, enrolledIds, onOpen }: Props) {
                     <Text style={[typography.cardTitle, { color: colors.text }]} numberOfLines={2}>
                       {course.title}
                     </Text>
-                    {course.description ? (
+                    {meta ? (
                       <Text style={[typography.meta, { color: colors.neutral500 }]} numberOfLines={1}>
-                        {course.description}
+                        {meta}
                       </Text>
                     ) : null}
                   </View>

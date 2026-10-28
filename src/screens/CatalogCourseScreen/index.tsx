@@ -11,7 +11,7 @@ import { enrollInCourse } from '../../api/catalog';
 import { ApiError } from '../../api/client';
 import { isNetworkError } from '../../api/isNetworkError';
 import { courseDownloader } from '../../services/courseDownload';
-import { catalogAccess } from '../../lib/catalog';
+import { catalogAccess, tagsOf } from '../../lib/catalog';
 import { OfflineBanner } from '../../components/OfflineBanner';
 import { Button, Icon, NavHeader, Skeleton, Tag, useToast } from '../../components/ui';
 import { useLanguageName } from '../CoursesScreen/CatalogList';
@@ -27,9 +27,10 @@ interface CatalogCourseScreenProps {
 }
 
 /**
- * A catalogue course before enrolment (Courses spec 5c). What the mockup shows beyond the
- * course's own fields — hours, «texts with narration», a line per unit, the share button and
- * the «Pro» note — has no data behind it and is left out (plan 04 step 9).
+ * A catalogue course before enrolment (Courses spec 5c). The course's tags sit under its
+ * description and each unit's goals are its line in the programme (plan 04 step 9b). What the
+ * mockup shows beyond that — hours, «texts with narration», the share button and the «Pro»
+ * note — has no data behind it and is left out (plan 04 step 9).
  */
 export function CatalogCourseScreen({ containerId, onBack, onOpenCourse }: CatalogCourseScreenProps) {
   const { t } = useTranslation();
@@ -70,6 +71,10 @@ export function CatalogCourseScreen({ containerId, onBack, onOpenCourse }: Catal
   const units = data?.units ?? [];
   const shownUnits = allUnits ? units : units.slice(0, PROGRAMME_PREVIEW);
   const goals = container?.learningGoals?.filter(g => g.trim()) ?? [];
+  // Skills first, then topics and situations; level/other tags repeat the course's own fields.
+  const tags = container
+    ? [...tagsOf(container, ['skill']), ...tagsOf(container, ['topic', 'situation'])]
+    : [];
 
   const footer = !container ? null : held ? (
     <Button block size={48} label={t('catalog.openCourse')} onPress={() => onOpenCourse(containerId)} />
@@ -133,6 +138,13 @@ export function CatalogCourseScreen({ containerId, onBack, onOpenCourse }: Catal
                   {container.description}
                 </Text>
               ) : null}
+              {tags.length > 0 && (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                  {tags.map(tag => (
+                    <Tag key={tag.id} label={tag.name} variant={tag.category === 'skill' ? 'outline' : 'neutral'} />
+                  ))}
+                </View>
+              )}
               {units.length > 0 && (
                 <Text style={[typography.meta, { color: colors.neutral500 }]}>
                   {t('catalog.units', { count: units.length })}
@@ -157,25 +169,36 @@ export function CatalogCourseScreen({ containerId, onBack, onOpenCourse }: Catal
             {units.length > 0 && (
               <View style={{ gap: 12 }}>
                 <Text style={[typography.cardTitleMedium, { color: colors.text }]}>{t('catalog.program')}</Text>
-                {shownUnits.map((unit, i) => (
-                  <View key={unit.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                    <View
-                      style={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: 14,
-                        backgroundColor: colors.neutral800,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Text style={[typography.meta, { color: colors.neutral300 }]}>{i + 1}</Text>
+                {shownUnits.map((unit, i) => {
+                  // The unit's goals are its subtitle (mockup 5c's per-unit line).
+                  const subtitle = unit.learningGoals?.filter(g => g.trim()).join(' · ');
+                  return (
+                    <View key={unit.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <View
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: 14,
+                          backgroundColor: colors.neutral800,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Text style={[typography.meta, { color: colors.neutral300 }]}>{i + 1}</Text>
+                      </View>
+                      <View style={{ flex: 1, gap: 2 }}>
+                        <Text style={[typography.body, { color: colors.text }]} numberOfLines={2}>
+                          {unit.title ?? t('catalog.unitN', { n: i + 1 })}
+                        </Text>
+                        {subtitle ? (
+                          <Text style={[typography.meta, { color: colors.neutral500 }]} numberOfLines={2}>
+                            {subtitle}
+                          </Text>
+                        ) : null}
+                      </View>
                     </View>
-                    <Text style={[typography.body, { flex: 1, color: colors.text }]} numberOfLines={2}>
-                      {unit.title ?? t('catalog.unitN', { n: i + 1 })}
-                    </Text>
-                  </View>
-                ))}
+                  );
+                })}
                 {units.length > PROGRAMME_PREVIEW && (
                   <View style={{ alignItems: 'flex-start' }}>
                     <Button
