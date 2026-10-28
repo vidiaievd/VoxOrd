@@ -1591,6 +1591,13 @@ export interface Translations {
     phaseOf: string; // 'Phase {i} of {n}'
     phaseCorrect: string; // '{correct} of {total} correct'
     tomorrow: string;
+    unresolvedWaiting: PluralForms; // '{count} words waiting'
+    listen: string;
+    tryAgain: string;
+    ttsMissing: string;
+    ttsMissingBody: string;
+    ttsInstall: string;
+    ttsError: string;
   };
 
   modes: {

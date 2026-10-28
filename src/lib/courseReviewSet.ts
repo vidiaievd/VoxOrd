@@ -80,6 +80,8 @@ export interface ResolvedDueWords {
    * before this list is built.
    */
   unresolvedListIds: string[];
+  /** How many of those cards each list holds — the «N words waiting» of its import row. */
+  unresolvedCountByList: Record<string, number>;
 }
 
 /**
@@ -103,6 +105,7 @@ export function resolveDueWords(
   const resolved: CourseDueWord[] = [];
   const unresolvedCardIds: string[] = [];
   const unresolvedListIds = new Set<string>();
+  const unresolvedCountByList: Record<string, number> = {};
   const seenWordIds = new Set<number>();
 
   for (const card of cards) {
@@ -113,7 +116,11 @@ export function resolveDueWords(
     if (!row && !word) continue;
     if (!row) {
       unresolvedCardIds.push(card.id);
-      if (card.front?.listId) unresolvedListIds.add(card.front.listId);
+      if (card.front?.listId) {
+        unresolvedListIds.add(card.front.listId);
+        unresolvedCountByList[card.front.listId] =
+          (unresolvedCountByList[card.front.listId] ?? 0) + 1;
+      }
       continue;
     }
     // Defensive: two cards pointing at one local word would drill it twice and
@@ -130,7 +137,12 @@ export function resolveDueWords(
     });
   }
 
-  return { resolved, unresolvedCardIds, unresolvedListIds: [...unresolvedListIds] };
+  return {
+    resolved,
+    unresolvedCardIds,
+    unresolvedListIds: [...unresolvedListIds],
+    unresolvedCountByList,
+  };
 }
 
 /** Splits resolved due words into per-deck buckets, largest bucket first. */
