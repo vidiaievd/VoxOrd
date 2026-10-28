@@ -1,277 +1,333 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Button, Icon, IconName, PressableScale } from '../../components/ui';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
+import { Typography } from '../../theme/typography';
+import { radii } from '../../theme/spacing';
+import type { UnitContentsResult } from '../../api/types';
+import type { Screen } from '../../navigation/screens';
+import { useSwrResource } from '../../hooks/useSwrResource';
+import { useUnitNumber } from '../../hooks/useUnitNumber';
+import { unitContentsResource } from '../../lib/courseResources';
+import { itemsInOrder, nextAfterSet } from '../../lib/nextItem';
+import { openContentItem } from '../../lib/openContentItem';
 import type { ItemResult } from './runnerMachine';
-import { buildResultsSummary } from './resultsSummary';
+import { buildResultsSummary, formatSetTime } from './resultsSummary';
 
 interface SetResultsScreenProps {
   results: ItemResult[];
-  onContinue: () => void;
+  /** The set that was walked — «Next» names a material outside it. */
+  exerciseIds: string[];
+  unitId: string;
+  courseId: string;
+  /** Carried onto a «try again» runner, as the unit screen hands it to the first one. */
+  sourceLessonId?: string;
+  /** Open «Next» or a wrong exercise. */
+  onOpen: (screen: Screen) => void;
+  /** «To the unit». Returning remounts the unit screen, which refetches its contents. */
+  onToUnit: () => void;
 }
 
-function formatDuration(totalSeconds: number): string {
-  if (totalSeconds < 60) return `${totalSeconds}s`;
-  const minutes = Math.floor(totalSeconds / 60);
-  const secs = totalSeconds % 60;
-  return secs > 0 ? `${minutes}m ${secs}s` : `${minutes}m`;
-}
-
-function getResultEmoji(handledRatio: number): string {
-  if (handledRatio >= 0.9) return '🏆';
-  if (handledRatio >= 0.7) return '🎉';
-  if (handledRatio >= 0.5) return '👍';
-  return '💪';
-}
+const titleKeyOf = (ratio: number) =>
+  ratio >= 0.9 ? 'Excellent' : ratio >= 0.7 ? 'Good' : ratio >= 0.5 ? 'Okay' : 'KeepGoing';
 
 /**
- * Results summary for a finished exercise set — reuses the visual language
- * of LearningScreen's SessionResultsScreen (hero + score card + progress
- * bar + outcome breakdown), adapted for server-graded course exercises:
- * hero tone is driven by `handledRatio` (correct + needsReview), not raw
- * accuracy, since free-form templates always land in "needs review" and
- * that's a successful completion, not a wrong answer.
+ * Results of a finished exercise set — Courses spec §8.6 (`5i`): kicker, a title by
+ * `handledRatio`, the waiting line, one stat tile, outcome rows and «Next · {item}» / «To the
+ * unit». No emoji, no coloured track. Work handed in for review is a completion, not a
+ * mistake: it counts towards «counted» and the title, never against accuracy.
+ *
+ * The «added to review» row of the spec is not drawn: the verdict does not say what reached
+ * the SRS, and the screen does not guess.
  */
-export function SetResultsScreen({ results, onContinue }: SetResultsScreenProps) {
+export function SetResultsScreen({
+  results,
+  exerciseIds,
+  unitId,
+  courseId,
+  sourceLessonId,
+  onOpen,
+  onToUnit,
+}: SetResultsScreenProps) {
   const { t } = useTranslation();
-  const { colors } = useTheme();
-  const styles = makeStyles(colors);
+  const { colors, typography } = useTheme();
+  const styles = makeStyles(colors, typography);
   const summary = buildResultsSummary(results);
+  const unitNumber = useUnitNumber(courseId, unitId);
 
-  const titleKey =
-    summary.handledRatio >= 0.9
-      ? 'resultsExcellentTitle'
-      : summary.handledRatio >= 0.7
-        ? 'resultsGoodTitle'
-        : summary.handledRatio >= 0.5
-          ? 'resultsOkayTitle'
-          : 'resultsKeepGoingTitle';
-  const messageKey =
-    summary.handledRatio >= 0.9
-      ? 'resultsExcellentMessage'
-      : summary.handledRatio >= 0.7
-        ? 'resultsGoodMessage'
-        : summary.handledRatio >= 0.5
-          ? 'resultsOkayMessage'
-          : 'resultsKeepGoingMessage';
+  // Fetched fresh on mount (shown from cache meanwhile), so «Next» sees the set's new statuses.
+  const resource = useMemo(() => unitContentsResource(unitId), [unitId]);
+  const contents = useSwrResource<UnitContentsResult>(resource.key, resource.load).data;
+
+  const titleOf = useMemo(() => {
+    const titles = new Map<string, string>();
+    if (contents) {
+      for (const i of itemsInOrder(contents)) {
+        if (i.contentType === 'exercise' && i.title) titles.set(i.contentId, i.title);
+      }
+    }
+    return (id: string) => titles.get(id) ?? null;
+  }, [contents]);
+
+  const next = contents ? nextAfterSet(contents, exerciseIds) : null;
+  const nextScreen =
+    next && contents ? openContentItem(next, contents, { unitId, courseId }) : null;
+
+  const retry = (exerciseId: string) =>
+    onOpen({
+      name: 'ExerciseRunner',
+      exerciseIds: [exerciseId],
+      startIndex: 0,
+      unitId,
+      courseId,
+      ...(sourceLessonId === undefined ? {} : { sourceLessonId }),
+    });
+
+  const tone = titleKeyOf(summary.handledRatio);
+  const lead =
+    summary.waitingTeacher > 0 || summary.waitingAi > 0
+      ? [
+          summary.waitingTeacher > 0
+            ? t('exerciseRunner.resultsWaiting', { count: summary.waitingTeacher })
+            : null,
+          summary.waitingAi > 0
+            ? t('exerciseRunner.resultsWaitingAi', { count: summary.waitingAi })
+            : null,
+        ]
+          .filter(Boolean)
+          .join(' ')
+      : t(`exerciseRunner.results${tone}Message`);
+
+  const reviewTitles = summary.reviewIds
+    .map(titleOf)
+    .filter((title): title is string => title !== null)
+    .join(', ');
+
+  const stats = [
+    {
+      value: `${Math.round(summary.accuracy * 100)}%`,
+      label: t('exerciseRunner.statAccuracy'),
+      color: colors.accent300,
+    },
+    {
+      value: t('exerciseRunner.statCountedValue', {
+        counted: summary.correct + summary.needsReview,
+        total: summary.total,
+      }),
+      label: t('exerciseRunner.statCounted'),
+      color: colors.text,
+    },
+    {
+      value: formatSetTime(summary.totalTimeSpentSeconds),
+      label: t('exerciseRunner.statTime'),
+      color: colors.text,
+    },
+  ];
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <View style={styles.hero}>
-          <Text style={styles.heroEmoji}>{getResultEmoji(summary.handledRatio)}</Text>
-          <Text style={styles.heroTitle}>{t(`exerciseRunner.${titleKey}`)}</Text>
-          <Text style={styles.heroMessage}>{t(`exerciseRunner.${messageKey}`)}</Text>
+        <View style={styles.head}>
+          <Text style={styles.kicker}>
+            {unitNumber === null
+              ? t('exerciseRunner.resultsKickerNoUnit')
+              : t('exerciseRunner.resultsKicker', { n: unitNumber })}
+          </Text>
+          <Text style={styles.title} accessibilityRole="header">
+            {t(`exerciseRunner.results${tone}Title`)}
+          </Text>
+          <Text style={styles.lead}>{lead}</Text>
         </View>
 
-        <View style={styles.scoreCard}>
-          <View style={styles.scoreMain}>
-            <Text style={styles.scorePercent}>{Math.round(summary.accuracy * 100)}%</Text>
-            <Text style={styles.scoreLabel}>{t('exerciseRunner.resultsAccuracy')}</Text>
-          </View>
-          <View style={styles.scoreDivider} />
-          <View style={styles.scoreStat}>
-            <Text style={styles.scoreStatValue}>
-              {t('exerciseRunner.resultsCorrectOf', {
-                correct: summary.correct,
-                total: summary.total,
-              })}
-            </Text>
-            <Text style={styles.scoreStatLabel}>{t('exerciseRunner.correct')}</Text>
-          </View>
-          <View style={styles.scoreDivider} />
-          <View style={styles.scoreStat}>
-            <Text style={styles.scoreStatValue}>
-              {formatDuration(summary.totalTimeSpentSeconds)}
-            </Text>
-            <Text style={styles.scoreStatLabel}>{t('exerciseRunner.resultsTime')}</Text>
-          </View>
-        </View>
-
-        <View style={styles.accuracyBar}>
-          <View style={styles.accuracyBg}>
-            <View
-              style={[
-                styles.accuracyFill,
-                { width: `${Math.round(summary.accuracy * 100)}%` },
-                summary.accuracy >= 0.7 && { backgroundColor: colors.success },
-                summary.accuracy < 0.5 && { backgroundColor: colors.error },
-              ]}
-            />
-          </View>
-        </View>
-
-        {summary.needsReview > 0 || summary.incorrect > 0 ? (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t('exerciseRunner.resultsByOutcome')}</Text>
-            <View style={styles.outcomeRow}>
-              <Text style={styles.outcomeLabel}>{t('exerciseRunner.correct')}</Text>
-              <Text style={[styles.outcomeValue, { color: colors.success }]}>
-                {summary.correct}
-              </Text>
+        <View style={styles.tile}>
+          {stats.map((s, i) => (
+            <View key={s.label} style={[styles.stat, i > 0 && styles.statDivided]}>
+              <Text style={[styles.statValue, { color: s.color }]}>{s.value}</Text>
+              <Text style={styles.statLabel}>{s.label}</Text>
             </View>
-            {summary.needsReview > 0 && (
-              <View style={styles.outcomeRow}>
-                <Text style={styles.outcomeLabel}>{t('exerciseRunner.resultsNeedsReview')}</Text>
-                <Text style={styles.outcomeValue}>{summary.needsReview}</Text>
-              </View>
-            )}
-            {summary.incorrect > 0 && (
-              <View style={styles.outcomeRow}>
-                <Text style={styles.outcomeLabel}>{t('exerciseRunner.incorrect')}</Text>
-                <Text style={[styles.outcomeValue, { color: colors.error }]}>
-                  {summary.incorrect}
-                </Text>
-              </View>
-            )}
-          </View>
-        ) : null}
+          ))}
+        </View>
 
-        <View style={styles.actions}>
-          <TouchableOpacity style={styles.primaryBtn} onPress={onContinue}>
-            <Text style={styles.primaryBtnText}>{t('exerciseRunner.continue')} →</Text>
-          </TouchableOpacity>
+        <View>
+          <OutcomeRow
+            styles={styles}
+            icon="CheckCircle"
+            label={t('exerciseRunner.outCorrect')}
+            sub={t('exerciseRunner.outCorrectSub')}
+            value={String(summary.correct)}
+          />
+          {summary.needsReview > 0 ? (
+            <OutcomeRow
+              styles={styles}
+              icon="HourglassMedium"
+              label={t('exerciseRunner.resultsNeedsReview')}
+              sub={reviewTitles || null}
+              value={String(summary.needsReview)}
+            />
+          ) : null}
+          {summary.wrongIds.map(id => {
+            const title = titleOf(id);
+            return (
+              <OutcomeRow
+                key={id}
+                styles={styles}
+                icon="ArrowCounterClockwise"
+                label={t('exerciseRunner.outWrong')}
+                sub={
+                  title === null
+                    ? t('exerciseRunner.outRetryUntitled')
+                    : t('exerciseRunner.outRetry', { title })
+                }
+                onPress={() => retry(id)}
+              />
+            );
+          })}
         </View>
       </ScrollView>
+
+      <View style={styles.footer}>
+        {next && nextScreen ? (
+          <>
+            <Button
+              block
+              size={48}
+              label={t('exerciseRunner.nextItem', { item: next.title ?? '' })}
+              onPress={() => onOpen(nextScreen)}
+            />
+            <Button
+              block
+              size={44}
+              variant="ghost"
+              label={t('exerciseRunner.toUnit')}
+              onPress={onToUnit}
+            />
+          </>
+        ) : (
+          <Button block size={48} label={t('exerciseRunner.toUnit')} onPress={onToUnit} />
+        )}
+      </View>
     </SafeAreaView>
   );
 }
 
-const makeStyles = (colors: ColorScheme) =>
+interface OutcomeRowProps {
+  styles: ReturnType<typeof makeStyles>;
+  icon: IconName;
+  label: string;
+  sub: string | null;
+  value?: string;
+  onPress?: () => void;
+}
+
+/** One line of the outcome list; a wrong exercise's line opens it again. */
+function OutcomeRow({ styles, icon, label, sub, value, onPress }: OutcomeRowProps) {
+  const { colors } = useTheme();
+  const body = (
+    <View style={styles.row}>
+      <Icon name={icon} size={18} color={colors.neutral400} />
+      <View style={styles.rowText}>
+        <Text style={styles.rowLabel}>{label}</Text>
+        {sub ? <Text style={styles.rowSub}>{sub}</Text> : null}
+      </View>
+      {value !== undefined ? <Text style={styles.rowValue}>{value}</Text> : null}
+    </View>
+  );
+  if (!onPress) return body;
+  return (
+    <PressableScale
+      accessibilityRole="button"
+      accessibilityLabel={sub ? `${label}. ${sub}` : label}
+      onPress={onPress}
+    >
+      {body}
+    </PressableScale>
+  );
+}
+
+const makeStyles = (colors: ColorScheme, typography: Typography) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: colors.bg,
     },
     scroll: {
-      padding: 24,
-      paddingBottom: 40,
+      paddingTop: 36,
+      paddingHorizontal: 22,
+      paddingBottom: 24,
+      gap: 22,
     },
-    hero: {
-      alignItems: 'center',
-      marginBottom: 24,
+    head: {
+      gap: 8,
     },
-    heroEmoji: {
-      fontSize: 72,
-      marginBottom: 12,
+    kicker: {
+      ...typography.meta,
+      color: colors.neutral500,
     },
-    heroTitle: {
-      fontSize: 28,
-      fontWeight: '800',
-      color: colors.textPrimary,
-      marginBottom: 8,
+    title: {
+      ...typography.resumeTitle,
+      fontSize: 30,
+      lineHeight: 36,
+      letterSpacing: -0.6,
+      color: colors.text,
     },
-    heroMessage: {
-      fontSize: 15,
-      color: colors.textSecondary,
-      textAlign: 'center',
-      lineHeight: 22,
+    lead: {
+      ...typography.body,
+      lineHeight: 21,
+      color: colors.neutral400,
     },
-    scoreCard: {
+    tile: {
       flexDirection: 'row',
-      backgroundColor: colors.backgroundCard,
-      borderRadius: 20,
-      padding: 16,
-      marginBottom: 12,
-      shadowColor: colors.cardShadow,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 1,
-      shadowRadius: 8,
-      elevation: 2,
-    },
-    scoreMain: {
-      flex: 1,
-      alignItems: 'center',
-    },
-    scorePercent: {
-      fontSize: 28,
-      fontWeight: '800',
-      color: colors.accent,
-    },
-    scoreLabel: {
-      fontSize: 12,
-      color: colors.textMuted,
-      marginTop: 2,
-    },
-    scoreDivider: {
-      width: 1,
-      backgroundColor: colors.border,
-      marginVertical: 4,
-    },
-    scoreStat: {
-      flex: 1,
-      alignItems: 'center',
-    },
-    scoreStatValue: {
-      fontSize: 18,
-      fontWeight: '700',
-      color: colors.textPrimary,
-    },
-    scoreStatLabel: {
-      fontSize: 12,
-      color: colors.textMuted,
-      marginTop: 2,
-    },
-    accuracyBar: {
-      marginBottom: 24,
-    },
-    accuracyBg: {
-      height: 10,
-      backgroundColor: colors.border,
-      borderRadius: 5,
-      overflow: 'hidden',
-    },
-    accuracyFill: {
-      height: '100%',
-      backgroundColor: colors.accent,
-      borderRadius: 5,
-    },
-    section: {
-      marginBottom: 20,
-    },
-    sectionTitle: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: colors.textMuted,
-      letterSpacing: 1,
-      textTransform: 'uppercase',
-      marginBottom: 12,
-    },
-    outcomeRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 10,
-    },
-    outcomeLabel: {
-      fontSize: 14,
-      color: colors.textPrimary,
-      fontWeight: '500',
-    },
-    outcomeValue: {
-      fontSize: 14,
-      fontWeight: '700',
-      color: colors.textSecondary,
-    },
-    actions: {
-      marginTop: 4,
-    },
-    primaryBtn: {
-      backgroundColor: colors.accent,
-      borderRadius: 16,
+      backgroundColor: colors.surface,
+      borderRadius: radii.card,
       paddingVertical: 16,
-      alignItems: 'center',
-      shadowColor: colors.accent,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      elevation: 4,
     },
-    primaryBtnText: {
-      fontSize: 16,
-      fontWeight: '700',
-      color: '#fff',
+    stat: {
+      flex: 1,
+      paddingHorizontal: 16,
+      gap: 2,
+    },
+    statDivided: {
+      borderLeftWidth: 1,
+      borderLeftColor: colors.neutral800,
+    },
+    statValue: {
+      ...typography.resumeTitle,
+    },
+    statLabel: {
+      ...typography.meta,
+      color: colors.neutral500,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      paddingVertical: 12,
+      borderTopWidth: 1,
+      borderTopColor: colors.neutral800,
+    },
+    rowText: {
+      flex: 1,
+      gap: 2,
+    },
+    rowLabel: {
+      ...typography.body,
+      color: colors.text,
+    },
+    rowSub: {
+      ...typography.meta,
+      color: colors.neutral500,
+    },
+    rowValue: {
+      ...typography.cardTitle,
+      color: colors.neutral300,
+    },
+    footer: {
+      paddingHorizontal: 20,
+      paddingTop: 12,
+      paddingBottom: 12,
+      gap: 4,
     },
   });

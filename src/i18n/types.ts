@@ -1392,11 +1392,22 @@ export interface Translations {
     resultsOkayMessage: string;
     resultsKeepGoingTitle: string;
     resultsKeepGoingMessage: string;
-    resultsAccuracy: string;
-    resultsCorrectOf: string; // '{correct}', '{total}'
-    resultsTime: string;
-    resultsByOutcome: string;
     resultsNeedsReview: string;
+    resultsKicker: string; // '{n}'
+    resultsKickerNoUnit: string;
+    resultsWaiting: PluralForms; // '{count}'
+    resultsWaitingAi: PluralForms; // '{count}'
+    statAccuracy: string;
+    statCounted: string;
+    statCountedValue: string; // '{counted}', '{total}'
+    statTime: string;
+    outCorrect: string;
+    outCorrectSub: string;
+    outWrong: string;
+    outRetry: string; // '{title}'
+    outRetryUntitled: string;
+    nextItem: string; // '{item}'
+    toUnit: string;
   };
 
   review: {

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { View, StyleSheet, BackHandler, ToastAndroid } from 'react-native';
 import { useTranslation } from '../i18n';
 import { TodayScreen } from '../screens/TodayScreen';
@@ -75,6 +75,18 @@ function Navigator() {
   const activeTab = tabOf(screen);
 
   const navigateTo = useCallback((s: Screen) => setScreen(s), []);
+
+  /*
+    A number per arrival, for a screen that must start afresh even when the screen before it
+    was the same kind — a runner opened from a runner's results («try again», «Next» to a set).
+    Every navigation sets a new screen object, so the number moves with each one.
+  */
+  const seq = useRef(0);
+  const screenSeq = useMemo(() => {
+    seq.current += 1;
+    return seq.current;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen]);
 
   /** Go to `target` — what Back does everywhere. */
   const goTo = navigateTo;
@@ -342,11 +354,16 @@ function Navigator() {
                 });
         return (
           <ExerciseRunnerScreen
+            key={screenSeq}
             exerciseIds={screen.exerciseIds}
             startIndex={screen.startIndex}
             onBack={backToUnit}
             onComplete={backToUnit}
             onOpenSourceLesson={openSourceLesson}
+            unitId={screen.unitId}
+            courseId={screen.courseId}
+            sourceLessonId={sourceLessonId}
+            onOpen={navigateTo}
           />
         );
       }

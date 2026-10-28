@@ -22,6 +22,7 @@ import { bodyOwnsCheck, ExerciseBody, type FooterAction } from './ExerciseBody';
 import { AiVerdict } from './AiVerdict';
 import { FeedbackBar } from './FeedbackBar';
 import { SetResultsScreen } from './SetResultsScreen';
+import type { Screen } from '../../navigation/screens';
 
 interface ExerciseRunnerScreenProps {
   /** The exercise (content) ids in this set, in order. */
@@ -37,6 +38,13 @@ interface ExerciseRunnerScreenProps {
    * not drawn at all.
    */
   onOpenSourceLesson?: () => void;
+  /** Where the set lives — the results screen reads the unit for «Next» and its number. */
+  unitId: string;
+  courseId: string;
+  /** Handed on to a «try again» runner opened from the results. */
+  sourceLessonId?: string;
+  /** Open another screen from the results: «Next · {item}» or a wrong exercise again. */
+  onOpen: (screen: Screen) => void;
 }
 
 export function ExerciseRunnerScreen({
@@ -45,6 +53,10 @@ export function ExerciseRunnerScreen({
   onBack,
   onComplete,
   onOpenSourceLesson,
+  unitId,
+  courseId,
+  sourceLessonId,
+  onOpen,
 }: ExerciseRunnerScreenProps) {
   const keyboardShown = useKeyboardShown();
   const insets = useSafeAreaInsets();
@@ -109,7 +121,17 @@ export function ExerciseRunnerScreen({
   // no header/progress-bar chrome); an empty set (edge case) falls through to
   // the plain "set complete" card below, since there's nothing to summarize.
   if (state.phase === 'complete' && state.results.length > 0) {
-    return <SetResultsScreen results={state.results} onContinue={onComplete} />;
+    return (
+      <SetResultsScreen
+        results={state.results}
+        exerciseIds={exerciseIds}
+        unitId={unitId}
+        courseId={courseId}
+        sourceLessonId={sourceLessonId}
+        onOpen={onOpen}
+        onToUnit={onComplete}
+      />
+    );
   }
 
   const inItem =
