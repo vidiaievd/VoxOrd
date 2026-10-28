@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AccessibilityInfo,
   Animated,
   KeyboardAvoidingView,
   Platform,
@@ -123,6 +124,25 @@ export function AssistantScreen({ route, onBack, onNavigate }: AssistantScreenPr
   };
 
   const scrollRef = useRef<ScrollView>(null);
+
+  // A screen reader hears an answer that arrives while the learner is on the thread. A live
+  // region on a freshly mounted view is not announced, so the text is spoken explicitly; the
+  // answers already stored when the thread opened stay silent.
+  const announcedTurn = useRef<string | null | undefined>(undefined);
+  const lastTurn = thread.turns[thread.turns.length - 1];
+  useEffect(() => {
+    if (!thread.loaded) return;
+    const lastId = lastTurn?.id ?? null;
+    if (announcedTurn.current === undefined) {
+      announcedTurn.current = lastId;
+      return;
+    }
+    if (lastId === announcedTurn.current) return;
+    announcedTurn.current = lastId;
+    if (lastTurn?.role !== 'user' && lastTurn?.answer) {
+      AccessibilityInfo.announceForAccessibility(lastTurn.answer.blocks.map((b) => b.text).join(' '));
+    }
+  }, [lastTurn, thread.loaded]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top', 'bottom']}>
@@ -443,6 +463,7 @@ function Composer({
           editable={!offline}
           multiline
           maxLength={MESSAGE_MAX}
+          accessibilityLabel={t('assistant.placeholder')}
           placeholder={listening ? t('assistant.listening') : t('assistant.placeholder')}
           placeholderTextColor={colors.neutral500}
           style={[
