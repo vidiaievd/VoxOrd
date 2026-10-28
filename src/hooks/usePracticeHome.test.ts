@@ -2,6 +2,7 @@ import type { Deck } from '../repositories/DeckRepository';
 import { orderDecks } from './usePracticeHome';
 
 jest.mock('./useCourseReviewSets', () => ({ useCourseReviewSets: jest.fn() }));
+jest.mock('./useGrammarDue', () => ({ useGrammarDue: jest.fn() }));
 jest.mock('./useSettings', () => ({ useSettings: jest.fn() }));
 jest.mock('../api/personalVocabulary', () => ({ listMyWords: jest.fn() }));
 jest.mock('../repositories/DeckRepository', () => ({ deckRepository: {} }));

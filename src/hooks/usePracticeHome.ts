@@ -3,6 +3,7 @@ import { listMyWords } from '../api/personalVocabulary';
 import { deckRepository, type Deck } from '../repositories/DeckRepository';
 import type { CourseReviewOverview } from '../lib/courseReviewLoader';
 import { useCourseReviewSets } from './useCourseReviewSets';
+import { useGrammarDue, type GrammarDue } from './useGrammarDue';
 import { useSettings } from './useSettings';
 
 export interface MyWordsSummary {
@@ -25,6 +26,8 @@ export interface PracticeHome {
   decks: Deck[] | null;
   /** «My words» totals from the server's list; `null` offline or on failure. */
   myWords: MyWordsSummary | null;
+  /** Rules due for review; `null` when unknown or switched off. */
+  grammar: GrammarDue | null;
   loading: boolean;
   reload: () => void;
 }
@@ -42,8 +45,8 @@ export function orderDecks(decks: readonly Deck[]): Deck[] {
 
 /**
  * Everything the Practice root shows, each part loaded on its own (Practice §6.4): the queue
- * overview, the word sets and «My words». A part that fails hides only its own section — no
- * part waits for another, and none forces a sync on the root.
+ * overview, the word sets, «My words» and the rules due. A part that fails hides only its own
+ * section — no part waits for another, and none forces a sync on the root.
  */
 export function usePracticeHome(): PracticeHome {
   const { uiLanguage } = useSettings();
@@ -51,6 +54,7 @@ export function usePracticeHome(): PracticeHome {
   const [decks, setDecks] = useState<Part<Deck[]>>({ status: 'loading' });
   const [myWords, setMyWords] = useState<Part<MyWordsSummary>>({ status: 'loading' });
   const [nonce, setNonce] = useState(0);
+  const grammar = useGrammarDue(nonce);
 
   useEffect(() => {
     let live = true;
@@ -94,6 +98,7 @@ export function usePracticeHome(): PracticeHome {
     overviewOffline: sets.offline,
     decks: decks.status === 'loaded' ? decks.data : null,
     myWords: myWords.status === 'loaded' ? myWords.data : null,
+    grammar,
     loading:
       sets.loading || decks.status === 'loading' || myWords.status === 'loading',
     reload,

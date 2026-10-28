@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { View, StyleSheet, BackHandler, ToastAndroid } from 'react-native';
 import { useTranslation } from '../i18n';
 import { TodayScreen } from '../screens/TodayScreen';
+import { GrammarReviewScreen } from '../screens/GrammarReviewScreen';
 import { PracticeScreen } from '../screens/PracticeScreen';
 import { NotificationsScreen } from '../screens/NotificationsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
@@ -480,12 +481,45 @@ function Navigator() {
             }
             onOpenMyWords={() => navigateTo({ name: 'MyWords' })}
             onOpenDeck={deck => navigateTo({ name: 'ModeSelector', deck })}
+            onOpenGrammar={row =>
+              navigateTo({
+                name: 'GrammarReview',
+                ruleId: row.ruleId,
+                courseId: row.courseId,
+                unitId: row.unitId,
+              })
+            }
           />
         );
 
       case 'GrammarReview':
-        // Built in plan 05 step 7; nothing opens this route before then.
-        return null;
+        return (
+          <GrammarReviewScreen
+            ruleId={screen.ruleId}
+            courseId={screen.courseId}
+            unitId={screen.unitId}
+            onBack={goBack}
+            onOpenRule={() =>
+              navigateTo({
+                name: 'GrammarRuleReader',
+                ruleId: screen.ruleId,
+                unitId: screen.unitId,
+                courseId: screen.courseId,
+                returnTo: screen,
+              })
+            }
+            onStart={exerciseIds =>
+              navigateTo({
+                name: 'ExerciseRunner',
+                exerciseIds,
+                startIndex: 0,
+                unitId: screen.unitId,
+                courseId: screen.courseId,
+                origin: 'practice',
+              })
+            }
+          />
+        );
 
       case 'Notifications':
         return <NotificationsScreen />;

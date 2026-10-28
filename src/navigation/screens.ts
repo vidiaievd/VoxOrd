@@ -89,7 +89,7 @@ export type Screen =
       ruleId: string;
       unitId: string;
       courseId: string;
-      /** Opened from an assistant's citation: Back goes back to the thread. */
+      /** Opened from an assistant's citation or a rule's review: Back goes back there. */
       returnTo?: Screen;
     }
   | {

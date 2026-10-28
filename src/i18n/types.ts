@@ -1550,6 +1550,7 @@ export interface Translations {
     loadError: string;
     grammarSection: string;
     grammarRowSub: PluralForms; // 'Unit {unit} · {count} days without practice'
+    grammarRowNever: string; // 'Unit {unit} · not practised yet'
     mistakesSection: string;
     mistakeRowSub: string; // 'Unit {unit} · mistake {when}'
     whenToday: string;
@@ -1638,12 +1639,16 @@ export interface Translations {
   grammarReview: {
     kicker: string; // 'Rule · unit {unit}'
     lastPractice: string; // 'Last practice {when}'
+    neverPracticed: string;
+    daysAgo: PluralForms; // '{count} days ago'
+    loadError: string;
+    emptyPool: string;
     mastery: string;
     masteryWas: string; // '{now}% · was {peak}%'
     openRule: string;
     weakSection: string;
     weakRow: string; // '{wrong} of {total} wrong'
-    poolNote: PluralForms; // '{count} tasks in the review: {types}. …'
+    poolNote: PluralForms; // '{count} tasks in the review. Tasks with mistakes come first.'
     cta: PluralForms; // 'Review · {count} tasks · ~{min} min'
   };
 
