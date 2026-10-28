@@ -18,7 +18,7 @@ export function itemsInOrder(contents: UnitContentsResult): UnitContentsItem[] {
 const opensOnItsOwn = (i: UnitContentsItem) => i.contentType !== 'container';
 
 /** In one unit: the material already begun, else the first open one. Handed-in work waits. */
-function nextInUnit(contents: UnitContentsResult): UnitContentsItem | null {
+export function nextInUnit(contents: UnitContentsResult): UnitContentsItem | null {
   const items = itemsInOrder(contents).filter(opensOnItsOwn);
   return (
     items.find((i) => i.status === 'in_progress') ??

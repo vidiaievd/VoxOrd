@@ -1,22 +1,20 @@
-import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ActivityIndicator,
-  SectionList,
-  RefreshControl,
-  TouchableOpacity,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useEffect, useMemo, useRef } from 'react';
+import { RefreshControl, SectionList, Text, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
-import { ColorScheme } from '../../theme/colors';
+import { spacing } from '../../theme/spacing';
 import { OfflineBanner } from '../../components/OfflineBanner';
+import { Button, Icon, NavHeader, Overline, Skeleton, useToast } from '../../components/ui';
 import { isNetworkError } from '../../api/isNetworkError';
+import { useCourseHome } from '../../hooks/useCourseHome';
+import { useDownloadState } from '../../hooks/useDownloadState';
 import { useUnitContents } from '../../hooks/useUnitContents';
+import { itemsInOrder, nextInUnit } from '../../lib/nextItem';
 import { openContentItem } from '../../lib/openContentItem';
 import { ContentItemRow } from './ContentItemRow';
+import { firstChangedItem } from './changedItem';
+import { groupSections, type SectionKind, type UnitSection } from './groupSections';
 import type { UnitContentsItem } from '../../api/types';
 import type { Screen } from '../../navigation/screens';
 
@@ -28,11 +26,7 @@ interface UnitContentsScreenProps {
   onOpen: (screen: Screen) => void;
 }
 
-interface Section {
-  key: string;
-  title: string;
-  data: UnitContentsItem[];
-}
+const isDone = (i: UnitContentsItem) => i.status === 'completed' || i.status === 'submitted';
 
 export function UnitContentsScreen({
   unitId,
@@ -41,154 +35,213 @@ export function UnitContentsScreen({
   onOpen,
 }: UnitContentsScreenProps) {
   const { t } = useTranslation();
-  const { colors } = useTheme();
-  const styles = makeStyles(colors);
+  const { colors, typography } = useTheme();
+  const insets = useSafeAreaInsets();
+  const toast = useToast();
   const { status, data, error, refreshing, stale, refresh } = useUnitContents(unitId);
+  // The course home gives the unit its number, the next unit and the parent label; it is
+  // cached from the screen the learner came through.
+  const home = useCourseHome(courseId).data;
+  const download = useDownloadState(unitId, home?.units ?? null);
+  const listRef = useRef<SectionList<UnitContentsItem, UnitSection>>(null);
 
-  const sections: Section[] = data
-    ? [
-        ...data.sections.map((s) => ({ key: s.id, title: s.title, data: s.items })),
-        ...(data.ungroupedItems.length > 0
-          ? [{ key: 'ungrouped', title: t('unitContents.otherItems'), data: data.ungroupedItems }]
-          : []),
-      ]
-    : [];
-  const isEmpty = sections.every((s) => s.data.length === 0);
+  const sections = useMemo(() => (data ? groupSections(data) : []), [data]);
+  const items = useMemo(
+    () => (data ? itemsInOrder(data).filter(i => i.contentType !== 'container') : []),
+    [data],
+  );
+  const isEmpty = sections.length === 0;
 
-  const handleItemPress = (item: UnitContentsItem): (() => void) | undefined => {
+  const units = useMemo(
+    () => [...(home?.units ?? [])].sort((a, b) => a.position - b.position),
+    [home],
+  );
+  const unitIndex = units.findIndex(u => u.id === unitId);
+  const followingUnit = unitIndex === -1 ? undefined : units.slice(unitIndex + 1).find(u => u.status !== 'locked');
+  const next = data ? nextInUnit(data) : null;
+
+  // On return from a text or a set the cached copy shows first; once the fresh one arrives,
+  // scroll to the row whose status moved.
+  const shownBefore = useRef<UnitContentsItem[] | null>(null);
+  useEffect(() => {
+    if (!data) return;
+    if (stale) {
+      shownBefore.current ??= itemsInOrder(data);
+      return;
+    }
+    const before = shownBefore.current;
+    shownBefore.current = null;
+    if (!before) return;
+    const changed = firstChangedItem(before, itemsInOrder(data));
+    if (!changed) return;
+    for (let s = 0; s < sections.length; s++) {
+      const itemIndex = sections[s].data.findIndex(i => i.id === changed.id);
+      if (itemIndex !== -1) {
+        listRef.current?.scrollToLocation({ sectionIndex: s, itemIndex, viewPosition: 0.3 });
+        return;
+      }
+    }
+  }, [data, stale, sections]);
+
+  const open = (item: UnitContentsItem): (() => void) | undefined => {
     const screen = data ? openContentItem(item, data, { unitId, courseId }) : null;
     return screen ? () => onOpen(screen) : undefined;
   };
 
-  return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-          <Text style={styles.backText}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          {data?.moduleTitle ?? t('unitContents.title')}
-        </Text>
+  const sectionTitle = (title: string | null, kind: SectionKind | null, count: number) => {
+    if (title !== null) return title;
+    switch (kind) {
+      case 'texts':
+        return t('unitContents.secTexts');
+      case 'wordsGrammar':
+        return t('unitContents.secWordsGrammar');
+      case 'exercises':
+        return t('unitContents.secExercises', { count });
+      default:
+        return t('unitContents.otherItems');
+    }
+  };
+
+  const downloadLine = {
+    done: { icon: 'DeviceMobile', label: t('unitContents.saved') },
+    none: { icon: 'CloudArrowDown', label: t('unitContents.notSaved') },
+    downloading: { icon: 'CircleNotch', label: t('unitContents.saving') },
+  }[download.state] as { icon: 'DeviceMobile' | 'CloudArrowDown' | 'CircleNotch'; label: string };
+
+  const onDownloadPress = () => {
+    if (download.state === 'done') toast.show(t('unitContents.saved'));
+    else if (download.state === 'downloading') toast.show(t('unitContents.saving'));
+    else if (!download.inWindow) toast.show(t('unitContents.outsideWindowToast'));
+    else download.start();
+  };
+
+  const header = (
+    <View style={{ paddingTop: 4, paddingBottom: 14, gap: 6 }}>
+      <Overline>
+        {t('unitContents.header', {
+          n: unitIndex === -1 ? '' : unitIndex + 1,
+          done: items.filter(isDone).length,
+          total: items.length,
+        })}
+      </Overline>
+      <Text style={[typography.h1, { color: colors.text }]}>
+        {data?.moduleTitle ?? t('unitContents.title')}
+      </Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <Icon name={downloadLine.icon} size={14} color={colors.neutral400} />
+        <Text style={[typography.meta, { color: colors.neutral400 }]}>{downloadLine.label}</Text>
       </View>
+    </View>
+  );
+
+  const footer =
+    status !== 'loaded' || !data ? null : next ? (
+      <Button
+        block
+        size={48}
+        icon="Play"
+        label={t('unitContents.continueItem', { item: next.title ?? t('unitContents.untitled') })}
+        onPress={open(next)}
+      />
+    ) : followingUnit ? (
+      <Button
+        block
+        size={48}
+        variant="secondary"
+        label={t('unitContents.nextUnit', { unit: followingUnit.title })}
+        onPress={() => onOpen({ name: 'UnitContents', unitId: followingUnit.id, courseId })}
+      />
+    ) : null;
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
+      <NavHeader
+        parentLabel={home?.courseInfo.title ?? t('unitContents.title')}
+        onBack={onBack}
+        right={{
+          icon:
+            download.state === 'done'
+              ? 'CheckCircle'
+              : download.state === 'downloading'
+              ? 'CircleNotch'
+              : 'DownloadSimple',
+          accessibilityLabel: downloadLine.label,
+          onPress: onDownloadPress,
+        }}
+      />
       {stale && isNetworkError(error) && <OfflineBanner />}
 
       {status === 'loading' && (
-        <View style={styles.centerFill}>
-          <ActivityIndicator size="large" color={colors.accent} />
+        <View style={{ paddingHorizontal: spacing.screenGutter, gap: 10 }}>
+          <Skeleton width={120} height={12} />
+          <Skeleton width="70%" height={28} />
+          {[0, 1, 2, 3, 4].map(i => (
+            <Skeleton key={i} height={52} radius={8} />
+          ))}
         </View>
       )}
 
       {status === 'error' && (
-        <View style={styles.centerFill}>
-          <Text style={styles.emptyTitle}>{t('unitContents.loadError')}</Text>
-          <Text style={styles.emptyDesc}>{error?.message}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={refresh}>
-            <Text style={styles.retryButtonText}>{t('courses.retry')}</Text>
-          </TouchableOpacity>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, gap: 8 }}>
+          <Text style={[typography.cardTitleMedium, { color: colors.text, textAlign: 'center' }]}>
+            {t('unitContents.loadError')}
+          </Text>
+          <Text style={[typography.secondary, { color: colors.neutral500, textAlign: 'center' }]}>
+            {error?.message}
+          </Text>
+          <Button variant="secondary" size={44} label={t('courses.retry')} onPress={refresh} />
         </View>
       )}
 
-      {status === 'loaded' && isEmpty && (
-        <View style={styles.centerFill}>
-          <Text style={styles.emptyTitle}>{t('unitContents.noItems')}</Text>
-        </View>
-      )}
-
-      {status === 'loaded' && !isEmpty && (
+      {status === 'loaded' && (
         <SectionList
+          ref={listRef}
           sections={sections}
-          keyExtractor={(item: UnitContentsItem) => item.id}
-          renderItem={({ item }) => (
-            <ContentItemRow item={item} onPress={handleItemPress(item)} />
-          )}
-          renderSectionHeader={({ section }) =>
-            section.title ? (
-              <Text style={styles.sectionTitle}>{section.title}</Text>
+          keyExtractor={item => item.id}
+          ListHeaderComponent={header}
+          ListEmptyComponent={
+            isEmpty ? (
+              <Text style={[typography.body, { color: colors.neutral500, textAlign: 'center', marginTop: 24 }]}>
+                {t('unitContents.noItems')}
+              </Text>
             ) : null
           }
-          contentContainerStyle={styles.list}
+          renderItem={({ item }) => (
+            <View style={{ marginBottom: 8 }}>
+              <ContentItemRow
+                item={item}
+                onPress={open(item)}
+                onLockedPress={() => toast.show(t('unitContents.lockedToast'))}
+              />
+            </View>
+          )}
+          renderSectionHeader={({ section }) => (
+            <View style={{ marginTop: 10, marginBottom: 6 }}>
+              <Overline>{sectionTitle(section.title, section.kind, section.data.length)}</Overline>
+            </View>
+          )}
+          contentContainerStyle={{ paddingHorizontal: spacing.screenGutter, paddingTop: 4, paddingBottom: 20 }}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />
+            <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accentBase} />
           }
           stickySectionHeadersEnabled={false}
+          onScrollToIndexFailed={() => {}}
         />
+      )}
+
+      {footer && (
+        <View
+          style={{
+            borderTopWidth: 1,
+            borderTopColor: colors.neutral800,
+            paddingTop: 12,
+            paddingHorizontal: spacing.screenGutter,
+            paddingBottom: 12 + insets.bottom,
+          }}
+        >
+          {footer}
+        </View>
       )}
     </SafeAreaView>
   );
 }
-
-const makeStyles = (colors: ColorScheme) =>
-  StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: 20,
-      paddingVertical: 12,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    backBtn: {
-      padding: 8,
-      marginRight: 8,
-    },
-    backText: {
-      fontSize: 22,
-      color: colors.textPrimary,
-    },
-    headerTitle: {
-      flex: 1,
-      fontSize: 17,
-      fontWeight: '700',
-      color: colors.textPrimary,
-    },
-    centerFill: {
-      flex: 1,
-      flexGrow: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: 32,
-    },
-    emptyTitle: {
-      fontSize: 17,
-      fontWeight: '700',
-      color: colors.textPrimary,
-      marginBottom: 6,
-      textAlign: 'center',
-    },
-    emptyDesc: {
-      fontSize: 14,
-      color: colors.textMuted,
-      textAlign: 'center',
-      lineHeight: 20,
-    },
-    retryButton: {
-      marginTop: 16,
-      paddingHorizontal: 20,
-      paddingVertical: 10,
-      borderRadius: 12,
-      backgroundColor: colors.accent,
-    },
-    retryButtonText: {
-      fontSize: 14,
-      fontWeight: '700',
-      color: colors.textInverted,
-    },
-    sectionTitle: {
-      fontSize: 13,
-      fontWeight: '700',
-      color: colors.textMuted,
-      textTransform: 'uppercase',
-      letterSpacing: 0.5,
-      marginHorizontal: 16,
-      marginTop: 12,
-      marginBottom: 6,
-    },
-    list: {
-      paddingTop: 8,
-      paddingBottom: 24,
-    },
-  });

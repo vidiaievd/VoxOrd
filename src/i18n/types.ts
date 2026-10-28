@@ -401,6 +401,23 @@ export interface Translations {
     statusAvailable: string;
     statusLocked: string;
     masteryPercent: string; // 'Mastery: {percent}%'
+    header: string; // 'Unit {n} · {done} of {total}'
+    saved: string;
+    notSaved: string;
+    saving: string;
+    secTexts: string;
+    secWordsGrammar: string;
+    secExercises: string; // '{count}'
+    continueItem: string; // '{item}'
+    nextUnit: string; // '{unit}'
+    kindText: string;
+    kindAudio: string;
+    kindWords: string;
+    kindRule: string;
+    kindExercise: string;
+    metaRule: string; // '{percent}'
+    lockedToast: string;
+    outsideWindowToast: string;
   };
 
   /** «My words» — words the student adds from a text (plan 75). */
