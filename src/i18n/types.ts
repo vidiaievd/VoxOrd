@@ -532,6 +532,35 @@ export interface Translations {
       provisionalNoteNoTerm: string;
       acceptedAtTermTitle: string;
       acceptedAtTermNote: string;
+      /** A reading aloud checked by the machine (plan 82). */
+      caveatReading: string;
+      reasonPlaceholderReading: string;
+      readingCheck: {
+        prompt: string; // '{n}'
+        passed: string;
+        notPassed: string;
+        count: string; // '{read}', '{total}', '{percent}'
+        mark: string; // '{percent}'
+        heard: string;
+        nothingHeard: string;
+        legend: {
+          word: string;
+          heard: string;
+          missed: string;
+          misread: string;
+          extra: string;
+        };
+        carried: string; // '{label}'
+        carriedCount: PluralForms; // '{count}'
+        pace: string; // '{wpm}'
+        pronunciation: {
+          title: string;
+          scores: string; // '{accuracy}', '{fluency}', '{completeness}'
+          prosody: string; // '{prosody}'
+          unclear: string;
+          note: string;
+        };
+      };
       aspect: {
         grammar: string;
         order: string;
@@ -980,10 +1009,21 @@ export interface Translations {
       readByTeacher: string;
       steps: {
         atTeacher: string;
+        /** The machine checks the reading by itself (plan 82). */
+        atAi: string;
         graded: string;
       };
       sentTitle: string;
       sentBody: string;
+      /** Handed in with nobody to listen (plan 79, 2.1c). */
+      unreadTitle: string;
+      unreadBody: string;
+      /** Handed in to the machine (plan 82). */
+      aiTitle: string;
+      aiBody: string;
+      aiSlow: string;
+      /** The machine was asked and could not check it. */
+      droppedBody: string;
       carried: { title: string; inAttempt: string }; // '{count}' / '{attempt}'
       submittedTake: string; // '{label}'
       refused: {

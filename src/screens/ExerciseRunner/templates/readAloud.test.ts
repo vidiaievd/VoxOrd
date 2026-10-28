@@ -138,6 +138,60 @@ describe('openingOf', () => {
       stage: 'sent',
       attemptId: 's',
       recordings: SUBMITTED.recordings,
+      byAi: false,
+    });
+  });
+
+  // Plan 82: a learner with no school — the machine reads it, and its verdict is awaited.
+  it('opens on the machine when work without a school is waiting', () => {
+    expect(
+      openingOf(
+        [
+          row({
+            id: 's',
+            status: 'ROUTED_FOR_REVIEW',
+            submittedAnswer: SUBMITTED,
+            schoolId: null,
+          }),
+        ],
+        'return',
+      ),
+    ).toMatchObject({ stage: 'sent', byAi: true });
+    expect(
+      openingOf(
+        [
+          row({
+            id: 's',
+            status: 'ROUTED_FOR_REVIEW',
+            submittedAnswer: SUBMITTED,
+            schoolId: 'school-1',
+          }),
+        ],
+        'return',
+      ),
+    ).toMatchObject({ stage: 'sent', byAi: false });
+  });
+
+  it('says whose verdict it is: the machine’s stands in for the rubric', () => {
+    const graded = (reviewedBy: 'ai' | 'teacher') =>
+      openingOf(
+        [
+          row({
+            id: 'g',
+            status: 'RETURNED',
+            submittedAnswer: SUBMITTED,
+            reviewedBy,
+          }),
+        ],
+        'return',
+      );
+    expect(graded('ai')).toMatchObject({
+      stage: 'graded',
+      verdict: { byAi: true },
+    });
+    expect(graded('teacher')).toMatchObject({
+      stage: 'graded',
+      verdict: { byAi: false },
     });
   });
 

@@ -26,6 +26,7 @@ import {
   useExerciseAudio,
   type ExerciseAudioEngine,
 } from '../../hooks/useExerciseAudio';
+import { useAiVerdictWait } from '../../hooks/useAiVerdictWait';
 import {
   chosenIndex,
   clockSeconds,
@@ -57,6 +58,7 @@ import {
   type RecorderPort,
 } from '../../services/recorder';
 import { ExerciseAudioPlayer } from './audio';
+import { AiReviewPanel } from './AiReviewPanel';
 import { ReadAloudGraded } from './ReadAloudGraded';
 import type { ExerciseBodyProps } from './ExerciseBody';
 import {
@@ -70,12 +72,14 @@ import {
   type TakeSource,
 } from './ReadAloudParts';
 import {
+  gradedOf,
   handedInVerdict,
   openingOf,
   readReadAloudContent,
   recordingFilename,
   recordingRefusal,
   RETAKE_CODES,
+  TEMPLATE_CODE,
   verifiedDraft,
   type GradedVerdict,
   type Opening,
@@ -105,6 +109,10 @@ export interface ReadAloudBodyProps extends ExerciseBodyProps {
  * the item at once** — the runner's Continue is the way on, so the body hands the runner the
  * verdict the engine gave at hand-in. A returned task that may be recorded again stays open,
  * with «Continue» under the card.
+ *
+ * Two more stay open (plan 82): a reading a machine checks by itself — the screen waits for
+ * its verdict, as the web does — and work nobody will listen to, which may be recorded again
+ * (Q6) instead of closing for good.
  */
 export function ReadAloudBody({
   display,
@@ -144,13 +152,13 @@ export function ReadAloudBody({
         /** The projection the attempt's start answered — it knows the carried prompts. */
         content: ReadAloudContent;
       }
-    | { kind: 'sent'; recordings: SubmittedRecording[]; unread: boolean }
     | {
-        kind: 'graded';
+        kind: 'after';
         attemptId: string;
         recordings: SubmittedRecording[];
-        verdict: GradedVerdict;
-        redo: boolean;
+        /** How each take plays: the session's own files, or the server's asset. */
+        sources: Record<string, TakeSource>;
+        from: AfterStart;
       };
   const [stage, setStage] = useState<Stage>({ kind: 'loading' });
 
@@ -170,21 +178,27 @@ export function ReadAloudBody({
     void recentAttempts(exerciseId).then(rows => {
       if (!live) return;
       const opening = openingOf(rows, revision);
+      const after = (from: AfterStart) =>
+        opening.stage === 'sent' ||
+        opening.stage === 'unread' ||
+        opening.stage === 'graded'
+          ? setStage({
+              kind: 'after',
+              attemptId: opening.attemptId,
+              recordings: opening.recordings,
+              sources: {},
+              from,
+            })
+          : undefined;
       if (opening.stage === 'sent') {
-        setStage({ kind: 'sent', recordings: opening.recordings, unread: false });
-        finish(handedInVerdict(opening.attemptId));
+        // With a teacher the item closes; the machine's verdict is worth waiting for.
+        after({ kind: opening.byAi ? 'ai' : 'teacher' });
+        if (!opening.byAi) finish(handedInVerdict(opening.attemptId));
       } else if (opening.stage === 'unread') {
-        // Final like a verdict with no redo: the item closes, and the runner says why.
-        setStage({ kind: 'sent', recordings: opening.recordings, unread: true });
-        finish(handedInVerdict(opening.attemptId, 'none'));
+        // Below a draft like a verdict, and open: it may be recorded again (Q6).
+        after({ kind: 'unread' });
       } else if (opening.stage === 'graded') {
-        setStage({
-          kind: 'graded',
-          attemptId: opening.attemptId,
-          recordings: opening.recordings,
-          verdict: opening.verdict,
-          redo: opening.redo,
-        });
+        after({ kind: 'graded', verdict: opening.verdict, redo: opening.redo });
         if (!opening.redo) finish(handedInVerdict(opening.attemptId));
       } else {
         setStage({ kind: 'card', opening });
@@ -287,55 +301,23 @@ export function ReadAloudBody({
         />
       );
 
-    case 'graded':
+    case 'after':
       return (
-        <SentView
+        <AfterHandIn
+          key={stage.attemptId}
+          exerciseId={exerciseId}
+          attemptId={stage.attemptId}
           title={title}
-          recordings={stage.recordings}
           content={content}
-          sourceOf={assetId => ({ path: null, assetId, peaks: null })}
-          graded={(playback, labelOf, sourceOf) => (
-            <>
-              <ReadAloudGraded
-                verdict={stage.verdict}
-                revision={content.settings.revision}
-                showRubric={content.settings.showRubric}
-                showModel={content.settings.showModel}
-                recordings={stage.recordings}
-                labelOf={labelOf}
-                sourceOf={sourceOf}
-                playback={playback}
-                {...(audio.audio.enabled ? { onPlayModel: audio.toggle } : {})}
-                {...(stage.redo && !disabled
-                  ? { onRedo: () => start({ stage: 'fresh' }) }
-                  : {})}
-              />
-              {/* The redo keeps the item open; «Continue» is the way past it without one. */}
-              {stage.redo && !disabled ? (
-                <TouchableOpacity
-                  style={styles.ghost}
-                  onPress={() => finish(handedInVerdict(stage.attemptId))}
-                >
-                  <Text style={styles.ghostText}>
-                    {t('exerciseRunner.readAloud.graded.skip')}
-                  </Text>
-                </TouchableOpacity>
-              ) : null}
-            </>
-          )}
-          t={t}
-          styles={styles}
-        />
-      );
-
-    case 'sent':
-      return (
-        <SentView
-          title={title}
           recordings={stage.recordings}
-          content={content}
-          sourceOf={assetId => ({ path: null, assetId, peaks: null })}
-          unread={stage.unread}
+          sourceOf={assetId =>
+            stage.sources[assetId] ?? { path: null, assetId, peaks: null }
+          }
+          from={stage.from}
+          audio={audio}
+          disabled={disabled}
+          onRedo={() => start({ stage: 'fresh' })}
+          onFinish={finish}
           t={t}
           styles={styles}
         />
@@ -353,7 +335,24 @@ export function ReadAloudBody({
           initialDraft={stage.draft}
           audio={audio}
           checkTable={checkTable}
-          onDelivered={finish}
+          onDelivered={(verdict, recordings, sources) => {
+            // A teacher's work closes the item at once; the machine's and nobody's stay open
+            // (the wait, and «record again»).
+            const from: AfterStart =
+              verdict.reviewer === 'ai'
+                ? { kind: 'ai' }
+                : verdict.reviewer === 'none'
+                ? { kind: 'unread' }
+                : { kind: 'teacher' };
+            setStage({
+              kind: 'after',
+              attemptId: verdict.attemptId,
+              recordings,
+              sources,
+              from,
+            });
+            if (from.kind === 'teacher') finish(verdict);
+          }}
           createPort={createPort}
           t={t}
           styles={styles}
@@ -442,7 +441,12 @@ interface SessionProps {
   initialDraft: Draft | null;
   audio: ExerciseAudioEngine;
   checkTable: ExerciseBodyProps['checkTable'];
-  onDelivered: (verdict: SubmitAttemptResponse) => void;
+  /** Handed in: what the engine said, what went, and how each take plays from the phone. */
+  onDelivered: (
+    verdict: SubmitAttemptResponse,
+    recordings: SubmittedRecording[],
+    sources: Record<string, TakeSource>,
+  ) => void;
   createPort: () => RecorderPort;
   t: T;
   styles: Styles;
@@ -503,10 +507,8 @@ function ReadAloudSession({
     () => ({ prompts: content.prompts, recording: content.recording }),
     [content],
   );
+  /** `sent` until the body moves on to what follows the hand-in. */
   const [stage, setStage] = useState<'draft' | 'sent'>('draft');
-  /** `sent` with nobody to listen — `reviewer: none` (plan 79, step 2.1c). */
-  const [unread, setUnread] = useState(false);
-  const [submitted, setSubmitted] = useState<SubmittedRecording[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /** The envelope of each take recorded here, by its file — its waveform until upload. */
@@ -655,15 +657,19 @@ function ReadAloudSession({
 
     const delivered = (verdict: SubmitAttemptResponse) => {
       playback.stop();
-      setSubmitted(submission.recordings);
       setStage('sent');
-      setUnread(verdict.reviewer === 'none');
       // The takes the teacher will not hear go (DECISIONS §1); a failed delete costs nothing
       // but storage (§8 item 5).
       for (const id of unsentAssets(state, submission)) {
         deleteMediaAsset(id).catch(() => undefined);
       }
-      onDelivered(verdict);
+      onDelivered(
+        verdict,
+        submission.recordings,
+        Object.fromEntries(
+          submission.recordings.map(r => [r.assetId, sourceOfAsset(r.assetId)]),
+        ),
+      );
     };
 
     try {
@@ -702,20 +708,8 @@ function ReadAloudSession({
     }
   }
 
-  if (stage === 'sent') {
-    return (
-      <SentView
-        title={title}
-        recordings={submitted}
-        content={content}
-        sourceOf={sourceOfAsset}
-        playback={playback}
-        unread={unread}
-        t={t}
-        styles={styles}
-      />
-    );
-  }
+  // The body draws what follows; nothing is left to record here.
+  if (stage === 'sent') return null;
 
   const prompt = content.prompts[state.index];
   const total = content.prompts.length;
@@ -1243,13 +1237,248 @@ function SubmitActions({
 
 /* ── After the hand-in ──────────────────────────────────────────────────── */
 
-/** `ra-steps`: recorded · with the teacher · graded. */
+/**
+ * Where the work stands once handed in: with a teacher; with the machine, whose verdict is
+ * awaited (plan 82); with nobody (`NO_REVIEWER`); or graded.
+ */
+type AfterStart =
+  | { kind: 'teacher' }
+  | { kind: 'ai' }
+  | { kind: 'unread' }
+  | { kind: 'graded'; verdict: GradedVerdict; redo: boolean };
+
+type After =
+  | Exclude<AfterStart, { kind: 'unread' }>
+  /** `dropped` — the machine was asked and could not check it, not «nobody to ask». */
+  | { kind: 'unread'; dropped: boolean };
+
+/**
+ * The handed-in takes and what follows them.
+ *
+ * The machine's verdict is waited for on the attempt handed in (`useAiVerdictWait`, as the
+ * runner does for text): it arrives as a verdict — the graded card with the machine's check in
+ * place of the rubric — or as `NO_REVIEWER`. Whatever leaves the item open offers «Continue»,
+ * the runner's footer being the body's own: during the wait (the verdict still lands here),
+ * under a return that may be recorded again, and under work nobody listened to, which may be
+ * recorded again (Q6 — on the web since plan 79, 2.1d).
+ */
+function AfterHandIn({
+  exerciseId,
+  attemptId,
+  title,
+  content,
+  recordings,
+  sourceOf,
+  from,
+  audio,
+  disabled,
+  onRedo,
+  onFinish,
+  t,
+  styles,
+}: {
+  exerciseId: string;
+  attemptId: string;
+  title: string;
+  content: ReadAloudContent;
+  recordings: SubmittedRecording[];
+  sourceOf: (assetId: string) => TakeSource;
+  from: AfterStart;
+  audio: ExerciseAudioEngine;
+  disabled: boolean;
+  onRedo: () => void;
+  onFinish: (verdict: SubmitAttemptResponse) => void;
+  t: T;
+  styles: Styles;
+}) {
+  const { colors } = useTheme();
+  const [after, setAfter] = useState<After>(
+    from.kind === 'unread' ? { kind: 'unread', dropped: false } : from,
+  );
+  const revision = content.settings.revision;
+  const { wait, again } = useAiVerdictWait(
+    exerciseId,
+    after.kind === 'ai' ? attemptId : null,
+  );
+
+  useEffect(() => {
+    if (wait?.state !== 'settled') return;
+    const { attempt } = wait;
+    if (attempt.status === 'NO_REVIEWER') {
+      setAfter({ kind: 'unread', dropped: true });
+      return;
+    }
+    const graded = gradedOf(attempt, revision);
+    setAfter({ kind: 'graded', ...graded });
+    if (!graded.redo) onFinish(handedInVerdict(attemptId));
+    // Settles once per attempt; the callback is the body's and stable in effect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wait]);
+
+  const skip = (reviewer?: 'none') =>
+    disabled ? null : (
+      <TouchableOpacity
+        style={styles.ghost}
+        onPress={() => onFinish(handedInVerdict(attemptId, reviewer))}
+      >
+        <Text style={styles.ghostText}>
+          {t('exerciseRunner.readAloud.graded.skip')}
+        </Text>
+      </TouchableOpacity>
+    );
+
+  if (after.kind === 'graded') {
+    const { verdict, redo } = after;
+    return (
+      <SentView
+        title={title}
+        recordings={recordings}
+        content={content}
+        sourceOf={sourceOf}
+        byAi={verdict.byAi}
+        graded={(playback, labelOf, sourceOfTake) => (
+          <>
+            <ReadAloudGraded
+              verdict={verdict}
+              revision={revision}
+              showRubric={content.settings.showRubric}
+              showModel={content.settings.showModel}
+              recordings={recordings}
+              labelOf={labelOf}
+              sourceOf={sourceOfTake}
+              playback={playback}
+              {...(audio.audio.enabled ? { onPlayModel: audio.toggle } : {})}
+              {...(redo && !disabled ? { onRedo } : {})}
+              {...(verdict.byAi
+                ? {
+                    aiReview: (
+                      <AiReviewPanel
+                        exerciseId={exerciseId}
+                        attemptId={attemptId}
+                        templateCode={TEMPLATE_CODE}
+                        criteria={new Map()}
+                        promptLabel={labelOf}
+                        passageOf={itemId =>
+                          content.prompts.find(p => p.id === itemId)?.text ??
+                          null
+                        }
+                      />
+                    ),
+                  }
+                : {})}
+            />
+            {/* The redo keeps the item open; «Continue» is the way past it without one. */}
+            {redo ? skip() : null}
+          </>
+        )}
+        t={t}
+        styles={styles}
+      />
+    );
+  }
+
+  if (after.kind === 'unread') {
+    return (
+      <SentView
+        title={title}
+        recordings={recordings}
+        content={content}
+        sourceOf={sourceOf}
+        unread
+        notice={
+          <>
+            <Text style={styles.sentText}>
+              <Text style={styles.bold}>
+                {t('exerciseRunner.readAloud.unreadTitle')}
+              </Text>{' '}
+              {after.dropped
+                ? t('exerciseRunner.readAloud.droppedBody')
+                : t('exerciseRunner.readAloud.unreadBody')}
+            </Text>
+            {disabled ? null : (
+              <TouchableOpacity
+                style={styles.primary}
+                onPress={onRedo}
+                accessibilityRole="button"
+              >
+                <Text style={styles.primaryText}>
+                  ↻ {t('exerciseRunner.readAloud.graded.redo')}
+                </Text>
+              </TouchableOpacity>
+            )}
+            {skip('none')}
+          </>
+        }
+        t={t}
+        styles={styles}
+      />
+    );
+  }
+
+  if (after.kind === 'ai') {
+    const slow = wait?.state === 'slow';
+    return (
+      <SentView
+        title={title}
+        recordings={recordings}
+        content={content}
+        sourceOf={sourceOf}
+        byAi
+        notice={
+          <>
+            <View style={styles.waitRow}>
+              {slow ? null : (
+                <ActivityIndicator size="small" color={colors.accent} />
+              )}
+              <Text style={[styles.sentText, styles.flex]}>
+                <Text style={styles.bold}>
+                  {t('exerciseRunner.readAloud.aiTitle')}
+                </Text>{' '}
+                {slow
+                  ? t('exerciseRunner.readAloud.aiSlow')
+                  : t('exerciseRunner.readAloud.aiBody')}
+              </Text>
+            </View>
+            {slow ? (
+              <TouchableOpacity style={styles.ghost} onPress={again}>
+                <Text style={styles.ghostText}>
+                  {t('exerciseRunner.aiReview.askAgain')}
+                </Text>
+              </TouchableOpacity>
+            ) : null}
+            {skip()}
+          </>
+        }
+        t={t}
+        styles={styles}
+      />
+    );
+  }
+
+  return (
+    <SentView
+      title={title}
+      recordings={recordings}
+      content={content}
+      sourceOf={sourceOf}
+      t={t}
+      styles={styles}
+    />
+  );
+}
+
+/**
+ * `ra-steps`: recorded · with the teacher · graded. With `byAi` the machine checks the reading
+ * by itself (plan 82): the same bars, its own words.
+ */
 function ReviewSteps({
   graded = false,
+  byAi = false,
   t,
   styles,
 }: {
   graded?: boolean;
+  byAi?: boolean;
   t: T;
   styles: Styles;
 }) {
@@ -1263,6 +1492,8 @@ function ReviewSteps({
       <Text style={styles.mono}>
         {graded
           ? t('exerciseRunner.readAloud.steps.graded')
+          : byAi
+          ? t('exerciseRunner.readAloud.steps.atAi')
           : t('exerciseRunner.readAloud.steps.atTeacher')}
       </Text>
     </View>
@@ -1278,6 +1509,8 @@ function SentView({
   playback: givenPlayback,
   graded,
   unread = false,
+  byAi = false,
+  notice,
   t,
   styles,
 }: {
@@ -1294,6 +1527,10 @@ function SentView({
   ) => React.ReactNode;
   /** Handed in with nobody to listen (plan 79, step 2.1c): no «with the teacher» step. */
   unread?: boolean;
+  /** The machine checks it, not a teacher (plan 82). */
+  byAi?: boolean;
+  /** In place of «Levert.»: the machine's wait, or why nobody listens. */
+  notice?: React.ReactNode;
   t: T;
   styles: Styles;
 }) {
@@ -1331,7 +1568,12 @@ function SentView({
     <View style={styles.col}>
       <Text style={styles.title}>{title}</Text>
       {unread ? null : (
-        <ReviewSteps graded={graded !== undefined} t={t} styles={styles} />
+        <ReviewSteps
+          graded={graded !== undefined}
+          byAi={byAi}
+          t={t}
+          styles={styles}
+        />
       )}
       <View style={styles.takes}>
         {recordings.map((r, i) => {
@@ -1352,6 +1594,8 @@ function SentView({
       </View>
       {graded !== undefined ? (
         graded(playback, labelOf, sourceOf)
+      ) : notice !== undefined ? (
+        <View style={styles.sent}>{notice}</View>
       ) : (
         <View style={styles.sent}>
           <Text style={styles.sentText}>
@@ -1648,6 +1892,11 @@ const makeStyles = (colors: ColorScheme) =>
       color: colors.danger,
       textAlign: 'center',
     },
+    waitRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
     steps: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -1662,6 +1911,7 @@ const makeStyles = (colors: ColorScheme) =>
     stepDone: { backgroundColor: colors.success },
     stepNow: { backgroundColor: colors.accent },
     sent: {
+      gap: 10,
       padding: 14,
       borderRadius: 12,
       borderWidth: 1,

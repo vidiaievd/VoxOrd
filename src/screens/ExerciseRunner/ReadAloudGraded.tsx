@@ -28,6 +28,12 @@ export interface ReadAloudGradedProps {
   onPlayModel?: () => void;
   /** Offered when the verdict is a return and `revision: 'return'`. */
   onRedo?: () => void;
+  /**
+   * The machine's check, when it gave the verdict (plan 82): drawn in place of the prompts'
+   * rubric rows — it marked none, and a row at level 0 would say it had — and of their
+   * comments, which are its counts in figures and are drawn there whole.
+   */
+  aiReview?: React.ReactNode;
 }
 
 /**
@@ -54,6 +60,7 @@ export function ReadAloudGraded({
   playback,
   onPlayModel,
   onRedo,
+  aiReview,
 }: ReadAloudGradedProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -102,7 +109,16 @@ export function ReadAloudGraded({
           </Text>
         </View>
         <View style={styles.flex} />
-        {single && first !== undefined ? (
+        {aiReview !== undefined ? (
+          !single ? (
+            <Text style={styles.points}>
+              {t('exerciseRunner.readAloud.graded.passedCount', {
+                k: passedCount,
+                n: recordings.length,
+              })}
+            </Text>
+          ) : null
+        ) : single && first !== undefined ? (
           <Text style={styles.points}>
             {t('exerciseRunner.readAloud.graded.points', {
               score: first.outcome.points,
@@ -119,7 +135,9 @@ export function ReadAloudGraded({
         ) : null}
       </View>
 
-      {recordings.map((r, i) => {
+      {aiReview}
+
+      {(aiReview === undefined ? recordings : []).map((r, i) => {
         const result =
           score?.prompts.find(p => p.itemId === r.itemId)?.outcome ?? null;
         const decision = byItem.get(r.itemId);
@@ -220,7 +238,9 @@ export function ReadAloudGraded({
         );
       })}
 
-      {verdict.comment !== null && verdict.comment.trim() !== '' ? (
+      {aiReview === undefined &&
+      verdict.comment !== null &&
+      verdict.comment.trim() !== '' ? (
         <Text style={styles.comment}>{verdict.comment}</Text>
       ) : null}
 

@@ -683,6 +683,11 @@ export interface AttemptRow {
    */
   reviewedBy?: 'teacher' | 'ai' | null;
   /**
+   * The school the work was done for; null for a learner on their own — whose work in review
+   * is a model's to read (plan 82). Absent from older engines and the phone's own.
+   */
+  schoolId?: string | null;
+  /**
    * A model's verdict on a school's work while its teacher is awaited (plan 80): shown at
    * once, labelled as not counting yet. Only on work still `ROUTED_FOR_REVIEW`.
    */

@@ -26,6 +26,12 @@ jest.mock('../../api/exercises', () => ({
   getAttempt: (...a: unknown[]) => mockGetAttempt(...a),
 }));
 
+const mockGetAiReview = jest.fn();
+jest.mock('../../api/aiReview', () => ({
+  ...jest.requireActual('../../api/aiReview'),
+  getAiReview: (...a: unknown[]) => mockGetAiReview(...a),
+}));
+
 jest.mock('../../api/media', () => ({
   getMediaAsset: (...a: unknown[]) => mockGetMediaAsset(...a),
   uploadRecording: (...a: unknown[]) => mockUploadRecording(...a),
@@ -195,6 +201,7 @@ beforeEach(() => {
   mockRecentAttempts.mockReset().mockResolvedValue([]);
   mockSaveDraft.mockReset().mockResolvedValue({ savedAt: 'now' });
   mockGetAttempt.mockReset();
+  mockGetAiReview.mockReset().mockResolvedValue(null);
   mockGetMediaAsset.mockReset().mockResolvedValue({
     id: 'x',
     mimeType: 'audio/mp4',
@@ -547,6 +554,159 @@ describe('ReadAloudBody', () => {
     expect(m.button('readAloud.graded.redo')).toBeUndefined();
     expect(m.finishTable).toHaveBeenCalledWith(
       expect.objectContaining({ attemptId: 'g-2', requiresReview: true }),
+    );
+  });
+});
+
+/** Plan 82, step 12: a learner with no school — the machine listens, or nobody does. */
+describe('ReadAloudBody after the hand-in (plan 82)', () => {
+  const handedIn = (reviewer: 'ai' | 'none') => ({
+    attemptId: 'att-1',
+    correct: false,
+    score: null,
+    requiresReview: true,
+    reviewer,
+    feedback: { summary: '' },
+  });
+
+  async function handIn(reviewer: 'ai' | 'none') {
+    const m = await mount();
+    await m.press('readAloud.card.start');
+    await recordTake(m);
+    await m.flush();
+    m.checkTable.mockResolvedValue(handedIn(reviewer));
+    await m.press('readAloud.submit');
+    return m;
+  }
+
+  /** As the engine answers once the machine has ruled. */
+  const ruled = (over: Record<string, unknown>) => ({
+    id: 'att-1',
+    status: 'SCORED',
+    templateCode: 'read_aloud',
+    submittedAnswer: {
+      recordings: [{ itemId: 'p1', assetId: 'asset-1', seconds: 20, takes: 1 }],
+    },
+    draftAnswer: null,
+    passed: true,
+    reviewedBy: 'ai',
+    schoolId: null,
+    reviewDecisions: [{ itemId: 'p1', approved: true, comment: '3/3 · 100 % ≥ 85 %' }],
+    ...over,
+  });
+
+  const reading = {
+    outcome: 'approved',
+    items: [],
+    summary: '3/3 · 100 % ≥ 85 %',
+    marks: null,
+    reading: {
+      passPercent: 85,
+      prompts: [
+        {
+          itemId: 'p1',
+          transcript: 'jeg heter kari',
+          ops: [{ k: 'read', i: 0, n: 3, heard: 'jeg heter kari', focus: false }],
+          total: 3,
+          read: 3,
+          percent: 100,
+          passed: true,
+          pronunciation: null,
+          wordsPerMinute: null,
+        },
+      ],
+      carriedItemIds: [],
+    },
+    reviewedAt: '2026-10-28T10:00:00.000Z',
+    disputedAt: null,
+    provisional: false,
+    countsAt: null,
+    acceptedAtTerm: false,
+  };
+
+  it('waits for the machine, then shows its check in place of the rubric and closes the item', async () => {
+    mockGetAttempt.mockResolvedValue({ id: 'att-1', status: 'ROUTED_FOR_REVIEW' });
+    const m = await handIn('ai');
+    expect(m.finishTable).not.toHaveBeenCalled();
+    expect(m.texts()).toContain('readAloud.steps.atAi');
+    expect(m.texts()).toContain('readAloud.aiBody');
+
+    mockGetAttempt.mockResolvedValue(ruled({}));
+    mockGetAiReview.mockResolvedValue(reading);
+    await act(async () => {
+      jest.advanceTimersByTime(2000);
+    });
+    await m.flush();
+
+    expect(m.texts()).toContain('readAloud.graded.outcome.passed');
+    expect(m.texts()).toContain('aiReview.caveatReading');
+    expect(m.texts()).toContain('aiReview.readingCheck.passed');
+    expect(m.texts()).toContain('aiReview.readingCheck.count {"read":3,"total":3,"percent":100}');
+    // The machine marked no criteria: no rubric rows, and its figures are not a comment.
+    expect(m.texts()).not.toContain('readAloud.graded.mark');
+    expect(m.texts()).not.toContain('3/3 · 100 % ≥ 85 %');
+    expect(m.finishTable).toHaveBeenCalledWith(
+      expect.objectContaining({ attemptId: 'att-1', requiresReview: true }),
+    );
+    expect(m.finishTable.mock.calls[0][0].reviewer).toBeUndefined();
+  });
+
+  it('keeps a returned reading open for another try', async () => {
+    mockGetAttempt.mockResolvedValue(
+      ruled({ status: 'RETURNED', passed: false }),
+    );
+    const m = await handIn('ai');
+    await act(async () => {
+      jest.advanceTimersByTime(2000);
+    });
+    await m.flush();
+    expect(m.texts()).toContain('readAloud.graded.outcome.rewrite');
+    expect(m.button('readAloud.graded.redo')).toBeDefined();
+    expect(m.finishTable).not.toHaveBeenCalled();
+  });
+
+  it('says when the machine could not check it, and offers to record again', async () => {
+    mockGetAttempt.mockResolvedValue({ id: 'att-1', status: 'NO_REVIEWER' });
+    const m = await handIn('ai');
+    await act(async () => {
+      jest.advanceTimersByTime(2000);
+    });
+    await m.flush();
+    expect(m.texts()).toContain('readAloud.droppedBody');
+    expect(m.button('readAloud.graded.redo')).toBeDefined();
+    expect(m.finishTable).not.toHaveBeenCalled();
+
+    m.openAttempt.mockResolvedValue('att-2');
+    await m.press('readAloud.graded.redo');
+    await m.flush();
+    expect(m.openAttempt).toHaveBeenCalledTimes(2);
+    expect(m.button('readAloud.start')).toBeDefined();
+  });
+
+  it('offers to record again work nobody will listen to, and Continue closes it as unread', async () => {
+    const m = await handIn('none');
+    expect(m.texts()).toContain('readAloud.unreadBody');
+    expect(m.texts()).not.toContain('readAloud.sentBody');
+    expect(m.button('readAloud.graded.redo')).toBeDefined();
+    expect(m.finishTable).not.toHaveBeenCalled();
+
+    await m.press('readAloud.graded.skip');
+    expect(m.finishTable).toHaveBeenCalledWith(
+      expect.objectContaining({ attemptId: 'att-1', reviewer: 'none' }),
+    );
+  });
+
+  it('opens on the machine’s wait for work without a school, and leaves the item open', async () => {
+    mockRecentAttempts.mockResolvedValue([
+      ruled({ id: 'sent-1', status: 'ROUTED_FOR_REVIEW', passed: null, reviewedBy: null }),
+    ]);
+    mockGetAttempt.mockResolvedValue({ id: 'sent-1', status: 'ROUTED_FOR_REVIEW' });
+    const m = await mount();
+    expect(m.texts()).toContain('readAloud.aiBody');
+    expect(m.finishTable).not.toHaveBeenCalled();
+    await m.press('readAloud.graded.skip');
+    expect(m.finishTable).toHaveBeenCalledWith(
+      expect.objectContaining({ attemptId: 'sent-1', requiresReview: true }),
     );
   });
 });

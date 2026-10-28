@@ -1,4 +1,4 @@
-import { criterionNames, disputeAiReview, getAiReview } from './aiReview';
+import { criterionNames, disputeAiReview, getAiReview, readReading } from './aiReview';
 import { ApiError, apiClient } from './client';
 
 jest.mock('./client', () => ({
@@ -42,6 +42,7 @@ describe('getAiReview (plan 79, 2.3d)', () => {
       ],
       summary: 'Two slips.',
       marks: [{ criterionId: 'c1', mark: 2, reason: 'r' }],
+      reading: null,
       reviewedAt: '2026-10-24T10:00:00.000Z',
       disputedAt: null,
       provisional: false,
@@ -131,5 +132,112 @@ describe('criterionNames', () => {
   it('is empty for anything that is not a rubric', () => {
     expect(criterionNames(null).size).toBe(0);
     expect(criterionNames({ criteria: 'x' }).size).toBe(0);
+  });
+});
+
+/** As the engine keeps it on a `voice_review` review (`readingForView`). */
+const ENGINE_READING = {
+  passPercent: 85,
+  prompts: [
+    {
+      itemId: 'p1',
+      transcript: 'jeg bor på oslo',
+      words: [{ text: 'jeg', startMs: 0, endMs: 300, confidence: 0.9 }],
+      audioMs: 2400,
+      pronunciation: null,
+      check: {
+        ops: [
+          { k: 'read', i: 0, n: 1, heard: 'jeg', focus: false },
+          { k: 'misread', i: 1, expected: 'i', heard: 'på', focus: true },
+          { k: 'missed', i: 2, expected: 'nå', focus: false },
+          { k: 'extra', heard: 'eh' },
+          { k: 'shout', heard: 'ignored' },
+        ],
+        total: 3,
+        read: 1,
+        accuracy: 0.333,
+      },
+      percent: 33,
+      passed: false,
+      wordsPerMinute: 120,
+    },
+    { itemId: 'broken' },
+  ],
+  carriedItemIds: ['p0', 7],
+};
+
+describe('readReading (plan 82, step 12)', () => {
+  it('copies what the screen draws and nothing else', () => {
+    expect(readReading(ENGINE_READING)).toEqual({
+      passPercent: 85,
+      prompts: [
+        {
+          itemId: 'p1',
+          transcript: 'jeg bor på oslo',
+          ops: [
+            { k: 'read', i: 0, n: 1, heard: 'jeg', focus: false },
+            { k: 'misread', i: 1, expected: 'i', heard: 'på', focus: true },
+            { k: 'missed', i: 2, expected: 'nå', focus: false },
+            { k: 'extra', heard: 'eh' },
+          ],
+          total: 3,
+          read: 1,
+          percent: 33,
+          passed: false,
+          pronunciation: null,
+          wordsPerMinute: 120,
+        },
+      ],
+      carriedItemIds: ['p0'],
+    });
+  });
+
+  it('keeps pronunciation scores and drops words it cannot read', () => {
+    const reading = readReading({
+      ...ENGINE_READING,
+      prompts: [
+        {
+          ...ENGINE_READING.prompts[0],
+          pronunciation: {
+            accuracy: 80,
+            fluency: 70,
+            completeness: 90,
+            words: [
+              { text: 'jeg', accuracy: 92, error: 'none' },
+              { text: 'bor', accuracy: 'high', error: 'none' },
+              { text: 'i', accuracy: 30, error: 'whatever' },
+            ],
+          },
+        },
+      ],
+    });
+    expect(reading?.prompts[0]?.pronunciation).toEqual({
+      accuracy: 80,
+      fluency: 70,
+      completeness: 90,
+      prosody: null,
+      words: [{ text: 'jeg', accuracy: 92, error: 'none' }],
+    });
+  });
+
+  it('is null for anything that is not a reading', () => {
+    expect(readReading(null)).toBeNull();
+    expect(readReading(undefined)).toBeNull();
+    expect(readReading({ prompts: [] })).toBeNull();
+    expect(readReading([])).toBeNull();
+  });
+
+  it('comes through getAiReview', async () => {
+    mockGet.mockResolvedValue({
+      outcome: 'returned',
+      items: [],
+      summary: '1/3 · 33 % < 85 %',
+      marks: null,
+      reading: ENGINE_READING,
+      reviewedAt: '2026-10-28T10:00:00.000Z',
+      disputedAt: null,
+    });
+    const review = await getAiReview('ex-1', 'att-1');
+    expect(review?.reading?.prompts.map(p => p.itemId)).toEqual(['p1']);
   });
 });

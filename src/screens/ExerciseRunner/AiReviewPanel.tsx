@@ -10,10 +10,12 @@ import {
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
+import { ReadingCheck } from './ReadingCheck';
 import {
   DISPUTE_REASON_MAX,
   disputeAiReview,
   getAiReview,
+  type AiReading,
   type AiReview,
   type AiReviewMark,
   type AiReviewRemark,
@@ -41,6 +43,10 @@ interface AiReviewPanelProps {
   templateCode: string;
   /** Rubric criterion id → name, from the attempt's `rubricSnapshot`, in rubric order. */
   criteria: Map<string, string>;
+  /** A `read_aloud` prompt's name; «Prompt N» without it. */
+  promptLabel?: (itemId: string) => string;
+  /** A `read_aloud` prompt's passage as the screen has it, to draw the check over. */
+  passageOf?: (itemId: string) => string | null;
 }
 
 type Load =
@@ -62,13 +68,24 @@ type Load =
  * says whether it waits for the teacher — and when it counts by itself — or counted at the
  * term. A review that does not count yet takes no dispute (the engine refuses one): the
  * teacher's verdict is still to come.
+ *
+ * A reading aloud checked by the machine (plan 82) is drawn as the check of each prompt
+ * instead of remarks; its summary is the counts in figures, which the check already shows.
  */
-export function AiReviewPanel({ exerciseId, attemptId, templateCode, criteria }: AiReviewPanelProps) {
+export function AiReviewPanel({
+  exerciseId,
+  attemptId,
+  templateCode,
+  criteria,
+  promptLabel,
+  passageOf,
+}: AiReviewPanelProps) {
   const { t, language } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
   const [load, setLoad] = useState<Load>({ kind: 'loading' });
   const [seq, setSeq] = useState(0);
+  const reading = templateCode === 'read_aloud';
 
   useEffect(() => {
     let cancelled = false;
@@ -97,7 +114,9 @@ export function AiReviewPanel({ exerciseId, attemptId, templateCode, criteria }:
   return (
     <View style={styles.panel} accessibilityLabel={t('exerciseRunner.aiReview.label')}>
       <Text style={styles.label}>✦ {t('exerciseRunner.aiReview.label')}</Text>
-      <Text style={styles.caveat}>{t('exerciseRunner.aiReview.caveat')}</Text>
+      <Text style={styles.caveat}>
+        {reading ? t('exerciseRunner.aiReview.caveatReading') : t('exerciseRunner.aiReview.caveat')}
+      </Text>
 
       {load.kind === 'loading' ? (
         <ActivityIndicator style={styles.spinner} color={colors.accent} />
@@ -111,10 +130,22 @@ export function AiReviewPanel({ exerciseId, attemptId, templateCode, criteria }:
       ) : load.review === null ? null : (
         <>
           <Standing styles={styles} t={t} language={language} review={load.review} />
-          {load.review.summary !== null && load.review.summary.trim() !== '' ? (
-            <Text style={styles.summary}>{load.review.summary}</Text>
-          ) : null}
-          <Remarks t={t} styles={styles} items={load.review.items} templateCode={templateCode} />
+          {load.review.reading != null ? (
+            <Readings
+              t={t}
+              styles={styles}
+              reading={load.review.reading}
+              promptLabel={promptLabel}
+              passageOf={passageOf}
+            />
+          ) : (
+            <>
+              {load.review.summary !== null && load.review.summary.trim() !== '' ? (
+                <Text style={styles.summary}>{load.review.summary}</Text>
+              ) : null}
+              <Remarks t={t} styles={styles} items={load.review.items} templateCode={templateCode} />
+            </>
+          )}
           {load.review.marks !== null && load.review.marks.length > 0 ? (
             <Marks t={t} styles={styles} marks={load.review.marks} criteria={criteria} />
           ) : null}
@@ -124,6 +155,7 @@ export function AiReviewPanel({ exerciseId, attemptId, templateCode, criteria }:
               attemptId={attemptId}
               disputedAt={load.review.disputedAt}
               onDisputed={onDisputed}
+              reading={reading}
             />
           )}
         </>
@@ -168,6 +200,59 @@ function Standing({
     <View style={styles.standing}>
       <Text style={styles.standingTitle}>{title}</Text>
       <Text style={styles.muted}>{note}</Text>
+    </View>
+  );
+}
+
+/**
+ * A reading checked by the machine (plan 82): each prompt under its name, with the passage
+ * marked where it was missed or read as other words, then the prompts passed in an earlier
+ * try, which were not listened to again.
+ */
+function Readings({
+  t,
+  styles,
+  reading,
+  promptLabel,
+  passageOf,
+}: {
+  t: T;
+  styles: Styles;
+  reading: AiReading;
+  promptLabel: ((itemId: string) => string) | undefined;
+  passageOf: ((itemId: string) => string | null) | undefined;
+}) {
+  const labelOf = (itemId: string, index: number) =>
+    promptLabel?.(itemId).trim() || t('exerciseRunner.aiReview.readingCheck.prompt', { n: index + 1 });
+  const single = reading.prompts.length === 1 && reading.carriedItemIds.length === 0;
+
+  return (
+    <View style={styles.groups}>
+      {reading.prompts.map((prompt, index) => (
+        <View key={prompt.itemId} style={styles.group} accessibilityLabel={labelOf(prompt.itemId, index)}>
+          {single ? null : <Text style={styles.groupTitle}>{labelOf(prompt.itemId, index)}</Text>}
+          <ReadingCheck
+            prompt={prompt}
+            passPercent={reading.passPercent}
+            passage={passageOf?.(prompt.itemId) ?? null}
+          />
+        </View>
+      ))}
+      {/* Where the screen cannot name them, they are counted: a number made up from their
+          place here would point at the wrong prompt. */}
+      {reading.carriedItemIds.length === 0 ? null : promptLabel === undefined ? (
+        <Text style={styles.muted}>
+          {t('exerciseRunner.aiReview.readingCheck.carriedCount', {
+            count: reading.carriedItemIds.length,
+          })}
+        </Text>
+      ) : (
+        reading.carriedItemIds.map(itemId => (
+          <Text key={itemId} style={styles.muted}>
+            {t('exerciseRunner.aiReview.readingCheck.carried', { label: promptLabel(itemId) })}
+          </Text>
+        ))
+      )}
     </View>
   );
 }
@@ -285,11 +370,14 @@ function Dispute({
   attemptId,
   disputedAt,
   onDisputed,
+  reading,
 }: {
   exerciseId: string;
   attemptId: string;
   disputedAt: string | null;
   onDisputed: (disputedAt: string) => void;
+  /** A reading aloud: the example says what a wrong hearing looks like. */
+  reading: boolean;
 }) {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -332,7 +420,11 @@ function Dispute({
         onChangeText={setReason}
         maxLength={DISPUTE_REASON_MAX}
         multiline
-        placeholder={t('exerciseRunner.aiReview.reasonPlaceholder')}
+        placeholder={
+          reading
+            ? t('exerciseRunner.aiReview.reasonPlaceholderReading')
+            : t('exerciseRunner.aiReview.reasonPlaceholder')
+        }
         placeholderTextColor={colors.textMuted}
         style={styles.reasonInput}
         accessibilityLabel={t('exerciseRunner.aiReview.reasonLabel')}
