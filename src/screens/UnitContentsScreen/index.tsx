@@ -15,35 +15,17 @@ import { ColorScheme } from '../../theme/colors';
 import { OfflineBanner } from '../../components/OfflineBanner';
 import { isNetworkError } from '../../api/isNetworkError';
 import { useUnitContents } from '../../hooks/useUnitContents';
-import { exercisesForLesson, findSourceLessonId } from '../../lib/sourceLesson';
+import { openContentItem } from '../../lib/openContentItem';
 import { ContentItemRow } from './ContentItemRow';
 import type { UnitContentsItem } from '../../api/types';
+import type { Screen } from '../../navigation/screens';
 
 interface UnitContentsScreenProps {
   unitId: string;
+  courseId: string;
   onBack: () => void;
-  /**
-   * Open a lesson. `exerciseIds` are the exercises the lesson leads into — what «To the
-   * exercises» at the end of a text opens (`exercisesForLesson`); empty when there are none.
-   */
-  onLessonPress: (lessonId: string, exerciseIds: string[], alreadyRead: boolean) => void;
-  /**
-   * Launch the exercise runner over the unit's exercises as a set, starting
-   * at the tapped one. `exerciseIds` are content ids in display order.
-   *
-   * `sourceLessonId` is the unit's own text lesson, when it has one: an exercise carries
-   * no lesson id, so the screen that knows the unit is the one that can say which text
-   * its tasks are about (plan 54 Q5). Null for a unit with no text.
-   */
-  onExercisePress: (
-    exerciseIds: string[],
-    startIndex: number,
-    sourceLessonId: string | null,
-  ) => void;
-  /** Opens the read-only vocabulary list reader (Phase 5). */
-  onVocabularyPress: (listId: string) => void;
-  /** Opens the read-only grammar rule explanation reader. */
-  onGrammarRulePress: (ruleId: string) => void;
+  /** Opens a material on the screen `openContentItem` names for it. */
+  onOpen: (screen: Screen) => void;
 }
 
 interface Section {
@@ -54,11 +36,9 @@ interface Section {
 
 export function UnitContentsScreen({
   unitId,
+  courseId,
   onBack,
-  onLessonPress,
-  onExercisePress,
-  onVocabularyPress,
-  onGrammarRulePress,
+  onOpen,
 }: UnitContentsScreenProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -75,35 +55,9 @@ export function UnitContentsScreen({
     : [];
   const isEmpty = sections.every((s) => s.data.length === 0);
 
-  // The unit's exercises in display order, treated as one runnable set.
-  const exerciseIds = sections
-    .flatMap((s) => s.data)
-    .filter((i) => i.contentType === 'exercise')
-    .map((i) => i.contentId);
-
-  /** The text these exercises are about, for the runners that offer a way back to it. */
-  const sourceLessonId = data ? findSourceLessonId(data) : null;
-
   const handleItemPress = (item: UnitContentsItem): (() => void) | undefined => {
-    if (item.contentType === 'lesson') {
-      return () =>
-        onLessonPress(
-          item.contentId,
-          data ? exercisesForLesson(data, item.contentId) : [],
-          item.status === 'completed',
-        );
-    }
-    if (item.contentType === 'exercise') {
-      const startIndex = exerciseIds.indexOf(item.contentId);
-      return () => onExercisePress(exerciseIds, Math.max(0, startIndex), sourceLessonId);
-    }
-    if (item.contentType === 'vocabulary_list') {
-      return () => onVocabularyPress(item.contentId);
-    }
-    if (item.contentType === 'grammar_rule') {
-      return () => onGrammarRulePress(item.contentId);
-    }
-    return undefined;
+    const screen = data ? openContentItem(item, data, { unitId, courseId }) : null;
+    return screen ? () => onOpen(screen) : undefined;
   };
 
   return (

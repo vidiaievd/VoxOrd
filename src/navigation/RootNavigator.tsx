@@ -313,43 +313,9 @@ function Navigator() {
         return (
           <UnitContentsScreen
             unitId={screen.unitId}
+            courseId={screen.courseId}
             onBack={goBack}
-            onLessonPress={(lessonId, exerciseIds, alreadyRead) =>
-              navigateTo({
-                name: 'LessonReader',
-                lessonId,
-                unitId: screen.unitId,
-                courseId: screen.courseId,
-                exerciseIds,
-                alreadyRead,
-              })
-            }
-            onExercisePress={(exerciseIds, startIndex, sourceLessonId) =>
-              navigateTo({
-                name: 'ExerciseRunner',
-                exerciseIds,
-                startIndex,
-                unitId: screen.unitId,
-                courseId: screen.courseId,
-                ...(sourceLessonId === null ? {} : { sourceLessonId }),
-              })
-            }
-            onVocabularyPress={listId =>
-              navigateTo({
-                name: 'VocabularyList',
-                listId,
-                unitId: screen.unitId,
-                courseId: screen.courseId,
-              })
-            }
-            onGrammarRulePress={ruleId =>
-              navigateTo({
-                name: 'GrammarRuleReader',
-                ruleId,
-                unitId: screen.unitId,
-                courseId: screen.courseId,
-              })
-            }
+            onOpen={navigateTo}
           />
         );
 
