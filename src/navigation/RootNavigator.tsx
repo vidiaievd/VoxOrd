@@ -473,6 +473,7 @@ function Navigator() {
       case 'Practice':
         return (
           <PracticeScreen
+            due={due}
             onStartReview={() =>
               navigateTo({ name: 'ReviewSession', from: 'Practice' })
             }
