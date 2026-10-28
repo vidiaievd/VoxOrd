@@ -647,12 +647,18 @@ export interface Translations {
     loadError: string;
     progress: string; // '{current} / {total}'
     check: string;
+    /** Footer label for work handed in rather than checked — `writing_task` (Courses §8.5). */
+    send: string;
+    /** Accessibility label of the header's X. */
+    close: string;
     continue: string;
     finish: string;
     tryAgain: string;
     correct: string;
     incorrect: string;
     submittedForReview: string;
+    /** Feedback title once work goes to a teacher (Courses §8.5). */
+    sentForReview: string;
     expectedAnswer: string; // '{answer}'
     reviewNote: string;
     /** Free-form work with nobody to read it — `reviewer: none` (plan 79, step 2.1c). */

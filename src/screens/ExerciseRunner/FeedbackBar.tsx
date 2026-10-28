@@ -1,8 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
 import { useTranslation } from '../../i18n';
-import { useTheme } from '../../providers/ThemeProvider';
-import { ColorScheme } from '../../theme/colors';
+import { AnswerFeedback, IconName } from '../../components/ui';
 import type { SubmitAttemptResponse } from '../../api/exercises';
 import { feedbackLine } from './feedbackLine';
 
@@ -24,64 +22,44 @@ function toneFor(verdict: SubmitAttemptResponse): FeedbackTone {
   return verdict.correct ? 'correct' : 'incorrect';
 }
 
+const ICON: Record<FeedbackTone, IconName> = {
+  correct: 'CheckCircle',
+  incorrect: 'Info',
+  review: 'PaperPlaneRight',
+  unread: 'Info',
+  ai: 'Sparkle',
+};
+
+/**
+ * The verdict over the footer button (Courses §8.5): «Верно», or «Правильно: {answer}» when
+ * the engine named the answer. No green or red — the icon and the words carry it.
+ */
 export function FeedbackBar({ verdict }: FeedbackBarProps) {
   const { t } = useTranslation();
-  const { colors } = useTheme();
-  const styles = makeStyles(colors);
 
   const tone = toneFor(verdict);
-  const toneColor =
-    tone === 'correct' ? colors.success : tone === 'incorrect' ? colors.danger : colors.warning;
+  // The engine's own words are English stock phrases; see `feedbackLine`.
+  const line = feedbackLine(verdict.feedback.summary);
+  const text = line.kind === 'text' ? line.text : null;
+
   const title =
     tone === 'correct'
       ? t('exerciseRunner.correct')
       : tone === 'incorrect'
-        ? t('exerciseRunner.incorrect')
-        : tone === 'unread'
-          ? t('exerciseRunner.noReviewer')
-          : tone === 'ai'
-            ? t('exerciseRunner.aiHandedIn')
-            : t('exerciseRunner.submittedForReview');
-  // The engine's own words are English stock phrases; see `feedbackLine`.
-  const line = feedbackLine(verdict.feedback.summary);
+      ? line.kind === 'expected'
+        ? t('exerciseRunner.expectedAnswer', { answer: line.answer })
+        : t('exerciseRunner.incorrect')
+      : tone === 'unread'
+      ? t('exerciseRunner.noReviewer')
+      : tone === 'ai'
+      ? t('exerciseRunner.aiHandedIn')
+      : t('exerciseRunner.sentForReview');
+  const body =
+    tone === 'unread'
+      ? text ?? t('exerciseRunner.noReviewerNote')
+      : tone === 'ai'
+      ? text ?? t('exerciseRunner.aiHandedInNote')
+      : text;
 
-  return (
-    <View style={[styles.bar, { backgroundColor: `${toneColor}1A`, borderColor: toneColor }]}>
-      <Text style={[styles.title, { color: toneColor }]}>{title}</Text>
-      {line.kind === 'expected' ? (
-        <Text style={styles.summary}>
-          {t('exerciseRunner.expectedAnswer', { answer: line.answer })}
-        </Text>
-      ) : line.kind === 'text' ? (
-        <Text style={styles.summary}>{line.text}</Text>
-      ) : tone === 'review' ? (
-        <Text style={styles.summary}>{t('exerciseRunner.reviewNote')}</Text>
-      ) : tone === 'unread' ? (
-        <Text style={styles.summary}>{t('exerciseRunner.noReviewerNote')}</Text>
-      ) : tone === 'ai' ? (
-        <Text style={styles.summary}>{t('exerciseRunner.aiHandedInNote')}</Text>
-      ) : null}
-    </View>
-  );
+  return <AnswerFeedback icon={ICON[tone]} title={title} body={body} />;
 }
-
-const makeStyles = (colors: ColorScheme) =>
-  StyleSheet.create({
-    bar: {
-      borderRadius: 14,
-      borderWidth: 1,
-      paddingHorizontal: 14,
-      paddingVertical: 12,
-      marginBottom: 12,
-    },
-    title: {
-      fontSize: 15,
-      fontWeight: '800',
-      marginBottom: 4,
-    },
-    summary: {
-      fontSize: 13,
-      color: colors.textSecondary,
-      lineHeight: 18,
-    },
-  });

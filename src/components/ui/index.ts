@@ -10,3 +10,6 @@ export * from './Skeleton';
 export * from './Spinner';
 export * from './Tag';
 export * from './Toast';
+export * from './AnswerFeedback';
+export * from './answerTone';
+export * from './ChoiceOption';
