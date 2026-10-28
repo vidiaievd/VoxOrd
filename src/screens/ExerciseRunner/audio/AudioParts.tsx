@@ -95,7 +95,7 @@ export function AudioLockNote({
 
   return (
     <Text style={styles.lockNote} accessibilityLiveRegion="polite">
-      🔒 {text}
+      {text}
     </Text>
   );
 }
@@ -215,13 +215,13 @@ const makeStyles = (colors: ColorScheme) =>
     },
     gateTitle: {
       fontSize: 17,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
       textAlign: 'center',
     },
     gateLede: {
       fontSize: 13,
-      color: colors.textSecondary,
+      color: colors.neutral400,
       textAlign: 'center',
       lineHeight: 19,
     },
@@ -234,73 +234,74 @@ const makeStyles = (colors: ColorScheme) =>
       borderRadius: 12,
       paddingVertical: 12,
       paddingHorizontal: 22,
-      backgroundColor: colors.accent,
+      borderWidth: 1,
+      borderColor: colors.accentBase,
     },
     gateButtonOff: {
       opacity: 0.5,
     },
     gateButtonText: {
       fontSize: 14,
-      fontWeight: '700',
-      color: colors.textInverted,
+      fontWeight: '500',
+      color: colors.accent300,
     },
     lockNote: {
       marginTop: 8,
       fontSize: 12.5,
       lineHeight: 18,
-      color: colors.textSecondary,
+      color: colors.neutral400,
     },
     fragment: {
       alignSelf: 'flex-start',
       marginTop: 8,
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: colors.neutral800,
       borderRadius: 999,
       paddingVertical: 6,
       paddingHorizontal: 12,
     },
     fragmentActive: {
-      borderColor: colors.accent,
-      backgroundColor: colors.accentLight,
+      borderColor: colors.accentBase,
+      backgroundColor: colors.accent900,
     },
     fragmentOff: {
       opacity: 0.45,
     },
     fragmentText: {
       fontSize: 12,
-      fontWeight: '600',
-      color: colors.textSecondary,
+      fontWeight: '500',
+      color: colors.neutral400,
     },
     fragmentTextActive: {
-      color: colors.accent,
+      color: colors.accentBase,
     },
     transcript: {
       marginTop: 12,
     },
     transcriptToggle: {
       fontSize: 12.5,
-      fontWeight: '600',
-      color: colors.textSecondary,
+      fontWeight: '500',
+      color: colors.neutral400,
     },
     transcriptBody: {
       marginTop: 8,
       borderRadius: 12,
-      backgroundColor: colors.backgroundInput,
+      backgroundColor: colors.surface,
       paddingVertical: 12,
       paddingHorizontal: 14,
     },
     transcriptText: {
       fontSize: 14,
       lineHeight: 23,
-      color: colors.textSecondary,
+      color: colors.neutral400,
     },
     transcriptTranslation: {
       marginTop: 8,
       paddingTop: 8,
       borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: colors.border,
+      borderTopColor: colors.neutral800,
       fontSize: 13,
       fontStyle: 'italic',
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
   });

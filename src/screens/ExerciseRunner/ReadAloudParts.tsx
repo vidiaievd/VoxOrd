@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import Sound from 'react-native-sound';
+import { Icon } from '../../components/ui';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
@@ -188,9 +189,9 @@ export function TakeRow({
         }
       >
         {playing && playback.loading ? (
-          <ActivityIndicator size="small" color={colors.accent} />
+          <ActivityIndicator size="small" color={colors.accentBase} />
         ) : (
-          <Text style={styles.playGlyph}>{playing ? '❚❚' : '▶'}</Text>
+          <Icon name={playing ? 'Pause' : 'Play'} size={14} color={colors.accent300} />
         )}
       </TouchableOpacity>
       <View style={styles.wave}>
@@ -200,7 +201,7 @@ export function TakeRow({
             style={[
               styles.waveBar,
               { height: 4 + v * 20 },
-              i < played ? { backgroundColor: colors.accent } : null,
+              i < played ? { backgroundColor: colors.accentBase } : null,
             ]}
           />
         ))}
@@ -208,7 +209,7 @@ export function TakeRow({
       {uploading ? (
         <ActivityIndicator
           size="small"
-          color={colors.textMuted}
+          color={colors.neutral500}
           accessibilityLabel={t('exerciseRunner.readAloud.uploadingTake')}
         />
       ) : (
@@ -248,7 +249,7 @@ export function Meter({ levels, live }: { levels: number[]; live: boolean }) {
             styles.meterBar,
             {
               height: 6 + v * 38,
-              backgroundColor: live ? colors.danger : colors.accent,
+              backgroundColor: live ? colors.neutral400 : colors.accentBase,
             },
           ]}
         />
@@ -263,7 +264,7 @@ export function Clock({ seconds, warn }: { seconds: number; warn: boolean }) {
   const styles = makeStyles(colors);
   return (
     <Text
-      style={[styles.clock, warn && { color: colors.warning }]}
+      style={[styles.clock, warn && { color: colors.neutral300 }]}
       accessibilityLiveRegion="polite"
     >
       {formatSeconds(seconds)}
@@ -357,7 +358,7 @@ export function Material({
       ) : null}
       <View style={styles.turn}>
         <View style={styles.turnAv}>
-          <Text style={styles.turnAvGlyph}>👤</Text>
+          <Icon name="User" size={14} color={colors.neutral400} />
         </View>
         <Text style={styles.turnText}>{prompt.turn?.partner ?? ''}</Text>
       </View>
@@ -415,45 +416,45 @@ const makeStyles = (colors: ColorScheme) =>
       paddingVertical: 9,
       paddingHorizontal: 11,
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: colors.neutral800,
       borderRadius: 10,
-      backgroundColor: colors.backgroundCard,
+      backgroundColor: colors.surface,
     },
     takeSelected: {
-      borderColor: colors.accent,
-      backgroundColor: colors.accentLight,
+      borderColor: colors.accentBase,
+      backgroundColor: colors.accent900,
     },
     takeN: {
       width: 24,
       height: 24,
       borderRadius: 12,
       borderWidth: 1,
-      borderColor: colors.accent,
+      borderColor: colors.accentBase,
       alignItems: 'center',
       justifyContent: 'center',
     },
     takeNSelected: {
-      backgroundColor: colors.accent,
+      backgroundColor: colors.accentBase,
     },
     takeNText: {
       fontSize: 12,
-      fontWeight: '700',
-      color: colors.accent,
+      fontWeight: '500',
+      color: colors.accentBase,
     },
     takeNTextSelected: {
-      color: colors.textInverted,
+      color: colors.accent300,
     },
     play: {
       width: 34,
       height: 34,
       borderRadius: 17,
-      backgroundColor: colors.accentLight,
+      backgroundColor: colors.accent900,
       alignItems: 'center',
       justifyContent: 'center',
     },
     playGlyph: {
       fontSize: 13,
-      color: colors.accent,
+      color: colors.accentBase,
     },
     dim: {
       opacity: 0.4,
@@ -468,12 +469,12 @@ const makeStyles = (colors: ColorScheme) =>
     waveBar: {
       flex: 1,
       borderRadius: 1,
-      backgroundColor: colors.textMuted,
+      backgroundColor: colors.neutral500,
     },
     dur: {
       fontFamily: 'monospace',
       fontSize: 11,
-      color: colors.textSecondary,
+      color: colors.neutral400,
       minWidth: 34,
       textAlign: 'right',
     },
@@ -481,7 +482,7 @@ const makeStyles = (colors: ColorScheme) =>
       width: 8,
       height: 8,
       borderRadius: 4,
-      backgroundColor: colors.danger,
+      backgroundColor: colors.neutral600,
     },
     meter: {
       flexDirection: 'row',
@@ -497,9 +498,9 @@ const makeStyles = (colors: ColorScheme) =>
     clock: {
       fontFamily: 'monospace',
       fontSize: 28,
-      fontWeight: '700',
+      fontWeight: '500',
       fontVariant: ['tabular-nums'],
-      color: colors.textPrimary,
+      color: colors.text,
       textAlign: 'center',
     },
     source: {
@@ -507,13 +508,13 @@ const makeStyles = (colors: ColorScheme) =>
       paddingHorizontal: 14,
       borderRadius: 10,
       borderWidth: 1,
-      borderColor: colors.border,
-      backgroundColor: colors.backgroundInput,
+      borderColor: colors.neutral800,
+      backgroundColor: colors.surface,
     },
     sourceText: {
       fontSize: 18,
       lineHeight: 28,
-      color: colors.textPrimary,
+      color: colors.text,
     },
     monologue: {
       gap: 10,
@@ -528,18 +529,18 @@ const makeStyles = (colors: ColorScheme) =>
       borderRadius: 10,
       borderWidth: 1,
       borderStyle: 'dashed',
-      borderColor: colors.textMuted,
+      borderColor: colors.neutral500,
       alignItems: 'center',
       justifyContent: 'center',
     },
     imgSlotText: {
       fontSize: 13,
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     caption: {
       marginTop: 6,
       fontSize: 13,
-      color: colors.textSecondary,
+      color: colors.neutral400,
     },
     plan: {
       gap: 5,
@@ -553,16 +554,16 @@ const makeStyles = (colors: ColorScheme) =>
       width: 6,
       height: 6,
       borderRadius: 3,
-      backgroundColor: colors.accent,
+      backgroundColor: colors.accentBase,
     },
     planText: {
       flex: 1,
       fontSize: 14,
-      color: colors.textSecondary,
+      color: colors.neutral400,
     },
     sub: {
       fontSize: 13,
-      color: colors.textSecondary,
+      color: colors.neutral400,
     },
     turn: {
       flexDirection: 'row',
@@ -572,14 +573,14 @@ const makeStyles = (colors: ColorScheme) =>
       paddingHorizontal: 12,
       borderRadius: 10,
       borderWidth: 1,
-      borderColor: colors.border,
-      backgroundColor: colors.backgroundPressed,
+      borderColor: colors.neutral800,
+      backgroundColor: colors.neutral800,
     },
     turnAv: {
       width: 30,
       height: 30,
       borderRadius: 15,
-      backgroundColor: colors.accentLight,
+      backgroundColor: colors.accent900,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -590,6 +591,6 @@ const makeStyles = (colors: ColorScheme) =>
       flex: 1,
       fontSize: 16,
       lineHeight: 22,
-      color: colors.textPrimary,
+      color: colors.text,
     },
   });

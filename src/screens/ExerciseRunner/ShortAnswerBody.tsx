@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { View, Text, StyleSheet, TextInput, ActivityIndicator } from 'react-native';
 import { ApiError } from '../../api/client';
 import { findOpenAttempt, type AnsweredQuestion } from '../../api/exercises';
+import { Icon } from '../../components/ui';
 import { useTranslation } from '../../i18n';
 import { useModal } from '../../providers/ModalProvider';
 import { useTheme } from '../../providers/ThemeProvider';
@@ -435,7 +436,13 @@ function ShortAnswerSet({
     const withTeacher = set.settings.teacherReview !== 'none';
     return (
       <View style={styles.done}>
-        <Text style={styles.doneEmoji}>{withTeacher ? '📮' : '✓'}</Text>
+        <View style={styles.doneEmoji}>
+          <Icon
+            name={withTeacher ? 'PaperPlaneRight' : 'CheckCircle'}
+            size={34}
+            color={colors.accent300}
+          />
+        </View>
         <Text style={styles.doneTitle}>{t('exerciseRunner.shortAnswer.doneTitle')}</Text>
         <Text style={styles.doneTally}>{t('exerciseRunner.shortAnswer.doneTally', {
             pass: tally.pass,
@@ -562,7 +569,7 @@ function ShortAnswerSet({
       <TextInput
         style={[
           styles.input,
-          { borderColor: submitted ? toneColor : value.trim() ? colors.accent : colors.border },
+          { borderColor: submitted ? toneColor : value.trim() ? colors.accentBase : colors.neutral800 },
           submitted && styles.inputSubmitted,
         ]}
         value={value}
@@ -573,7 +580,7 @@ function ShortAnswerSet({
         multiline
         autoCapitalize="sentences"
         placeholder={t('exerciseRunner.shortAnswer.placeholder')}
-        placeholderTextColor={colors.textMuted}
+        placeholderTextColor={colors.neutral500}
       />
 
       {submitted ? (
@@ -603,7 +610,7 @@ function ShortAnswerSet({
           {result?.hits.map(hit => (
             <Text
               key={hit.id}
-              style={[styles.hit, { color: hit.hit ? colors.success : colors.textSecondary }]}
+              style={[styles.hit, { color: hit.hit ? colors.accent300 : colors.neutral400 }]}
             >
               {hit.hit ? '✓' : '✗'} {hit.label}
             </Text>
@@ -643,10 +650,10 @@ function ShortAnswerSet({
 
 /** `wait` is a handed-in answer whose verdict could not be read — not a fourth outcome. */
 function verdictColor(verdict: ShortAnswerVerdict | 'wait', colors: ColorScheme): string {
-  if (verdict === 'pass') return colors.success;
-  if (verdict === 'partial') return colors.warning;
-  if (verdict === 'fail') return colors.danger;
-  return colors.textMuted;
+  if (verdict === 'pass') return colors.accent300;
+  if (verdict === 'partial') return colors.neutral300;
+  if (verdict === 'fail') return colors.neutral400;
+  return colors.neutral500;
 }
 
 function verdictMark(verdict: ShortAnswerVerdict | 'wait'): string {
@@ -679,69 +686,69 @@ const makeStyles = (colors: ColorScheme) =>
       height: 10,
       borderRadius: 5,
       borderWidth: 2,
-      borderColor: colors.border,
+      borderColor: colors.neutral800,
       marginRight: 6,
       marginVertical: 2,
     },
     dotAnswered: {
-      backgroundColor: colors.accent,
-      borderColor: colors.accent,
+      backgroundColor: colors.accentBase,
+      borderColor: colors.accentBase,
     },
     dotSkipped: {
-      borderColor: colors.warning,
+      borderColor: colors.accent700,
     },
     dotCurrent: {
       width: 14,
       height: 14,
       borderRadius: 7,
-      borderColor: colors.textPrimary,
+      borderColor: colors.text,
     },
     progressLabel: {
       fontSize: 12,
-      fontWeight: '700',
-      color: colors.textMuted,
+      fontWeight: '500',
+      color: colors.neutral500,
     },
     audio: {
       marginBottom: 12,
     },
     instruction: {
       fontSize: 13,
-      color: colors.textSecondary,
+      color: colors.neutral400,
       marginBottom: 12,
       lineHeight: 19,
     },
     passage: {
       fontSize: 14,
-      color: colors.textSecondary,
+      color: colors.neutral400,
       lineHeight: 22,
       paddingHorizontal: 12,
       paddingVertical: 10,
       marginBottom: 12,
       borderLeftWidth: 2,
-      borderLeftColor: colors.border,
-      backgroundColor: colors.backgroundInput,
+      borderLeftColor: colors.neutral800,
+      backgroundColor: colors.surface,
       borderRadius: 8,
     },
     prompt: {
       fontSize: 18,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
       marginBottom: 14,
       lineHeight: 25,
     },
     input: {
-      backgroundColor: colors.backgroundInput,
+      backgroundColor: colors.surface,
       borderRadius: 14,
       borderWidth: 2,
       paddingHorizontal: 16,
       paddingVertical: 14,
       fontSize: 16,
-      color: colors.textPrimary,
+      color: colors.text,
       minHeight: 90,
       textAlignVertical: 'top',
     },
     inputSubmitted: {
-      color: colors.textSecondary,
+      color: colors.neutral400,
     },
     card: {
       marginTop: 14,
@@ -758,7 +765,7 @@ const makeStyles = (colors: ColorScheme) =>
     },
     chip: {
       fontSize: 12,
-      fontWeight: '800',
+      fontWeight: '500',
       paddingHorizontal: 10,
       paddingVertical: 4,
       borderRadius: 999,
@@ -767,11 +774,11 @@ const makeStyles = (colors: ColorScheme) =>
     },
     covered: {
       fontSize: 12,
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     tooShort: {
       fontSize: 12.5,
-      color: colors.warning,
+      color: colors.neutral300,
       marginBottom: 6,
     },
     hit: {
@@ -780,29 +787,29 @@ const makeStyles = (colors: ColorScheme) =>
     },
     why: {
       fontSize: 13,
-      color: colors.textSecondary,
+      color: colors.neutral400,
       lineHeight: 19,
       marginTop: 8,
     },
     model: {
       fontSize: 13.5,
-      color: colors.textPrimary,
+      color: colors.text,
       lineHeight: 20,
       marginTop: 8,
-      backgroundColor: colors.backgroundInput,
+      backgroundColor: colors.surface,
       borderRadius: 8,
       paddingHorizontal: 10,
       paddingVertical: 8,
     },
     modelLabel: {
-      fontWeight: '700',
+      fontWeight: '500',
     },
     routing: {
       fontSize: 12,
-      color: colors.textSecondary,
+      color: colors.neutral400,
       marginTop: 10,
       borderTopWidth: 1,
-      borderTopColor: colors.border,
+      borderTopColor: colors.neutral800,
       paddingTop: 8,
     },
     done: {
@@ -811,25 +818,24 @@ const makeStyles = (colors: ColorScheme) =>
       paddingHorizontal: 16,
     },
     doneEmoji: {
-      fontSize: 34,
       marginBottom: 10,
     },
     doneTitle: {
       fontSize: 17,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
       marginBottom: 6,
       textAlign: 'center',
     },
     doneTally: {
       fontSize: 13.5,
-      color: colors.textSecondary,
+      color: colors.neutral400,
       textAlign: 'center',
       lineHeight: 20,
     },
     doneNote: {
       fontSize: 13,
-      color: colors.textMuted,
+      color: colors.neutral500,
       textAlign: 'center',
       marginTop: 4,
     },
@@ -840,14 +846,14 @@ const makeStyles = (colors: ColorScheme) =>
     },
     unavailableTitle: {
       fontSize: 16,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
       textAlign: 'center',
       marginBottom: 6,
     },
     unavailableDesc: {
       fontSize: 13,
-      color: colors.textMuted,
+      color: colors.neutral500,
       textAlign: 'center',
       lineHeight: 19,
     },

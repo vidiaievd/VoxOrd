@@ -11,6 +11,7 @@ import type {
   AudioTranscript as AudioTranscriptWords,
   SubmitAttemptResponse,
 } from '../../api/exercises';
+import { Icon } from '../../components/ui';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
@@ -339,10 +340,14 @@ function SortIntoBucketsBoardBody({
       >
         {/* Right and wrong ride in a mark as well as a colour (BEHAVIOR §Accessibility). */}
         {(state === 'ok' || state === 'key') && (
-          <Text style={[styles.tileMark, { color: colors.success }]}>✓</Text>
+          <View style={styles.tileMark}>
+            <Icon name="Check" size={14} color={colors.accent300} />
+          </View>
         )}
         {state === 'bad' && (
-          <Text style={[styles.tileMark, { color: colors.danger }]}>✗</Text>
+          <View style={styles.tileMark}>
+            <Icon name="X" size={14} color={colors.neutral400} />
+          </View>
         )}
         <Text style={styles.tileText}>{tile.text}</Text>
       </TouchableOpacity>
@@ -369,7 +374,7 @@ function SortIntoBucketsBoardBody({
         })}
         style={[
           styles.zone,
-          { borderColor: armed ? colors.accent : colors.border },
+          { borderColor: armed ? colors.accentBase : colors.neutral800 },
           inside.length === 0 && styles.dashed,
         ]}
       >
@@ -471,7 +476,7 @@ function SortIntoBucketsBoardBody({
                 {recording.status === 'loading' ? (
                   <ActivityIndicator
                     size="small"
-                    color={colors.textSecondary}
+                    color={colors.neutral400}
                   />
                 ) : (
                   <Text style={styles.listenText}>
@@ -576,8 +581,8 @@ function SortIntoBucketsBoardBody({
                   size="small"
                   color={
                     verdict !== null && wrong > 0
-                      ? colors.textSecondary
-                      : colors.textInverted
+                      ? colors.neutral400
+                      : colors.accent300
                   }
                 />
               ) : (
@@ -656,7 +661,7 @@ function Summary({
   const { passedItems, totalItems } = verdict;
   const pct = totalItems === 0 ? 0 : (passedItems / totalItems) * 100;
   const passed = pct >= threshold;
-  const tone = passed ? colors.success : colors.warning;
+  const tone = passed ? colors.accent300 : colors.neutral300;
 
   return (
     <View style={[styles.summary, { borderLeftColor: tone }]}>
@@ -688,13 +693,13 @@ function tileTone(
   colors: ColorScheme,
 ): { border: string; bg: string } {
   if (state === 'ok')
-    return { border: colors.success, bg: 'rgba(52, 199, 89, 0.12)' };
+    return { border: colors.accent300, bg: colors.accent900 };
   if (state === 'bad')
-    return { border: colors.danger, bg: 'rgba(255, 59, 48, 0.10)' };
+    return { border: colors.neutral400, bg: 'transparent' };
   if (state === 'key')
-    return { border: colors.success, bg: colors.backgroundCard };
-  if (isSelected) return { border: colors.accent, bg: colors.accentLight };
-  return { border: colors.border, bg: colors.backgroundCard };
+    return { border: colors.accent300, bg: colors.surface };
+  if (isSelected) return { border: colors.accentBase, bg: colors.accent900 };
+  return { border: colors.neutral800, bg: colors.surface };
 }
 
 const makeStyles = (colors: ColorScheme) =>
@@ -706,21 +711,21 @@ const makeStyles = (colors: ColorScheme) =>
     },
     noticeTitle: {
       fontSize: 16,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
       textAlign: 'center',
       marginBottom: 6,
     },
     noticeDesc: {
       fontSize: 13,
-      color: colors.textMuted,
+      color: colors.neutral500,
       textAlign: 'center',
       lineHeight: 19,
     },
     instruction: {
       fontSize: 15,
-      fontWeight: '600',
-      color: colors.textSecondary,
+      fontWeight: '500',
+      color: colors.neutral400,
       lineHeight: 21,
       marginBottom: 14,
     },
@@ -728,8 +733,8 @@ const makeStyles = (colors: ColorScheme) =>
       marginBottom: 12,
     },
     bold: {
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
     },
     srOnly: {
       height: 0,
@@ -738,8 +743,8 @@ const makeStyles = (colors: ColorScheme) =>
     },
     inHand: {
       borderWidth: 1.5,
-      borderColor: colors.accent,
-      backgroundColor: colors.accentLight,
+      borderColor: colors.accentBase,
+      backgroundColor: colors.accent900,
       borderRadius: 12,
       paddingHorizontal: 12,
       paddingVertical: 10,
@@ -748,7 +753,7 @@ const makeStyles = (colors: ColorScheme) =>
     inHandText: {
       fontSize: 13.5,
       lineHeight: 19,
-      color: colors.textPrimary,
+      color: colors.text,
     },
     inHandActions: {
       flexDirection: 'row',
@@ -762,15 +767,15 @@ const makeStyles = (colors: ColorScheme) =>
       minHeight: TAP_MIN,
       borderRadius: TAP_MIN / 2,
       borderWidth: 1.5,
-      borderColor: colors.border,
-      backgroundColor: colors.backgroundCard,
+      borderColor: colors.neutral800,
+      backgroundColor: colors.surface,
       alignItems: 'center',
       justifyContent: 'center',
     },
     listenText: {
       fontSize: 15,
-      fontWeight: '700',
-      color: colors.textSecondary,
+      fontWeight: '500',
+      color: colors.neutral400,
     },
     linkBtn: {
       minHeight: TAP_MIN,
@@ -779,8 +784,8 @@ const makeStyles = (colors: ColorScheme) =>
     },
     linkBtnText: {
       fontSize: 13,
-      fontWeight: '700',
-      color: colors.textSecondary,
+      fontWeight: '500',
+      color: colors.neutral400,
       textDecorationLine: 'underline',
     },
     zones: {
@@ -790,36 +795,36 @@ const makeStyles = (colors: ColorScheme) =>
       minHeight: TAP_MIN * 2,
       borderWidth: 1.5,
       borderRadius: 14,
-      backgroundColor: colors.backgroundCard,
+      backgroundColor: colors.surface,
       paddingHorizontal: 12,
       paddingVertical: 10,
     },
     zoneLabel: {
       fontSize: 15.5,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
     },
     zoneHint: {
       fontSize: 12.5,
-      color: colors.textMuted,
+      color: colors.neutral500,
       marginTop: 2,
     },
     zoneRule: {
       fontSize: 12.5,
       lineHeight: 18,
-      color: colors.textSecondary,
+      color: colors.neutral400,
       marginTop: 2,
     },
     zoneEmpty: {
       fontSize: 12.5,
       fontStyle: 'italic',
-      color: colors.textMuted,
+      color: colors.neutral500,
       marginTop: 8,
     },
     note: {
       fontSize: 13,
       lineHeight: 19,
-      color: colors.textSecondary,
+      color: colors.neutral400,
       marginTop: 8,
     },
     tiles: {
@@ -848,20 +853,18 @@ const makeStyles = (colors: ColorScheme) =>
       opacity: 0.9,
     },
     tileMark: {
-      fontSize: 14,
-      fontWeight: '700',
       marginRight: 6,
     },
     tileText: {
       fontSize: 15,
       lineHeight: 20,
-      color: colors.textPrimary,
+      color: colors.text,
     },
     pool: {
       marginTop: 16,
       paddingTop: 12,
       borderTopWidth: 1,
-      borderTopColor: colors.border,
+      borderTopColor: colors.neutral800,
     },
     poolHead: {
       flexDirection: 'row',
@@ -870,21 +873,21 @@ const makeStyles = (colors: ColorScheme) =>
     },
     poolTitle: {
       fontSize: 11.5,
-      fontWeight: '700',
+      fontWeight: '500',
       letterSpacing: 0.7,
       textTransform: 'uppercase',
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     poolCount: {
       fontSize: 12.5,
-      fontWeight: '600',
-      color: colors.textMuted,
+      fontWeight: '500',
+      color: colors.neutral500,
     },
     summary: {
       flexDirection: 'row',
       alignItems: 'center',
       borderLeftWidth: 3,
-      backgroundColor: colors.backgroundInput,
+      backgroundColor: colors.surface,
       borderRadius: 10,
       paddingHorizontal: 14,
       paddingVertical: 12,
@@ -892,7 +895,7 @@ const makeStyles = (colors: ColorScheme) =>
     },
     summaryScore: {
       fontSize: 20,
-      fontWeight: '800',
+      fontWeight: '500',
       marginRight: 12,
     },
     summaryBody: {
@@ -900,17 +903,17 @@ const makeStyles = (colors: ColorScheme) =>
     },
     summaryHead: {
       fontSize: 14,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
     },
     summaryLine: {
       fontSize: 13,
-      color: colors.textSecondary,
+      color: colors.neutral400,
       marginTop: 2,
     },
     error: {
       fontSize: 13,
-      color: colors.danger,
+      color: colors.neutral400,
       marginTop: 10,
     },
     actions: {
@@ -918,7 +921,8 @@ const makeStyles = (colors: ColorScheme) =>
       gap: 10,
     },
     primaryBtn: {
-      backgroundColor: colors.accent,
+      borderWidth: 1,
+      borderColor: colors.accentBase,
       borderRadius: 14,
       minHeight: TAP_MIN,
       paddingVertical: 14,
@@ -927,13 +931,13 @@ const makeStyles = (colors: ColorScheme) =>
     },
     primaryBtnText: {
       fontSize: 15,
-      fontWeight: '700',
-      color: colors.textInverted,
+      fontWeight: '500',
+      color: colors.accent300,
     },
     ghostBtn: {
       borderRadius: 14,
       borderWidth: 2,
-      borderColor: colors.border,
+      borderColor: colors.neutral800,
       minHeight: TAP_MIN,
       paddingVertical: 12,
       alignItems: 'center',
@@ -941,20 +945,20 @@ const makeStyles = (colors: ColorScheme) =>
     },
     ghostBtnText: {
       fontSize: 15,
-      fontWeight: '700',
-      color: colors.textSecondary,
+      fontWeight: '500',
+      color: colors.neutral400,
     },
     btnDim: {
       opacity: 0.5,
     },
     attempt: {
       fontSize: 12.5,
-      color: colors.textMuted,
+      color: colors.neutral500,
       textAlign: 'center',
     },
     closedHint: {
       fontSize: 12.5,
-      color: colors.textMuted,
+      color: colors.neutral500,
       textAlign: 'center',
     },
   });

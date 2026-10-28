@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { ApiError } from '../../api/client';
 import { findOpenAttempt } from '../../api/exercises';
+import { AnswerState, answerTone, Icon } from '../../components/ui';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
@@ -325,7 +326,9 @@ function MultipleChoiceSet({
   if (phase === 'done') {
     return (
       <View style={styles.done}>
-        <Text style={styles.doneEmoji}>✓</Text>
+        <View style={styles.doneEmoji}>
+          <Icon name="CheckCircle" size={34} color={colors.accent300} />
+        </View>
         <Text style={styles.doneTitle}>{t('exerciseRunner.multipleChoice.doneTitle')}</Text>
         <Text style={styles.doneScore}>
           {t('exerciseRunner.multipleChoice.doneScore', { score, total })}
@@ -452,8 +455,8 @@ function MultipleChoiceSet({
                     styles.letter,
                     {
                       borderColor: tone.border,
-                      backgroundColor: state === 'sel' ? tone.border : colors.backgroundInput,
-                      color: state === 'sel' ? colors.textInverted : tone.fg,
+                      backgroundColor: state === 'sel' ? tone.border : colors.surface,
+                      color: state === 'sel' ? colors.bg : tone.fg,
                     },
                   ]}
                 >
@@ -470,12 +473,18 @@ function MultipleChoiceSet({
               )}
               {/* Colour is never the only signal: an eliminated option is struck through
                   as well as dimmed, and a judged one carries its own mark. */}
-              <Text style={[styles.optionText, gone && styles.optionTextGone]}>{option.text}</Text>
+              <Text style={[styles.optionText, { color: tone.fg }, gone && styles.optionTextGone]}>
+                {option.text}
+              </Text>
               {state === 'ok' || state === 'key' ? (
-                <Text style={[styles.mark, { color: colors.success }]}>✓</Text>
+                <View style={styles.mark}>
+                  <Icon name="Check" size={18} color={colors.accent300} />
+                </View>
               ) : null}
               {state === 'bad' ? (
-                <Text style={[styles.mark, { color: colors.danger }]}>✗</Text>
+                <View style={styles.mark}>
+                  <Icon name="X" size={18} color={colors.neutral400} />
+                </View>
               ) : null}
             </TouchableOpacity>
           );
@@ -501,7 +510,7 @@ function MultipleChoiceSet({
           disabled={picked === null || sending || disabled || locked}
         >
           {sending ? (
-            <ActivityIndicator size="small" color={colors.textInverted} />
+            <ActivityIndicator size="small" color={colors.accent300} />
           ) : (
             <Text style={styles.buttonText}>{t('exerciseRunner.multipleChoice.check')}</Text>
           )}
@@ -567,16 +576,18 @@ function Feedback({ result, colors }: { result: MultipleChoiceResult; colors: Co
   const { t } = useTranslation();
   const styles = makeStyles(colors);
 
-  const tone = result.correct ? colors.success : result.closed ? colors.accent : colors.danger;
-  const mark = result.correct ? '✓' : result.closed ? 'ⓘ' : '✗';
+  const tone = result.correct ? colors.accentBase : colors.neutral700;
+  const mark = result.correct ? 'CheckCircle' : 'Info';
   const generic = !result.correct && !result.optionWhy && !result.why;
 
   return (
-    <View style={[styles.feedback, { borderColor: tone, backgroundColor: `${tone}14` }]}>
-      <Text style={[styles.feedbackMark, { color: tone }]}>{mark}</Text>
+    <View style={[styles.feedback, { borderColor: tone }]}>
+      <View style={styles.feedbackMark}>
+        <Icon name={mark} size={18} color={colors.accent300} />
+      </View>
       <View style={styles.feedbackBody}>
         {result.correct ? (
-          <Text style={[styles.feedbackTitle, { color: tone }]}>
+          <Text style={styles.feedbackTitle}>
             {t('exerciseRunner.multipleChoice.right')}
           </Text>
         ) : null}
@@ -590,26 +601,25 @@ function Feedback({ result, colors }: { result: MultipleChoiceResult; colors: Co
   );
 }
 
-/** README "Option visual states", on the phone's palette. */
+/** README "Option visual states", on the shared answer palette (Courses §8.5). */
 function toneFor(
   state: OptionState,
   colors: ColorScheme,
 ): { border: string; bg: string; fg: string } {
-  if (state === 'sel') {
-    return { border: colors.accent, bg: colors.accentLight, fg: colors.textPrimary };
-  }
-  if (state === 'ok') {
-    return { border: colors.success, bg: 'rgba(52, 199, 89, 0.12)', fg: colors.textPrimary };
-  }
-  if (state === 'bad') {
-    return { border: colors.danger, bg: 'rgba(255, 59, 48, 0.10)', fg: colors.textPrimary };
-  }
-  // The key, shown beside a wrong pick. Outlined rather than filled: it is the answer
+  // The key, shown beside a wrong pick, is outlined rather than filled: it is the answer
   // being shown, not the answer being chosen.
-  if (state === 'key') {
-    return { border: colors.success, bg: colors.backgroundCard, fg: colors.textPrimary };
-  }
-  return { border: colors.border, bg: colors.backgroundCard, fg: colors.textPrimary };
+  const as: AnswerState =
+    state === 'sel'
+      ? 'selected'
+      : state === 'ok'
+        ? 'right'
+        : state === 'bad'
+          ? 'wrong'
+          : state === 'key'
+            ? 'missed'
+            : 'idle';
+  const tone = answerTone(colors, as);
+  return { border: tone.border, bg: tone.bg, fg: tone.fg };
 }
 
 const makeStyles = (colors: ColorScheme) =>
@@ -626,54 +636,53 @@ const makeStyles = (colors: ColorScheme) =>
       flex: 1,
       height: 4,
       borderRadius: 2,
-      backgroundColor: colors.border,
+      backgroundColor: colors.neutral800,
       overflow: 'hidden',
       marginRight: 10,
     },
     progressFill: {
       height: '100%',
       borderRadius: 2,
-      backgroundColor: colors.accent,
+      backgroundColor: colors.accentBase,
     },
     progressLabel: {
       fontSize: 12,
-      fontWeight: '700',
-      color: colors.textMuted,
+      fontWeight: '500',
+      color: colors.neutral500,
     },
     instruction: {
-      fontSize: 13,
-      color: colors.textSecondary,
+      fontSize: 15,
+      color: colors.neutral400,
       marginBottom: 12,
-      lineHeight: 19,
+      lineHeight: 21,
     },
     context: {
       fontSize: 14,
-      color: colors.textSecondary,
+      color: colors.neutral400,
       lineHeight: 22,
       paddingHorizontal: 12,
       paddingVertical: 10,
       marginBottom: 12,
       borderLeftWidth: 2,
-      borderLeftColor: colors.border,
-      backgroundColor: colors.backgroundInput,
+      borderLeftColor: colors.neutral800,
+      backgroundColor: colors.surface,
       borderRadius: 8,
     },
     stem: {
-      fontSize: 19,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontSize: 24,
+      color: colors.text,
       marginBottom: 16,
-      lineHeight: 26,
+      lineHeight: 36,
     },
     option: {
       flexDirection: 'row',
       alignItems: 'center',
-      minHeight: 48,
-      borderRadius: 16,
+      minHeight: 56,
+      borderRadius: 8,
       paddingVertical: 12,
-      paddingHorizontal: 14,
+      paddingHorizontal: 16,
       marginBottom: 10,
-      borderWidth: 2,
+      borderWidth: 1,
     },
     letter: {
       width: 26,
@@ -683,7 +692,7 @@ const makeStyles = (colors: ColorScheme) =>
       textAlign: 'center',
       lineHeight: 24,
       fontSize: 11,
-      fontWeight: '800',
+      fontWeight: '500',
       marginRight: 10,
       overflow: 'hidden',
     },
@@ -705,17 +714,14 @@ const makeStyles = (colors: ColorScheme) =>
     },
     optionText: {
       flex: 1,
-      fontSize: 15,
-      fontWeight: '600',
-      color: colors.textPrimary,
-      lineHeight: 21,
+      fontSize: 17,
+      color: colors.text,
+      lineHeight: 24,
     },
     optionTextGone: {
       textDecorationLine: 'line-through',
     },
     mark: {
-      fontSize: 17,
-      fontWeight: '700',
       marginLeft: 8,
     },
     feedback: {
@@ -728,8 +734,6 @@ const makeStyles = (colors: ColorScheme) =>
       marginBottom: 4,
     },
     feedbackMark: {
-      fontSize: 14,
-      fontWeight: '800',
       marginRight: 8,
     },
     feedbackBody: {
@@ -737,28 +741,30 @@ const makeStyles = (colors: ColorScheme) =>
     },
     feedbackTitle: {
       fontSize: 13.5,
-      fontWeight: '800',
+      fontWeight: '500',
+      color: colors.text,
       marginBottom: 2,
     },
     feedbackText: {
       fontSize: 13.5,
-      color: colors.textSecondary,
+      color: colors.neutral400,
       lineHeight: 20,
     },
     error: {
       fontSize: 12.5,
-      color: colors.danger,
+      color: colors.neutral400,
       marginTop: 10,
     },
     tapHint: {
       fontSize: 12.5,
-      color: colors.textMuted,
+      color: colors.neutral500,
       marginTop: 12,
       textAlign: 'center',
     },
     button: {
       marginTop: 14,
-      backgroundColor: colors.accent,
+      borderWidth: 1,
+      borderColor: colors.accentBase,
       borderRadius: 14,
       paddingVertical: 13,
       alignItems: 'center',
@@ -768,25 +774,25 @@ const makeStyles = (colors: ColorScheme) =>
     },
     buttonText: {
       fontSize: 15,
-      fontWeight: '700',
-      color: colors.textInverted,
+      fontWeight: '500',
+      color: colors.accent300,
     },
     secondary: {
       marginTop: 10,
       borderRadius: 14,
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: colors.neutral800,
       paddingVertical: 11,
       alignItems: 'center',
     },
     secondaryText: {
       fontSize: 14,
-      fontWeight: '700',
-      color: colors.textSecondary,
+      fontWeight: '500',
+      color: colors.neutral400,
     },
     attempt: {
       fontSize: 12,
-      color: colors.textMuted,
+      color: colors.neutral500,
       textAlign: 'center',
       marginTop: 10,
     },
@@ -796,26 +802,24 @@ const makeStyles = (colors: ColorScheme) =>
       paddingHorizontal: 16,
     },
     doneEmoji: {
-      fontSize: 34,
       marginBottom: 10,
-      color: colors.success,
     },
     doneTitle: {
       fontSize: 17,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
       marginBottom: 6,
       textAlign: 'center',
     },
     doneScore: {
       fontSize: 13.5,
-      color: colors.textSecondary,
+      color: colors.neutral400,
       textAlign: 'center',
       lineHeight: 20,
     },
     doneHint: {
       fontSize: 12.5,
-      color: colors.textMuted,
+      color: colors.neutral500,
       textAlign: 'center',
       marginTop: 12,
     },
@@ -826,14 +830,14 @@ const makeStyles = (colors: ColorScheme) =>
     },
     noticeTitle: {
       fontSize: 16,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
       textAlign: 'center',
       marginBottom: 6,
     },
     noticeDesc: {
       fontSize: 13,
-      color: colors.textMuted,
+      color: colors.neutral500,
       textAlign: 'center',
       lineHeight: 19,
     },

@@ -88,7 +88,7 @@ export function ReadAloudGraded({
     <View
       style={[
         styles.card,
-        { borderColor: ok ? colors.success : colors.warning },
+        { borderColor: ok ? colors.accentBase : colors.neutral600 },
       ]}
       accessibilityLiveRegion="polite"
     >
@@ -97,7 +97,7 @@ export function ReadAloudGraded({
           <Text
             style={[
               styles.chipText,
-              { color: ok ? colors.success : colors.warning },
+              { color: ok ? colors.accent300 : colors.neutral300 },
             ]}
           >
             {ok ? '✓ ' : outcome === 'rewrite' ? '↻ ' : '✕ '}
@@ -160,8 +160,8 @@ export function ReadAloudGraded({
                         styles.promptVerdict,
                         {
                           color: decision.approved
-                            ? colors.success
-                            : colors.warning,
+                            ? colors.accent300
+                            : colors.neutral300,
                         },
                       ]}
                     >
@@ -279,7 +279,7 @@ const makeStyles = (colors: ColorScheme) =>
       padding: 16,
       borderRadius: 12,
       borderWidth: 1,
-      backgroundColor: colors.backgroundCard,
+      backgroundColor: colors.surface,
     },
     head: {
       flexDirection: 'row',
@@ -292,22 +292,22 @@ const makeStyles = (colors: ColorScheme) =>
       paddingVertical: 3,
       paddingHorizontal: 10,
     },
-    chipOk: { backgroundColor: 'rgba(52, 199, 89, 0.12)' },
-    chipAgain: { backgroundColor: 'rgba(255, 159, 67, 0.14)' },
+    chipOk: { backgroundColor: colors.accent900 },
+    chipAgain: { borderWidth: 1, borderColor: colors.neutral700 },
     chipText: {
       fontSize: 12,
-      fontWeight: '600',
+      fontWeight: '500',
     },
     points: {
       fontSize: 14,
-      fontWeight: '700',
+      fontWeight: '500',
       fontVariant: ['tabular-nums'],
-      color: colors.textPrimary,
+      color: colors.text,
     },
     section: { gap: 6 },
     sectionRule: {
       borderTopWidth: 1,
-      borderTopColor: colors.border,
+      borderTopColor: colors.neutral800,
       paddingTop: 10,
     },
     promptHead: {
@@ -318,30 +318,30 @@ const makeStyles = (colors: ColorScheme) =>
     promptLabel: {
       flex: 1,
       fontSize: 14,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
     },
     promptVerdict: {
       fontSize: 12,
-      fontWeight: '600',
+      fontWeight: '500',
     },
     critRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
       borderTopWidth: 1,
-      borderTopColor: colors.border,
+      borderTopColor: colors.neutral800,
       paddingVertical: 8,
     },
     critName: {
       fontSize: 14,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
     },
     critDesc: {
       marginTop: 2,
       fontSize: 12,
-      color: colors.textSecondary,
+      color: colors.neutral400,
     },
     dots: {
       flexDirection: 'row',
@@ -352,46 +352,47 @@ const makeStyles = (colors: ColorScheme) =>
       width: 8,
       height: 8,
       borderRadius: 4,
-      backgroundColor: colors.border,
+      backgroundColor: colors.neutral800,
     },
-    dotOn: { backgroundColor: colors.accent },
+    dotOn: { backgroundColor: colors.accentBase },
     mark: {
       marginLeft: 4,
       fontFamily: 'monospace',
       fontSize: 12,
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     muted: {
       fontSize: 12,
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     comment: {
       fontSize: 14,
       lineHeight: 20,
-      color: colors.textSecondary,
+      color: colors.neutral400,
     },
     secondary: {
       alignSelf: 'flex-start',
       borderRadius: 10,
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: colors.neutral800,
       paddingVertical: 8,
       paddingHorizontal: 12,
     },
     secondaryText: {
       fontSize: 13,
-      fontWeight: '600',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
     },
     primary: {
-      backgroundColor: colors.accent,
+      borderWidth: 1,
+      borderColor: colors.accentBase,
       borderRadius: 14,
       paddingVertical: 14,
       alignItems: 'center',
     },
     primaryText: {
       fontSize: 15,
-      fontWeight: '700',
-      color: colors.textInverted,
+      fontWeight: '500',
+      color: colors.accent300,
     },
   });

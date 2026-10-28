@@ -264,7 +264,7 @@ function InformationTransferRun({
   if (resuming) {
     return (
       <View style={styles.notice}>
-        <ActivityIndicator color={colors.accent} />
+        <ActivityIndicator color={colors.accentBase} />
       </View>
     );
   }
@@ -354,7 +354,7 @@ function InformationTransferRun({
             onChangeText={next => change(field.id, next)}
             editable={free}
             placeholder={field.placeholder}
-            placeholderTextColor={colors.textMuted}
+            placeholderTextColor={colors.neutral500}
             keyboardType={field.numeric ? 'numbers-and-punctuation' : 'default'}
             // Right and wrong ride in the label and the strike-through as well as the colour.
             accessibilityLabel={
@@ -383,7 +383,7 @@ function InformationTransferRun({
           <Text
             style={[
               styles.mark,
-              { color: ok ? colors.success : colors.danger },
+              { color: ok ? colors.accent300 : colors.neutral400 },
             ]}
           >
             {ok ? '✓' : '✗'} {markText}
@@ -461,10 +461,10 @@ function InformationTransferRun({
             style={[
               styles.score,
               {
-                borderColor: verdict.passed ? colors.success : colors.border,
+                borderColor: verdict.passed ? colors.accentBase : colors.neutral800,
                 backgroundColor: verdict.passed
-                  ? tint(colors.success)
-                  : colors.backgroundCard,
+                  ? tint(colors.accentBase)
+                  : colors.surface,
               },
             ]}
           >
@@ -476,9 +476,9 @@ function InformationTransferRun({
               style={[
                 styles.verdictChip,
                 {
-                  backgroundColor: verdict.passed
-                    ? colors.success
-                    : colors.warning,
+                  borderColor: verdict.passed
+                    ? colors.accentBase
+                    : colors.neutral600,
                 },
               ]}
             >
@@ -606,7 +606,7 @@ function InformationTransferRun({
               accessibilityRole="button"
             >
               {sending ? (
-                <ActivityIndicator size="small" color={colors.textInverted} />
+                <ActivityIndicator size="small" color={colors.accent300} />
               ) : (
                 <Text style={styles.primaryBtnText}>
                   {t('exerciseRunner.informationTransfer.check')}
@@ -719,27 +719,27 @@ function cellTone(
   switch (state) {
     case 'ok':
       return {
-        border: colors.success,
-        bg: tint(colors.success),
-        fg: colors.success,
+        border: colors.accent300,
+        bg: tint(colors.accentBase),
+        fg: colors.accent300,
       };
     case 'bad':
       return {
-        border: colors.danger,
-        bg: tint(colors.danger),
-        fg: colors.danger,
+        border: colors.neutral400,
+        bg: tint(colors.neutral600),
+        fg: colors.neutral400,
       };
     case 'filled':
       return {
-        border: colors.accent,
-        bg: colors.accentLight,
-        fg: colors.textPrimary,
+        border: colors.accentBase,
+        bg: colors.accent900,
+        fg: colors.text,
       };
     case 'empty':
       return {
-        border: colors.textMuted,
-        bg: colors.backgroundInput,
-        fg: colors.textPrimary,
+        border: colors.neutral500,
+        bg: colors.surface,
+        fg: colors.text,
       };
   }
 }
@@ -761,14 +761,14 @@ const makeStyles = (colors: ColorScheme) =>
     },
     noticeTitle: {
       fontSize: 16,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
       textAlign: 'center',
       marginBottom: 6,
     },
     noticeDesc: {
       fontSize: 13,
-      color: colors.textMuted,
+      color: colors.neutral500,
       textAlign: 'center',
       lineHeight: 19,
     },
@@ -782,28 +782,28 @@ const makeStyles = (colors: ColorScheme) =>
       flexShrink: 1,
       maxWidth: '40%',
       fontSize: 11,
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     progressTrack: {
       flex: 1,
       height: 6,
       borderRadius: 3,
       overflow: 'hidden',
-      backgroundColor: colors.backgroundInput,
+      backgroundColor: colors.surface,
     },
     progressFill: {
       height: '100%',
-      backgroundColor: colors.accent,
+      backgroundColor: colors.accentBase,
     },
     progressCount: {
       fontSize: 11,
-      color: colors.textMuted,
+      color: colors.neutral500,
       fontVariant: ['tabular-nums'],
     },
     instruction: {
       fontSize: 15,
-      fontWeight: '600',
-      color: colors.textSecondary,
+      fontWeight: '500',
+      color: colors.neutral400,
       lineHeight: 21,
       marginBottom: 14,
     },
@@ -812,24 +812,24 @@ const makeStyles = (colors: ColorScheme) =>
     },
     source: {
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: colors.neutral800,
       borderRadius: 12,
-      backgroundColor: colors.backgroundInput,
+      backgroundColor: colors.surface,
       padding: 14,
       gap: 6,
       marginBottom: 14,
     },
     sourceTitle: {
       fontSize: 11,
-      fontWeight: '600',
+      fontWeight: '500',
       letterSpacing: 0.6,
       textTransform: 'uppercase',
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     sourceText: {
       fontSize: 15,
       lineHeight: 23,
-      color: colors.textPrimary,
+      color: colors.text,
     },
     score: {
       alignItems: 'center',
@@ -842,35 +842,36 @@ const makeStyles = (colors: ColorScheme) =>
     },
     scoreNum: {
       fontSize: 30,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
       fontVariant: ['tabular-nums'],
     },
     scoreOf: {
       fontSize: 18,
       fontWeight: '400',
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     verdictChip: {
       borderRadius: 999,
+      borderWidth: 1,
       paddingHorizontal: 10,
       paddingVertical: 3,
     },
     verdictChipText: {
       fontSize: 11,
-      fontWeight: '600',
-      color: colors.textInverted,
+      fontWeight: '500',
+      color: colors.accent300,
     },
     scoreSub: {
       fontSize: 12,
-      color: colors.textSecondary,
+      color: colors.neutral400,
       textAlign: 'center',
     },
     form: {
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: colors.neutral800,
       borderRadius: 12,
-      backgroundColor: colors.backgroundCard,
+      backgroundColor: colors.surface,
       padding: 14,
       gap: 10,
     },
@@ -880,16 +881,16 @@ const makeStyles = (colors: ColorScheme) =>
       gap: 8,
       paddingBottom: 9,
       borderBottomWidth: 1,
-      borderBottomColor: colors.border,
+      borderBottomColor: colors.neutral800,
     },
     formTitle: {
       fontSize: 14,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
     },
     stepOf: {
       fontSize: 12,
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     spacer: {
       flex: 1,
@@ -903,11 +904,11 @@ const makeStyles = (colors: ColorScheme) =>
     cellLabel: {
       fontSize: 14,
       fontWeight: '500',
-      color: colors.textSecondary,
+      color: colors.neutral400,
     },
     cellHint: {
       fontSize: 11,
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     inputRow: {
       flexDirection: 'row',
@@ -929,27 +930,27 @@ const makeStyles = (colors: ColorScheme) =>
     },
     unit: {
       fontSize: 12,
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     mark: {
       fontSize: 11,
-      fontWeight: '600',
+      fontWeight: '500',
     },
     under: {
       fontSize: 11,
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     bold: {
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
     },
     why: {
       fontSize: 12,
       lineHeight: 17,
-      color: colors.textSecondary,
-      backgroundColor: colors.backgroundInput,
+      color: colors.neutral400,
+      backgroundColor: colors.surface,
       borderLeftWidth: 2,
-      borderLeftColor: colors.border,
+      borderLeftColor: colors.neutral800,
       borderRadius: 6,
       paddingHorizontal: 9,
       paddingVertical: 7,
@@ -958,8 +959,8 @@ const makeStyles = (colors: ColorScheme) =>
       marginTop: 12,
       fontSize: 13,
       lineHeight: 19,
-      color: colors.textSecondary,
-      backgroundColor: colors.backgroundInput,
+      color: colors.neutral400,
+      backgroundColor: colors.surface,
       borderRadius: 8,
       paddingHorizontal: 12,
       paddingVertical: 10,
@@ -967,14 +968,15 @@ const makeStyles = (colors: ColorScheme) =>
     error: {
       marginTop: 12,
       fontSize: 12.5,
-      color: colors.danger,
+      color: colors.neutral400,
     },
     actions: {
       marginTop: 16,
       gap: 10,
     },
     primaryBtn: {
-      backgroundColor: colors.accent,
+      borderWidth: 1,
+      borderColor: colors.accentBase,
       borderRadius: 14,
       minHeight: TAP_MIN,
       paddingVertical: 14,
@@ -983,15 +985,15 @@ const makeStyles = (colors: ColorScheme) =>
     },
     primaryBtnText: {
       fontSize: 15,
-      fontWeight: '700',
-      color: colors.textInverted,
+      fontWeight: '500',
+      color: colors.accent300,
     },
     btnDim: {
       opacity: 0.5,
     },
     closedHint: {
       fontSize: 12.5,
-      color: colors.textMuted,
+      color: colors.neutral500,
       textAlign: 'center',
     },
   });

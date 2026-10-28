@@ -228,7 +228,7 @@ export function MatchPairsBody({ display, disabled, verdict, onAnswerChange }: E
 
 const makeStyles = (colors: ColorScheme) => {
   const slotBase = {
-    backgroundColor: colors.backgroundCard,
+    backgroundColor: colors.surface,
     borderRadius: 14,
     paddingVertical: 12,
     paddingHorizontal: 14,
@@ -244,7 +244,7 @@ const makeStyles = (colors: ColorScheme) => {
     marginBottom: 8,
     borderWidth: 2,
     borderColor: 'transparent',
-    backgroundColor: colors.backgroundCard,
+    backgroundColor: colors.surface,
   } as const;
 
   return StyleSheet.create({
@@ -253,30 +253,30 @@ const makeStyles = (colors: ColorScheme) => {
     },
     hint: {
       fontSize: 13,
-      color: colors.textMuted,
+      color: colors.neutral500,
       marginBottom: 14,
       lineHeight: 18,
     },
     slot: slotBase,
-    slotSelected: { ...slotBase, backgroundColor: colors.accentLight, borderColor: colors.accent },
-    slotFilled: { ...slotBase, borderColor: colors.textSecondary },
-    slotCorrect: { ...slotBase, backgroundColor: 'rgba(52, 199, 89, 0.12)', borderColor: colors.success },
-    slotWrong: { ...slotBase, backgroundColor: 'rgba(255, 59, 48, 0.10)', borderColor: colors.danger },
+    slotSelected: { ...slotBase, backgroundColor: colors.accent900, borderColor: colors.accentBase },
+    slotFilled: { ...slotBase, borderColor: colors.neutral400 },
+    slotCorrect: { ...slotBase, backgroundColor: colors.accent900, borderColor: colors.accentBase },
+    slotWrong: { ...slotBase, backgroundColor: 'transparent', borderColor: colors.neutral600 },
     slotLeft: {
       fontSize: 15,
-      fontWeight: '600',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
       lineHeight: 21,
     },
     slotFilledText: {
       fontSize: 15,
-      color: colors.textPrimary,
+      color: colors.text,
       lineHeight: 21,
       marginTop: 4,
     },
     slotEmptyText: {
       fontSize: 14,
-      color: colors.textMuted,
+      color: colors.neutral500,
       fontStyle: 'italic',
       lineHeight: 20,
       marginTop: 4,
@@ -288,25 +288,25 @@ const makeStyles = (colors: ColorScheme) => {
     },
     stateCorrect: {
       fontSize: 11,
-      fontWeight: '800',
+      fontWeight: '500',
       letterSpacing: 0.4,
       textTransform: 'uppercase',
-      color: colors.success,
+      color: colors.accent300,
       marginLeft: 8,
       marginTop: 4,
     },
     stateWrong: {
       fontSize: 11,
-      fontWeight: '800',
+      fontWeight: '500',
       letterSpacing: 0.4,
       textTransform: 'uppercase',
-      color: colors.danger,
+      color: colors.neutral400,
       marginLeft: 8,
       marginTop: 4,
     },
     explanation: {
       fontSize: 13,
-      color: colors.textSecondary,
+      color: colors.neutral400,
       lineHeight: 18,
       marginTop: -4,
       marginBottom: 12,
@@ -314,8 +314,8 @@ const makeStyles = (colors: ColorScheme) => {
     },
     remaining: {
       fontSize: 13,
-      fontWeight: '600',
-      color: colors.textMuted,
+      fontWeight: '500',
+      color: colors.neutral500,
       marginTop: 6,
       marginBottom: 8,
     },
@@ -325,12 +325,12 @@ const makeStyles = (colors: ColorScheme) => {
       marginTop: 6,
     },
     chip: chipBase,
-    chipSelectable: { ...chipBase, borderColor: colors.accent },
-    chipUsed: { ...chipBase, opacity: 0.4, borderColor: colors.textSecondary },
+    chipSelectable: { ...chipBase, borderColor: colors.accentBase },
+    chipUsed: { ...chipBase, opacity: 0.4, borderColor: colors.neutral400 },
     chipText: {
       fontSize: 14,
-      fontWeight: '600',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
     },
   });
 };
