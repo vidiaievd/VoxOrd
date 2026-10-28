@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useTheme } from '../../providers/ThemeProvider';
-import { Icon } from '../ui/Icon';
+import { Icon, type IconName } from '../ui/Icon';
 
 export interface SessionHeaderProps {
   title: string;
@@ -11,6 +11,8 @@ export interface SessionHeaderProps {
   onLeading: () => void;
   /** «3/18» — empty keeps the slot so the title stays centred. */
   counter?: string;
+  /** A 44×44 ghost icon in place of the counter (My words: search). */
+  trailing?: { icon: IconName; label: string; onPress: () => void };
 }
 
 /**
@@ -23,6 +25,7 @@ export function SessionHeader({
   leadingLabel,
   onLeading,
   counter,
+  trailing,
 }: SessionHeaderProps) {
   const { colors, typography } = useTheme();
   return (
@@ -63,6 +66,21 @@ export function SessionHeader({
       >
         {title}
       </Text>
+      {trailing ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={trailing.label}
+          onPress={trailing.onPress}
+          style={{
+            width: 44,
+            height: 44,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Icon name={trailing.icon} size={20} color={colors.text} />
+        </Pressable>
+      ) : (
       <View style={{ width: 44, paddingRight: 12 }}>
         {counter ? (
           <Text
@@ -72,6 +90,7 @@ export function SessionHeader({
           </Text>
         ) : null}
       </View>
+      )}
     </View>
   );
 }

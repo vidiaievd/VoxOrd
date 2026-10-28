@@ -1,21 +1,24 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   RefreshControl,
   ScrollView,
-  StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import ReanimatedSwipeable, {
+  type SwipeableMethods,
+} from 'react-native-gesture-handler/ReanimatedSwipeable';
+import { SessionHeader } from '../../components/practice';
+import { Button, Icon, Overline, Skeleton, Tag } from '../../components/ui';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { useModal } from '../../providers/ModalProvider';
-import { ColorScheme } from '../../theme/colors';
+import { radii } from '../../theme/spacing';
 import { useSettings } from '../../hooks/useSettings';
 import {
   deleteMyWord,
@@ -41,8 +44,7 @@ type Load =
  */
 export function MyWordsScreen({ onBack }: MyWordsScreenProps) {
   const { t } = useTranslation();
-  const { colors } = useTheme();
-  const styles = makeStyles(colors);
+  const { colors, typography } = useTheme();
   const { uiLanguage } = useSettings();
   const { show } = useModal();
   const [load, setLoad] = useState<Load>({ status: 'loading' });
@@ -94,124 +96,273 @@ export function MyWordsScreen({ onBack }: MyWordsScreenProps) {
     [show, t, reload],
   );
 
+  const [searching, setSearching] = useState(false);
+  const [query, setQuery] = useState('');
+
+  const needle = query.trim().toLowerCase();
   const words = load.status === 'loaded' ? load.words : [];
-  const pending = words.filter(w => w.status === 'pending');
-  const translated = words.filter(w => w.status === 'resolved');
+  const matches = (w: PersonalWord) =>
+    !needle ||
+    w.word.toLowerCase().includes(needle) ||
+    (w.translation ?? '').toLowerCase().includes(needle);
+  const pending = words.filter(w => w.status === 'pending' && matches(w));
+  const translated = words.filter(w => w.status === 'resolved' && matches(w));
+
+  const toggleSearch = () => {
+    setSearching(open => !open);
+    setQuery('');
+  };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-          <Text style={styles.backText}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('myWords.title')}</Text>
-      </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
+      <SessionHeader
+        title={t('myWords.title')}
+        leading="back"
+        leadingLabel={t('common.back')}
+        onLeading={onBack}
+        trailing={{
+          icon: 'MagnifyingGlass',
+          label: t('myWords.searchOpen'),
+          onPress: toggleSearch,
+        }}
+      />
+
+      {searching && (
+        <View style={{ paddingHorizontal: 18, paddingBottom: 8 }}>
+          <TextInput
+            autoFocus
+            value={query}
+            onChangeText={setQuery}
+            placeholder={t('myWords.searchPlaceholder')}
+            placeholderTextColor={colors.neutral500}
+            accessibilityLabel={t('myWords.searchPlaceholder')}
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="search"
+            style={{
+              height: 44,
+              borderRadius: radii.plate,
+              backgroundColor: colors.surface,
+              paddingHorizontal: 14,
+              fontSize: 15,
+              color: colors.text,
+            }}
+          />
+        </View>
+      )}
 
       {load.status === 'loading' && (
-        <View style={styles.centerFill}>
-          <ActivityIndicator size="large" color={colors.accent} />
+        <View style={{ paddingTop: 4, paddingHorizontal: 18, gap: 10 }}>
+          {[0, 1, 2, 3].map(i => (
+            <Skeleton key={i} height={76} radius={14} />
+          ))}
         </View>
       )}
 
       {load.status === 'error' && (
-        <View style={styles.centerFill}>
-          <Text style={styles.emptyTitle}>{t('myWords.loadError')}</Text>
-          <Text style={styles.muted}>{load.message}</Text>
-          <TouchableOpacity
-            style={styles.retryButton}
-            onPress={() => void reload()}
-          >
-            <Text style={styles.retryText}>{t('courses.retry')}</Text>
-          </TouchableOpacity>
+        <View style={{ flex: 1, justifyContent: 'center', paddingHorizontal: 32, gap: 12 }}>
+          <Text style={{ fontSize: 17, fontWeight: '500', color: colors.text }}>
+            {t('myWords.loadError')}
+          </Text>
+          <Text style={[typography.body, { color: colors.neutral400 }]}>{load.message}</Text>
+          <Button variant="secondary" label={t('courses.retry')} onPress={() => void reload()} />
         </View>
       )}
 
       {load.status === 'loaded' && (
         <KeyboardAvoidingView
-          style={styles.fill}
+          style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           <ScrollView
-            contentContainerStyle={styles.scroll}
+            contentContainerStyle={{
+              paddingTop: 4,
+              paddingHorizontal: 18,
+              paddingBottom: 24,
+              gap: 10,
+            }}
             keyboardShouldPersistTaps="handled"
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={handleRefresh}
-                tintColor={colors.accent}
+                tintColor={colors.accent300}
               />
             }
           >
             {words.length === 0 && (
-              <View style={styles.emptyBox}>
-                <Text style={styles.emptyTitle}>{t('myWords.empty')}</Text>
-                <Text style={styles.muted}>{t('myWords.emptyHint')}</Text>
+              <View style={{ alignItems: 'center', paddingVertical: 56, gap: 8 }}>
+                <Icon name="BookmarkSimple" size={32} color={colors.neutral500} />
+                <Text style={{ fontSize: 17, fontWeight: '500', color: colors.text }}>
+                  {t('myWords.empty')}
+                </Text>
+                <Text
+                  style={[typography.body, { color: colors.neutral400, textAlign: 'center' }]}
+                >
+                  {t('myWords.emptyHint')}
+                </Text>
               </View>
             )}
 
+            {words.length > 0 && pending.length + translated.length === 0 && (
+              <Text
+                style={[
+                  typography.body,
+                  { color: colors.neutral400, textAlign: 'center', paddingTop: 32 },
+                ]}
+              >
+                {t('myWords.noMatches')}
+              </Text>
+            )}
+
             {load.limitReached && (
-              <Text style={styles.note}>{t('myWords.limitReached')}</Text>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  gap: 10,
+                  padding: 14,
+                  paddingVertical: 12,
+                  borderRadius: 14,
+                  backgroundColor: colors.accent900,
+                }}
+              >
+                <Icon name="Info" size={18} color={colors.accent300} />
+                <Text style={{ flex: 1, fontSize: 13, lineHeight: 19, color: colors.accent200 }}>
+                  {t('myWords.limitReached')}
+                </Text>
+              </View>
             )}
 
             {pending.length > 0 && (
               <>
-                <Text style={styles.sectionTitle}>
-                  {t('myWords.pendingSection', { count: pending.length })}
-                </Text>
+                <View style={{ marginTop: 8 }}>
+                  <Overline>{t('myWords.pendingSection', { count: pending.length })}</Overline>
+                </View>
                 {pending.map(word => (
-                  <PendingRow
+                  <SwipeToDelete
                     key={word.entryId}
-                    word={word}
-                    translationLanguage={uiLanguage}
-                    onSaved={reload}
+                    label={t('myWords.deleteConfirm')}
                     onDelete={() => handleDelete(word)}
-                  />
+                  >
+                    <PendingRow
+                      word={word}
+                      translationLanguage={uiLanguage}
+                      onSaved={reload}
+                      onDelete={() => handleDelete(word)}
+                    />
+                  </SwipeToDelete>
                 ))}
               </>
             )}
 
             {translated.length > 0 && (
               <>
-                <Text style={styles.sectionTitle}>
-                  {t('myWords.wordsSection', { count: translated.length })}
-                </Text>
+                <View style={{ marginTop: 8 }}>
+                  <Overline>{t('myWords.wordsSection', { count: translated.length })}</Overline>
+                </View>
                 {translated.map(word => (
-                  <TouchableOpacity
+                  <SwipeToDelete
                     key={word.entryId}
-                    style={styles.row}
-                    onLongPress={() => handleDelete(word)}
-                    activeOpacity={0.8}
+                    label={t('myWords.deleteConfirm')}
+                    onDelete={() => handleDelete(word)}
                   >
-                    <View style={styles.rowHead}>
-                      <Text style={styles.word}>{word.word}</Text>
-                      {!word.ownWord && (
-                        <View style={styles.badge}>
-                          <Text style={styles.badgeText}>
-                            {t('myWords.courseBadge')}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                    <Text style={styles.translation}>{word.translation}</Text>
-                    <Text style={styles.deck}>
-                      {word.deck
-                        ? t('myWords.deck', { title: word.deck.title })
-                        : t('myWords.noDeck')}
-                    </Text>
-                    {word.contextSentence && (
-                      <Text style={styles.context} numberOfLines={2}>
-                        {word.contextSentence}
+                    <Pressable
+                      accessibilityLabel={`${word.word}. ${word.translation ?? ''}`}
+                      accessibilityHint={t('myWords.deleteHint')}
+                      onLongPress={() => handleDelete(word)}
+                      style={{
+                        backgroundColor: colors.surface,
+                        borderRadius: radii.card,
+                        padding: 14,
+                        gap: 4,
+                      }}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Text style={{ fontSize: 17, color: colors.text }}>{word.word}</Text>
+                        {!word.ownWord && <Tag variant="accent" label={t('myWords.courseBadge')} />}
+                      </View>
+                      <Text style={{ fontSize: 15, color: colors.neutral200 }}>
+                        {word.translation}
                       </Text>
-                    )}
-                  </TouchableOpacity>
+                      <WordMeta word={word} />
+                    </Pressable>
+                  </SwipeToDelete>
                 ))}
-                <Text style={styles.hint}>{t('myWords.deleteHint')}</Text>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: colors.neutral500,
+                    textAlign: 'center',
+                    marginTop: 4,
+                  }}
+                >
+                  {t('myWords.deleteHint')}
+                </Text>
               </>
             )}
           </ScrollView>
         </KeyboardAvoidingView>
       )}
     </SafeAreaView>
+  );
+}
+
+/** The set a word sits in and the sentence it came from. */
+function WordMeta({ word }: { word: PersonalWord }) {
+  const { t } = useTranslation();
+  const { colors } = useTheme();
+  return (
+    <>
+      <Text style={{ fontSize: 12, color: colors.neutral500 }}>
+        {word.deck ? t('myWords.deck', { title: word.deck.title }) : t('myWords.noDeck')}
+      </Text>
+      {word.contextSentence && (
+        <Text
+          numberOfLines={2}
+          style={{ fontSize: 13, lineHeight: 18, fontStyle: 'italic', color: colors.neutral400 }}
+        >
+          {word.contextSentence}
+        </Text>
+      )}
+    </>
+  );
+}
+
+/** Swipe a row left to reach a trash button — the same delete as a long press. */
+function SwipeToDelete({
+  label,
+  onDelete,
+  children,
+}: {
+  label: string;
+  onDelete: () => void;
+  children: React.ReactNode;
+}) {
+  const { colors } = useTheme();
+  const ref = useRef<SwipeableMethods>(null);
+  return (
+    <ReanimatedSwipeable
+      ref={ref}
+      friction={2}
+      overshootRight={false}
+      renderRightActions={() => (
+        <View style={{ justifyContent: 'center', paddingLeft: 8 }}>
+          <Button
+            variant="secondary"
+            iconOnly
+            icon="Trash"
+            size={52}
+            accessibilityLabel={label}
+            onPress={() => {
+              ref.current?.close();
+              onDelete();
+            }}
+          />
+        </View>
+      )}
+    >
+      {children}
+    </ReanimatedSwipeable>
   );
 }
 
@@ -229,7 +380,6 @@ function PendingRow({
 }) {
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const styles = makeStyles(colors);
   const [value, setValue] = useState('');
   const [state, setState] = useState<'idle' | 'saving' | 'error'>('idle');
 
@@ -246,165 +396,52 @@ function PendingRow({
   };
 
   return (
-    <TouchableOpacity
-      style={styles.row}
+    <Pressable
       onLongPress={onDelete}
-      activeOpacity={1}
+      style={{
+        backgroundColor: colors.surface,
+        borderRadius: radii.card,
+        padding: 14,
+        gap: 6,
+      }}
     >
-      <Text style={styles.word}>{word.word}</Text>
-      <Text style={styles.deck}>
-        {word.deck ? t('myWords.deck', { title: word.deck.title }) : t('myWords.noDeck')}
-      </Text>
-      {word.contextSentence && (
-        <Text style={styles.context} numberOfLines={2}>
-          {word.contextSentence}
-        </Text>
-      )}
-      <View style={styles.inputRow}>
+      <Text style={{ fontSize: 17, color: colors.text }}>{word.word}</Text>
+      <WordMeta word={word} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
         <TextInput
-          style={styles.input}
           value={value}
           onChangeText={setValue}
           placeholder={t('myWords.translationPlaceholderShort')}
-          placeholderTextColor={colors.textMuted}
+          placeholderTextColor={colors.neutral500}
+          accessibilityLabel={`${word.word}: ${t('myWords.translationPlaceholderShort')}`}
           autoCapitalize="none"
           returnKeyType="done"
           onSubmitEditing={save}
           editable={state !== 'saving'}
+          style={{
+            flex: 1,
+            height: 40,
+            borderRadius: radii.plate,
+            backgroundColor: colors.neutral900,
+            paddingHorizontal: 12,
+            fontSize: 14,
+            color: colors.text,
+          }}
         />
-        <TouchableOpacity
-          style={[styles.saveBtn, !value.trim() && styles.saveBtnDisabled]}
+        <Button
+          size={40}
+          label={t('myWords.saveTranslation')}
+          disabled={!value.trim()}
+          busy={state === 'saving'}
           onPress={save}
-          disabled={!value.trim() || state === 'saving'}
-        >
-          {state === 'saving' ? (
-            <ActivityIndicator size="small" color={colors.textInverted} />
-          ) : (
-            <Text style={styles.saveText}>{t('myWords.saveTranslation')}</Text>
-          )}
-        </TouchableOpacity>
+        />
       </View>
       {state === 'error' && (
-        <Text style={styles.error}>{t('myWords.saveError')}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Icon name="WarningCircle" size={14} color={colors.neutral300} />
+          <Text style={{ fontSize: 13, color: colors.neutral300 }}>{t('myWords.saveError')}</Text>
+        </View>
       )}
-    </TouchableOpacity>
+    </Pressable>
   );
 }
-
-const makeStyles = (colors: ColorScheme) =>
-  StyleSheet.create({
-    container: { flex: 1, backgroundColor: colors.background },
-    fill: { flex: 1 },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: 20,
-      paddingVertical: 12,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    backBtn: { padding: 8, marginRight: 8 },
-    backText: { fontSize: 22, color: colors.textPrimary },
-    headerTitle: {
-      flex: 1,
-      fontSize: 17,
-      fontWeight: '700',
-      color: colors.textPrimary,
-    },
-    centerFill: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: 32,
-    },
-    scroll: { padding: 16, paddingBottom: 40 },
-    emptyBox: { paddingVertical: 48, alignItems: 'center' },
-    emptyTitle: {
-      fontSize: 17,
-      fontWeight: '700',
-      color: colors.textPrimary,
-      textAlign: 'center',
-      marginBottom: 8,
-    },
-    muted: {
-      fontSize: 14,
-      color: colors.textMuted,
-      textAlign: 'center',
-      lineHeight: 20,
-    },
-    note: {
-      fontSize: 13,
-      color: colors.textSecondary,
-      backgroundColor: colors.accentLight,
-      borderRadius: 12,
-      padding: 12,
-      marginBottom: 12,
-    },
-    sectionTitle: {
-      fontSize: 13,
-      fontWeight: '700',
-      color: colors.textSecondary,
-      textTransform: 'uppercase',
-      marginTop: 12,
-      marginBottom: 8,
-    },
-    row: {
-      backgroundColor: colors.backgroundCard,
-      borderRadius: 14,
-      padding: 14,
-      marginBottom: 8,
-    },
-    rowHead: { flexDirection: 'row', alignItems: 'center' },
-    word: { fontSize: 17, fontWeight: '700', color: colors.textPrimary },
-    badge: {
-      marginLeft: 8,
-      backgroundColor: colors.accentLight,
-      borderRadius: 8,
-      paddingHorizontal: 6,
-      paddingVertical: 2,
-    },
-    badgeText: { fontSize: 11, fontWeight: '700', color: colors.accent },
-    translation: { fontSize: 15, color: colors.textPrimary, marginTop: 2 },
-    deck: { fontSize: 12, color: colors.textSecondary, marginTop: 4 },
-    context: {
-      fontSize: 13,
-      fontStyle: 'italic',
-      color: colors.textMuted,
-      marginTop: 4,
-      lineHeight: 18,
-    },
-    inputRow: { flexDirection: 'row', alignItems: 'center', marginTop: 10 },
-    input: {
-      flex: 1,
-      backgroundColor: colors.backgroundInput,
-      borderRadius: 10,
-      paddingHorizontal: 12,
-      paddingVertical: 10,
-      fontSize: 15,
-      color: colors.textPrimary,
-      marginRight: 8,
-    },
-    saveBtn: {
-      backgroundColor: colors.accent,
-      borderRadius: 10,
-      paddingHorizontal: 14,
-      paddingVertical: 11,
-    },
-    saveBtnDisabled: { opacity: 0.4 },
-    saveText: { fontSize: 14, fontWeight: '700', color: colors.textInverted },
-    error: { fontSize: 13, color: colors.danger, marginTop: 6 },
-    hint: {
-      fontSize: 12,
-      color: colors.textMuted,
-      textAlign: 'center',
-      marginTop: 8,
-    },
-    retryButton: {
-      marginTop: 16,
-      paddingHorizontal: 20,
-      paddingVertical: 10,
-      backgroundColor: colors.accent,
-      borderRadius: 12,
-    },
-    retryText: { color: colors.textInverted, fontWeight: '700' },
-  });

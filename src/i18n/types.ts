@@ -568,6 +568,9 @@ export interface Translations {
     /** On a word of a unit's list that the student added themselves. */
     mineBadge: string;
     limitReached: string;
+    searchPlaceholder: string;
+    searchOpen: string;
+    noMatches: string;
     deleteHint: string;
     deleteTitle: string;
     deleteMessage: string;
