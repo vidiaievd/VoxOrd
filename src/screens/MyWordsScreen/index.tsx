@@ -338,7 +338,6 @@ function SwipeToDelete({
   onDelete: () => void;
   children: React.ReactNode;
 }) {
-  const { colors } = useTheme();
   const ref = useRef<SwipeableMethods>(null);
   return (
     <ReanimatedSwipeable
