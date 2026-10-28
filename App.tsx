@@ -9,6 +9,7 @@ import { authService } from './src/api/auth';
 import { sessionSync } from './src/services/sessionSync';
 import { installLocalAttempts } from './src/offline/engine';
 import { biometricStore } from './src/store/biometricStore';
+import { assistantThreadStore } from './src/store/assistantThreadStore';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { AppProviders } from './src/providers/AppProviders';
 
@@ -40,6 +41,8 @@ export default function App() {
         // A session that worked offline goes back to the server with the network, and what
         // was answered meanwhile goes with it.
         sessionSync.start();
+        // The assistant's conversations belong to the learner who had them: gone at sign-out.
+        assistantThreadStore.start();
 
         setReady(true);
       } catch (e) {

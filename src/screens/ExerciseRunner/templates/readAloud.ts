@@ -252,9 +252,13 @@ function readRecording(raw: unknown): Recording {
  *
  *   sent    work handed in and waiting (`ROUTED_FOR_REVIEW`) — nothing to record until the
  *           teacher answers;
+ *   sent    with whoever reads it: a teacher, or — `byAi` — the machine, for a learner with no
+ *           school (plan 82), whose verdict is still worth waiting for;
  *   draft   takes uploaded onto the attempt in progress — the learner was mid-way (RA-R10);
  *   graded  a verdict — the last thing that happened; `redo` when the teacher sent the work
  *           back and the author allows another try;
+ *   unread  work handed in with nobody to listen (`NO_REVIEWER`, plan 79, step 2.1c) — final,
+ *           and below a draft like a verdict; it may be recorded again (plan 82, Q6);
  *   fresh   none of these.
  *
  * The order is the web solver's: takes on a draft outrank a verdict — after «Ta opp på nytt
@@ -263,7 +267,13 @@ function readRecording(raw: unknown): Recording {
 export type Opening =
   | { stage: 'fresh' }
   | { stage: 'draft'; attemptId: string; draft: Draft }
-  | { stage: 'sent'; attemptId: string; recordings: SubmittedRecording[] }
+  | {
+      stage: 'sent';
+      attemptId: string;
+      recordings: SubmittedRecording[];
+      byAi: boolean;
+    }
+  | { stage: 'unread'; attemptId: string; recordings: SubmittedRecording[] }
   | {
       stage: 'graded';
       attemptId: string;
@@ -282,6 +292,8 @@ export interface GradedVerdict {
   marks: unknown;
   decisions: ReviewDecision[];
   comment: string | null;
+  /** The machine gave it, not a teacher (plan 82): its check stands in for the rubric. */
+  byAi: boolean;
 }
 
 /** The teacher's word on one prompt (Q1-A): whether it passed, and what to work on. */
@@ -324,7 +336,7 @@ export function readDecisions(value: unknown): ReviewDecision[] {
   });
 }
 
-const FINISHED = new Set(['ROUTED_FOR_REVIEW', 'SCORED', 'RETURNED']);
+const FINISHED = new Set(['ROUTED_FOR_REVIEW', 'SCORED', 'RETURNED', 'NO_REVIEWER']);
 
 export function openingOf(
   rows: readonly AttemptRow[],
@@ -336,32 +348,53 @@ export function openingOf(
   const handedIn = readSubmission(last?.submittedAnswer)?.recordings ?? [];
 
   if (last && last.status === 'ROUTED_FOR_REVIEW') {
-    return { stage: 'sent', attemptId: last.id, recordings: handedIn };
+    return {
+      stage: 'sent',
+      attemptId: last.id,
+      recordings: handedIn,
+      byAi: last.schoolId === null,
+    };
   }
   if (open) {
     const draft = readDraft(open.draftAnswer);
     if (Object.keys(draft.takes).length > 0)
       return { stage: 'draft', attemptId: open.id, draft };
   }
+  if (last && last.status === 'NO_REVIEWER') {
+    return { stage: 'unread', attemptId: last.id, recordings: handedIn };
+  }
   if (last) {
     return {
       stage: 'graded',
       attemptId: last.id,
       recordings: handedIn,
-      verdict: {
-        passed: typeof last.passed === 'boolean' ? last.passed : null,
-        snapshot: last.rubricSnapshot ?? null,
-        marks: last.rubricMarks ?? null,
-        decisions: readDecisions(last.reviewDecisions),
-        comment:
-          typeof last.reviewComment === 'string' ? last.reviewComment : null,
-      },
-      redo:
-        last.status === 'RETURNED' &&
-        outcomeOf(last.passed ?? null, revision) === 'rewrite',
+      ...gradedOf(last, revision),
     };
   }
   return { stage: 'fresh' };
+}
+
+/**
+ * The verdict an attempt carries, and whether it may be recorded again — on opening, or when
+ * the machine's verdict arrives while the screen waits for it.
+ */
+export function gradedOf(
+  row: AttemptRow,
+  revision: RevisionPolicy,
+): { verdict: GradedVerdict; redo: boolean } {
+  return {
+    verdict: {
+      passed: typeof row.passed === 'boolean' ? row.passed : null,
+      snapshot: row.rubricSnapshot ?? null,
+      marks: row.rubricMarks ?? null,
+      decisions: readDecisions(row.reviewDecisions),
+      comment: typeof row.reviewComment === 'string' ? row.reviewComment : null,
+      byAi: row.reviewedBy === 'ai',
+    },
+    redo:
+      row.status === 'RETURNED' &&
+      outcomeOf(row.passed ?? null, revision) === 'rewrite',
+  };
 }
 
 /**
@@ -429,12 +462,17 @@ export function recordingRefusal(
  * in, rebuilt for a runner that opens on it. The engine never scores a recording, so this is
  * the whole of what it said.
  */
-export function handedInVerdict(attemptId: string): SubmitAttemptResponse {
+export function handedInVerdict(
+  attemptId: string,
+  reviewer?: 'none',
+): SubmitAttemptResponse {
   return {
     attemptId,
     correct: false,
     score: null,
     requiresReview: true,
+    // `none` for work nobody will listen to (plan 79, step 2.1c), so the runner says so.
+    ...(reviewer === undefined ? {} : { reviewer }),
     feedback: { summary: '' },
   };
 }

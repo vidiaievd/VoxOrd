@@ -10,12 +10,17 @@ interface FeedbackBarProps {
   verdict: SubmitAttemptResponse;
 }
 
-type FeedbackTone = 'correct' | 'incorrect' | 'review';
+type FeedbackTone = 'correct' | 'incorrect' | 'review' | 'unread' | 'ai';
 
 function toneFor(verdict: SubmitAttemptResponse): FeedbackTone {
   // Free-form templates (translate_*, writing_task) route to human review:
-  // don't present them as right/wrong.
-  if (verdict.requiresReview) return 'review';
+  // don't present them as right/wrong. With nobody to review them (plan 79, step 2.1c)
+  // «submitted for review» would be a promise no one keeps; with a model to read them
+  // (plan 79, step 2.3d) the verdict follows in seconds, above the bar, not from a teacher.
+  if (verdict.requiresReview) {
+    if (verdict.reviewer === 'none') return 'unread';
+    return verdict.reviewer === 'ai' ? 'ai' : 'review';
+  }
   return verdict.correct ? 'correct' : 'incorrect';
 }
 
@@ -32,7 +37,11 @@ export function FeedbackBar({ verdict }: FeedbackBarProps) {
       ? t('exerciseRunner.correct')
       : tone === 'incorrect'
         ? t('exerciseRunner.incorrect')
-        : t('exerciseRunner.submittedForReview');
+        : tone === 'unread'
+          ? t('exerciseRunner.noReviewer')
+          : tone === 'ai'
+            ? t('exerciseRunner.aiHandedIn')
+            : t('exerciseRunner.submittedForReview');
   // The engine's own words are English stock phrases; see `feedbackLine`.
   const line = feedbackLine(verdict.feedback.summary);
 
@@ -47,6 +56,10 @@ export function FeedbackBar({ verdict }: FeedbackBarProps) {
         <Text style={styles.summary}>{line.text}</Text>
       ) : tone === 'review' ? (
         <Text style={styles.summary}>{t('exerciseRunner.reviewNote')}</Text>
+      ) : tone === 'unread' ? (
+        <Text style={styles.summary}>{t('exerciseRunner.noReviewerNote')}</Text>
+      ) : tone === 'ai' ? (
+        <Text style={styles.summary}>{t('exerciseRunner.aiHandedInNote')}</Text>
       ) : null}
     </View>
   );

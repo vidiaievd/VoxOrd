@@ -1,15 +1,10 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import {
-  View,
-  TouchableOpacity,
-  Text,
-  StyleSheet,
-  BackHandler,
-  ToastAndroid,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, StyleSheet, BackHandler, ToastAndroid } from 'react-native';
 import { useTranslation } from '../i18n';
-import { HomeScreen } from '../screens/HomeScreen';
+import { TodayScreen } from '../screens/TodayScreen';
+import { PracticeScreen } from '../screens/PracticeScreen';
+import { NotificationsScreen } from '../screens/NotificationsScreen';
+import { ProfileScreen } from '../screens/ProfileScreen';
 import { CardScreen } from '../screens/CardScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { ModeSelector } from '../screens/LearningScreen/ModeSelector';
@@ -33,47 +28,55 @@ import { VocabularyListScreen } from '../screens/VocabularyListScreen';
 import { GrammarRuleReaderScreen } from '../screens/GrammarRuleReaderScreen';
 import { ReviewSessionScreen } from '../screens/ReviewSessionScreen';
 import { MyWordsScreen } from '../screens/MyWordsScreen';
-import { backTarget, tabOf, type Screen, type Tab } from './screens';
+import { SubmissionScreen } from '../screens/SubmissionScreen';
+import { TAB_ROOT, backTarget, showsTabBar, tabOf, type Screen, type Tab } from './screens';
+import { TabBar } from './TabBar';
+import { TabScrollProvider, useScrollTabToTop } from './tabScroll';
 import { BackInterceptProvider } from './backIntercept';
 import { AuthScreen } from '../screens/AuthScreen';
 import { OfflineSessionBanner } from '../components/OfflineSessionBanner';
 import { useAuth } from '../hooks/useAuth';
 import { setLastCourseId } from '../store/lastCourseStore';
+import { useDueCount } from '../hooks/useDueCount';
 
-/** How long a second Back on Home has to follow the first to leave the app. */
+/** How long a second Back on Today has to follow the first to leave the app. */
 const EXIT_WINDOW_MS = 2000;
 
-const SCREEN_FOR_TAB: Record<Tab, Screen> = {
-  Home: { name: 'Home' },
-  Courses: { name: 'Courses' },
-  Settings: { name: 'Settings' },
-};
-
 export function RootNavigator() {
+  return (
+    <TabScrollProvider>
+      <Navigator />
+    </TabScrollProvider>
+  );
+}
+
+function Navigator() {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
 
-  const [screen, setScreen] = useState<Screen>({ name: 'Home' });
-  const [activeTab, setActiveTab] = useState<Tab>('Home');
+  const [screen, setScreen] = useState<Screen>({ name: 'Today' });
   const { status: authStatus } = useAuth();
+  const scrollTabToTop = useScrollTabToTop();
+
+  // The Practice badge, fetched again on arrival at a screen when over a minute old.
+  const due = useDueCount(screen.name);
 
   // Signed out — by the Settings button or by a session the server dropped — the next
-  // sign-in starts from Home, not from wherever the last one left off.
+  // sign-in starts from Today, not from wherever the last one left off.
   useEffect(() => {
     if (authStatus !== 'signedOut') return;
-    setScreen({ name: 'Home' });
-    setActiveTab('Home');
+    setScreen({ name: 'Today' });
   }, [authStatus]);
+
+  // The lit tab is the screen's own — derived, so no way of reaching a screen can leave
+  // another tab lit.
+  const activeTab = tabOf(screen);
 
   const navigateTo = useCallback((s: Screen) => setScreen(s), []);
 
-  /** Go to `target` with the tab bar following it — what Back does everywhere. */
-  const goTo = useCallback((target: Screen) => {
-    setScreen(target);
-    const tab = tabOf(target);
-    if (tab !== null) setActiveTab(tab);
-  }, []);
+  /** Go to `target` — what Back does everywhere. */
+  const goTo = navigateTo;
 
   /** The current screen's way back, for its own arrow. */
   const goBack = useCallback(() => {
@@ -83,12 +86,12 @@ export function RootNavigator() {
 
   /** A screen's own handler for Back, if it registered one — see `useBackIntercept`. */
   const interceptRef = useRef<(() => boolean) | null>(null);
-  const lastHomeBack = useRef(0);
+  const lastTodayBack = useRef(0);
 
   /*
     The phone's Back button. Without this every press left the app, wherever it was pressed.
     A screen with work in progress is asked first; otherwise Back goes where the screen's own
-    arrow goes. On Home it takes two presses to leave, with a toast between them. An open
+    arrow goes. On Today it takes two presses to leave, with a toast between them. An open
     sheet never gets here: React Native's Modal takes Back itself and closes.
   */
   useEffect(() => {
@@ -102,8 +105,8 @@ export function RootNavigator() {
       }
 
       const now = Date.now();
-      if (now - lastHomeBack.current < EXIT_WINDOW_MS) return false;
-      lastHomeBack.current = now;
+      if (now - lastTodayBack.current < EXIT_WINDOW_MS) return false;
+      lastTodayBack.current = now;
       ToastAndroid.show(t('nav.pressAgainToExit'), ToastAndroid.SHORT);
       return true;
     });
@@ -117,17 +120,12 @@ export function RootNavigator() {
     [navigateTo],
   );
 
-  const navigateBack = useCallback(() => {
-    setScreen({ name: 'Home' });
-    setActiveTab('Home');
-  }, []);
-
   // Navigate back to ModeSelector if we came from there
   const navigateBackToSelector = useCallback((deck: Deck) => {
     setScreen({ name: 'ModeSelector', deck });
   }, []);
 
-  /** Open a course, and remember it as the one Home's «Continue» picks up. */
+  /** Open a course, and remember it as the one Today's «Continue» picks up. */
   const openCourse = useCallback(
     (courseId: string) => {
       setLastCourseId(courseId);
@@ -136,10 +134,20 @@ export function RootNavigator() {
     [goTo],
   );
 
-  const handleTabPress = useCallback((tab: Tab) => {
-    setActiveTab(tab);
-    setScreen(SCREEN_FOR_TAB[tab]);
-  }, []);
+  /**
+   * A tab opens its root. Tapped again while already at its root, it scrolls the root to the
+   * top instead; tapped from deeper in the tab, it goes back to the root.
+   */
+  const handleTabPress = useCallback(
+    (tab: Tab) => {
+      if (screen.name === TAB_ROOT[tab].name) {
+        scrollTabToTop(tab);
+        return;
+      }
+      setScreen(TAB_ROOT[tab]);
+    },
+    [screen.name, scrollTabToTop],
+  );
 
   const handleModeSelect = useCallback(
     (modeId: string, deck: Deck) => {
@@ -185,7 +193,7 @@ export function RootNavigator() {
           <ModeSelector
             deck={screen.deck}
             onSelectMode={handleModeSelect}
-            onBack={navigateBack}
+            onBack={goBack}
           />
         );
 
@@ -204,7 +212,7 @@ export function RootNavigator() {
             deckId={screen.deckId}
             onBack={() =>
               setScreen(prev =>
-                prev.name === 'Matching' ? { name: 'Home' } : prev,
+                prev.name === 'Matching' ? (backTarget(prev) ?? prev) : prev,
               )
             }
             onSessionDone={sid => navigateToResults(sid, screen.deckId)}
@@ -215,7 +223,7 @@ export function RootNavigator() {
         return (
           <QuizExercise
             deckId={screen.deckId}
-            onBack={navigateBack}
+            onBack={goBack}
             onSessionDone={sid => navigateToResults(sid, screen.deckId)}
           />
         );
@@ -224,7 +232,7 @@ export function RootNavigator() {
         return (
           <SpellingExercise
             deckId={screen.deckId}
-            onBack={navigateBack}
+            onBack={goBack}
             onSessionDone={sid => navigateToResults(sid, screen.deckId)}
           />
         );
@@ -233,7 +241,7 @@ export function RootNavigator() {
         return (
           <ListeningExercise
             deckId={screen.deckId}
-            onBack={navigateBack}
+            onBack={goBack}
             onSessionDone={sid => navigateToResults(sid, screen.deckId)}
           />
         );
@@ -242,7 +250,7 @@ export function RootNavigator() {
         return (
           <PronunciationExercise
             deckId={screen.deckId}
-            onBack={navigateBack}
+            onBack={goBack}
             onSessionDone={sid => navigateToResults(sid, screen.deckId)}
           />
         );
@@ -251,7 +259,7 @@ export function RootNavigator() {
         return (
           <ContextExercise
             deckId={screen.deckId}
-            onBack={navigateBack}
+            onBack={goBack}
             onSessionDone={sid => navigateToResults(sid, screen.deckId)}
           />
         );
@@ -260,7 +268,7 @@ export function RootNavigator() {
         return (
           <DeepSessionScreen
             deck={screen.deck}
-            onBack={navigateBack}
+            onBack={goBack}
             onSessionDone={sid => navigateToResults(sid, screen.deck.id)}
           />
         );
@@ -269,7 +277,7 @@ export function RootNavigator() {
         return (
           <SessionResultsScreen
             sessionId={screen.sessionId}
-            onContinue={navigateBack}
+            onContinue={goBack}
             onRepeat={() => {
               // Go back to ModeSelector for the same deck
               // We need a minimal deck — ModeSelector will show full info
@@ -435,42 +443,50 @@ export function RootNavigator() {
         );
 
       case 'Settings':
-        return <SettingsScreen />;
+        return <SettingsScreen onBack={goBack} />;
 
-      case 'Home':
-      default:
+      case 'Profile':
+        return <ProfileScreen onOpenSettings={() => navigateTo({ name: 'Settings' })} />;
+
+      case 'Practice':
         return (
-          <HomeScreen
-            onOpenCourse={openCourse}
-            onOpenUnit={(unitId, courseId) => {
-              setLastCourseId(courseId);
-              goTo({ name: 'UnitContents', unitId, courseId });
-            }}
+          <PracticeScreen
             onStartReview={() => navigateTo({ name: 'ReviewSession' })}
-            onAllCourses={() => handleTabPress('Courses')}
             onOpenMyWords={() => navigateTo({ name: 'MyWords' })}
+            onOpenDeck={deck => navigateTo({ name: 'ModeSelector', deck })}
+          />
+        );
+
+      case 'Notifications':
+        return <NotificationsScreen />;
+
+      case 'Submission':
+        return (
+          <SubmissionScreen
+            submissionId={screen.submissionId}
+            exerciseId={screen.exerciseId}
+            parentLabel={
+              screen.returnTo?.name === 'Today' ? t('nav.today') : t('nav.notifications')
+            }
+            onBack={goBack}
+          />
+        );
+
+      // Nothing opens this yet — plan 03 builds it. Should it be reached, Today is a safe
+      // place to land.
+      case 'Assistant':
+      case 'Today':
+        return (
+          <TodayScreen
+            due={due}
+            onNavigate={navigateTo}
+            onOpenTab={handleTabPress}
           />
         );
     }
   };
 
-  const showTabBar =
-    screen.name !== 'Card' &&
-    screen.name !== 'ModeSelector' &&
-    screen.name !== 'Matching' &&
-    screen.name !== 'Quiz' &&
-    screen.name !== 'Spelling' &&
-    screen.name !== 'SessionResults' &&
-    screen.name !== 'DeepSession' &&
-    screen.name !== 'Pronunciation' &&
-    screen.name !== 'Listening' &&
-    screen.name !== 'CourseHome' &&
-    screen.name !== 'UnitContents' &&
-    screen.name !== 'LessonReader' &&
-    screen.name !== 'VocabularyList' &&
-    screen.name !== 'GrammarRuleReader' &&
-    screen.name !== 'ReviewSession' &&
-    screen.name !== 'ExerciseRunner';
+  const showTabBar = showsTabBar(screen);
 
   // Every screen past this point is the learner's own; without a session there is only
   // the way in.
@@ -481,62 +497,16 @@ export function RootNavigator() {
       <View style={styles.content}>
         <BackInterceptProvider handlerRef={interceptRef}>{renderScreen()}</BackInterceptProvider>
       </View>
-      {showTabBar && <OfflineSessionBanner />}
+      {/* Today shows the same news in its own card, so it takes no second banner. */}
+      {showTabBar && screen.name !== 'Today' && <OfflineSessionBanner />}
       {showTabBar && (
-        <SafeAreaView edges={['bottom']} style={styles.tabBar}>
-          <TabItem
-            icon="🏠"
-            label={t('nav.home')}
-            isActive={activeTab === 'Home'}
-            onPress={() => handleTabPress('Home')}
-            colors={colors}
-          />
-          <TabItem
-            icon="🎓"
-            label={t('nav.courses')}
-            isActive={activeTab === 'Courses'}
-            onPress={() => handleTabPress('Courses')}
-            colors={colors}
-          />
-          <TabItem
-            icon="⚙️"
-            label={t('nav.settings')}
-            isActive={activeTab === 'Settings'}
-            onPress={() => handleTabPress('Settings')}
-            colors={colors}
-          />
-        </SafeAreaView>
+        <TabBar
+          activeTab={activeTab}
+          onTabPress={handleTabPress}
+          badges={{ Practice: due.count, Notifications: 0 }}
+        />
       )}
     </View>
-  );
-}
-
-function TabItem({
-  icon,
-  label,
-  isActive,
-  onPress,
-  colors,
-}: {
-  icon: string;
-  label: string;
-  isActive: boolean;
-  onPress: () => void;
-  colors: ColorScheme;
-}) {
-  const styles = makeStyles(colors);
-  return (
-    <TouchableOpacity
-      style={styles.tabItem}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      <Text style={styles.tabIcon}>{icon}</Text>
-      <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
-        {label}
-      </Text>
-      {isActive && <View style={styles.tabIndicator} />}
-    </TouchableOpacity>
   );
 }
 
@@ -548,38 +518,5 @@ const makeStyles = (colors: ColorScheme) =>
     },
     content: {
       flex: 1,
-    },
-    tabBar: {
-      flexDirection: 'row',
-      backgroundColor: colors.tabBar,
-      borderTopWidth: 1,
-      borderTopColor: colors.tabBarBorder,
-      paddingTop: 8,
-    },
-    tabItem: {
-      flex: 1,
-      alignItems: 'center',
-      paddingBottom: 4,
-      position: 'relative',
-    },
-    tabIcon: {
-      fontSize: 22,
-    },
-    tabLabel: {
-      fontSize: 11,
-      color: colors.textMuted,
-      marginTop: 2,
-      fontWeight: '500',
-    },
-    tabLabelActive: {
-      color: colors.accent,
-    },
-    tabIndicator: {
-      position: 'absolute',
-      top: 0,
-      width: 24,
-      height: 3,
-      backgroundColor: colors.accent,
-      borderRadius: 2,
     },
   });

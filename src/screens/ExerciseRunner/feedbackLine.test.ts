@@ -5,6 +5,11 @@ describe('feedbackLine', () => {
     expect(feedbackLine('Correct!')).toEqual({ kind: 'none' });
     expect(feedbackLine('Incorrect. Please try again.')).toEqual({ kind: 'none' });
     expect(feedbackLine('Your answer has been submitted for review.')).toEqual({ kind: 'none' });
+    expect(
+      feedbackLine(
+        'Your answer has been saved. Nobody can check it: there is no teacher to review it and no AI review on your plan.',
+      ),
+    ).toEqual({ kind: 'none' });
     expect(feedbackLine('')).toEqual({ kind: 'none' });
     expect(feedbackLine(undefined)).toEqual({ kind: 'none' });
   });

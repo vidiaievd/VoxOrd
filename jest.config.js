@@ -1,5 +1,6 @@
 module.exports = {
   preset: 'react-native',
+  setupFiles: ['<rootDir>/jest.setup.js'],
   // The react-native preset only transforms react-native/@react-native(-community)
   // packages by default. Some deps we use ship ESM-only builds in node_modules
   // (e.g. @op-engineering/op-sqlite, @react-native-async-storage/async-storage)

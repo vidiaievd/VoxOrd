@@ -107,6 +107,17 @@ class VocabularyReplicaService {
       ...quotaToday(quota, now),
     };
   }
+
+  /**
+   * How many cards are due at `now`, all of them — what the server's `dueNowCount` says
+   * online, not the queue's first hundred. Null when the copy was never taken.
+   */
+  async dueCount(now: number = Date.now()): Promise<number | null> {
+    const userId = currentUserId();
+    if (!userId) return null;
+    if (!(await srsReplicaRepository.getQuota(userId))) return null;
+    return dueRows(await srsReplicaRepository.getAll(userId), now, Infinity).length;
+  }
 }
 
 function currentUserId(): string | null {

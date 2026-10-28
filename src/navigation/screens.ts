@@ -1,9 +1,46 @@
+import type { AssistContext } from '../api/assistant';
 import type { Deck } from '../repositories/DeckRepository';
 
-export type Tab = 'Home' | 'Courses' | 'Settings';
+export type Tab =
+  | 'Today'
+  | 'Courses'
+  | 'Practice'
+  | 'Notifications'
+  | 'Profile';
+
+/**
+ * What the assistant is opened about (Home spec §6.2) — the context the server reads the
+ * course, the payer and the material from (`src/api/assistant.ts`, platform plan 83 §3).
+ * Without one, the question is free.
+ */
+export type AssistantContext = AssistContext;
 
 export type Screen =
-  | { name: 'Home' }
+  | { name: 'Today' }
+  | { name: 'Practice' }
+  | { name: 'Notifications' }
+  | { name: 'Profile' }
+  | {
+      name: 'Assistant';
+      context?: AssistantContext;
+      /** Open straight into voice input — the microphone beside the inline prompt. */
+      startVoice?: boolean;
+      /** Sent once as the first message. */
+      prompt?: string;
+      /** The screen it was opened over — the assistant belongs to no tab of its own. */
+      returnTo: Screen;
+    }
+  | {
+      name: 'Submission';
+      submissionId: string;
+      /** The AI review is addressed by exercise and attempt both (`src/api/aiReview.ts`). */
+      exerciseId: string;
+      /**
+       * Opened from Today rather than from a notification: Back returns there instead of
+       * jumping to the Notifications tab (owner's decision 2026-10-25, against Home §4.2).
+       */
+      returnTo?: Screen;
+    }
   | { name: 'ModeSelector'; deck: Deck }
   | { name: 'Card'; deck: Deck; mode?: 'assessment' }
   | { name: 'Matching'; deckId: number }
@@ -28,7 +65,12 @@ export type Screen =
       alreadyRead?: boolean;
     }
   | { name: 'VocabularyList'; listId: string; unitId: string; courseId: string }
-  | { name: 'GrammarRuleReader'; ruleId: string; unitId: string; courseId: string }
+  | {
+      name: 'GrammarRuleReader';
+      ruleId: string;
+      unitId: string;
+      courseId: string;
+    }
   | { name: 'ReviewSession'; courseId?: string }
   | { name: 'MyWords' }
   | {
@@ -52,17 +94,25 @@ export type Screen =
  *
  * The navigator holds one screen rather than a history, and the way back is the screen's
  * place in the app rather than the path that reached it: a lesson opened from the exercise
- * runner goes back to its unit, as the arrow there always did. `null` is the Home tab — the
- * one place Back may leave the app.
+ * runner goes back to its unit, as the arrow there always did. The root of every tab goes
+ * back to Today, and `null` is Today itself — the one place Back may leave the app. The
+ * assistant is the exception: it sits over whatever opened it and goes back there.
  */
 export function backTarget(screen: Screen): Screen | null {
   switch (screen.name) {
-    case 'Home':
+    case 'Today':
       return null;
     case 'Courses':
+    case 'Practice':
+    case 'Notifications':
+    case 'Profile':
+      return { name: 'Today' };
+    case 'Assistant':
+      return screen.returnTo;
+    case 'Submission':
+      return screen.returnTo ?? { name: 'Notifications' };
     case 'Settings':
-    case 'MyWords':
-      return { name: 'Home' };
+      return { name: 'Profile' };
     case 'CourseHome':
       return { name: 'Courses' };
     case 'UnitContents':
@@ -71,31 +121,77 @@ export function backTarget(screen: Screen): Screen | null {
     case 'VocabularyList':
     case 'GrammarRuleReader':
     case 'ExerciseRunner':
-      return { name: 'UnitContents', unitId: screen.unitId, courseId: screen.courseId };
+      return {
+        name: 'UnitContents',
+        unitId: screen.unitId,
+        courseId: screen.courseId,
+      };
     case 'ReviewSession':
-      return screen.courseId ? { name: 'CourseHome', courseId: screen.courseId } : { name: 'Home' };
+      return screen.courseId
+        ? { name: 'CourseHome', courseId: screen.courseId }
+        : { name: 'Practice' };
     case 'Card':
       return { name: 'ModeSelector', deck: screen.deck };
-    default:
-      // The word-deck screens: every one of them went back to Home.
-      return { name: 'Home' };
+    case 'MyWords':
+    case 'ModeSelector':
+    case 'Matching':
+    case 'Quiz':
+    case 'Spelling':
+    case 'Listening':
+    case 'Pronunciation':
+    case 'Context':
+    case 'DeepSession':
+    case 'SessionResults':
+      // The word decks. The modes carry only a deck id, so they cannot go back to their
+      // ModeSelector yet — plan 05 puts the deck on the route.
+      return { name: 'Practice' };
   }
 }
 
-/** The tab a screen belongs to, for the tab bar's highlight. */
-export function tabOf(screen: Screen): Tab | null {
-  if (screen.name === 'Home' || screen.name === 'MyWords') return 'Home';
-  if (screen.name === 'Settings') return 'Settings';
-  if (
-    screen.name === 'Courses' ||
-    screen.name === 'CourseHome' ||
-    screen.name === 'UnitContents' ||
-    screen.name === 'LessonReader' ||
-    screen.name === 'VocabularyList' ||
-    screen.name === 'GrammarRuleReader' ||
-    screen.name === 'ExerciseRunner'
-  ) {
-    return 'Courses';
+/** The screen each tab opens on, and goes back to when it is tapped again. */
+export const TAB_ROOT: Record<Tab, Screen> = {
+  Today: { name: 'Today' },
+  Courses: { name: 'Courses' },
+  Practice: { name: 'Practice' },
+  Notifications: { name: 'Notifications' },
+  Profile: { name: 'Profile' },
+};
+
+export const TABS = Object.keys(TAB_ROOT) as Tab[];
+
+/**
+ * The tab a screen belongs to, for the tab bar's highlight: a tab's root is its own, and
+ * every other screen belongs where its Back leads — so going back never moves the highlight
+ * to another tab. A review started from a course is the course's; one started anywhere else
+ * is Practice's.
+ */
+export function tabOf(screen: Screen): Tab {
+  for (const tab of TABS) {
+    if (TAB_ROOT[tab].name === screen.name) return tab;
   }
-  return null;
+  const target = backTarget(screen);
+  // Only Today goes back to nothing, and Today is a root.
+  return target === null ? 'Today' : tabOf(target);
+}
+
+/**
+ * The screens that show the tab bar — a list of those that do rather than those that do not,
+ * so a new screen opens full-screen until someone decides otherwise. A course's home and a
+ * deck's mode list keep the bar (Courses §4.1, Practice §4.1); a unit and everything opened
+ * from it, a lesson, a review, a session and the assistant take the whole screen.
+ */
+const WITH_TAB_BAR: ReadonlySet<Screen['name']> = new Set<Screen['name']>([
+  'Today',
+  'Courses',
+  'CourseHome',
+  'Practice',
+  'ModeSelector',
+  'MyWords',
+  'Notifications',
+  'Profile',
+  'Settings',
+]);
+
+export function showsTabBar(screen: Screen): boolean {
+  return WITH_TAB_BAR.has(screen.name);
 }

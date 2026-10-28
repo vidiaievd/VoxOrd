@@ -159,6 +159,13 @@ export interface SubmitAttemptResponse {
   correct: boolean;
   score: number | null;
   requiresReview: boolean;
+  /**
+   * Who will read an answer that `requiresReview` (plan 79, step 2.1c): the school's teacher,
+   * a model, or nobody. `none` means the attempt is already closed as `NO_REVIEWER` — no
+   * verdict is coming. Absent when nothing went to review, from older engines, and from the
+   * phone's own engine (offline work is decided when it reaches the server).
+   */
+  reviewer?: 'teacher' | 'ai' | 'none';
   feedback: AttemptFeedback;
   /**
    * Per-item verdicts, for the templates graded item by item and only where the
@@ -670,6 +677,31 @@ export interface AttemptRow {
   rubricMarks?: unknown;
   /** The rubric frozen when the work was queued, only once a verdict is delivered. */
   rubricSnapshot?: unknown;
+  /**
+   * Whose verdict closed it (plan 79, 2.3a): a teacher's, a model's on the work of a learner
+   * nobody reviews, or nobody's yet. Absent from older engines and the phone's own.
+   */
+  reviewedBy?: 'teacher' | 'ai' | null;
+  /**
+   * The school the work was done for; null for a learner on their own — whose work in review
+   * is a model's to read (plan 82). Absent from older engines and the phone's own.
+   */
+  schoolId?: string | null;
+  /**
+   * A model's verdict on a school's work while its teacher is awaited (plan 80): shown at
+   * once, labelled as not counting yet. Only on work still `ROUTED_FOR_REVIEW`.
+   */
+  provisionalVerdict?: ProvisionalVerdict | null;
+}
+
+/** A model's word on work a teacher has yet to answer — engine `PendingAiVerdictDto`. */
+export interface ProvisionalVerdict {
+  outcome: 'approved' | 'returned';
+  comment: string | null;
+  /** ISO 8601 — when the model gave it. */
+  at: string;
+  /** ISO 8601 — when it counts by itself if no teacher answers; null if it waits for one. */
+  countsAt: string | null;
 }
 
 /**

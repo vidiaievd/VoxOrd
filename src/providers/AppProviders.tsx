@@ -4,6 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StyleSheet } from 'react-native';
 import { ModalProvider } from './ModalProvider';
 import { ThemeProvider } from './ThemeProvider';
+import { ToastProvider } from '../components/ui/Toast';
 
 interface AppProvidersProps {
   children: ReactNode;
@@ -15,7 +16,7 @@ export function AppProviders({ children }: AppProvidersProps) {
       <SafeAreaProvider>
         <ThemeProvider>
           <ModalProvider>
-            {children}
+            <ToastProvider>{children}</ToastProvider>
           </ModalProvider>
         </ThemeProvider>
       </SafeAreaProvider>

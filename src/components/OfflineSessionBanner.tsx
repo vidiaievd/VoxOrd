@@ -1,16 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { ColorScheme } from '../theme/colors';
 import { useTheme } from '../providers/ThemeProvider';
 import { useTranslation } from '../i18n';
-import { useAuth } from '../hooks/useAuth';
+import { useOfflineSessionVisible } from '../hooks/useOfflineSession';
 import { usePendingSync, useSyncQueueNearlyFull } from '../hooks/usePendingSync';
-
-/**
- * A cold start is offline until the server confirms the session, which online takes a moment.
- * The banner waits this long so that moment does not flash it on every start.
- */
-const SHOW_AFTER_MS = 2000;
 
 /**
  * Above the tab bar while the app works from the stored session, without the server
@@ -21,20 +15,9 @@ export function OfflineSessionBanner() {
   const { colors } = useTheme();
   const { t } = useTranslation();
   const styles = makeStyles(colors);
-  const { status, offline } = useAuth();
   const pending = usePendingSync();
   const nearlyFull = useSyncQueueNearlyFull();
-  const offlineSession = status === 'signedIn' && offline;
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    if (!offlineSession) {
-      setVisible(false);
-      return;
-    }
-    const timer = setTimeout(() => setVisible(true), SHOW_AFTER_MS);
-    return () => clearTimeout(timer);
-  }, [offlineSession]);
+  const visible = useOfflineSessionVisible();
 
   if (!visible) return null;
 

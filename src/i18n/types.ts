@@ -27,9 +27,22 @@ export interface Translations {
   };
   nav: {
     pressAgainToExit: string;
-    home: string;
-    settings: string;
+    today: string;
     courses: string;
+    practice: string;
+    notifications: string;
+    profile: string;
+    /** The Practice badge in words, for screen readers: «Practice, 18 due». */
+    practiceDue: PluralForms; // '{count}'
+    /** The Notifications badge in words. */
+    notificationsUnread: PluralForms; // '{count}'
+  };
+
+  /** The Notifications tab (plan 06 fills in the feed). */
+  notifications: {
+    title: string;
+    empty: string;
+    emptyBody: string;
   };
 
   /** Home — «Today»: carry on with a course, review what is due, open another course. */
@@ -45,10 +58,140 @@ export interface Translations {
     reviewNone: string;
     reviewedToday: string; // '{count}'
     reviewStart: string;
-    myCourses: string;
-    allCourses: string;
     noCourses: string;
     noCoursesDesc: string;
+    /** The third header line: the one thing that is on today, in order of priority. */
+    dayLine: {
+      offline: string;
+      welcome: string;
+      reviewsAndClassToday: PluralForms; // '{count}'
+      reviewsAndClassOn: PluralForms; // '{count}', '{weekday}' — a `weekdayOn` value
+      classToday: string; // '{time}'
+      reviewsOnly: PluralForms; // '{count}'
+    };
+    /** «в понедельник» — a weekday as the time of something, keyed like `Date.getDay()`. */
+    weekdayOn: {
+      sun: string;
+      mon: string;
+      tue: string;
+      wed: string;
+      thu: string;
+      fri: string;
+      sat: string;
+    };
+    minutes: string; // '{min}'
+    onPhone: string;
+    needsNetwork: string;
+    nextInUnit: string;
+    courseDone: string;
+    courseDoneHint: string;
+    courseDoneCta: string;
+    unlockOnline: string;
+    continueA11y: string; // '{title}', '{meta}'
+    reviewDueNow: string; // '{min}'
+    reviewSplit: string; // '{words}', '{exercises}'
+    reviewStartShort: string;
+    reviewOffline: string;
+    reviewUnavailableHint: string;
+    first: {
+      title: string;
+      bodyCatalogue: string;
+      bodySchool: string;
+      cta: string;
+      offlineHint: string;
+    };
+    /** Block 3: a group opened a course to the learner. */
+    groupAccess: string; // '{group}', '{school}', '{course}'
+    groupAccessNoCourse: string; // '{group}', '{school}' — the course's name could not be read
+    openCourse: string;
+    dismiss: string;
+    /** Block 6: the latest review, and what is still waiting. */
+    teacher: {
+      title: string;
+      waiting: string; // '{count}'
+      offline: string;
+      aiDrafted: string;
+      /** A model's word on the school's behalf (plan 80): waiting for the teacher, counted at the term, or given. */
+      aiProvisional: string;
+      aiAcceptedAtTerm: string;
+      aiVerdict: string;
+      aiQuote: string; // '{comment}'
+    };
+    /** Block 10. */
+    soloWriting: {
+      title: string;
+      body: string;
+      connectAi: string;
+      findSchool: string;
+    };
+    /** A submission's state, as a tag. The engine has two verdicts, so no «partial» or «failed». */
+    status: {
+      passed: string;
+      rewrite: string;
+      atTeacher: string;
+    };
+    /** Block 7. */
+    nextClass: {
+      title: string;
+      today: string;
+      tomorrow: string;
+      inDays: PluralForms; // '{count}'
+      room: string; // '{room}'
+    };
+    /** «пн» — a weekday on a date tile, keyed like `Date.getDay()`. */
+    weekdayShort: {
+      sun: string;
+      mon: string;
+      tue: string;
+      wed: string;
+      thu: string;
+      fri: string;
+      sat: string;
+    };
+    /** Block 8. */
+    assignment: {
+      title: string; // '{title}'
+      due: string; // '{date}'
+    };
+    /** Block 11: what the profile says is weak — topics only, never numbers. */
+    workOnThis: {
+      title: string;
+      body: string;
+      cta: string;
+      skill: {
+        listening: string;
+        reading: string;
+        spoken: string;
+        written: string;
+      };
+      focus: {
+        vocabulary: string;
+        grammar: string;
+        orthography: string;
+        pronunciation: string;
+        phonology: string;
+        pragmatics: string;
+      };
+    };
+  };
+  /** One piece of work handed to a reviewer, opened from Today or a notification. */
+  submission: {
+    fallbackTitle: string;
+    waiting: string;
+    commentBy: string; // '{teacher}'
+    commentUnsigned: string;
+    approvedNoComment: string;
+    returnedNoComment: string;
+    marks: string;
+    mark: string; // '{mark}'
+    loadFailed: string;
+  };
+  /** What kind of material an item is, for «Lesson · 5 min». */
+  itemType: {
+    lesson: string;
+    vocabulary_list: string;
+    grammar_rule: string;
+    exercise: string;
   };
   home: {
     appSubtitle: string;
@@ -349,6 +492,87 @@ export interface Translations {
     submittedForReview: string;
     expectedAnswer: string; // '{answer}'
     reviewNote: string;
+    /** Free-form work with nobody to read it — `reviewer: none` (plan 79, step 2.1c). */
+    noReviewer: string;
+    noReviewerNote: string;
+    /** Free-form work a model reads — `reviewer: ai` (plan 79, step 2.3d). */
+    aiHandedIn: string;
+    aiHandedInNote: string;
+    /** A model's review of the work of a learner nobody reviews (plan 79, step 2.3d). */
+    aiReview: {
+      reading: string;
+      slow: string;
+      askAgain: string;
+      dropped: string;
+      approved: string;
+      returned: string;
+      label: string;
+      caveat: string;
+      failed: string;
+      retry: string;
+      noRemarks: string;
+      sentence: string; // '{n}'
+      question: string; // '{n}'
+      wholeText: string;
+      wholeAnswer: string;
+      marksTitle: string;
+      mark: string; // '{mark}'
+      unnamed: string;
+      dispute: string;
+      reasonLabel: string;
+      reasonPlaceholder: string;
+      disputeNote: string;
+      send: string;
+      sending: string;
+      sendFailed: string;
+      disputed: string;
+      /** A school's work under a model-first policy (plan 80). */
+      provisionalTitle: string;
+      provisionalNote: string; // '{date}'
+      provisionalNoteNoTerm: string;
+      acceptedAtTermTitle: string;
+      acceptedAtTermNote: string;
+      /** A reading aloud checked by the machine (plan 82). */
+      caveatReading: string;
+      reasonPlaceholderReading: string;
+      readingCheck: {
+        prompt: string; // '{n}'
+        passed: string;
+        notPassed: string;
+        count: string; // '{read}', '{total}', '{percent}'
+        mark: string; // '{percent}'
+        heard: string;
+        nothingHeard: string;
+        legend: {
+          word: string;
+          heard: string;
+          missed: string;
+          misread: string;
+          extra: string;
+        };
+        carried: string; // '{label}'
+        carriedCount: PluralForms; // '{count}'
+        pace: string; // '{wpm}'
+        pronunciation: {
+          title: string;
+          scores: string; // '{accuracy}', '{fluency}', '{completeness}'
+          prosody: string; // '{prosody}'
+          unclear: string;
+          note: string;
+        };
+      };
+      aspect: {
+        grammar: string;
+        order: string;
+        lexis: string;
+        register: string;
+        meaning: string;
+        alternative: string;
+        task: string;
+        structure: string;
+        content: string;
+      };
+    };
     setComplete: string;
     setCompleteDesc: string;
     done: string;
@@ -513,6 +737,7 @@ export interface Translations {
       doneTitle: string;
       doneTally: string; // '{pass}', '{partial}', '{fail}'
       doneTeacher: string;
+      doneAi: string;
       sendFailed: string;
       handedInAlready: string;
       empty: string;
@@ -784,10 +1009,21 @@ export interface Translations {
       readByTeacher: string;
       steps: {
         atTeacher: string;
+        /** The machine checks the reading by itself (plan 82). */
+        atAi: string;
         graded: string;
       };
       sentTitle: string;
       sentBody: string;
+      /** Handed in with nobody to listen (plan 79, 2.1c). */
+      unreadTitle: string;
+      unreadBody: string;
+      /** Handed in to the machine (plan 82). */
+      aiTitle: string;
+      aiBody: string;
+      aiSlow: string;
+      /** The machine was asked and could not check it. */
+      droppedBody: string;
       carried: { title: string; inAttempt: string }; // '{count}' / '{attempt}'
       submittedTake: string; // '{label}'
       refused: {
