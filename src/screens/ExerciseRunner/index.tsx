@@ -365,9 +365,14 @@ const MAX_SEGMENTS = 12;
 /** One segment per item of the set: done `accent`, current `accent700`, ahead `neutral800`. */
 function SetProgress({ current, total }: { current: number; total: number }) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   if (total > MAX_SEGMENTS) {
     return (
-      <View style={{ flex: 1 }}>
+      <View
+        style={{ flex: 1 }}
+        accessible
+        accessibilityLabel={t('exerciseRunner.progress', { current, total })}
+      >
         <ProgressTrack value={total > 0 ? (current - 1) / total : 0} />
       </View>
     );
@@ -376,6 +381,7 @@ function SetProgress({ current, total }: { current: number; total: number }) {
     <View
       style={{ flex: 1, flexDirection: 'row', gap: 4 }}
       accessibilityRole="progressbar"
+      accessibilityLabel={t('exerciseRunner.progress', { current, total })}
       accessibilityValue={{ min: 0, max: total, now: current }}
     >
       {Array.from({ length: total }, (_, i) => (

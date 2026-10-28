@@ -524,6 +524,7 @@ export const ru: Translations = {
     leaveMessage: '«{course}» пропадёт из ваших курсов. Прогресс сохранится.',
     leaveConfirm: 'Покинуть',
     leaveFailed: 'Не удалось покинуть курс',
+    unitNotSaved: 'Нет сети, а этого юнита ещё нет на телефоне',
   },
   unitContents: {
     title: 'Юнит',
@@ -559,6 +560,7 @@ export const ru: Translations = {
     metaRule: 'Правило · освоение {percent}%',
     lockedToast: 'Пока закрыт',
     outsideWindowToast: 'Юнит вне скачиваемых. Число юнитов вперёд — в настройках.',
+    itemNotSaved: 'Нет сети, а этого материала ещё нет на телефоне',
   },
   myWords: {
     deck: 'Колода: {title}',

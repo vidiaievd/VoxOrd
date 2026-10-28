@@ -443,8 +443,10 @@ function MultipleChoiceSet({
               onPress={() => pick(option.id)}
               disabled={gone || closed || disabled || sending || locked}
               activeOpacity={0.8}
-              accessibilityRole="button"
+              accessibilityRole="radio"
+              accessibilityLabel={option.text}
               accessibilityState={{
+                checked: picked === option.id,
                 selected: picked === option.id,
                 disabled: gone || closed || disabled || locked,
               }}

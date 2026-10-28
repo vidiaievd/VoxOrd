@@ -516,6 +516,7 @@ export const en: Translations = {
     leaveMessage: '«{course}» will disappear from your courses. Your progress is kept.',
     leaveConfirm: 'Leave',
     leaveFailed: "Couldn't leave the course",
+    unitNotSaved: "You're offline and this unit isn't saved on the phone",
   },
   unitContents: {
     title: 'Unit',
@@ -551,6 +552,7 @@ export const en: Translations = {
     metaRule: 'Rule · mastery {percent}%',
     lockedToast: 'Not open yet',
     outsideWindowToast: "This unit isn't in the download window. Set units ahead in Settings.",
+    itemNotSaved: "You're offline and this isn't saved on the phone yet",
   },
   myWords: {
     deck: 'Deck: {title}',

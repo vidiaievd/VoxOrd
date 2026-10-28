@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { RefreshControl, SectionList, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNetInfo } from '@react-native-community/netinfo';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { spacing } from '../../theme/spacing';
@@ -10,6 +11,7 @@ import { isNetworkError } from '../../api/isNetworkError';
 import { useCourseHome } from '../../hooks/useCourseHome';
 import { useDownloadState } from '../../hooks/useDownloadState';
 import { useUnitContents } from '../../hooks/useUnitContents';
+import { useRefreshOnForeground } from '../../hooks/useRefreshOnForeground';
 import { itemsInOrder, nextInUnit } from '../../lib/nextItem';
 import { openContentItem } from '../../lib/openContentItem';
 import { ContentItemRow } from './ContentItemRow';
@@ -49,6 +51,8 @@ export function UnitContentsScreen({
   // cached from the screen the learner came through.
   const home = useCourseHome(courseId).data;
   const download = useDownloadState(unitId, courseId, home?.units ?? null);
+  const net = useNetInfo();
+  useRefreshOnForeground(refresh);
   const listRef = useRef<SectionList<UnitContentsItem, UnitSection>>(null);
 
   const sections = useMemo(() => (data ? groupSections(data) : []), [data]);
@@ -91,7 +95,11 @@ export function UnitContentsScreen({
 
   const open = (item: UnitContentsItem): (() => void) | undefined => {
     const screen = data ? openContentItem(item, data, { unitId, courseId }) : null;
-    return screen ? () => onOpen(screen) : undefined;
+    if (!screen) return undefined;
+    // Offline, a material the downloader accounts for and has not fetched cannot open. With no
+    // account (after a restart) the material may still be cached, so it is left to try.
+    const missing = net.isConnected === false && download.items[item.id] !== undefined && download.items[item.id] !== 'done';
+    return missing ? () => toast.show(t('unitContents.itemNotSaved')) : () => onOpen(screen);
   };
 
   const sectionTitle = (title: string | null, kind: SectionKind | null, count: number) => {

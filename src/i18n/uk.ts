@@ -524,6 +524,7 @@ export const uk: Translations = {
     leaveMessage: '«{course}» зникне з ваших курсів. Прогрес збережеться.',
     leaveConfirm: 'Залишити',
     leaveFailed: 'Не вдалося залишити курс',
+    unitNotSaved: 'Немає мережі, а цього юніта ще немає на телефоні',
   },
   unitContents: {
     title: 'Юніт',
@@ -559,6 +560,7 @@ export const uk: Translations = {
     metaRule: 'Правило · засвоєння {percent}%',
     lockedToast: 'Поки закрито',
     outsideWindowToast: 'Юніт поза завантажуваними. Кількість юнітів уперед — у налаштуваннях.',
+    itemNotSaved: 'Немає мережі, а цього матеріалу ще немає на телефоні',
   },
   myWords: {
     deck: 'Колода: {title}',

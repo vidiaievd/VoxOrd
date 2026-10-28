@@ -509,6 +509,7 @@ export interface Translations {
     leaveMessage: string; // '{course}'
     leaveConfirm: string;
     leaveFailed: string;
+    unitNotSaved: string;
   };
 
   unitContents: {
@@ -545,6 +546,7 @@ export interface Translations {
     metaRule: string; // '{percent}'
     lockedToast: string;
     outsideWindowToast: string;
+    itemNotSaved: string;
   };
 
   /** «My words» — words the student adds from a text (plan 75). */

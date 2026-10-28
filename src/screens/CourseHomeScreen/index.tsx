@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, Text, View } from 'react-native';
+import { useNetInfo } from '@react-native-community/netinfo';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
@@ -9,6 +10,9 @@ import { useCourseHome } from '../../hooks/useCourseHome';
 import { useCourseReviewSets } from '../../hooks/useCourseReviewSets';
 import { useMyCourses } from '../../hooks/useMyCourses';
 import { useNextInCourse } from '../../hooks/useNextInCourse';
+import { useRefreshOnForeground } from '../../hooks/useRefreshOnForeground';
+import { unitContentsResource } from '../../lib/courseResources';
+import { getMemoryCache, readCacheSnapshot } from '../../lib/swrCache';
 import { leaveEnrollment } from '../../api/courses';
 import { courseDownloader } from '../../services/courseDownload';
 import { OfflineBanner } from '../../components/OfflineBanner';
@@ -49,6 +53,22 @@ export function CourseHomeScreen({
   // so the counter never promises a session that turns out empty.
   const { overview: reviewOverview } = useCourseReviewSets();
   const myCourses = useMyCourses();
+  const net = useNetInfo();
+  useRefreshOnForeground(refresh);
+
+  // Offline, a unit whose contents were never kept cannot open: say so instead of showing a
+  // load error on the next screen.
+  const pressUnit = async (unitId: string) => {
+    if (net.isConnected === false) {
+      const key = unitContentsResource(unitId).key;
+      const kept = getMemoryCache(key) !== undefined || (await readCacheSnapshot(key)) !== null;
+      if (!kept) {
+        toast.show(t('courseHome.unitNotSaved'));
+        return;
+      }
+    }
+    onUnitPress(unitId);
+  };
   const next = useNextInCourse(data?.units ?? null);
   const [open, setOpen] = useState(skillsOpen.get(courseId) ?? true);
 
@@ -218,7 +238,7 @@ export function CourseHomeScreen({
                     number={index + 1}
                     isNext={unit.id === next.unitId}
                     nextTitle={unit.id === next.unitId ? next.title : null}
-                    onPress={() => onUnitPress(unit.id)}
+                    onPress={() => void pressUnit(unit.id)}
                     onLockedPress={() => toast.show(t('courseHome.lockedReason'))}
                   />
                 ))}

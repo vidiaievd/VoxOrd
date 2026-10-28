@@ -6,6 +6,7 @@ import { useTheme } from '../../providers/ThemeProvider';
 import { spacing } from '../../theme/spacing';
 import { useMyCourses } from '../../hooks/useMyCourses';
 import { useCatalog } from '../../hooks/useCatalog';
+import { useRefreshOnForeground } from '../../hooks/useRefreshOnForeground';
 import { OfflineBanner } from '../../components/OfflineBanner';
 import { Button, Overline, SegmentedControl, Skeleton } from '../../components/ui';
 import { isNetworkError } from '../../api/isNetworkError';
@@ -77,6 +78,7 @@ export function CoursesScreen({ segment: initialSegment, onCoursePress, onNaviga
       : onNavigate({ name: 'CatalogCourse', containerId: course.id });
 
   const onRefresh = () => (shown === 'catalog' ? catalog.refresh() : refresh());
+  useRefreshOnForeground(onRefresh);
   const offline =
     shown === 'catalog' ? catalog.stale && isNetworkError(catalog.error) : stale && isNetworkError(error);
 
