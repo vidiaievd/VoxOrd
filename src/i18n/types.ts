@@ -1627,6 +1627,9 @@ export interface Translations {
     pronunciationDesc: string;
     context: string;
     contextDesc: string;
+    notEnoughWords: string;
+    itemWord: string;
+    itemPhrase: string;
   };
 
   grammarReview: {
@@ -1650,6 +1653,7 @@ export interface Translations {
     correct: string;
     byMode: string;
     again: string;
+    done: string;
   };
 
   audioLesson: {

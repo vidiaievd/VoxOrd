@@ -225,7 +225,7 @@ function Navigator() {
       case 'Matching':
         return (
           <MatchingExercise
-            deckId={screen.deck.id}
+            deck={screen.deck}
             onBack={() =>
               setScreen(prev =>
                 prev.name === 'Matching' ? (backTarget(prev) ?? prev) : prev,
@@ -238,7 +238,7 @@ function Navigator() {
       case 'Quiz':
         return (
           <QuizExercise
-            deckId={screen.deck.id}
+            deck={screen.deck}
             onBack={goBack}
             onSessionDone={sid => navigateToResults(sid, screen.deck)}
           />
@@ -247,7 +247,7 @@ function Navigator() {
       case 'Spelling':
         return (
           <SpellingExercise
-            deckId={screen.deck.id}
+            deck={screen.deck}
             onBack={goBack}
             onSessionDone={sid => navigateToResults(sid, screen.deck)}
           />
@@ -256,7 +256,7 @@ function Navigator() {
       case 'Listening':
         return (
           <ListeningExercise
-            deckId={screen.deck.id}
+            deck={screen.deck}
             onBack={goBack}
             onSessionDone={sid => navigateToResults(sid, screen.deck)}
           />
@@ -267,14 +267,15 @@ function Navigator() {
           <PronunciationExercise
             deckId={screen.deck.id}
             onBack={goBack}
-            onSessionDone={sid => navigateToResults(sid, screen.deck)}
+            // It shows its own result and has no stored session to open.
+            onSessionDone={goBack}
           />
         );
 
       case 'Context':
         return (
           <ContextExercise
-            deckId={screen.deck.id}
+            deck={screen.deck}
             onBack={goBack}
             onSessionDone={sid => navigateToResults(sid, screen.deck)}
           />

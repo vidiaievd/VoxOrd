@@ -17,10 +17,14 @@ import { useSpeakWord } from './useSpeakWord';
 export interface ChoicePhaseProps {
   deckId: number;
   languageCode: string;
-  wordIds: number[];
+  /** Omitted outside a larger session: the hook then takes the whole set's words. */
+  wordIds?: number[];
   tracking: ExerciseTracking;
-  onDone: () => void;
+  /** Called with the number of first-try correct answers once the phase has no more questions. */
+  onDone: (correctCount: number) => void;
   onProgress?: (index: number, total: number) => void;
+  /** The learning session the hook opened — a lone mode hands it to the results screen. */
+  onSession?: (sessionId: number | null) => void;
 }
 
 interface ChoiceQuestion {
@@ -29,7 +33,7 @@ interface ChoiceQuestion {
   options: string[];
 }
 
-interface ChoiceViewProps {
+export interface ChoiceViewProps {
   overline: string;
   /** The word, or the big speaker of the listening phase. */
   prompt: React.ReactNode;
@@ -50,7 +54,7 @@ interface ChoiceViewProps {
  * answer exactly as a tap used to (C2: the evidence carries no response time, so moving the
  * moment from the tap to «Check» changes nothing it measures).
  */
-function ChoiceView({
+export function ChoiceView({
   overline,
   prompt,
   question,
@@ -122,7 +126,7 @@ function ChoiceView({
   );
 }
 
-function PhaseSkeleton() {
+export function PhaseSkeleton() {
   return (
     <View style={{ paddingTop: 18, paddingHorizontal: 20, gap: 10 }}>
       <Skeleton width={140} height={12} />
@@ -139,15 +143,25 @@ function usePhaseLifecycle(
   isLoading: boolean,
   index: number,
   total: number,
-  onDone: () => void,
+  onDone: (correctCount: number) => void,
   onProgress?: (index: number, total: number) => void,
 ) {
   useEffect(() => {
-    if (!isLoading && total === 0) onDone();
+    if (!isLoading && total === 0) onDone(0);
   }, [isLoading, total, onDone]);
   useEffect(() => {
     if (!isLoading && total > 0) onProgress?.(Math.min(index + 1, total), total);
   }, [isLoading, index, total, onProgress]);
+}
+
+/** Hands the hook's learning-session id up once it exists. */
+export function useReportSession(
+  sessionId: number | null,
+  onSession?: (sessionId: number | null) => void,
+) {
+  useEffect(() => {
+    onSession?.(sessionId);
+  }, [sessionId, onSession]);
 }
 
 /** «Pick the translation» (6d) over `useQuiz`. */
@@ -158,17 +172,19 @@ export function QuizPhase({
   tracking,
   onDone,
   onProgress,
+  onSession,
 }: ChoicePhaseProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const { speak, canSpeak } = useSpeakWord(languageCode);
-  const { state, isLoading, selectOption, next } = useQuiz(
+  const { state, isLoading, sessionId, selectOption, next } = useQuiz(
     deckId,
     wordIds,
     onDone,
     tracking,
   );
   usePhaseLifecycle(isLoading, state.currentIndex, state.questions.length, onDone, onProgress);
+  useReportSession(sessionId, onSession);
   useAutoAdvance(state.isAnswered, state.isCorrect, next);
 
   const question = state.questions[state.currentIndex];
@@ -221,16 +237,18 @@ export function ListeningPhase({
   tracking,
   onDone,
   onProgress,
+  onSession,
 }: ChoicePhaseProps) {
   const { t } = useTranslation();
   const { colors, typography } = useTheme();
-  const { state, isLoading, speak, selectOption, next, installTts } = useListening(
+  const { state, isLoading, sessionId, speak, selectOption, next, installTts } = useListening(
     deckId,
     wordIds,
     onDone,
     tracking,
   );
   usePhaseLifecycle(isLoading, state.currentIndex, state.questions.length, onDone, onProgress);
+  useReportSession(sessionId, onSession);
   useAutoAdvance(state.isAnswered, state.isCorrect, next);
 
   if (state.ttsStatus === 'no_engine' || state.ttsStatus === 'error') {

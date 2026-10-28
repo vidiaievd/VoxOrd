@@ -1,21 +1,30 @@
-import React, { useCallback, useState } from 'react';
-import { StyleSheet, Text, Pressable, Dimensions } from 'react-native';
+import React, { forwardRef, useCallback, useImperativeHandle, useState } from 'react';
+import { Dimensions, Pressable, Text, View } from 'react-native';
 import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
   interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
-import { useTranslation } from '../../i18n';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { Tag } from '../../components/ui';
 import { Word } from '../../db/words';
 import { SwipeDirection } from '../../hooks/useCard';
+import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
-import { ColorScheme } from '../../theme/colors';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.3;
+const MAX_TILT_DEG = 8;
+
+export const CARD_WIDTH = 300;
+export const CARD_HEIGHT = 420;
+
+export interface FlipCardHandle {
+  /** The accessible alternative to the gesture: throws the card off like a swipe would. */
+  swipe: (direction: SwipeDirection) => void;
+}
 
 interface FlipCardProps {
   word: Word;
@@ -24,28 +33,28 @@ interface FlipCardProps {
   requireFlip?: boolean; // if true — swipe blocked until card is flipped
 }
 
-export function FlipCard({
-  word,
-  onSwipe,
-  onFlip,
-  requireFlip,
-}: FlipCardProps) {
+/**
+ * The active card of the self-assessment stack (Practice §8.2): the word, a tap shows the
+ * translation under a hairline, a swipe past the threshold decides. While dragged the card
+ * tilts up to ±8° and a tag — «I know» to the right, «Repeat» to the left — appears in its
+ * corner; the right edge also turns `accent700`.
+ */
+export const FlipCard = forwardRef<FlipCardHandle, FlipCardProps>(function FlipCard(
+  { word, onSwipe, onFlip, requireFlip },
+  ref,
+) {
   const { t } = useTranslation();
-  const { colors } = useTheme();
-  const styles = makeStyles(colors);
+  const { colors, typography } = useTheme();
 
   const [isFlipped, setIsFlipped] = useState(false);
 
-  const rotation = useSharedValue(0);
   const translateX = useSharedValue(0);
   const opacity = useSharedValue(1);
 
   const flip = useCallback(() => {
-    const toValue = isFlipped ? 0 : 180;
-    rotation.value = withTiming(toValue, { duration: 400 });
-    setIsFlipped(prev => !prev);
     if (!isFlipped) onFlip();
-  }, [isFlipped, onFlip, rotation]);
+    setIsFlipped(prev => !prev);
+  }, [isFlipped, onFlip]);
 
   const handleSwipe = useCallback(
     (direction: SwipeDirection) => {
@@ -62,6 +71,17 @@ export function FlipCard({
       });
     },
     [onSwipe, translateX, opacity],
+  );
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      swipe: direction => {
+        if (requireFlip && !isFlipped) return;
+        handleSwipe(direction);
+      },
+    }),
+    [handleSwipe, requireFlip, isFlipped],
   );
 
   const panGesture = Gesture.Pan()
@@ -81,174 +101,100 @@ export function FlipCard({
       }
     });
 
-  const frontStyle = useAnimatedStyle(() => ({
-    transform: [
-      { perspective: 1000 },
-      { rotateY: `${interpolate(rotation.value, [0, 180], [0, 180])}deg` },
-    ],
-    opacity: interpolate(rotation.value, [0, 90, 180], [1, 0, 0]),
-    backfaceVisibility: 'hidden',
-  }));
-
-  const backStyle = useAnimatedStyle(() => ({
-    transform: [
-      { perspective: 1000 },
-      { rotateY: `${interpolate(rotation.value, [0, 180], [180, 360])}deg` },
-    ],
-    opacity: interpolate(rotation.value, [0, 90, 180], [0, 0, 1]),
-    backfaceVisibility: 'hidden',
-  }));
-
   const cardStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value }],
+    transform: [
+      { translateX: translateX.value },
+      {
+        rotate: `${interpolate(
+          translateX.value,
+          [-SWIPE_THRESHOLD, 0, SWIPE_THRESHOLD],
+          [-MAX_TILT_DEG, 0, MAX_TILT_DEG],
+          'clamp',
+        )}deg`,
+      },
+    ],
     opacity: opacity.value,
   }));
 
-  const overlayRightStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      translateX.value,
-      [0, SWIPE_THRESHOLD],
-      [0, 1],
-      'clamp',
-    ),
+  const tagRightStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(translateX.value, [0, SWIPE_THRESHOLD], [0, 1], 'clamp'),
+  }));
+  const tagLeftStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(translateX.value, [0, -SWIPE_THRESHOLD], [0, 1], 'clamp'),
+  }));
+  const edgeStyle = useAnimatedStyle(() => ({
+    borderColor: translateX.value > 8 ? colors.accent700 : 'transparent',
   }));
 
-  const overlayLeftStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(
-      translateX.value,
-      [0, -SWIPE_THRESHOLD],
-      [0, 1],
-      'clamp',
-    ),
-  }));
+  const meta = [word.partOfSpeech, word.gender].filter(Boolean).join(' · ');
 
   return (
     <GestureDetector gesture={panGesture}>
-      <Animated.View style={[styles.cardWrapper, cardStyle]}>
-        <Pressable onPress={flip} style={styles.pressable}>
-          {/* Overlay right → know (green) */}
+      <Animated.View
+        style={[
+          {
+            width: CARD_WIDTH,
+            height: CARD_HEIGHT,
+            borderRadius: 14,
+            backgroundColor: colors.surface,
+            borderWidth: 1,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: 0.3,
+            shadowRadius: 14,
+            elevation: 6,
+          },
+          cardStyle,
+          edgeStyle,
+        ]}
+      >
+        <Pressable
+          onPress={flip}
+          accessibilityRole="button"
+          accessibilityLabel={
+            isFlipped ? `${word.word}. ${word.translation}` : `${word.word}. ${t('card.tapToReveal')}`
+          }
+          style={{ flex: 1, padding: 24, gap: 16, justifyContent: 'center' }}
+        >
           <Animated.View
-            style={[styles.overlay, styles.overlayRight, overlayRightStyle]}
+            pointerEvents="none"
+            style={[{ position: 'absolute', top: 16, right: 16 }, tagRightStyle]}
           >
-            <Text style={styles.overlayText}>✓ {t('card.learned')}</Text>
+            <Tag variant="accent" label={t('card.learned')} />
           </Animated.View>
-
-          {/* Overlay left → don't know (red) */}
           <Animated.View
-            style={[styles.overlay, styles.overlayLeft, overlayLeftStyle]}
+            pointerEvents="none"
+            style={[{ position: 'absolute', top: 16, left: 16 }, tagLeftStyle]}
           >
-            <Text style={styles.overlayText}>↩ {t('card.repeat')}</Text>
+            <Tag variant="neutral" label={t('card.repeat')} />
           </Animated.View>
 
-          {/* Front side */}
-          <Animated.View style={[styles.card, frontStyle]}>
-            <Text style={styles.label}>{t('card.word')}</Text>
-            <Text style={styles.word}>{word.word}</Text>
-            <Text style={styles.hint}>
-              {requireFlip && !isFlipped
-                ? '👆 ' + t('card.tapToReveal')
-                : t('card.tapToReveal')}
-            </Text>
-            {requireFlip && !isFlipped && (
-              <Text style={styles.swipeBlockedHint}>{t('card.flipFirst')}</Text>
-            )}
-          </Animated.View>
+          <Text style={{ fontSize: 32, lineHeight: 38, fontWeight: '500', color: colors.text }}>
+            {word.word}
+          </Text>
+          {meta ? (
+            <Text style={[typography.secondary, { color: colors.neutral500 }]}>{meta}</Text>
+          ) : null}
 
-          {/* Back side */}
-          <Animated.View style={[styles.card, styles.cardBack, backStyle]}>
-            <Text style={styles.label}>{t('card.translation')}</Text>
-            <Text style={styles.word}>{word.translation}</Text>
-            <Text style={styles.stageBadge}>
-              {t(`card.bucket.${word.bucket}`)}
+          {isFlipped ? (
+            <View
+              style={{
+                borderTopWidth: 1,
+                borderTopColor: colors.neutral800,
+                paddingTop: 16,
+              }}
+            >
+              <Text style={{ fontSize: 20, lineHeight: 26, color: colors.text }}>
+                {word.translation}
+              </Text>
+            </View>
+          ) : (
+            <Text style={[typography.secondary, { color: colors.neutral500 }]}>
+              {requireFlip ? t('card.flipFirst') : t('card.tapToReveal')}
             </Text>
-          </Animated.View>
+          )}
         </Pressable>
       </Animated.View>
     </GestureDetector>
   );
-}
-
-const makeStyles = (colors: ColorScheme) =>
-  StyleSheet.create({
-    cardWrapper: {
-      width: SCREEN_WIDTH - 48,
-      height: 280,
-    },
-    pressable: {
-      flex: 1,
-    },
-    card: {
-      position: 'absolute',
-      width: '100%',
-      height: '100%',
-      backgroundColor: colors.backgroundCard,
-      borderRadius: 20,
-      alignItems: 'center',
-      justifyContent: 'center',
-      shadowColor: colors.cardShadow,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 1,
-      shadowRadius: 12,
-      elevation: 6,
-      padding: 24,
-    },
-    cardBack: {
-      backgroundColor: colors.backgroundInput,
-    },
-    label: {
-      fontSize: 11,
-      fontWeight: '700',
-      letterSpacing: 2,
-      color: colors.textMuted,
-      marginBottom: 16,
-    },
-    word: {
-      fontSize: 32,
-      fontWeight: '700',
-      color: colors.textPrimary,
-      textAlign: 'center',
-    },
-    hint: {
-      marginTop: 16,
-      fontSize: 13,
-      color: colors.textMuted,
-    },
-    stageBadge: {
-      marginTop: 12,
-      fontSize: 12,
-      color: colors.accent,
-      fontWeight: '600',
-      textTransform: 'uppercase',
-      letterSpacing: 1,
-    },
-    overlay: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      borderRadius: 20,
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 10,
-    },
-    overlayRight: {
-      backgroundColor: 'rgba(52, 199, 89, 0.85)',
-    },
-    overlayLeft: {
-      backgroundColor: 'rgba(255, 59, 48, 0.85)',
-    },
-    overlayText: {
-      fontSize: 28,
-      fontWeight: '800',
-      color: '#fff',
-      letterSpacing: 2,
-    },
-    swipeBlockedHint: {
-      marginTop: 8,
-      fontSize: 12,
-      color: colors.accent,
-      fontWeight: '600',
-      opacity: 0.8,
-    },
-  });
+});

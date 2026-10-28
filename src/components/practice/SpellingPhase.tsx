@@ -19,7 +19,7 @@ import { Button } from '../ui/Button';
 import { Overline } from '../ui/Overline';
 import { Skeleton } from '../ui/Skeleton';
 import { PhaseFooter } from './PhaseFooter';
-import type { ChoicePhaseProps } from './ChoicePhase';
+import { useReportSession, type ChoicePhaseProps } from './ChoicePhase';
 
 /**
  * «Write it in Norwegian» (Practice §7.4, 6e) over `useSpelling`, whose rules stay as they
@@ -35,16 +35,18 @@ export function SpellingPhase({
   tracking,
   onDone,
   onProgress,
+  onSession,
 }: ChoicePhaseProps) {
   const { t } = useTranslation();
   const { colors, typography } = useTheme();
   const keyboardShown = useKeyboardShown();
-  const { state, isLoading, setInput, submit, skip, next } = useSpelling(
+  const { state, isLoading, sessionId, setInput, submit, skip, next } = useSpelling(
     deckId,
     wordIds,
     onDone,
     tracking,
   );
+  useReportSession(sessionId, onSession);
   useAutoAdvance(state.isAnswered, state.isCorrect, next);
 
   const inputRef = useRef<TextInput>(null);
@@ -55,7 +57,7 @@ export function SpellingPhase({
   const letters = specialLetters(languageCode);
 
   useEffect(() => {
-    if (!isLoading && total === 0) onDone();
+    if (!isLoading && total === 0) onDone(0);
   }, [isLoading, total, onDone]);
   useEffect(() => {
     if (!isLoading && total > 0) onProgress?.(Math.min(state.currentIndex + 1, total), total);

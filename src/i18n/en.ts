@@ -289,8 +289,8 @@ export const en: Translations = {
     allDone: 'All done!',
     allDoneDesc: 'No more cards in this deck',
     backToDecks: 'Back to decks',
-    repeat: 'repeat',
-    learned: 'learned',
+    repeat: 'Repeat',
+    learned: 'I know',
     flipFirst: 'Flip card before swiping',
     bucket: {
       new: 'New',
@@ -1751,6 +1751,9 @@ export const en: Translations = {
     pronunciationDesc: 'Say the word or phrase',
     context: 'Context',
     contextDesc: 'Fill the word into the sentence',
+    itemWord: 'Word',
+    itemPhrase: 'Phrase',
+    notEnoughWords: 'There are not enough words in this set for this mode yet.',
   },
   grammarReview: {
     kicker: 'Rule · unit {unit}',
@@ -1780,6 +1783,7 @@ export const en: Translations = {
     correct: 'correct',
     byMode: 'By mode',
     again: 'Again',
+    done: 'Done',
   },
 
   audioLesson: {

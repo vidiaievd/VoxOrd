@@ -1,12 +1,10 @@
 import React, { useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-} from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { SessionHeader } from '../../../../components/practice';
+import { Spinner, Tag } from '../../../../components/ui';
+import { useTranslation } from '../../../../i18n';
+import { ModeShell } from '../../ModeShell';
 import { useTheme } from '../../../../providers/ThemeProvider';
 import { ColorScheme } from '../../../../theme/colors';
 import {
@@ -35,6 +33,7 @@ export function PronunciationExercise({
   onSessionDone,
   onComplete,
 }: PronunciationExerciseProps) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
 
@@ -53,21 +52,16 @@ export function PronunciationExercise({
   if (isLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.accent} />
+        <Spinner size={28} color={colors.accent300} />
       </View>
     );
   }
 
   if (state.items.length === 0) {
     return (
-      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-        <View style={styles.center}>
-          <Text style={styles.errorText}>No items to practice.</Text>
-          <TouchableOpacity style={styles.outlineBtn} onPress={onBack}>
-            <Text style={styles.outlineBtnText}>Go back</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
+      <ModeShell title={t('modes.pronunciation')} empty onBack={onBack}>
+        {null}
+      </ModeShell>
     );
   }
 
@@ -75,7 +69,7 @@ export function PronunciationExercise({
   if (state.isComplete && onComplete) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.accent} />
+        <Spinner size={28} color={colors.accent300} />
       </View>
     );
   }
@@ -92,35 +86,19 @@ export function PronunciationExercise({
   }
 
   const item = state.items[state.currentIndex];
-  const progress =
-    state.totalItems > 0 ? state.correctCount / state.totalItems : 0;
   const isLast = state.currentIndex + 1 >= state.items.length;
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.headerBack}>
-          <Text style={styles.headerBackText}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Pronunciation</Text>
-        <Text style={styles.headerCount}>
-          {state.correctCount}/{state.totalItems}
-        </Text>
-      </View>
+      <SessionHeader
+        title={t('modes.pronunciation')}
+        leadingLabel={t('common.close')}
+        onLeading={onBack}
+        counter={`${Math.min(state.currentIndex + 1, state.totalItems)}/${state.totalItems}`}
+      />
 
-      {/* Progress bar */}
-      <View style={styles.progressBg}>
-        <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
-      </View>
-
-      {/* Badge row */}
       <View style={styles.badgeRow}>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>
-            {item.type === 'word' ? '📝 Word' : '💬 Phrase'}
-          </Text>
-        </View>
+        <Tag variant="neutral" label={item.type === 'word' ? t('modes.itemWord') : t('modes.itemPhrase')} />
         <Text style={styles.difficultyText}>
           {'★'.repeat(item.difficulty)}
           {'☆'.repeat(3 - item.difficulty)}
@@ -177,60 +155,12 @@ const makeStyles = (colors: ColorScheme) =>
       alignItems: 'center',
       padding: 24,
     },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: 20,
-      paddingVertical: 12,
-    },
-    headerBack: {
-      padding: 8,
-    },
-    headerBackText: {
-      fontSize: 22,
-      color: colors.textPrimary,
-    },
-    headerTitle: {
-      fontSize: 17,
-      fontWeight: '700',
-      color: colors.textPrimary,
-    },
-    headerCount: {
-      fontSize: 15,
-      fontWeight: '600',
-      color: colors.accent,
-    },
-    progressBg: {
-      height: 6,
-      backgroundColor: colors.border,
-      marginHorizontal: 20,
-      borderRadius: 3,
-      overflow: 'hidden',
-      marginBottom: 16,
-    },
-    progressFill: {
-      height: '100%',
-      backgroundColor: colors.accent,
-      borderRadius: 3,
-    },
     badgeRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       paddingHorizontal: 20,
       marginBottom: 12,
-    },
-    badge: {
-      backgroundColor: colors.backgroundCard,
-      borderRadius: 10,
-      paddingVertical: 4,
-      paddingHorizontal: 10,
-    },
-    badgeText: {
-      fontSize: 12,
-      fontWeight: '600',
-      color: colors.textMuted,
     },
     difficultyText: {
       fontSize: 14,
@@ -248,17 +178,5 @@ const makeStyles = (colors: ColorScheme) =>
       textAlign: 'center',
       marginHorizontal: 20,
       marginBottom: 12,
-    },
-    outlineBtn: {
-      borderWidth: 2,
-      borderColor: colors.border,
-      borderRadius: 14,
-      paddingVertical: 12,
-      paddingHorizontal: 24,
-    },
-    outlineBtnText: {
-      fontSize: 15,
-      fontWeight: '600',
-      color: colors.textPrimary,
     },
   });

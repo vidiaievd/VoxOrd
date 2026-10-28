@@ -297,8 +297,8 @@ export const uk: Translations = {
     allDone: 'Все готово!',
     allDoneDesc: 'Більше немає карток у наборі',
     backToDecks: 'До наборів',
-    repeat: 'повтор',
-    learned: 'вивчено',
+    repeat: 'Повторити',
+    learned: 'Знаю',
     flipFirst: 'Переверніть картку перед свайпом',
     bucket: {
       new: 'Нове',
@@ -1754,6 +1754,9 @@ export const uk: Translations = {
     pronunciationDesc: 'Вимовте слово або фразу',
     context: 'Контекст',
     contextDesc: 'Вставте слово в речення',
+    itemWord: 'Слово',
+    itemPhrase: 'Фраза',
+    notEnoughWords: 'У цьому наборі поки недостатньо слів для цього режиму.',
   },
   grammarReview: {
     kicker: 'Правило · юніт {unit}',
@@ -1783,6 +1786,7 @@ export const uk: Translations = {
     correct: 'вірно',
     byMode: 'За режимами',
     again: 'Ще раз',
+    done: 'Готово',
   },
 
   audioLesson: {
