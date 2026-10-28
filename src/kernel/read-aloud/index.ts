@@ -80,6 +80,29 @@ export {
   wordKey,
 } from './derive';
 
+export type {
+  ExtraOp,
+  MisreadOp,
+  MissedOp,
+  PromptReading,
+  ReadingCheck,
+  ReadingOp,
+  ReadingVerdict,
+  ReadOp,
+} from './reading';
+export {
+  accuracyPercent,
+  checkReading,
+  clampPassPercent,
+  DEFAULT_READING_PASS_PERCENT,
+  machineCanCheck,
+  MAX_READING_PASS_PERCENT,
+  MIN_READING_PASS_PERCENT,
+  readingPasses,
+  readingPassPercent,
+  readingVerdict,
+  wordsPerMinute,
+} from './reading';
 export type { PromptOutcome, SpeakingCriterion, SpeakingOutcome, SpeakingSnapshot } from './rubric';
 export {
   markKey,

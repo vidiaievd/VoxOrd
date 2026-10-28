@@ -48,6 +48,7 @@ import {
   SHOW_MODEL,
   SHOW_RUBRIC,
 } from './model';
+import { clampPassPercent } from './reading';
 
 export const TEMPLATE_CODE = 'read_aloud';
 
@@ -274,6 +275,7 @@ export function readContent(content: unknown): PersistedContent {
         draft: bool(ai['draft'], DEFAULT_REVIEW.ai.draft),
       },
       aiVisibility: oneOf<AiVisibility>(review['aiVisibility'], AI_VISIBILITIES, DEFAULT_REVIEW.aiVisibility),
+      readingPassPercent: clampPassPercent(num(review['readingPassPercent'], DEFAULT_REVIEW.readingPassPercent)),
     },
   };
 }
