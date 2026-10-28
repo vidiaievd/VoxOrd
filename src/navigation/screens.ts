@@ -48,14 +48,14 @@ export type Screen =
     }
   | { name: 'ModeSelector'; deck: Deck }
   | { name: 'Card'; deck: Deck; mode?: 'assessment' }
-  | { name: 'Matching'; deckId: number }
-  | { name: 'Quiz'; deckId: number }
-  | { name: 'Spelling'; deckId: number }
-  | { name: 'Listening'; deckId: number }
-  | { name: 'Pronunciation'; deckId: number }
-  | { name: 'Context'; deckId: number }
+  | { name: 'Matching'; deck: Deck }
+  | { name: 'Quiz'; deck: Deck }
+  | { name: 'Spelling'; deck: Deck }
+  | { name: 'Listening'; deck: Deck }
+  | { name: 'Pronunciation'; deck: Deck }
+  | { name: 'Context'; deck: Deck }
   | { name: 'DeepSession'; deck: Deck }
-  | { name: 'SessionResults'; sessionId: number; deckId: number }
+  | { name: 'SessionResults'; sessionId: number; deck: Deck }
   | { name: 'Courses'; segment?: 'mine' | 'catalog' }
   /** A course in the catalogue, before enrolment (Courses spec 5c). */
   | { name: 'CatalogCourse'; containerId: string }
@@ -92,7 +92,14 @@ export type Screen =
       /** Opened from an assistant's citation: Back goes back to the thread. */
       returnTo?: Screen;
     }
-  | { name: 'ReviewSession'; courseId?: string }
+  | {
+      name: 'ReviewSession';
+      courseId?: string;
+      /** Where the review was started from — Back and Done return there (Practice §4.1). */
+      from?: 'Practice' | 'CourseHome' | 'Today';
+    }
+  /** A rule's review: its summary and the pinned «Repeat» (Practice 6l). */
+  | { name: 'GrammarReview'; ruleId: string; courseId: string; unitId: string }
   | {
       name: 'MyWords';
       /** Opened from an assistant's citation of a personal word: Back goes back to the thread. */
@@ -110,6 +117,11 @@ export type Screen =
        * where it is known; the runner is handed a set of exercise ids and nothing else.
        */
       sourceLessonId?: string;
+      /**
+       * Opened from the Practice tab (a rule's review, a mistake): Back returns there rather
+       * than to the unit, and the tab stays Practice.
+       */
+      origin?: 'unit' | 'practice';
     }
   | { name: 'Settings' };
 
@@ -157,22 +169,33 @@ export function backTarget(screen: Screen): Screen | null {
         unitId: screen.unitId,
         courseId: screen.courseId,
       };
-    case 'VocabularyList':
     case 'ExerciseRunner':
+      if (screen.origin === 'practice') return { name: 'Practice' };
+      return {
+        name: 'UnitContents',
+        unitId: screen.unitId,
+        courseId: screen.courseId,
+      };
+    case 'VocabularyList':
       return {
         name: 'UnitContents',
         unitId: screen.unitId,
         courseId: screen.courseId,
       };
     case 'ReviewSession':
-      return screen.courseId
-        ? { name: 'CourseHome', courseId: screen.courseId }
-        : { name: 'Practice' };
+      if (screen.from === 'Today') return { name: 'Today' };
+      if (screen.courseId && screen.from === 'CourseHome') {
+        return { name: 'CourseHome', courseId: screen.courseId };
+      }
+      return { name: 'Practice' };
     case 'Card':
       return { name: 'ModeSelector', deck: screen.deck };
     case 'MyWords':
       return screen.returnTo ?? { name: 'Practice' };
+    case 'GrammarReview':
+      return { name: 'Practice' };
     case 'ModeSelector':
+      return { name: 'Practice' };
     case 'Matching':
     case 'Quiz':
     case 'Spelling':
@@ -181,9 +204,8 @@ export function backTarget(screen: Screen): Screen | null {
     case 'Context':
     case 'DeepSession':
     case 'SessionResults':
-      // The word decks. The modes carry only a deck id, so they cannot go back to their
-      // ModeSelector yet — plan 05 puts the deck on the route.
-      return { name: 'Practice' };
+      // The word decks: every mode carries its deck, so Back lands on the same ModeSelector.
+      return { name: 'ModeSelector', deck: screen.deck };
   }
 }
 
@@ -226,6 +248,7 @@ const WITH_TAB_BAR: ReadonlySet<Screen['name']> = new Set<Screen['name']>([
   'Practice',
   'ModeSelector',
   'MyWords',
+  'GrammarReview',
   'Notifications',
   'Profile',
   'Settings',

@@ -120,13 +120,27 @@ const CASES: {
       { name: 'UnitContents', ...unit },
       'Courses',
     ],
+    [
+      { name: 'ExerciseRunner', exerciseIds: ['e1'], startIndex: 0, ...unit, origin: 'practice' },
+      { name: 'Practice' },
+      'Practice',
+    ],
+  ],
+  GrammarReview: [
+    [
+      { name: 'GrammarReview', ruleId: 'r1', ...unit },
+      { name: 'Practice' },
+      'Practice',
+    ],
   ],
   ReviewSession: [
     [
-      { name: 'ReviewSession', courseId: 'c1' },
+      { name: 'ReviewSession', courseId: 'c1', from: 'CourseHome' },
       { name: 'CourseHome', courseId: 'c1' },
       'Courses',
     ],
+    [{ name: 'ReviewSession', from: 'Today' }, { name: 'Today' }, 'Today'],
+    [{ name: 'ReviewSession', from: 'Practice' }, { name: 'Practice' }, 'Practice'],
     [{ name: 'ReviewSession' }, { name: 'Practice' }, 'Practice'],
   ],
   MyWords: [
@@ -145,26 +159,26 @@ const CASES: {
     ],
   ],
   Matching: [
-    [{ name: 'Matching', deckId: 7 }, { name: 'Practice' }, 'Practice'],
+    [{ name: 'Matching', deck }, { name: 'ModeSelector', deck }, 'Practice'],
   ],
-  Quiz: [[{ name: 'Quiz', deckId: 7 }, { name: 'Practice' }, 'Practice']],
+  Quiz: [[{ name: 'Quiz', deck }, { name: 'ModeSelector', deck }, 'Practice']],
   Spelling: [
-    [{ name: 'Spelling', deckId: 7 }, { name: 'Practice' }, 'Practice'],
+    [{ name: 'Spelling', deck }, { name: 'ModeSelector', deck }, 'Practice'],
   ],
   Listening: [
-    [{ name: 'Listening', deckId: 7 }, { name: 'Practice' }, 'Practice'],
+    [{ name: 'Listening', deck }, { name: 'ModeSelector', deck }, 'Practice'],
   ],
   Pronunciation: [
-    [{ name: 'Pronunciation', deckId: 7 }, { name: 'Practice' }, 'Practice'],
+    [{ name: 'Pronunciation', deck }, { name: 'ModeSelector', deck }, 'Practice'],
   ],
-  Context: [[{ name: 'Context', deckId: 7 }, { name: 'Practice' }, 'Practice']],
+  Context: [[{ name: 'Context', deck }, { name: 'ModeSelector', deck }, 'Practice']],
   DeepSession: [
-    [{ name: 'DeepSession', deck }, { name: 'Practice' }, 'Practice'],
+    [{ name: 'DeepSession', deck }, { name: 'ModeSelector', deck }, 'Practice'],
   ],
   SessionResults: [
     [
-      { name: 'SessionResults', sessionId: 1, deckId: 7 },
-      { name: 'Practice' },
+      { name: 'SessionResults', sessionId: 1, deck },
+      { name: 'ModeSelector', deck },
       'Practice',
     ],
   ],
@@ -219,6 +233,7 @@ describe('showsTabBar', () => {
     'Practice',
     'ModeSelector',
     'MyWords',
+    'GrammarReview',
     'Notifications',
     'Profile',
     'Settings',

@@ -211,7 +211,7 @@ export function TodayScreen({ due, onNavigate, onOpenTab }: TodayScreenProps) {
             key={id}
             due={due}
             onOpenPractice={() => onOpenTab('Practice')}
-            onStart={() => onNavigate({ name: 'ReviewSession' })}
+            onStart={() => onNavigate({ name: 'ReviewSession', from: 'Today' })}
           />
         );
       case 'first':

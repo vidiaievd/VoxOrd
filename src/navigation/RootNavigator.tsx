@@ -130,8 +130,8 @@ function Navigator() {
   }, [goTo, screen, t]);
 
   const navigateToResults = useCallback(
-    (sessionId: number, deckId: number) => {
-      navigateTo({ name: 'SessionResults', sessionId, deckId });
+    (sessionId: number, deck: Deck) => {
+      navigateTo({ name: 'SessionResults', sessionId, deck });
     },
     [navigateTo],
   );
@@ -175,22 +175,22 @@ function Navigator() {
           navigateTo({ name: 'Card', deck, mode: 'assessment' });
           break;
         case 'matching':
-          navigateTo({ name: 'Matching', deckId: deck.id });
+          navigateTo({ name: 'Matching', deck });
           break;
         case 'quiz':
-          navigateTo({ name: 'Quiz', deckId: deck.id });
+          navigateTo({ name: 'Quiz', deck });
           break;
         case 'spelling':
-          navigateTo({ name: 'Spelling', deckId: deck.id });
+          navigateTo({ name: 'Spelling', deck });
           break;
         case 'listening':
-          navigateTo({ name: 'Listening', deckId: deck.id });
+          navigateTo({ name: 'Listening', deck });
           break;
         case 'pronunciation':
-          navigateTo({ name: 'Pronunciation', deckId: deck.id });
+          navigateTo({ name: 'Pronunciation', deck });
           break;
         case 'context':
-          navigateTo({ name: 'Context', deckId: deck.id });
+          navigateTo({ name: 'Context', deck });
           break;
         case 'deep':
           navigateTo({ name: 'DeepSession', deck });
@@ -225,58 +225,58 @@ function Navigator() {
       case 'Matching':
         return (
           <MatchingExercise
-            deckId={screen.deckId}
+            deckId={screen.deck.id}
             onBack={() =>
               setScreen(prev =>
                 prev.name === 'Matching' ? (backTarget(prev) ?? prev) : prev,
               )
             }
-            onSessionDone={sid => navigateToResults(sid, screen.deckId)}
+            onSessionDone={sid => navigateToResults(sid, screen.deck)}
           />
         );
 
       case 'Quiz':
         return (
           <QuizExercise
-            deckId={screen.deckId}
+            deckId={screen.deck.id}
             onBack={goBack}
-            onSessionDone={sid => navigateToResults(sid, screen.deckId)}
+            onSessionDone={sid => navigateToResults(sid, screen.deck)}
           />
         );
 
       case 'Spelling':
         return (
           <SpellingExercise
-            deckId={screen.deckId}
+            deckId={screen.deck.id}
             onBack={goBack}
-            onSessionDone={sid => navigateToResults(sid, screen.deckId)}
+            onSessionDone={sid => navigateToResults(sid, screen.deck)}
           />
         );
 
       case 'Listening':
         return (
           <ListeningExercise
-            deckId={screen.deckId}
+            deckId={screen.deck.id}
             onBack={goBack}
-            onSessionDone={sid => navigateToResults(sid, screen.deckId)}
+            onSessionDone={sid => navigateToResults(sid, screen.deck)}
           />
         );
 
       case 'Pronunciation':
         return (
           <PronunciationExercise
-            deckId={screen.deckId}
+            deckId={screen.deck.id}
             onBack={goBack}
-            onSessionDone={sid => navigateToResults(sid, screen.deckId)}
+            onSessionDone={sid => navigateToResults(sid, screen.deck)}
           />
         );
 
       case 'Context':
         return (
           <ContextExercise
-            deckId={screen.deckId}
+            deckId={screen.deck.id}
             onBack={goBack}
-            onSessionDone={sid => navigateToResults(sid, screen.deckId)}
+            onSessionDone={sid => navigateToResults(sid, screen.deck)}
           />
         );
 
@@ -285,7 +285,7 @@ function Navigator() {
           <DeepSessionScreen
             deck={screen.deck}
             onBack={goBack}
-            onSessionDone={sid => navigateToResults(sid, screen.deck.id)}
+            onSessionDone={sid => navigateToResults(sid, screen.deck)}
           />
         );
 
@@ -295,12 +295,7 @@ function Navigator() {
             sessionId={screen.sessionId}
             onContinue={goBack}
             onRepeat={() => {
-              // Go back to ModeSelector for the same deck
-              // We need a minimal deck — ModeSelector will show full info
-              navigateTo({
-                name: 'ModeSelector',
-                deck: { id: screen.deckId } as Deck,
-              });
+              navigateTo({ name: 'ModeSelector', deck: screen.deck });
             }}
           />
         );
@@ -350,7 +345,11 @@ function Navigator() {
               navigateTo({ name: 'UnitContents', unitId, courseId: screen.courseId })
             }
             onReviewPress={() =>
-              navigateTo({ name: 'ReviewSession', courseId: screen.courseId })
+              navigateTo({
+                name: 'ReviewSession',
+                courseId: screen.courseId,
+                from: 'CourseHome',
+              })
             }
           />
         );
@@ -474,11 +473,17 @@ function Navigator() {
       case 'Practice':
         return (
           <PracticeScreen
-            onStartReview={() => navigateTo({ name: 'ReviewSession' })}
+            onStartReview={() =>
+              navigateTo({ name: 'ReviewSession', from: 'Practice' })
+            }
             onOpenMyWords={() => navigateTo({ name: 'MyWords' })}
             onOpenDeck={deck => navigateTo({ name: 'ModeSelector', deck })}
           />
         );
+
+      case 'GrammarReview':
+        // Built in plan 05 step 7; nothing opens this route before then.
+        return null;
 
       case 'Notifications':
         return <NotificationsScreen />;
