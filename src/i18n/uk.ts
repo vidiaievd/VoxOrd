@@ -132,6 +132,22 @@ export const uk: Translations = {
       aiVerdict: 'Перевірено ШІ за правилами школи',
       aiQuote: 'ШІ: «{comment}»',
     },
+    aiReviewed: {
+      title: 'Перевірено ШІ',
+      open: 'Відкрити розбір',
+      rewrite: 'Переписати',
+    },
+    suggest: {
+      title: 'Запитати помічника',
+      unit: 'Що головне в «{unit}»?',
+      topic: 'Допоможи з темою: {topic}',
+      work: 'Розбери мої помилки в «{title}»',
+    },
+    aiCredits: {
+      line: 'ШІ-кредити: {used} з {total}',
+      until: 'до {date}',
+      more: 'Як збільшити',
+    },
     soloWriting: {
       title: 'Письмо і мовлення',
       body: 'Без викладача такі завдання звіряються зі зразком відповіді. Перевірку може робити ШІ або школа.',

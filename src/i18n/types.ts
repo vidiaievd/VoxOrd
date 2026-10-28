@@ -125,6 +125,25 @@ export interface Translations {
       aiVerdict: string;
       aiQuote: string; // '{comment}'
     };
+    /** Block 6b (D): the latest work a model reviewed on its own. */
+    aiReviewed: {
+      title: string;
+      open: string;
+      rewrite: string;
+    };
+    /** Block D2: prompts for the assistant, made on the phone. */
+    suggest: {
+      title: string;
+      unit: string; // '{unit}'
+      topic: string; // '{topic}'
+      work: string; // '{title}'
+    };
+    /** Block D3: the period's AI-review credits — credits, never a count of reviews. */
+    aiCredits: {
+      line: string; // '{used}', '{total}'
+      until: string; // '{date}'
+      more: string;
+    };
     /** Block 10. */
     soloWriting: {
       title: string;

@@ -132,6 +132,22 @@ export const ru: Translations = {
       aiVerdict: 'Проверено ИИ по правилам школы',
       aiQuote: 'ИИ: «{comment}»',
     },
+    aiReviewed: {
+      title: 'Проверено ИИ',
+      open: 'Открыть разбор',
+      rewrite: 'Переписать',
+    },
+    suggest: {
+      title: 'Спросить помощника',
+      unit: 'Что главное в «{unit}»?',
+      topic: 'Помоги с темой: {topic}',
+      work: 'Разбери мои ошибки в «{title}»',
+    },
+    aiCredits: {
+      line: 'ИИ-кредиты: {used} из {total}',
+      until: 'до {date}',
+      more: 'Как увеличить',
+    },
     soloWriting: {
       title: 'Письмо и речь',
       body: 'Без преподавателя такие задания сверяются с образцом ответа. Проверку может делать ИИ или школа.',

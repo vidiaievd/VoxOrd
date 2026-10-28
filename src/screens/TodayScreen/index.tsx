@@ -13,7 +13,12 @@ import type { Screen } from '../../navigation/screens';
 import { useTheme } from '../../providers/ThemeProvider';
 import { getLastCourseId, setLastCourseId } from '../../store/lastCourseStore';
 import { spacing } from '../../theme/spacing';
+import { AiCredits } from './blocks/AiCredits';
+import { AiPlan } from './blocks/AiPlan';
+import { AiReviewed } from './blocks/AiReviewed';
 import { AssistInline } from './blocks/AssistInline';
+import { AssistPinned } from './blocks/AssistPinned';
+import { AssistSuggestions } from './blocks/AssistSuggestions';
 import { Assignment } from './blocks/Assignment';
 import { FirstRun } from './blocks/FirstRun';
 import { GroupAccess } from './blocks/GroupAccess';
@@ -26,7 +31,7 @@ import { Resume } from './blocks/Resume';
 import { ResumeSkeleton } from './blocks/Skeleton';
 import { TeacherFeedback } from './blocks/TeacherFeedback';
 import { WorkOnThis } from './blocks/WorkOnThis';
-import { layoutFor, type HomeBlockId } from './layout';
+import { TODAY_FEATURES, layoutFor, type HomeBlockId } from './layout';
 import { pickCourseId } from './today';
 import { RefreshRegistry } from './refresh';
 
@@ -45,23 +50,15 @@ const KEPT_WITHOUT_COURSES: ReadonlySet<HomeBlockId> = new Set([
   'groupAccess',
 ]);
 
-/** Blocks of the layouts that are not built yet; `layoutFor` swaps in the fallback or drops them. */
-const NOT_BUILT: ReadonlySet<HomeBlockId> = new Set([
-  'aiPlan',
-  'aiReviewed',
-  'assistSuggestions',
-  'aiCredits',
-  'goal',
-  'catalogPicks',
-]);
+/** Blocks of the layouts that are not built yet; `layoutFor` drops them. */
+const NOT_BUILT: readonly HomeBlockId[] = ['goal', 'catalogPicks'];
 
 /**
  * «Today» (Home spec §6): walks the layout of its variant, and each block loads its own data
  * and shows nothing when it has nothing to say.
  *
- * Variants A, B and C are walked, C with its assistant entries (plan 03 step 3); D's blocks
- * are plan 03 step 4, so a block that does not exist yet is left out and D falls back to
- * Continue and Review.
+ * Variant D's plan for today (D1) has no backend, so `layoutFor` puts Continue and Review in
+ * its place; D's assistant line is pinned under the scroll rather than in it.
  */
 export function TodayScreen({ due, onNavigate, onOpenTab }: TodayScreenProps) {
   const { colors } = useTheme();
@@ -114,12 +111,13 @@ export function TodayScreen({ due, onNavigate, onOpenTab }: TodayScreenProps) {
   // Variant C offers the assistant beside the teacher's review and the class; each link asks
   // the server about its own context before it is drawn.
   const offerAssist = variant === 'school_ai';
+  const planOn = TODAY_FEATURES.aiPlan && home.caps.practicePlan;
   const ids = useMemo(() => {
-    const layout = layoutFor(variant, NOT_BUILT);
+    const layout = layoutFor(variant, new Set<HomeBlockId>(planOn ? NOT_BUILT : [...NOT_BUILT, 'aiPlan']));
     return noCourses
       ? [...layout.filter((id) => KEPT_WITHOUT_COURSES.has(id)), 'first' as const]
       : layout;
-  }, [variant, noCourses]);
+  }, [variant, noCourses, planOn]);
 
   // AI blocks arrive after the first paint (entitlements load later); ease the others down
   // once instead of jumping. Not on the first layout, and not on every pull.
@@ -143,6 +141,8 @@ export function TodayScreen({ due, onNavigate, onOpenTab }: TodayScreenProps) {
             hasCourses={courses.status !== 'loaded' || courseIds.length > 0}
             dueCount={due.count ?? 0}
             nextClassAt={nextClass ? classStart(nextClass) : null}
+            // D's day is its plan's to tell (Home §6.2, block 1); without one D reads as B.
+            showDayLine={!(variant === 'solo_ai' && planOn)}
           />
         );
       case 'assistInline':
@@ -176,6 +176,18 @@ export function TodayScreen({ due, onNavigate, onOpenTab }: TodayScreenProps) {
             onFindSchool={() => onOpenTab('Courses')}
           />
         );
+      case 'aiPlan':
+        return <AiPlan key={id} />;
+      case 'aiReviewed':
+        return home.caps.reviewDirect ? <AiReviewed key={id} onNavigate={onNavigate} /> : null;
+      case 'assistSuggestions':
+        return lastId === undefined ? null : (
+          <AssistSuggestions key={id} courseId={leadId} onNavigate={onNavigate} />
+        );
+      case 'aiCredits':
+        return home.caps.directCredits !== null ? (
+          <AiCredits key={id} onMore={() => onOpenTab('Profile')} />
+        ) : null;
       case 'workOnThis':
         return <WorkOnThis key={id} onOpenPractice={() => onOpenTab('Practice')} />;
       case 'resume':
@@ -204,7 +216,7 @@ export function TodayScreen({ due, onNavigate, onOpenTab }: TodayScreenProps) {
           />
         );
       default:
-        // Goal has no data, CatalogPicks waits for plan 04, the rest is plan 03.
+        // Goal has no data, CatalogPicks waits for plan 04.
         return null;
     }
   };
@@ -227,6 +239,7 @@ export function TodayScreen({ due, onNavigate, onOpenTab }: TodayScreenProps) {
           {ids.filter((id) => id !== 'offline').map(renderBlock)}
         </ScrollView>
       </RefreshRegistry.Provider>
+      {variant === 'solo_ai' ? <AssistPinned offline={offline} onNavigate={onNavigate} /> : null}
     </SafeAreaView>
   );
 }

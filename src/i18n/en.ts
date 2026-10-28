@@ -124,6 +124,22 @@ export const en: Translations = {
       aiVerdict: "Checked by AI under the school's rules",
       aiQuote: 'AI: “{comment}”',
     },
+    aiReviewed: {
+      title: 'Reviewed by AI',
+      open: 'Open the review',
+      rewrite: 'Rewrite',
+    },
+    suggest: {
+      title: 'Ask the assistant',
+      unit: 'What matters most in “{unit}”?',
+      topic: 'Help me with: {topic}',
+      work: 'Go over my mistakes in “{title}”',
+    },
+    aiCredits: {
+      line: 'AI credits: {used} of {total}',
+      until: 'until {date}',
+      more: 'How to get more',
+    },
     soloWriting: {
       title: 'Writing and speaking',
       body: 'Without a teacher, tasks like these are checked against a sample answer. A model or a school can check them for you.',

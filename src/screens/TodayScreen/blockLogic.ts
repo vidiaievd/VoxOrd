@@ -126,3 +126,34 @@ export function criterionMarks(
   }
   return marks.length > 0 ? marks : null;
 }
+
+/** Block D3: the period's credits as the line and the track draw them. */
+export interface CreditsMeter {
+  used: number;
+  total: number;
+  /** 0–1 of the track filled; spending past the limit (a call in flight) stops at full. */
+  fill: number;
+  /** A tenth of the period's credits or less is left: the track turns accent. */
+  low: boolean;
+}
+
+/** The share of credits left at or below which D3 warns (owner, 2026-10-28: credits, not reviews). */
+export const CREDITS_LOW_SHARE = 0.1;
+
+/**
+ * D3's numbers from `ai/usage/me`; null when there is nothing to draw — no answer, unmetered
+ * (`total` null) or a limit of zero. Credits are a model's cost, so a review spends a
+ * fraction of one: the line says credits, and «low» is a share, never a count of reviews.
+ */
+export function creditsMeter(usage: { used: string; total: string | null } | null): CreditsMeter | null {
+  if (!usage || usage.total === null) return null;
+  const used = Number(usage.used);
+  const total = Number(usage.total);
+  if (!Number.isFinite(used) || !Number.isFinite(total) || total <= 0) return null;
+  return {
+    used,
+    total,
+    fill: Math.min(1, Math.max(0, used / total)),
+    low: total - used <= total * CREDITS_LOW_SHARE,
+  };
+}
