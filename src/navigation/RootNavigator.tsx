@@ -363,7 +363,10 @@ function Navigator() {
         return (
           <VocabularyListScreen
             listId={screen.listId}
+            unitId={screen.unitId}
+            courseId={screen.courseId}
             onBack={goBack}
+            onLearn={deck => navigateTo({ name: 'ModeSelector', deck })}
           />
         );
 
@@ -376,6 +379,7 @@ function Navigator() {
           <LessonReaderScreen
             lessonId={lessonId}
             courseId={screen.courseId}
+            unitId={screen.unitId}
             onBack={goBack}
             alreadyRead={screen.alreadyRead === true}
             onPractice={
@@ -400,6 +404,7 @@ function Navigator() {
           <GrammarRuleReaderScreen
             ruleId={screen.ruleId}
             courseId={screen.courseId}
+            unitId={screen.unitId}
             onBack={goBack}
             onPracticePress={exerciseIds =>
               navigateTo({

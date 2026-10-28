@@ -522,6 +522,18 @@ export interface Translations {
     toExercises: string;
     /** The same button when the text leads into none: it closes the reader. */
     finish: string;
+    /** Parent label of the header: 'Unit {n}'. */
+    back: string;
+    textSize: string;
+    textSizeSmall: string;
+    textSizeMedium: string;
+    textSizeLarge: string;
+    addToMyWords: string;
+    inMyWords: string;
+    addedNote: string;
+    showTranslation: string;
+    hideTranslation: string;
+    listenToWord: string;
   };
 
   grammarRuleReader: {
@@ -529,6 +541,8 @@ export interface Translations {
     loadError: string;
     noContent: string;
     goToPractice: string;
+    goToPracticeN: PluralForms; // 'Go to practice · {count} exercises'
+    meta: string; // 'Grammar · mastery {pct}%'
     noPracticeExercises: string;
     practiceLoadError: string;
   };
@@ -539,6 +553,16 @@ export interface Translations {
     noItems: string;
     noTranslation: string;
     wordCount: string; // '{count} words'
+    meta: PluralForms; // '{count} words · {mine} in My words'
+    learnCards: string;
+    addAll: string;
+    addedAll: string;
+    search: string;
+    searchPlaceholder: string;
+    noMatches: string;
+    addToMyWords: string;
+    removeFromMyWords: string;
+    cardsEmpty: string;
     forms: string;
     examples: string;
     register: string; // 'Register: {register}'

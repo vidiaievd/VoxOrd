@@ -16,6 +16,8 @@ export interface ButtonProps {
   /** Full-width. */
   block?: boolean;
   icon?: IconName;
+  /** `fill` for a toggled state such as a saved bookmark. */
+  iconWeight?: 'regular' | 'fill';
   /** Icon-only button: square, needs `accessibilityLabel`. */
   iconOnly?: boolean;
   disabled?: boolean;
@@ -35,6 +37,7 @@ export function Button({
   size = 48,
   block,
   icon,
+  iconWeight,
   iconOnly,
   disabled,
   accessibilityLabel,
@@ -88,7 +91,7 @@ export function Button({
       ]}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        {icon ? <Icon name={icon} size={iconSize} color={fg} /> : null}
+        {icon ? <Icon name={icon} size={iconSize} color={fg} weight={iconWeight} /> : null}
         {!iconOnly && label ? (
           <Text
             numberOfLines={1}

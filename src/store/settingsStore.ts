@@ -5,6 +5,10 @@ export type ThemeMode = 'light' | 'dark' | 'system';
 export type CardMode = 'flip' | 'pronunciation' | 'writing' | 'test';
 export type SpellingHintMode = 'always' | 'after_mistake' | 'never';
 
+/** The sizes a text can be read at, in points (Courses §8.1). */
+export const READER_FONT_SIZES = [15, 17, 20] as const;
+export type ReaderFontSize = (typeof READER_FONT_SIZES)[number];
+
 /** `offlineUnitsAhead` meaning the whole course rather than a number of units. */
 export const ALL_UNITS = -1;
 
@@ -24,6 +28,8 @@ export interface AppSettings {
   offlineUnitsAhead: number;
   /** Course media may be downloaded over mobile data too, not only Wi-Fi. */
   offlineMediaOnCellular: boolean;
+  /** The size of a text in the reader. */
+  readerFontSize: ReaderFontSize;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -37,6 +43,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   spellingHintMode: 'after_mistake',
   offlineUnitsAhead: 2,
   offlineMediaOnCellular: false,
+  readerFontSize: 17,
 };
 
 const storage = createAsyncStorage('voxord_settings');
