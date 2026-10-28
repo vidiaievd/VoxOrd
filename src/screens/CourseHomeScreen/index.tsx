@@ -1,24 +1,22 @@
-import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ActivityIndicator,
-  FlatList,
-  RefreshControl,
-  TouchableOpacity,
-} from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
-import { ColorScheme } from '../../theme/colors';
+import { useModal } from '../../providers/ModalProvider';
+import { spacing } from '../../theme/spacing';
 import { useCourseHome } from '../../hooks/useCourseHome';
 import { useCourseReviewSets } from '../../hooks/useCourseReviewSets';
-import { UnitRow } from './UnitRow';
-import { CourseStatsSection } from './CourseStatsSection';
+import { useMyCourses } from '../../hooks/useMyCourses';
+import { leaveEnrollment } from '../../api/courses';
+import { courseDownloader } from '../../services/courseDownload';
 import { OfflineBanner } from '../../components/OfflineBanner';
+import { Button, NavHeader, ProgressTrack, Skeleton, useToast } from '../../components/ui';
 import { isNetworkError } from '../../api/isNetworkError';
 import type { UnitSummary } from '../../api/types';
+import { UnitRow } from './UnitRow';
+import { CourseTiles, SkillsBlock } from './CourseStatsSection';
+import { useNextInCourse } from './useNextInCourse';
 
 interface CourseHomeScreenProps {
   courseId: string;
@@ -27,6 +25,11 @@ interface CourseHomeScreenProps {
   onReviewPress: () => void;
 }
 
+/** Whether the skills block is open, remembered per course while the app runs (spec §6.2). */
+const skillsOpen = new Map<string, boolean>();
+
+type MenuAction = 'download' | 'release' | 'leave';
+
 export function CourseHomeScreen({
   courseId,
   onBack,
@@ -34,8 +37,9 @@ export function CourseHomeScreen({
   onReviewPress,
 }: CourseHomeScreenProps) {
   const { t } = useTranslation();
-  const { colors } = useTheme();
-  const styles = makeStyles(colors);
+  const { colors, typography } = useTheme();
+  const toast = useToast();
+  const modal = useModal();
   const { status, data, error, refreshing, stale, refresh } = useCourseHome(courseId);
   // `data.srsDueCount` comes from the global, unfiltered `/srs/stats/me` stat
   // (see the caveat in `src/api/courseHome.ts`) and can be nonzero while the
@@ -44,141 +48,191 @@ export function CourseHomeScreen({
   // same resolved-against-local-decks count the review screen itself runs on,
   // so the counter never promises a session that turns out empty.
   const { overview: reviewOverview } = useCourseReviewSets();
+  const myCourses = useMyCourses();
+  const next = useNextInCourse(data?.units ?? null);
+  const [open, setOpen] = useState(skillsOpen.get(courseId) ?? true);
+
+  // Only a self-study enrollment can be left from here; a school's belongs to the school.
+  const selfStudy = useMemo(
+    () =>
+      myCourses.courses.find(
+        c => c.enrollment.containerId === courseId && c.enrollment.schoolId === null,
+      )?.enrollment ?? null,
+    [myCourses.courses, courseId],
+  );
+
+  const toggleSkills = () => {
+    const value = !open;
+    skillsOpen.set(courseId, value);
+    setOpen(value);
+  };
+
+  const units = useMemo(
+    () => [...(data?.units ?? [])].sort((a, b) => a.position - b.position),
+    [data],
+  );
+
+  const leave = () => {
+    if (!selfStudy) return;
+    modal.show({
+      type: 'confirm',
+      title: t('courseHome.leaveTitle'),
+      message: t('courseHome.leaveMessage', { course: data?.courseInfo.title ?? '' }),
+      confirmLabel: t('courseHome.leaveConfirm'),
+      cancelLabel: t('common.cancel'),
+      onConfirm: () => {
+        leaveEnrollment(selfStudy.id)
+          .then(async () => {
+            await courseDownloader.releaseCourse(courseId).catch(() => {});
+            myCourses.refresh().catch(() => {});
+            onBack();
+          })
+          .catch(() => toast.show(t('courseHome.leaveFailed')));
+      },
+    });
+  };
+
+  const onAction = (action: MenuAction) => {
+    if (action === 'download') {
+      toast.show(t('courseHome.downloadStarted'));
+      courseDownloader.downloadCourse(courseId).catch(() => toast.show(t('courseHome.downloadFailed')));
+    } else if (action === 'release') {
+      courseDownloader.releaseCourse(courseId).catch(() => {});
+      toast.show(t('courseHome.removed'));
+    } else {
+      // The picker closes itself right after this; a sheet opened at once would be closed with it.
+      setTimeout(leave, 300);
+    }
+  };
+
+  const openMenu = () => {
+    const options: { value: MenuAction; label: string }[] = [
+      courseDownloader.isPinned(courseId)
+        ? { value: 'release', label: t('courseHome.removeFromPhone') }
+        : { value: 'download', label: t('courseHome.downloadCourse') },
+    ];
+    if (selfStudy) options.push({ value: 'leave', label: t('courseHome.leaveCourse') });
+    modal.show({
+      type: 'picker',
+      title: data?.courseInfo.title ?? t('courses.title'),
+      options,
+      current: null,
+      closeLabel: t('common.close'),
+      onSelect: onAction,
+    });
+  };
+
+  const meta = data
+    ? [data.courseInfo.cefrLevel, data.courseInfo.targetLanguage.toUpperCase(), data.courseInfo.schoolName]
+        .filter(Boolean)
+        .join(' · ')
+    : '';
+  const pct = data ? Math.round(data.progress.percentComplete) : 0;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-          <Text style={styles.backText}>←</Text>
-        </TouchableOpacity>
-        <View style={styles.headerInfo}>
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            {data?.courseInfo.title ?? t('courses.title')}
-          </Text>
-          {data && (
-            <Text style={styles.headerSub}>
-              {data.courseInfo.cefrLevel} · {data.courseInfo.targetLanguage.toUpperCase()} ·{' '}
-              {Math.round(data.progress.percentComplete)}%
-            </Text>
-          )}
-        </View>
-      </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
+      <NavHeader
+        parentLabel={t('courses.title')}
+        onBack={onBack}
+        right={
+          status === 'loaded'
+            ? { icon: 'DotsThree', accessibilityLabel: t('courseHome.menu'), onPress: openMenu }
+            : undefined
+        }
+      />
 
       {stale && isNetworkError(error) && <OfflineBanner />}
 
       {status === 'loading' && (
-        <View style={styles.centerFill}>
-          <ActivityIndicator size="large" color={colors.accent} />
+        <View style={{ paddingHorizontal: spacing.screenGutter, paddingTop: 4, gap: 16 }}>
+          <View style={{ gap: 8 }}>
+            <Skeleton width={140} height={12} />
+            <Skeleton width="75%" height={28} />
+            <Skeleton width="100%" height={4} />
+          </View>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <Skeleton height={84} radius={14} style={{ flex: 1, width: undefined }} />
+            <Skeleton height={84} radius={14} style={{ flex: 1, width: undefined }} />
+          </View>
+          <View style={{ gap: 8 }}>
+            {[0, 1, 2, 3].map(i => (
+              <Skeleton key={i} height={56} radius={8} />
+            ))}
+          </View>
         </View>
       )}
 
       {status === 'error' && (
-        <View style={styles.centerFill}>
-          <Text style={styles.emptyTitle}>{t('courseHome.loadError')}</Text>
-          <Text style={styles.emptyDesc}>{error?.message}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={refresh}>
-            <Text style={styles.retryButtonText}>{t('courses.retry')}</Text>
-          </TouchableOpacity>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, gap: 8 }}>
+          <Text style={[typography.cardTitleMedium, { color: colors.text, textAlign: 'center' }]}>
+            {t('courseHome.loadError')}
+          </Text>
+          <Text style={[typography.secondary, { color: colors.neutral500, textAlign: 'center' }]}>
+            {error?.message}
+          </Text>
+          <Button variant="secondary" size={44} label={t('courses.retry')} onPress={refresh} />
         </View>
       )}
 
-      {status === 'loaded' && data && data.units.length === 0 && (
-        <View style={styles.centerFill}>
-          <Text style={styles.emptyTitle}>{t('courseHome.noUnits')}</Text>
-        </View>
-      )}
-
-      {status === 'loaded' && data && data.units.length > 0 && (
-        <FlatList
-          data={data.units}
-          keyExtractor={(unit: UnitSummary) => unit.id}
-          renderItem={({ item }) => <UnitRow unit={item} onPress={() => onUnitPress(item.id)} />}
-          ListHeaderComponent={
-            <CourseStatsSection
-              mastery={data.mastery}
-              srsDueCount={reviewOverview?.totalDue ?? 0}
-              onReviewPress={onReviewPress}
-            />
-          }
-          contentContainerStyle={styles.list}
+      {status === 'loaded' && data && (
+        <ScrollView
+          contentContainerStyle={{
+            paddingHorizontal: spacing.screenGutter,
+            paddingTop: 4,
+            paddingBottom: 24,
+            gap: 16,
+          }}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />
+            <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accentBase} />
           }
-        />
+        >
+          <View style={{ gap: 4 }}>
+            <Text style={[typography.meta, { color: colors.neutral500 }]}>{meta}</Text>
+            <Text style={[typography.h1, { color: colors.text }]}>{data.courseInfo.title}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
+              <View style={{ flex: 1 }}>
+                <ProgressTrack value={pct / 100} />
+              </View>
+              <Text style={[typography.meta, { color: colors.neutral400 }]}>{pct}%</Text>
+            </View>
+          </View>
+
+          {units.length > 0 && (
+            <>
+              <CourseTiles
+                totalDue={reviewOverview?.totalDue ?? 0}
+                mastery={data.mastery}
+                onReviewPress={onReviewPress}
+                onSkillsPress={toggleSkills}
+              />
+              {open && data.mastery.bySkill.length > 0 && <SkillsBlock mastery={data.mastery} />}
+
+              <Text style={[typography.cardTitleMedium, { color: colors.text }]}>
+                {t('courseHome.units')}
+              </Text>
+              <View style={{ gap: 8 }}>
+                {units.map((unit: UnitSummary, index) => (
+                  <UnitRow
+                    key={unit.id}
+                    unit={unit}
+                    number={index + 1}
+                    isNext={unit.id === next.unitId}
+                    nextTitle={unit.id === next.unitId ? next.title : null}
+                    onPress={() => onUnitPress(unit.id)}
+                    onLockedPress={() => toast.show(t('courseHome.lockedReason'))}
+                  />
+                ))}
+              </View>
+            </>
+          )}
+
+          {units.length === 0 && (
+            <Text style={[typography.body, { color: colors.neutral500, textAlign: 'center', marginTop: 24 }]}>
+              {t('courseHome.noUnits')}
+            </Text>
+          )}
+        </ScrollView>
       )}
     </SafeAreaView>
   );
 }
-
-const makeStyles = (colors: ColorScheme) =>
-  StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: 20,
-      paddingVertical: 12,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    backBtn: {
-      padding: 8,
-      marginRight: 8,
-    },
-    backText: {
-      fontSize: 22,
-      color: colors.textPrimary,
-    },
-    headerInfo: {
-      flex: 1,
-    },
-    headerTitle: {
-      fontSize: 17,
-      fontWeight: '700',
-      color: colors.textPrimary,
-    },
-    headerSub: {
-      fontSize: 13,
-      color: colors.textMuted,
-      marginTop: 2,
-    },
-    centerFill: {
-      flex: 1,
-      flexGrow: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: 32,
-    },
-    emptyTitle: {
-      fontSize: 17,
-      fontWeight: '700',
-      color: colors.textPrimary,
-      marginBottom: 6,
-      textAlign: 'center',
-    },
-    emptyDesc: {
-      fontSize: 14,
-      color: colors.textMuted,
-      textAlign: 'center',
-      lineHeight: 20,
-    },
-    retryButton: {
-      marginTop: 16,
-      paddingHorizontal: 20,
-      paddingVertical: 10,
-      borderRadius: 12,
-      backgroundColor: colors.accent,
-    },
-    retryButtonText: {
-      fontSize: 14,
-      fontWeight: '700',
-      color: colors.textInverted,
-    },
-    list: {
-      paddingTop: 12,
-      paddingBottom: 24,
-    },
-  });

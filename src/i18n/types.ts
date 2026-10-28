@@ -386,6 +386,26 @@ export interface Translations {
     skillWriting: string;
     reviewsDue: PluralForms; // '{count} reviews due'
     startReview: string;
+    dueLabel: string;
+    allReviewed: string;
+    masteryLabel: string;
+    bySkill: string;
+    units: string;
+    unitProgress: string; // '{done} of {total}'
+    unitProgressNext: string; // '{done} of {total} · next: {title}'
+    unitMaterials: PluralForms; // '{count} items'
+    lockedReason: string;
+    menu: string;
+    downloadCourse: string;
+    removeFromPhone: string;
+    leaveCourse: string;
+    downloadStarted: string;
+    downloadFailed: string;
+    removed: string;
+    leaveTitle: string;
+    leaveMessage: string; // '{course}'
+    leaveConfirm: string;
+    leaveFailed: string;
   };
 
   unitContents: {
