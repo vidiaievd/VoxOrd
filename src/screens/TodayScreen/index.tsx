@@ -13,6 +13,7 @@ import type { Screen } from '../../navigation/screens';
 import { useTheme } from '../../providers/ThemeProvider';
 import { getLastCourseId, setLastCourseId } from '../../store/lastCourseStore';
 import { spacing } from '../../theme/spacing';
+import { AssistInline } from './blocks/AssistInline';
 import { Assignment } from './blocks/Assignment';
 import { FirstRun } from './blocks/FirstRun';
 import { GroupAccess } from './blocks/GroupAccess';
@@ -48,7 +49,6 @@ const KEPT_WITHOUT_COURSES: ReadonlySet<HomeBlockId> = new Set([
 const NOT_BUILT: ReadonlySet<HomeBlockId> = new Set([
   'aiPlan',
   'aiReviewed',
-  'assistInline',
   'assistSuggestions',
   'aiCredits',
   'goal',
@@ -59,8 +59,9 @@ const NOT_BUILT: ReadonlySet<HomeBlockId> = new Set([
  * «Today» (Home spec §6): walks the layout of its variant, and each block loads its own data
  * and shows nothing when it has nothing to say.
  *
- * Variants A, B and C are walked; D and the assistant blocks are plan 03, so a block that does
- * not exist yet is left out and D falls back to Continue and Review.
+ * Variants A, B and C are walked, C with its assistant entries (plan 03 step 3); D's blocks
+ * are plan 03 step 4, so a block that does not exist yet is left out and D falls back to
+ * Continue and Review.
  */
 export function TodayScreen({ due, onNavigate, onOpenTab }: TodayScreenProps) {
   const { colors } = useTheme();
@@ -110,6 +111,9 @@ export function TodayScreen({ due, onNavigate, onOpenTab }: TodayScreenProps) {
   const name = user?.email?.split('@')[0] ?? null;
 
   const { variant } = home;
+  // Variant C offers the assistant beside the teacher's review and the class; each link asks
+  // the server about its own context before it is drawn.
+  const offerAssist = variant === 'school_ai';
   const ids = useMemo(() => {
     const layout = layoutFor(variant, NOT_BUILT);
     return noCourses
@@ -141,6 +145,11 @@ export function TodayScreen({ due, onNavigate, onOpenTab }: TodayScreenProps) {
             nextClassAt={nextClass ? classStart(nextClass) : null}
           />
         );
+      case 'assistInline':
+        // Waits for the course «Continue» leads into, so it does not open on another one.
+        return lastId === undefined || (courses.status === 'loading' && courseIds.length === 0) ? null : (
+          <AssistInline key={id} courseId={leadId} onNavigate={onNavigate} />
+        );
       case 'groupAccess':
         return <GroupAccess key={id} schools={schools} onOpenCourse={openCourse} />;
       case 'teacherFeedback':
@@ -149,11 +158,14 @@ export function TodayScreen({ due, onNavigate, onOpenTab }: TodayScreenProps) {
             key={id}
             offline={offline}
             showAiDrafted={home.caps.reviewDraft}
+            offerAssist={offerAssist}
             onNavigate={onNavigate}
           />
         );
       case 'nextClass':
-        return <NextClass key={id} nextClass={nextClass} />;
+        return (
+          <NextClass key={id} nextClass={nextClass} offerAssist={offerAssist} onNavigate={onNavigate} />
+        );
       case 'assignment':
         return <Assignment key={id} />;
       case 'soloWriting':

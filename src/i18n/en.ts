@@ -108,8 +108,14 @@ export const en: Translations = {
     groupAccessNoCourse: 'Group {group} at {school} opened a course for you',
     openCourse: 'Open course',
     dismiss: 'Hide',
+    assist: {
+      ask: 'Ask about {unit}',
+      askPlain: 'Ask the assistant',
+      voice: 'Ask by voice',
+    },
     teacher: {
       title: 'From your teacher',
+      discuss: 'Go over the mistakes with the assistant',
       waiting: 'With the teacher: {count}',
       offline: 'New reviews will arrive when you are back online',
       aiDrafted: 'A model drafted the review, the teacher checked it',
@@ -131,6 +137,7 @@ export const en: Translations = {
     },
     nextClass: {
       title: 'Next class',
+      prepare: 'Prepare with the assistant',
       today: 'today',
       tomorrow: 'tomorrow',
       inDays: {
@@ -183,6 +190,7 @@ export const en: Translations = {
     marks: 'Marks by criterion',
     mark: '{mark} of 3',
     loadFailed: 'Could not open this work. Try again later.',
+    discuss: 'Go over the mistakes with the assistant',
   },
   assistant: {
     title: 'Assistant',

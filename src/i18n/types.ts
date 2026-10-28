@@ -106,8 +106,16 @@ export interface Translations {
     openCourse: string;
     dismiss: string;
     /** Block 6: the latest review, and what is still waiting. */
+    /** Block 2 (C): the assistant's line in the flow. */
+    assist: {
+      ask: string; // '{unit}'
+      askPlain: string;
+      voice: string;
+    };
     teacher: {
       title: string;
+      /** C: the latest review, talked over with the assistant. */
+      discuss: string;
       waiting: string; // '{count}'
       offline: string;
       aiDrafted: string;
@@ -133,6 +141,8 @@ export interface Translations {
     /** Block 7. */
     nextClass: {
       title: string;
+      /** C: get ready for the class with the assistant. */
+      prepare: string;
       today: string;
       tomorrow: string;
       inDays: PluralForms; // '{count}'
@@ -185,6 +195,7 @@ export interface Translations {
     marks: string;
     mark: string; // '{mark}'
     loadFailed: string;
+    discuss: string;
   };
   /** The learner's assistant (mobile redesign 03; platform plan 83). */
   assistant: {

@@ -470,6 +470,14 @@ function Navigator() {
               screen.returnTo?.name === 'Today' ? t('nav.today') : t('nav.notifications')
             }
             onBack={goBack}
+            onOpenAssistant={(context, title) =>
+              navigateTo({
+                name: 'Assistant',
+                context,
+                ...(title ? { contextLabel: title } : {}),
+                returnTo: screen,
+              })
+            }
           />
         );
 

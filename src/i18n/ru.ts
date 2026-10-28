@@ -116,8 +116,14 @@ export const ru: Translations = {
     groupAccessNoCourse: 'Группа {group} в {school} открыла вам курс',
     openCourse: 'Открыть курс',
     dismiss: 'Скрыть',
+    assist: {
+      ask: 'Спросить про {unit}',
+      askPlain: 'Спросить помощника',
+      voice: 'Спросить голосом',
+    },
     teacher: {
       title: 'От преподавателя',
+      discuss: 'Разобрать ошибки с помощником',
       waiting: 'У преподавателя: {count}',
       offline: 'Новые отзывы появятся при подключении',
       aiDrafted: 'Черновик отзыва подготовил ИИ, преподаватель проверил',
@@ -139,6 +145,7 @@ export const ru: Translations = {
     },
     nextClass: {
       title: 'Следующее занятие',
+      prepare: 'Подготовиться с помощником',
       today: 'сегодня',
       tomorrow: 'завтра',
       inDays: {
@@ -191,6 +198,7 @@ export const ru: Translations = {
     marks: 'Оценки по критериям',
     mark: '{mark} из 3',
     loadFailed: 'Не удалось открыть работу. Попробуйте позже.',
+    discuss: 'Разобрать ошибки с помощником',
   },
   assistant: {
     title: 'Помощник',
