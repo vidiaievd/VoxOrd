@@ -29,6 +29,7 @@ import { GrammarRuleReaderScreen } from '../screens/GrammarRuleReaderScreen';
 import { ReviewSessionScreen } from '../screens/ReviewSessionScreen';
 import { MyWordsScreen } from '../screens/MyWordsScreen';
 import { SubmissionScreen } from '../screens/SubmissionScreen';
+import { AssistantScreen } from '../screens/AssistantScreen';
 import { TAB_ROOT, backTarget, showsTabBar, tabOf, type Screen, type Tab } from './screens';
 import { TabBar } from './TabBar';
 import { TabScrollProvider, useScrollTabToTop } from './tabScroll';
@@ -472,9 +473,9 @@ function Navigator() {
           />
         );
 
-      // Nothing opens this yet — plan 03 builds it. Should it be reached, Today is a safe
-      // place to land.
       case 'Assistant':
+        return <AssistantScreen route={screen} onBack={goBack} onNavigate={navigateTo} />;
+
       case 'Today':
         return (
           <TodayScreen

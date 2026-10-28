@@ -11,6 +11,12 @@ import {
 
 const deck = { id: 7 } as Deck;
 const unit = { unitId: 'u1', courseId: 'c1' };
+/** A thread opened from Today — where a citation's screen goes back to. */
+const thread: Screen = {
+  name: 'Assistant',
+  context: { kind: 'unit', ...unit },
+  returnTo: { name: 'Today' },
+};
 
 /**
  * Every screen once, with where Back leads and which tab it lights. Typed by name so a new
@@ -65,6 +71,7 @@ const CASES: {
       { name: 'CourseHome', courseId: 'c1' },
       'Courses',
     ],
+    [{ name: 'UnitContents', ...unit, returnTo: thread }, thread, 'Today'],
   ],
   LessonReader: [
     [
@@ -72,6 +79,7 @@ const CASES: {
       { name: 'UnitContents', ...unit },
       'Courses',
     ],
+    [{ name: 'LessonReader', lessonId: 'l1', ...unit, returnTo: thread }, thread, 'Today'],
   ],
   VocabularyList: [
     [
@@ -86,6 +94,7 @@ const CASES: {
       { name: 'UnitContents', ...unit },
       'Courses',
     ],
+    [{ name: 'GrammarRuleReader', ruleId: 'r1', ...unit, returnTo: thread }, thread, 'Today'],
   ],
   ExerciseRunner: [
     [
@@ -102,7 +111,10 @@ const CASES: {
     ],
     [{ name: 'ReviewSession' }, { name: 'Practice' }, 'Practice'],
   ],
-  MyWords: [[{ name: 'MyWords' }, { name: 'Practice' }, 'Practice']],
+  MyWords: [
+    [{ name: 'MyWords' }, { name: 'Practice' }, 'Practice'],
+    [{ name: 'MyWords', returnTo: thread }, thread, 'Today'],
+  ],
   ModeSelector: [
     [{ name: 'ModeSelector', deck }, { name: 'Practice' }, 'Practice'],
   ],

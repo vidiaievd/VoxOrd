@@ -23,6 +23,11 @@ export type Screen =
   | {
       name: 'Assistant';
       context?: AssistantContext;
+      /**
+       * What the context chip reads — «{unit} · {title}», a work's title, a class's date. The
+       * opener knows it; the context carries only ids.
+       */
+      contextLabel?: string;
       /** Open straight into voice input — the microphone beside the inline prompt. */
       startVoice?: boolean;
       /** Sent once as the first message. */
@@ -53,7 +58,13 @@ export type Screen =
   | { name: 'SessionResults'; sessionId: number; deckId: number }
   | { name: 'Courses' }
   | { name: 'CourseHome'; courseId: string }
-  | { name: 'UnitContents'; unitId: string; courseId: string }
+  | {
+      name: 'UnitContents';
+      unitId: string;
+      courseId: string;
+      /** Opened from an assistant's citation: Back goes back to the thread. */
+      returnTo?: Screen;
+    }
   | {
       name: 'LessonReader';
       lessonId: string;
@@ -63,6 +74,8 @@ export type Screen =
       exerciseIds?: string[];
       /** Marked read before — the button to go on is then pinned rather than at the end. */
       alreadyRead?: boolean;
+      /** Opened from an assistant's citation: Back goes back to the thread. */
+      returnTo?: Screen;
     }
   | { name: 'VocabularyList'; listId: string; unitId: string; courseId: string }
   | {
@@ -70,9 +83,15 @@ export type Screen =
       ruleId: string;
       unitId: string;
       courseId: string;
+      /** Opened from an assistant's citation: Back goes back to the thread. */
+      returnTo?: Screen;
     }
   | { name: 'ReviewSession'; courseId?: string }
-  | { name: 'MyWords' }
+  | {
+      name: 'MyWords';
+      /** Opened from an assistant's citation of a personal word: Back goes back to the thread. */
+      returnTo?: Screen;
+    }
   | {
       name: 'ExerciseRunner';
       exerciseIds: string[];
@@ -96,7 +115,8 @@ export type Screen =
  * place in the app rather than the path that reached it: a lesson opened from the exercise
  * runner goes back to its unit, as the arrow there always did. The root of every tab goes
  * back to Today, and `null` is Today itself — the one place Back may leave the app. The
- * assistant is the exception: it sits over whatever opened it and goes back there.
+ * assistant is the exception: it sits over whatever opened it and goes back there — and so
+ * does the course screen one of its citations opened, back to the thread.
  */
 export function backTarget(screen: Screen): Screen | null {
   switch (screen.name) {
@@ -116,10 +136,16 @@ export function backTarget(screen: Screen): Screen | null {
     case 'CourseHome':
       return { name: 'Courses' };
     case 'UnitContents':
-      return { name: 'CourseHome', courseId: screen.courseId };
+      return screen.returnTo ?? { name: 'CourseHome', courseId: screen.courseId };
     case 'LessonReader':
-    case 'VocabularyList':
     case 'GrammarRuleReader':
+      if (screen.returnTo) return screen.returnTo;
+      return {
+        name: 'UnitContents',
+        unitId: screen.unitId,
+        courseId: screen.courseId,
+      };
+    case 'VocabularyList':
     case 'ExerciseRunner':
       return {
         name: 'UnitContents',
@@ -133,6 +159,7 @@ export function backTarget(screen: Screen): Screen | null {
     case 'Card':
       return { name: 'ModeSelector', deck: screen.deck };
     case 'MyWords':
+      return screen.returnTo ?? { name: 'Practice' };
     case 'ModeSelector':
     case 'Matching':
     case 'Quiz':

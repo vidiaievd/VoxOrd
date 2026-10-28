@@ -186,6 +186,51 @@ export interface Translations {
     mark: string; // '{mark}'
     loadFailed: string;
   };
+  /** The learner's assistant (mobile redesign 03; platform plan 83). */
+  assistant: {
+    title: string;
+    subtitleCourse: string; // '{course}'
+    subtitleAll: string;
+    close: string;
+    /** Always at the top of the thread, not dismissible. */
+    aiLabel: string;
+    empty: string;
+    contextUnit: string; // '{label}'
+    contextUnitUnnamed: string;
+    contextSubmission: string; // '{label}'
+    contextSubmissionUnnamed: string;
+    contextClass: string; // '{label}'
+    contextClassUnnamed: string;
+    contextWord: string; // '{label}'
+    /** For screen readers: what tapping the chip does. */
+    contextRemoveHint: string;
+    contextRemoved: string;
+    contextRestore: string;
+    citeGrammarRule: string; // '{title}'
+    citeLesson: string; // '{title}'
+    citeUnit: string; // '{title}'
+    citeWord: string; // '{title}'
+    citeMyWord: string; // '{title}'
+    addWord: string; // '{lemma}'
+    placeholder: string;
+    listening: string;
+    mic: string;
+    micStop: string;
+    micUnavailable: string;
+    send: string;
+    needsNetwork: string;
+    typing: string;
+    refused: string;
+    refusedFree: string;
+    refusedQuota: string;
+    silent: string;
+    rateLimited: string;
+    unreachable: string;
+    retry: string;
+    helpful: string;
+    notHelpful: string;
+    feedbackFailed: string;
+  };
   /** What kind of material an item is, for «Lesson · 5 min». */
   itemType: {
     lesson: string;
