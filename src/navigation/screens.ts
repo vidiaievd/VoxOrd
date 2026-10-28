@@ -59,6 +59,10 @@ export type Screen =
   | { name: 'Courses'; segment?: 'mine' | 'catalog' }
   /** A course in the catalogue, before enrolment (Courses spec 5c). */
   | { name: 'CatalogCourse'; containerId: string }
+  /** Schools with a public page (plan 04 step 9c); Back returns to where it was opened. */
+  | { name: 'FindSchool'; returnTo?: Screen }
+  /** A school's public page with the application; Back returns to the list it came from. */
+  | { name: 'SchoolPublic'; slug: string; returnTo: Screen }
   | { name: 'CourseHome'; courseId: string }
   | {
       name: 'UnitContents';
@@ -139,6 +143,10 @@ export function backTarget(screen: Screen): Screen | null {
       return { name: 'Courses' };
     case 'CatalogCourse':
       return { name: 'Courses', segment: 'catalog' };
+    case 'FindSchool':
+      return screen.returnTo ?? { name: 'Courses', segment: 'catalog' };
+    case 'SchoolPublic':
+      return screen.returnTo;
     case 'UnitContents':
       return screen.returnTo ?? { name: 'CourseHome', courseId: screen.courseId };
     case 'LessonReader':

@@ -177,6 +177,114 @@ async function studentSchool(
   };
 }
 
+/* ─────────────────────────────────────────────────────────────────────────
+ * Finding a school and applying to it (mobile redesign 04, step 9c).
+ *
+ * Port of the web's `/discover` and public school page: organization-service
+ * `GET /schools/public` (anonymous, cursor-paged; every page read and filtered on the phone,
+ * as the web does), `GET /schools/public/:slug`, the caller's own application
+ * `GET /schools/:id/memberships/me` (404 = none) and `POST /schools/:id/memberships`.
+ * Schools carry no languages, levels or course count, so neither does this.
+ * ────────────────────────────────────────────────────────────────────── */
+
+export interface PublicSchool {
+  schoolId: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  avatarUrl: string | null;
+  city: string | null;
+  website: string | null;
+  /** False: the school takes learners by invitation only. */
+  isOpenForApplications: boolean;
+}
+
+export function parsePublicSchool(raw: unknown): PublicSchool | null {
+  if (!isRecord(raw) || !isString(raw.schoolId) || !isString(raw.schoolSlug) || !isString(raw.schoolName)) {
+    return null;
+  }
+  return {
+    schoolId: raw.schoolId,
+    slug: raw.schoolSlug,
+    name: raw.schoolName,
+    description: stringOrNull(raw.description),
+    avatarUrl: stringOrNull(raw.avatarUrl),
+    city: stringOrNull(raw.city),
+    website: stringOrNull(raw.website),
+    isOpenForApplications: raw.isOpenForApplications === true,
+  };
+}
+
+const PUBLIC_PAGE_LIMIT = 100;
+/** A guard against a cursor that never ends, as on the web: 50 × 100 schools. */
+const PUBLIC_MAX_PAGES = 50;
+
+/** Every school with a public page; rows that do not read as a school are dropped. */
+export async function getPublicSchools(): Promise<PublicSchool[]> {
+  const all: PublicSchool[] = [];
+  let cursor: string | null = null;
+  for (let page = 0; page < PUBLIC_MAX_PAGES; page++) {
+    const res: unknown = await apiClient.get<unknown>(`${SCHOOLS_PATH}/public`, {
+      query: { limit: PUBLIC_PAGE_LIMIT, cursor: cursor ?? undefined },
+    });
+    if (!isRecord(res) || !Array.isArray(res.items)) break;
+    for (const item of res.items) {
+      const school = parsePublicSchool(item);
+      if (school) all.push(school);
+    }
+    const info: Record<string, unknown> | null = isRecord(res.pageInfo) ? res.pageInfo : null;
+    cursor = info?.hasNextPage === true ? stringOrNull(info.endCursor) : null;
+    if (!cursor) break;
+  }
+  return all;
+}
+
+/** The learner's latest application to a school; status as in `StudentSchool.status`. */
+export interface SchoolApplication {
+  id: string;
+  status: string;
+}
+
+export interface SchoolPage {
+  school: PublicSchool;
+  /** null: the learner never applied (or is not on the roster). */
+  application: SchoolApplication | null;
+}
+
+/** A school's public page with the learner's own application to it, if any. */
+export async function getSchoolPage(slug: string): Promise<SchoolPage> {
+  const school = parsePublicSchool(await apiClient.get(`${SCHOOLS_PATH}/public/${encodeURIComponent(slug)}`));
+  if (!school) throw new ApiError({ message: `Unreadable school: ${slug}`, status: null });
+  let application: SchoolApplication | null = null;
+  try {
+    application = parseMembership(await apiClient.get(`${SCHOOLS_PATH}/${school.schoolId}/memberships/me`));
+  } catch (e) {
+    // 404 is «never applied»; anything else must not pass for it — a second application
+    // would make a second membership row (the server does not refuse duplicates).
+    if (!(e instanceof ApiError && e.status === 404)) throw e;
+  }
+  return { school, application };
+}
+
+export interface ApplicationRequest {
+  /** The language the learner wants to study, two letters. */
+  language?: string;
+  /** The learner's own guess, not authoritative. */
+  selfReportedLevel?: string;
+}
+
+/**
+ * Applies to a school as the web's public page does (`source: 'public-apply'`). The answer's
+ * status is `pending` when the school approves by hand, `onboarding` when it lets everyone in.
+ */
+export async function applyToSchool(schoolId: string, body: ApplicationRequest): Promise<SchoolApplication> {
+  const raw = await apiClient.post<unknown>(`${SCHOOLS_PATH}/${schoolId}/memberships`, {
+    source: 'public-apply',
+    ...body,
+  });
+  return parseMembership(raw) ?? { id: '', status: 'pending' };
+}
+
 /**
  * One row per school the learner is a student of. Throws only when organization-service is
  * out of reach, so a cached answer stays on screen; any other failure, or a list that is not

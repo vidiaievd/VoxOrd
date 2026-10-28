@@ -119,6 +119,7 @@ export function CoursesScreen({ segment: initialSegment, onCoursePress, onNaviga
             current={current?.container ?? null}
             enrolledIds={enrolledIds}
             onOpen={openFromCatalog}
+            onFindSchool={() => onNavigate({ name: 'FindSchool' })}
           />
         )}
 

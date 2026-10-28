@@ -72,6 +72,17 @@ const CASES: {
       'Courses',
     ],
   ],
+  FindSchool: [
+    [{ name: 'FindSchool' }, { name: 'Courses', segment: 'catalog' }, 'Courses'],
+    [{ name: 'FindSchool', returnTo: { name: 'Today' } }, { name: 'Today' }, 'Today'],
+  ],
+  SchoolPublic: [
+    [
+      { name: 'SchoolPublic', slug: 'nordick', returnTo: { name: 'FindSchool', returnTo: { name: 'Today' } } },
+      { name: 'FindSchool', returnTo: { name: 'Today' } },
+      'Today',
+    ],
+  ],
   UnitContents: [
     [
       { name: 'UnitContents', ...unit },

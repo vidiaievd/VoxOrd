@@ -22,6 +22,8 @@ import { PronunciationExercise } from '../screens/LearningScreen/exercises/pronu
 import { CoursesScreen } from '../screens/CoursesScreen';
 import { CourseHomeScreen } from '../screens/CourseHomeScreen';
 import { CatalogCourseScreen } from '../screens/CatalogCourseScreen';
+import { FindSchoolScreen } from '../screens/FindSchoolScreen';
+import { SchoolPublicScreen } from '../screens/SchoolPublicScreen';
 import { UnitContentsScreen } from '../screens/UnitContentsScreen';
 import { LessonReaderScreen } from '../screens/LessonReaderScreen';
 import { ExerciseRunnerScreen } from '../screens/ExerciseRunner';
@@ -318,6 +320,24 @@ function Navigator() {
             containerId={screen.containerId}
             onBack={goBack}
             onOpenCourse={openCourse}
+          />
+        );
+
+      case 'FindSchool':
+        return (
+          <FindSchoolScreen
+            parentLabel={screen.returnTo?.name === 'Today' ? t('nav.today') : t('coursesTab.catalog')}
+            onBack={goBack}
+            onOpen={school => navigateTo({ name: 'SchoolPublic', slug: school.slug, returnTo: screen })}
+          />
+        );
+
+      case 'SchoolPublic':
+        return (
+          <SchoolPublicScreen
+            slug={screen.slug}
+            onBack={goBack}
+            onOpenCourses={() => navigateTo({ name: 'Courses', segment: 'mine' })}
           />
         );
 

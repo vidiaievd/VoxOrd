@@ -439,6 +439,41 @@ export interface Translations {
     };
   };
 
+  /** «Find a school» and a school's page (plan 04 step 9c). */
+  findSchool: {
+    title: string;
+    intro: string;
+    search: string;
+    loadError: string;
+    empty: string;
+    none: string;
+    clear: string;
+    mine: string;
+    open: string;
+    rowTitle: string;
+    rowBody: string;
+    application: string;
+    language: string;
+    level: string;
+    notSaying: string;
+    levelUnknown: string;
+    apply: string;
+    reapply: string;
+    applyNote: string;
+    offlineNote: string;
+    sent: string;
+    applyFailed: string;
+    applyGone: string;
+    openCourses: string;
+    statePending: string;
+    stateAccepted: string;
+    stateMember: string;
+    stateClosed: string;
+    stateRejected: string;
+    tagPending: string;
+    tagAccepted: string;
+  };
+
   courseHome: {
     loadError: string;
     noUnits: string;

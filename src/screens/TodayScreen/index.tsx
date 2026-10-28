@@ -109,6 +109,10 @@ export function TodayScreen({ due, onNavigate, onOpenTab }: TodayScreenProps) {
   const enrolledIds = useMemo(() => new Set(courses.courses.map((c) => c.container.id)), [courses.courses]);
   const leadLevel = courses.courses.find((c) => c.container.id === leadId)?.container.difficultyLevel ?? null;
   const openCatalog = useCallback(() => onNavigate({ name: 'Courses', segment: 'catalog' }), [onNavigate]);
+  const findSchool = useCallback(
+    () => onNavigate({ name: 'FindSchool', returnTo: { name: 'Today' } }),
+    [onNavigate],
+  );
   const name = user?.email?.split('@')[0] ?? null;
 
   const { variant } = home;
@@ -177,7 +181,7 @@ export function TodayScreen({ due, onNavigate, onOpenTab }: TodayScreenProps) {
           <SoloWriting
             key={id}
             onConnectAi={() => onOpenTab('Profile')}
-            onFindSchool={openCatalog}
+            onFindSchool={findSchool}
           />
         );
       case 'aiPlan':
@@ -217,6 +221,7 @@ export function TodayScreen({ due, onNavigate, onOpenTab }: TodayScreenProps) {
             inSchool={hasSchool(schools)}
             offline={offline}
             onOpenCourses={hasSchool(schools) ? () => onOpenTab('Courses') : openCatalog}
+            onFindSchool={findSchool}
           />
         );
       case 'catalogPicks':

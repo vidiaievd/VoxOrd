@@ -10,10 +10,12 @@ interface FirstRunProps {
   offline: boolean;
   /** The Courses tab for a school's learner, the catalogue for one without. */
   onOpenCourses: () => void;
+  /** «Find a school», offered to a learner without one (plan 04 step 9c). */
+  onFindSchool: () => void;
 }
 
 /** Block F: no courses yet — replaces the blocks that would have nothing to show. */
-export function FirstRun({ inSchool, offline, onOpenCourses }: FirstRunProps) {
+export function FirstRun({ inSchool, offline, onOpenCourses, onFindSchool }: FirstRunProps) {
   const { t } = useTranslation();
   const { colors, typography } = useTheme();
   return (
@@ -25,6 +27,9 @@ export function FirstRun({ inSchool, offline, onOpenCourses }: FirstRunProps) {
         {inSchool ? t('today.first.bodySchool') : t('today.first.bodyCatalogue')}
       </Text>
       <Button label={inSchool ? t('today.first.cta') : t('coursesTab.openCatalog')} onPress={onOpenCourses} />
+      {inSchool ? null : (
+        <Button variant="ghost" label={t('today.soloWriting.findSchool')} onPress={onFindSchool} />
+      )}
       {offline ? null : (
         <Text style={[typography.meta, { color: colors.neutral500 }]}>
           {t('today.first.offlineHint')}

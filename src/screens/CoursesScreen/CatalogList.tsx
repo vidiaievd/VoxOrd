@@ -36,10 +36,12 @@ interface Props {
   current: Container | null;
   enrolledIds: ReadonlySet<string>;
   onOpen: (course: Container) => void;
+  /** The row under the list: «Study with a school» (plan 04 step 9c). */
+  onFindSchool: () => void;
 }
 
 /** The «Catalogue» segment (Courses spec §5.3, mockup 5b). */
-export function CatalogList({ catalog, current, enrolledIds, onOpen }: Props) {
+export function CatalogList({ catalog, current, enrolledIds, onOpen, onFindSchool }: Props) {
   const { t } = useTranslation();
   const { colors, typography } = useTheme();
   const modal = useModal();
@@ -256,6 +258,31 @@ export function CatalogList({ catalog, current, enrolledIds, onOpen }: Props) {
             })}
           </View>
         ))}
+
+      {catalog.status !== 'loading' && (
+        <Pressable
+          onPress={onFindSchool}
+          accessibilityRole="button"
+          style={({ pressed }) => ({
+            marginTop: 8,
+            minHeight: 56,
+            paddingVertical: 12,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 12,
+            borderTopWidth: 1,
+            borderTopColor: colors.neutral800,
+            opacity: pressed ? 0.7 : 1,
+          })}
+        >
+          <Icon name="GraduationCap" size={20} color={colors.accent300} />
+          <View style={{ flex: 1, gap: 3 }}>
+            <Text style={[typography.cardTitle, { color: colors.text }]}>{t('findSchool.rowTitle')}</Text>
+            <Text style={[typography.meta, { color: colors.neutral500 }]}>{t('findSchool.rowBody')}</Text>
+          </View>
+          <Icon name="CaretRight" size={16} color={colors.neutral500} />
+        </Pressable>
+      )}
     </View>
   );
 }
