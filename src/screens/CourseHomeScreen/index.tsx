@@ -8,6 +8,7 @@ import { spacing } from '../../theme/spacing';
 import { useCourseHome } from '../../hooks/useCourseHome';
 import { useCourseReviewSets } from '../../hooks/useCourseReviewSets';
 import { useMyCourses } from '../../hooks/useMyCourses';
+import { useNextInCourse } from '../../hooks/useNextInCourse';
 import { leaveEnrollment } from '../../api/courses';
 import { courseDownloader } from '../../services/courseDownload';
 import { OfflineBanner } from '../../components/OfflineBanner';
@@ -16,7 +17,6 @@ import { isNetworkError } from '../../api/isNetworkError';
 import type { UnitSummary } from '../../api/types';
 import { UnitRow } from './UnitRow';
 import { CourseTiles, SkillsBlock } from './CourseStatsSection';
-import { useNextInCourse } from './useNextInCourse';
 
 interface CourseHomeScreenProps {
   courseId: string;

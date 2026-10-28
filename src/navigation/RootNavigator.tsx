@@ -292,7 +292,11 @@ function Navigator() {
 
       case 'Courses':
         return (
-          <CoursesScreen onCoursePress={openCourse} />
+          <CoursesScreen
+            segment={screen.segment}
+            onCoursePress={openCourse}
+            onNavigate={navigateTo}
+          />
         );
 
       case 'CourseHome':

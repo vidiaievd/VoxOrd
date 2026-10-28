@@ -371,6 +371,29 @@ export interface Translations {
     retry: string;
   };
 
+  coursesTab: {
+    mine: string;
+    catalog: string;
+    nowStudying: string;
+    schoolTag: string; // '{name}'
+    unitN: string; // '{n}', '{title}'
+    next: string; // '{title}'
+    unitsDone: string; // '{done}', '{total}'
+    continue: string;
+    courseDone: string;
+    repeatMaterial: string;
+    moreCourses: string;
+    selfStudy: string;
+    school: string;
+    notStarted: string;
+    onPhone: PluralForms; // '{count}', '{size}'
+    nextUnits: PluralForms; // '{count}'
+    nextUnitsWifi: PluralForms; // '{count}'
+    sizeMb: string;
+    sizeGb: string;
+    openCatalog: string;
+  };
+
   courseHome: {
     loadError: string;
     noUnits: string;

@@ -56,7 +56,7 @@ export type Screen =
   | { name: 'Context'; deckId: number }
   | { name: 'DeepSession'; deck: Deck }
   | { name: 'SessionResults'; sessionId: number; deckId: number }
-  | { name: 'Courses' }
+  | { name: 'Courses'; segment?: 'mine' | 'catalog' }
   | { name: 'CourseHome'; courseId: string }
   | {
       name: 'UnitContents';
