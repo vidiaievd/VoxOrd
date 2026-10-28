@@ -26,6 +26,8 @@ export interface PracticeHome {
   overviewOffline: boolean;
   /** Word sets, those with something due first. `null` when they could not be read. */
   decks: Deck[] | null;
+  /** The sets are being read for the first time — the root draws placeholder rows. */
+  decksLoading: boolean;
   /** «My words» totals from the server's list; `null` offline or on failure. */
   myWords: MyWordsSummary | null;
   /** Rules due for review; `null` when unknown or switched off. */
@@ -102,6 +104,7 @@ export function usePracticeHome(): PracticeHome {
     overviewStatus: sets.loading ? 'loading' : sets.error ? 'error' : 'loaded',
     overviewOffline: sets.offline,
     decks: decks.status === 'loaded' ? decks.data : null,
+    decksLoading: decks.status === 'loading',
     myWords: myWords.status === 'loaded' ? myWords.data : null,
     grammar,
     mistakes,

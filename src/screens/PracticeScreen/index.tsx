@@ -2,9 +2,10 @@ import React, { useCallback, useRef, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { OfflineBanner } from '../../components/OfflineBanner';
-import { Overline, PressableScale } from '../../components/ui';
+import { Overline, PressableScale, Skeleton } from '../../components/ui';
 import type { DueCount } from '../../hooks/useDueCount';
 import { usePracticeHome } from '../../hooks/usePracticeHome';
+import { useRefreshOnForeground } from '../../hooks/useRefreshOnForeground';
 import { useTranslation } from '../../i18n';
 import { useTabScrollToTop } from '../../navigation/tabScroll';
 import { useTheme } from '../../providers/ThemeProvider';
@@ -63,6 +64,12 @@ export function PracticeScreen({
     await refreshDue().catch(() => undefined);
     setRefreshing(false);
   }, [reload, refreshDue]);
+
+  // The phone waking with Practice still up remounts nothing — fetch again, without the spinner.
+  useRefreshOnForeground(() => {
+    reload();
+    void refreshDue().catch(() => undefined);
+  });
 
   const overview = home.overview;
   const decks = home.decks ?? [];
@@ -144,6 +151,18 @@ export function PracticeScreen({
                 <DeckRow key={deck.id} deck={deck} onPress={() => onOpenDeck(deck)} />
               ))}
             </View>
+          </View>
+        ) : null}
+
+        {home.decksLoading ? (
+          <View
+            style={styles.section}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          >
+            <Skeleton width={80} height={12} />
+            <Skeleton height={56} radius={12} />
+            <Skeleton height={56} radius={12} />
           </View>
         ) : null}
 
