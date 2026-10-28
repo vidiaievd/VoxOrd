@@ -1646,6 +1646,7 @@ export const ru: Translations = {
     grammarRowNever: 'Юнит {unit} · ещё не практиковали',
     mistakesSection: 'Упражнения с ошибками',
     mistakeRowSub: 'Юнит {unit} · ошибка {when}',
+    mistakeUntitled: 'Упражнение',
     whenToday: 'сегодня',
     whenYesterday: 'вчера',
     decksSection: 'Наборы слов',

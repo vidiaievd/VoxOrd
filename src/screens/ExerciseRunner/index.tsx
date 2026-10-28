@@ -18,6 +18,7 @@ import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
 import { useExerciseRunner } from '../../hooks/useExerciseRunner';
 import { useKeyboardShown } from '../../hooks/useKeyboardShown';
+import { useRecordMistakes } from '../../hooks/useRecordMistakes';
 import { bodyOwnsCheck, ExerciseBody, type FooterAction } from './ExerciseBody';
 import { AiVerdict } from './AiVerdict';
 import { FeedbackBar } from './FeedbackBar';
@@ -79,6 +80,7 @@ export function ExerciseRunnerScreen({
     retry,
     retryAttempt,
   } = useExerciseRunner(exerciseIds, startIndex);
+  useRecordMistakes(state, courseId, unitId);
 
   /**
    * A body's own button in place of Check — `ExerciseBodyProps.setFooterAction`. A body that

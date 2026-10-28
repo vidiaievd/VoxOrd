@@ -113,6 +113,16 @@ class ExerciseOutboxStore {
     return this.queue.filter(entry => isOwnedBy(entry.userId, userId)).length;
   }
 
+  /** Exercises of the signed-in learner with an attempt still waiting for the server. */
+  pendingExerciseIds(): Set<string> {
+    const userId = currentUserId();
+    const ids = new Set<string>();
+    for (const entry of this.queue) {
+      if (entry.kind !== 'progress' && isOwnedBy(entry.userId, userId)) ids.add(entry.exerciseId);
+    }
+    return ids;
+  }
+
   /**
    * Close enough to the cap that the oldest work is about to be dropped (offline plan, B7.5).
    * Counts every learner's entries: they share the stored queue, and its cap.

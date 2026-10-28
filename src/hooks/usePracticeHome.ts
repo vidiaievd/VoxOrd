@@ -4,6 +4,8 @@ import { deckRepository, type Deck } from '../repositories/DeckRepository';
 import type { CourseReviewOverview } from '../lib/courseReviewLoader';
 import { useCourseReviewSets } from './useCourseReviewSets';
 import { useGrammarDue, type GrammarDue } from './useGrammarDue';
+import { useMistakes } from './useMistakes';
+import type { MergedMistakes } from '../lib/mistakes';
 import { useSettings } from './useSettings';
 
 export interface MyWordsSummary {
@@ -28,6 +30,8 @@ export interface PracticeHome {
   myWords: MyWordsSummary | null;
   /** Rules due for review; `null` when unknown or switched off. */
   grammar: GrammarDue | null;
+  /** Exercises with an uncorrected mistake, offline included; `null` when unknown. */
+  mistakes: MergedMistakes | null;
   loading: boolean;
   reload: () => void;
 }
@@ -45,7 +49,7 @@ export function orderDecks(decks: readonly Deck[]): Deck[] {
 
 /**
  * Everything the Practice root shows, each part loaded on its own (Practice §6.4): the queue
- * overview, the word sets, «My words» and the rules due. A part that fails hides only its own
+ * overview, the word sets, «My words», the rules due and the mistakes. A part that fails hides only its own
  * section — no part waits for another, and none forces a sync on the root.
  */
 export function usePracticeHome(): PracticeHome {
@@ -55,6 +59,7 @@ export function usePracticeHome(): PracticeHome {
   const [myWords, setMyWords] = useState<Part<MyWordsSummary>>({ status: 'loading' });
   const [nonce, setNonce] = useState(0);
   const grammar = useGrammarDue(nonce);
+  const mistakes = useMistakes(nonce);
 
   useEffect(() => {
     let live = true;
@@ -99,6 +104,7 @@ export function usePracticeHome(): PracticeHome {
     decks: decks.status === 'loaded' ? decks.data : null,
     myWords: myWords.status === 'loaded' ? myWords.data : null,
     grammar,
+    mistakes,
     loading:
       sets.loading || decks.status === 'loading' || myWords.status === 'loading',
     reload,

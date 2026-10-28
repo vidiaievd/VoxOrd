@@ -7,6 +7,6 @@ export const PRACTICE_FEATURES = {
   forecast: false,
   /** Rules due for review — learning-service `GET /mastery/grammar-rules/due` (step 7). */
   grammarDue: true,
-  /** Exercises with a wrong attempt — needs a learner route in exercise-engine. */
-  mistakes: false,
+  /** Exercises with a wrong attempt — exercise-engine `GET /attempts/mistakes` (step 8). */
+  mistakes: true,
 };

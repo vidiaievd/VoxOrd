@@ -1643,6 +1643,7 @@ export const en: Translations = {
     grammarRowNever: 'Unit {unit} · not practised yet',
     mistakesSection: 'Exercises with mistakes',
     mistakeRowSub: 'Unit {unit} · mistake {when}',
+    mistakeUntitled: 'Exercise',
     whenToday: 'today',
     whenYesterday: 'yesterday',
     decksSection: 'Word sets',

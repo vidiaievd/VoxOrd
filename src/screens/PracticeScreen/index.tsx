@@ -14,6 +14,8 @@ import type { Typography } from '../../theme/typography';
 import type { GrammarDueRowData } from '../../lib/grammarDue';
 import { DeckRow } from './DeckRow';
 import { GrammarDueRow } from './GrammarDueRow';
+import { MistakeRow } from './MistakeRow';
+import type { MistakeRowData } from '../../lib/mistakes';
 import { MyWordsCard } from './MyWordsCard';
 import { ReviewHeroCard } from './ReviewHeroCard';
 
@@ -27,11 +29,12 @@ interface PracticeScreenProps {
   onOpenMyWords: () => void;
   onOpenDeck: (deck: Deck) => void;
   onOpenGrammar: (row: GrammarDueRowData) => void;
+  onOpenMistake: (row: MistakeRowData) => void;
 }
 
 /**
- * The Practice tab's root (Practice 6a): the review card, the rules due, the word sets and
- * «My words». The mistakes section waits for its backend (`PRACTICE_FEATURES`). Each part
+ * The Practice tab's root (Practice 6a): the review card, the rules due, the exercises with
+ * mistakes, the word sets and «My words». Each part
  * loads on its own, and a section with no data is not drawn.
  */
 export function PracticeScreen({
@@ -40,6 +43,7 @@ export function PracticeScreen({
   onOpenMyWords,
   onOpenDeck,
   onOpenGrammar,
+  onOpenMistake,
 }: PracticeScreenProps) {
   const { t } = useTranslation();
   const { colors, typography } = useTheme();
@@ -64,6 +68,7 @@ export function PracticeScreen({
   const decks = home.decks ?? [];
   const shownDecks = allDecks ? decks : decks.slice(0, DECKS_COLLAPSED);
   const grammar = home.grammar?.rows ?? [];
+  const mistakes = home.mistakes?.rows ?? [];
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -87,8 +92,13 @@ export function PracticeScreen({
           due={due}
           dailyLimit={overview?.dailyLimit ?? 0}
           reviewedToday={overview?.reviewedToday ?? due.reviewedToday ?? 0}
-          // Rules sit in the breakdown but not in the big number or the badge (Practice §10.2).
-          sources={{ courseWords: overview?.totalDue ?? null, rules: home.grammar?.total ?? null }}
+          // Rules and mistakes sit in the breakdown but not in the big number or the badge
+          // (Practice §10.2).
+          sources={{
+            courseWords: overview?.totalDue ?? null,
+            rules: home.grammar?.total ?? null,
+            exercises: home.mistakes?.total ?? null,
+          }}
           forecast={null}
           onStart={onStartReview}
           onRetry={() => {
@@ -102,6 +112,15 @@ export function PracticeScreen({
             <Overline>{t('practice.grammarSection')}</Overline>
             {grammar.map(row => (
               <GrammarDueRow key={row.ruleId} row={row} onPress={() => onOpenGrammar(row)} />
+            ))}
+          </View>
+        ) : null}
+
+        {mistakes.length > 0 ? (
+          <View style={styles.section}>
+            <Overline>{t('practice.mistakesSection')}</Overline>
+            {mistakes.map(row => (
+              <MistakeRow key={row.exerciseId} row={row} onPress={() => onOpenMistake(row)} />
             ))}
           </View>
         ) : null}

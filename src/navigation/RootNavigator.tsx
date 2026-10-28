@@ -481,6 +481,16 @@ function Navigator() {
             }
             onOpenMyWords={() => navigateTo({ name: 'MyWords' })}
             onOpenDeck={deck => navigateTo({ name: 'ModeSelector', deck })}
+            onOpenMistake={row =>
+              navigateTo({
+                name: 'ExerciseRunner',
+                exerciseIds: [row.exerciseId],
+                startIndex: 0,
+                unitId: row.unitId,
+                courseId: row.courseId,
+                origin: 'practice',
+              })
+            }
             onOpenGrammar={row =>
               navigateTo({
                 name: 'GrammarReview',

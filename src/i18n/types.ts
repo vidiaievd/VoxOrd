@@ -1553,6 +1553,7 @@ export interface Translations {
     grammarRowNever: string; // 'Unit {unit} · not practised yet'
     mistakesSection: string;
     mistakeRowSub: string; // 'Unit {unit} · mistake {when}'
+    mistakeUntitled: string;
     whenToday: string;
     whenYesterday: string;
     decksSection: string;
