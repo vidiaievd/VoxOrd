@@ -19,6 +19,7 @@ import { AiReviewed } from './blocks/AiReviewed';
 import { AssistInline } from './blocks/AssistInline';
 import { AssistPinned } from './blocks/AssistPinned';
 import { AssistSuggestions } from './blocks/AssistSuggestions';
+import { CatalogPicks } from './blocks/CatalogPicks';
 import { Assignment } from './blocks/Assignment';
 import { FirstRun } from './blocks/FirstRun';
 import { GroupAccess } from './blocks/GroupAccess';
@@ -51,7 +52,7 @@ const KEPT_WITHOUT_COURSES: ReadonlySet<HomeBlockId> = new Set([
 ]);
 
 /** Blocks of the layouts that are not built yet; `layoutFor` drops them. */
-const NOT_BUILT: readonly HomeBlockId[] = ['goal', 'catalogPicks'];
+const NOT_BUILT: readonly HomeBlockId[] = ['goal'];
 
 /**
  * «Today» (Home spec §6): walks the layout of its variant, and each block loads its own data
@@ -105,6 +106,9 @@ export function TodayScreen({ due, onNavigate, onOpenTab }: TodayScreenProps) {
   const courseIds = courses.courses.map((c) => c.container.id);
   const leadId = lastId === undefined ? null : pickCourseId(courseIds, lastId);
   const noCourses = courses.status === 'loaded' && courseIds.length === 0;
+  const enrolledIds = useMemo(() => new Set(courses.courses.map((c) => c.container.id)), [courses.courses]);
+  const leadLevel = courses.courses.find((c) => c.container.id === leadId)?.container.difficultyLevel ?? null;
+  const openCatalog = useCallback(() => onNavigate({ name: 'Courses', segment: 'catalog' }), [onNavigate]);
   const name = user?.email?.split('@')[0] ?? null;
 
   const { variant } = home;
@@ -173,7 +177,7 @@ export function TodayScreen({ due, onNavigate, onOpenTab }: TodayScreenProps) {
           <SoloWriting
             key={id}
             onConnectAi={() => onOpenTab('Profile')}
-            onFindSchool={() => onOpenTab('Courses')}
+            onFindSchool={openCatalog}
           />
         );
       case 'aiPlan':
@@ -212,11 +216,21 @@ export function TodayScreen({ due, onNavigate, onOpenTab }: TodayScreenProps) {
             key={id}
             inSchool={hasSchool(schools)}
             offline={offline}
-            onOpenCourses={() => onOpenTab('Courses')}
+            onOpenCourses={hasSchool(schools) ? () => onOpenTab('Courses') : openCatalog}
+          />
+        );
+      case 'catalogPicks':
+        return (
+          <CatalogPicks
+            key={id}
+            level={leadLevel}
+            enrolledIds={enrolledIds}
+            onOpenCatalog={openCatalog}
+            onOpenCourse={(containerId) => onNavigate({ name: 'CatalogCourse', containerId })}
           />
         );
       default:
-        // Goal has no data, CatalogPicks waits for plan 04.
+        // Goal has no data (plan 07).
         return null;
     }
   };

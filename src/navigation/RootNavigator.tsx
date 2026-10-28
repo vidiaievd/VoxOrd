@@ -21,6 +21,7 @@ import { DeepSessionScreen } from '../screens/LearningScreen/DeepSessionScreen';
 import { PronunciationExercise } from '../screens/LearningScreen/exercises/pronunciation/PronunciationExercise';
 import { CoursesScreen } from '../screens/CoursesScreen';
 import { CourseHomeScreen } from '../screens/CourseHomeScreen';
+import { CatalogCourseScreen } from '../screens/CatalogCourseScreen';
 import { UnitContentsScreen } from '../screens/UnitContentsScreen';
 import { LessonReaderScreen } from '../screens/LessonReaderScreen';
 import { ExerciseRunnerScreen } from '../screens/ExerciseRunner';
@@ -308,6 +309,15 @@ function Navigator() {
             segment={screen.segment}
             onCoursePress={openCourse}
             onNavigate={navigateTo}
+          />
+        );
+
+      case 'CatalogCourse':
+        return (
+          <CatalogCourseScreen
+            containerId={screen.containerId}
+            onBack={goBack}
+            onOpenCourse={openCourse}
           />
         );
 

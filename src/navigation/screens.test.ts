@@ -65,6 +65,13 @@ const CASES: {
   CourseHome: [
     [{ name: 'CourseHome', courseId: 'c1' }, { name: 'Courses' }, 'Courses'],
   ],
+  CatalogCourse: [
+    [
+      { name: 'CatalogCourse', containerId: 'c1' },
+      { name: 'Courses', segment: 'catalog' },
+      'Courses',
+    ],
+  ],
   UnitContents: [
     [
       { name: 'UnitContents', ...unit },
@@ -226,6 +233,7 @@ describe('showsTabBar', () => {
       }),
     ).toBe(false);
     expect(showsTabBar({ name: 'ReviewSession' })).toBe(false);
+    expect(showsTabBar({ name: 'CatalogCourse', containerId: 'c1' })).toBe(false);
     expect(
       showsTabBar({ name: 'Assistant', returnTo: { name: 'Today' } }),
     ).toBe(false);

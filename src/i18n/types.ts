@@ -394,6 +394,49 @@ export interface Translations {
     openCatalog: string;
   };
 
+  /** The catalogue segment and a course before enrolment (plan 04 step 9, Courses spec §5.3, 5c). */
+  catalog: {
+    search: string;
+    language: string;
+    level: string;
+    allLanguages: string;
+    allLevels: string;
+    group: string; // '{lang}', '{level}'
+    mine: string;
+    units: PluralForms; // '{count}'
+    empty: string;
+    reset: string;
+    loadError: string;
+    retry: string;
+    learn: string;
+    program: string;
+    allUnits: PluralForms; // '{count}'
+    fewerUnits: string;
+    unitN: string; // '{n}'
+    enroll: string;
+    enrollNote: string;
+    enrollFailed: string;
+    enrollForbidden: string;
+    openCourse: string;
+    paidNote: string;
+    schoolNote: string;
+    offlineNote: string;
+    picksTitle: string; // '{level}'
+    picksTitleNoLevel: string;
+    lang: {
+      nb: string;
+      nn: string;
+      no: string;
+      en: string;
+      de: string;
+      es: string;
+      fr: string;
+      uk: string;
+      ru: string;
+      ja: string;
+    };
+  };
+
   courseHome: {
     loadError: string;
     noUnits: string;

@@ -16,6 +16,12 @@
 export type ContainerType = 'course' | 'module' | 'collection';
 export type DifficultyLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2';
 export type Visibility = 'public' | 'school_private' | 'shared' | 'private';
+export type AccessTier =
+  | 'public_free'
+  | 'public_paid'
+  | 'entitlement_required'
+  | 'free_within_school'
+  | 'assigned_only';
 
 export interface Container {
   id: string;
@@ -29,6 +35,11 @@ export interface Container {
   gatingMode?: 'open' | 'sequential';
   currentPublishedVersionId?: string | null;
   lessonCount?: number;
+  /** Who may enrol on their own; the catalogue reads it (learning-service enforces it). */
+  accessTier?: AccessTier;
+  /** «What you will learn» — authored per course, often empty. */
+  learningGoals?: string[];
+  ownerSchoolId?: string | null;
   createdAt: string;
   updatedAt: string;
 }

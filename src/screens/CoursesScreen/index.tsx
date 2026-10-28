@@ -5,6 +5,7 @@ import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { spacing } from '../../theme/spacing';
 import { useMyCourses } from '../../hooks/useMyCourses';
+import { useCatalog } from '../../hooks/useCatalog';
 import { OfflineBanner } from '../../components/OfflineBanner';
 import { Button, Overline, SegmentedControl, Skeleton } from '../../components/ui';
 import { isNetworkError } from '../../api/isNetworkError';
@@ -12,11 +13,13 @@ import { useTabScrollToTop } from '../../navigation/tabScroll';
 import { getLastCourseId, setLastCourseId } from '../../store/lastCourseStore';
 import { courseDownloader } from '../../services/courseDownload';
 import type { Screen } from '../../navigation/screens';
+import type { Container } from '../../api/types';
 import { COURSES_FEATURES } from './features';
 import { pickCurrent } from './courseMeta';
 import { NowStudyingCard } from './NowStudyingCard';
 import { MoreCourseRow, type CourseDownloadIcon } from './MoreCourseRow';
 import { DownloadsRow } from './DownloadsRow';
+import { CatalogList } from './CatalogList';
 
 type Segment = 'mine' | 'catalog';
 
@@ -33,9 +36,11 @@ export function CoursesScreen({ segment: initialSegment, onCoursePress, onNaviga
   const scrollRef = useRef<ScrollView>(null);
   useTabScrollToTop('Courses', scrollRef);
 
-  // Until the catalogue is built (plan 04, step 9) the tab is «Mine» alone.
   const [segment, setSegment] = useState<Segment>(initialSegment ?? 'mine');
   const shown: Segment = COURSES_FEATURES.catalog ? segment : 'mine';
+  // Loaded only once the segment is opened.
+  const catalog = useCatalog(shown === 'catalog');
+  const enrolledIds = useMemo(() => new Set(courses.map(c => c.container.id)), [courses]);
 
   const [lastId, setLastId] = useState<string | null | undefined>(undefined);
   useEffect(() => {
@@ -65,6 +70,16 @@ export function CoursesScreen({ segment: initialSegment, onCoursePress, onNaviga
     onCoursePress(courseId);
   };
 
+  // A course already held opens as the learner's own (spec §4.2).
+  const openFromCatalog = (course: Container) =>
+    enrolledIds.has(course.id)
+      ? open(course.id)
+      : onNavigate({ name: 'CatalogCourse', containerId: course.id });
+
+  const onRefresh = () => (shown === 'catalog' ? catalog.refresh() : refresh());
+  const offline =
+    shown === 'catalog' ? catalog.stale && isNetworkError(catalog.error) : stale && isNetworkError(error);
+
   const gutter = spacing.screenGutter;
   const loaded = status === 'loaded' && lastId !== undefined;
 
@@ -74,7 +89,11 @@ export function CoursesScreen({ segment: initialSegment, onCoursePress, onNaviga
         ref={scrollRef}
         contentContainerStyle={{ paddingTop: 14, paddingHorizontal: gutter, paddingBottom: 24, gap: 14 }}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accentBase} />
+          <RefreshControl
+            refreshing={shown === 'catalog' ? catalog.refreshing : refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.accentBase}
+          />
         }
       >
         <Text accessibilityRole="header" style={[typography.h1, { color: colors.text }]}>
@@ -92,7 +111,16 @@ export function CoursesScreen({ segment: initialSegment, onCoursePress, onNaviga
           />
         )}
 
-        {stale && isNetworkError(error) && <OfflineBanner />}
+        {offline && <OfflineBanner />}
+
+        {shown === 'catalog' && (
+          <CatalogList
+            catalog={catalog}
+            current={current?.container ?? null}
+            enrolledIds={enrolledIds}
+            onOpen={openFromCatalog}
+          />
+        )}
 
         {shown === 'mine' && (status === 'loading' || (status === 'loaded' && lastId === undefined)) && (
           <View style={{ gap: 14 }}>

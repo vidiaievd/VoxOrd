@@ -1,2 +1,2 @@
-/** Parts of the tab that are not built yet (plan 04). Step 9 turns `catalog` on. */
-export const COURSES_FEATURES = { catalog: false };
+/** Parts of the tab behind a switch (plan 04). The catalogue is on since step 9. */
+export const COURSES_FEATURES = { catalog: true };

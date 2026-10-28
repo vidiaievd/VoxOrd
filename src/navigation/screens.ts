@@ -57,6 +57,8 @@ export type Screen =
   | { name: 'DeepSession'; deck: Deck }
   | { name: 'SessionResults'; sessionId: number; deckId: number }
   | { name: 'Courses'; segment?: 'mine' | 'catalog' }
+  /** A course in the catalogue, before enrolment (Courses spec 5c). */
+  | { name: 'CatalogCourse'; containerId: string }
   | { name: 'CourseHome'; courseId: string }
   | {
       name: 'UnitContents';
@@ -135,6 +137,8 @@ export function backTarget(screen: Screen): Screen | null {
       return { name: 'Profile' };
     case 'CourseHome':
       return { name: 'Courses' };
+    case 'CatalogCourse':
+      return { name: 'Courses', segment: 'catalog' };
     case 'UnitContents':
       return screen.returnTo ?? { name: 'CourseHome', courseId: screen.courseId };
     case 'LessonReader':
