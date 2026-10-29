@@ -103,6 +103,39 @@ describe('describeNotification', () => {
     ).toMatchObject({ title: 'New assignment: work', body: null });
   });
 
+  it('words a moved, cancelled or restored lesson, an exam by its own name', () => {
+    const change = (params: Record<string, unknown>) =>
+      ({
+        ...base,
+        type: 'class_changed',
+        target: { kind: 'none' },
+        params: {
+          change: 'moved',
+          date: '2026-11-04',
+          startTime: '18:00',
+          isExam: false,
+          previousDate: '2026-11-03',
+          previousStartTime: '17:30',
+          ...params,
+        },
+      } as NotificationItem);
+    expect(describeNotification(change({}), tIn('ru'), 'ru')).toEqual({
+      icon: 'CalendarX',
+      title: 'Занятие перенесено',
+      body: '3 ноя, 17:30 → 4 ноя, 18:00',
+    });
+    expect(
+      describeNotification(
+        change({ change: 'cancelled', isExam: true, previousDate: null, previousStartTime: null }),
+        tIn('en'),
+        'en',
+      ),
+    ).toEqual({ icon: 'CalendarX', title: 'Exam cancelled', body: 'Nov 4, 18:00' });
+    expect(
+      describeNotification(change({ change: 'restored', startTime: null }), tIn('uk'), 'uk'),
+    ).toEqual({ icon: 'CalendarBlank', title: 'Заняття знову в розкладі', body: '4 лис' });
+  });
+
   it('asks for a resubmission on returned work', () => {
     const item = { ...sub(), type: 'submission_returned' } as NotificationItem;
     const r = describeNotification(item, tIn('ru'));

@@ -16,6 +16,7 @@ import { isRecord, isString, stringOrNull } from './guards';
  *   ENROLLMENT_APPROVED   → enrollment_approved   ┐ the learner's own school news, under
  *   ENROLLMENT_REJECTED   → enrollment_rejected   │ «Courses & school», no target until the
  *   GROUP_ASSIGNED        → group_joined          ┘ phone has a school screen (owner, 2026-10-29)
+ *   LESSON_CHANGED        → class_changed (moved / cancelled / back on; backend step 6c), no target
  *   ASSIGNMENT_NEW        → assignment_new (a teacher gave the learner something to do; backend
  *                           step 6b). No target yet — the phone has no assignment screen, and
  *                           Today's assignment block opens nothing either
@@ -24,8 +25,8 @@ import { isRecord, isString, stringOrNull } from './guards';
  *                           stays in the engine, so the row says the outcome and the mark
  * Anything else — teacher and admin types, the teacher's nudge (STUDY_REMINDER, hidden by the
  * owner's decision), a type added upstream later, an outcome nobody knows — is dropped, with a
- * `__DEV__` log. The spec's `ai_reviewed`, `assignment_new`, `class_changed` The spec's `class_changed` and `materials_new`
- * arrive with the rest of backend step 6, each with its row here.
+ * `__DEV__` log. The spec's `ai_reviewed`, `assignment_new`, `class_changed` The spec's `materials_new` has no event behind it
+ * (GROUP_ASSIGNED is not it — see the plan's type table).
  * ────────────────────────────────────────────────────────────────────── */
 
 export type NotificationType =
@@ -36,7 +37,8 @@ export type NotificationType =
   | 'enrollment_rejected'
   | 'group_joined'
   | 'ai_reviewed'
-  | 'assignment_new';
+  | 'assignment_new'
+  | 'class_changed';
 
 /** The screen's segment (Notifications §4.3). */
 export type NotificationFilter = 'all' | 'work' | 'course';
@@ -88,6 +90,17 @@ export interface ClassParams {
   isExam: boolean;
 }
 
+export interface ClassChangeParams {
+  change: 'moved' | 'cancelled' | 'restored';
+  /** YYYY-MM-DD and HH:MM — when it is now (when it was, if cancelled). */
+  date: string;
+  startTime: string | null;
+  isExam: boolean;
+  /** Where a moved lesson was; null otherwise. */
+  previousDate: string | null;
+  previousStartTime: string | null;
+}
+
 export interface SchoolParams {
   schoolName: string;
   /** Only on `group_joined`. */
@@ -115,6 +128,7 @@ export type NotificationItem = Base &
       }
     | { type: 'assignment_new'; params: AssignmentParams; target: { kind: 'none' } }
     | { type: 'class_scheduled'; params: ClassParams; target: { kind: 'none' } }
+    | { type: 'class_changed'; params: ClassChangeParams; target: { kind: 'none' } }
     | {
         type: 'enrollment_approved' | 'enrollment_rejected' | 'group_joined';
         params: SchoolParams;
@@ -144,6 +158,7 @@ const FILTER_OF: Record<
   ai_reviewed: 'work',
   assignment_new: 'work',
   class_scheduled: 'course',
+  class_changed: 'course',
   enrollment_approved: 'course',
   enrollment_rejected: 'course',
   group_joined: 'course',
@@ -309,6 +324,50 @@ function lesson(
   return item;
 }
 
+const CHANGES: Record<string, ClassChangeParams['change']> = {
+  moved: 'moved',
+  cancelled: 'cancelled',
+  // The server's word for a cancellation undone.
+  scheduled: 'restored',
+};
+
+function timeOrNull(value: unknown): string | null {
+  return isString(value) && TIME.test(value) ? value.slice(0, 5) : null;
+}
+
+function dayOrNull(value: unknown): string | null {
+  return isString(value) && DATE.test(value) ? value.slice(0, 10) : null;
+}
+
+function classChange(
+  id: string,
+  createdAt: string,
+  read: boolean,
+  data: Record<string, unknown>,
+) {
+  const change = isString(data.change) ? CHANGES[data.change] : undefined;
+  if (!change) return skip(`lesson change ${String(data.change)}`, data);
+  const date = dayOrNull(data.date);
+  if (!date) return skip('lesson change without a day', data);
+  const previousDate = change === 'moved' ? dayOrNull(data.previousDate) : null;
+  const item: NotificationItem = {
+    id,
+    createdAt,
+    read,
+    type: 'class_changed',
+    params: {
+      change,
+      date,
+      startTime: timeOrNull(data.startTime),
+      isExam: data.isExam === true,
+      previousDate,
+      previousStartTime: previousDate ? timeOrNull(data.previousStartTime) : null,
+    },
+    target: { kind: 'none' },
+  };
+  return item;
+}
+
 function school(
   type: 'enrollment_approved' | 'enrollment_rejected' | 'group_joined',
   id: string,
@@ -349,6 +408,8 @@ export function adaptNotification(raw: unknown): NotificationItem | null {
   switch (raw.type) {
     case 'ATTEMPT_REVIEWED':
       return submission(raw.id, raw.createdAt, read, data);
+    case 'LESSON_CHANGED':
+      return classChange(raw.id, raw.createdAt, read, data);
     case 'ASSIGNMENT_NEW':
       return assignment(raw.id, raw.createdAt, read, data);
     case 'AI_REVIEWED':

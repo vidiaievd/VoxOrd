@@ -26,6 +26,19 @@ export interface RowText {
 
 const WEEKDAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
 
+/** «3 ноя, 17:30» — a calendar day read as the school's, not shifted by the device's zone. */
+function dayAndTime(date: string, time: string | null, lang: string): string {
+  const [y, m, d] = date.split('-').map(Number);
+  const day = formatDayMonth(new Date(y, m - 1, d), lang);
+  return time ? `${day}, ${time}` : day;
+}
+
+const CHANGE_KEY = {
+  moved: ['classMoved', 'examMoved'],
+  cancelled: ['classCancelled', 'examCancelled'],
+  restored: ['classRestored', 'examRestored'],
+} as const;
+
 /** «Принято 3 из 5.», else «Результат: 80%.», else nothing — a pass's one line of facts. */
 function passedLine(p: SubmissionParams, t: T): string | null {
   // A submission with nothing readable reports 0 of 0 — not worth saying.
@@ -126,6 +139,20 @@ export function describeNotification(
               end: p.endTime.slice(0, 5),
             })
           : null,
+      };
+    }
+    case 'class_changed': {
+      // The spec's «было → стало» for a move; the day it was on for the others.
+      const p = item.params;
+      const now = dayAndTime(p.date, p.startTime, lang);
+      const body =
+        p.change === 'moved' && p.previousDate
+          ? `${dayAndTime(p.previousDate, p.previousStartTime, lang)} → ${now}`
+          : now;
+      return {
+        icon: p.change === 'restored' ? 'CalendarBlank' : 'CalendarX',
+        title: t(`notifications.row.${CHANGE_KEY[p.change][p.isExam ? 1 : 0]}`),
+        body,
       };
     }
     case 'enrollment_approved':

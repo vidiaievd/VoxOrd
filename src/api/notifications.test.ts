@@ -108,6 +108,38 @@ describe('adaptNotification', () => {
     ).toBeNull();
   });
 
+  it('maps a lesson change to class_changed under «courses & school», a restore by its own word', () => {
+    const item = adaptNotification(row('n-moved'))!;
+    expect(item).toEqual({
+      id: 'n-moved',
+      createdAt: row('n-moved').createdAt,
+      read: true,
+      type: 'class_changed',
+      params: {
+        change: 'moved',
+        date: '2026-11-04',
+        startTime: '18:00',
+        isExam: false,
+        previousDate: '2026-11-03',
+        previousStartTime: '17:30',
+      },
+      target: { kind: 'none' },
+    });
+    expect(matchesFilter(item, 'course')).toBe(true);
+    const withData = (over: Record<string, unknown>) =>
+      adaptNotification({
+        ...row('n-moved'),
+        templateData: { ...row('n-moved').templateData, ...over },
+      });
+    expect(withData({ change: 'scheduled' })!.params).toMatchObject({
+      change: 'restored',
+      previousDate: null,
+      previousStartTime: null,
+    });
+    expect(withData({ change: 'held' })).toBeNull();
+    expect(withData({ date: null })).toBeNull();
+  });
+
   it('maps a returned review to submission_returned, keeping the item counts', () => {
     const item = adaptNotification(row('n-returned'))!;
     expect(item.type).toBe('submission_returned');
@@ -242,6 +274,7 @@ describe('parseNotificationsPage', () => {
       'n-returned',
       'n-ai',
       'n-assignment',
+      'n-moved',
       'n-class',
       'n-group',
       'n-approved',
@@ -270,9 +303,10 @@ describe('matchesFilter', () => {
       .map(n => n.id);
 
   it('splits the feed into work and courses & school', () => {
-    expect(ids('all')).toHaveLength(8);
+    expect(ids('all')).toHaveLength(9);
     expect(ids('work')).toEqual(['n-passed', 'n-returned', 'n-ai', 'n-assignment']);
     expect(ids('course')).toEqual([
+      'n-moved',
       'n-class',
       'n-group',
       'n-approved',

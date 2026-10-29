@@ -78,6 +78,12 @@ export interface Translations {
       aiPassed: string;
       assignment: string;
       assignmentDue: string;
+      classMoved: string;
+      examMoved: string;
+      classCancelled: string;
+      examCancelled: string;
+      classRestored: string;
+      examRestored: string;
       class: string; // '{weekday}' '{time}'
       exam: string; // '{weekday}' '{time}'
       classRange: string; // '{start}' '{end}'
