@@ -84,6 +84,23 @@ export function sampleNotificationsPage(now: Date = new Date()) {
         createdAt: at(now, 300),
       },
       {
+        id: 'n-assignment',
+        type: 'ASSIGNMENT_NEW',
+        templateData: {
+          assignmentId: 'asg-1',
+          assignerId: 'teacher-1',
+          schoolId: 'school-1',
+          groupId: 'group-1',
+          contentType: 'LESSON',
+          contentId: 'lesson-1',
+          contentTitle: 'Skriv en søknad',
+          dueAt: '2026-10-28T18:00:00.000Z',
+        },
+        isRead: true,
+        archivedAt: null,
+        createdAt: at(now, 400),
+      },
+      {
         id: 'n-nudge',
         type: 'STUDY_REMINDER',
         templateData: { schoolId: 'school-1', requestedBy: 'teacher-1' },

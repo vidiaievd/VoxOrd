@@ -75,6 +75,8 @@ export const ru: Translations = {
       hasComment: 'Есть отзыв преподавателя.',
       aiReviewed: 'Проверено ИИ: {title}',
       aiPassed: 'Зачтено.',
+      assignment: 'Новое задание: {title}',
+      assignmentDue: 'сдать до {date}',
       class: 'Занятие {weekday}, {time}',
       exam: 'Экзамен {weekday}, {time}',
       classRange: '{start}–{end}',

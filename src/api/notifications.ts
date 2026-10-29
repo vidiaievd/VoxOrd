@@ -16,12 +16,15 @@ import { isRecord, isString, stringOrNull } from './guards';
  *   ENROLLMENT_APPROVED   → enrollment_approved   ┐ the learner's own school news, under
  *   ENROLLMENT_REJECTED   → enrollment_rejected   │ «Courses & school», no target until the
  *   GROUP_ASSIGNED        → group_joined          ┘ phone has a school screen (owner, 2026-10-29)
+ *   ASSIGNMENT_NEW        → assignment_new (a teacher gave the learner something to do; backend
+ *                           step 6b). No target yet — the phone has no assignment screen, and
+ *                           Today's assignment block opens nothing either
  *   AI_REVIEWED           → ai_reviewed (a model's verdict closed the work — at once, or at the
  *                           school's term; backend step 6a). Never a summary: the review's text
  *                           stays in the engine, so the row says the outcome and the mark
  * Anything else — teacher and admin types, the teacher's nudge (STUDY_REMINDER, hidden by the
  * owner's decision), a type added upstream later, an outcome nobody knows — is dropped, with a
- * `__DEV__` log. The spec's `ai_reviewed`, `assignment_new`, `class_changed` The spec's `assignment_new`, `class_changed` and `materials_new`
+ * `__DEV__` log. The spec's `ai_reviewed`, `assignment_new`, `class_changed` The spec's `class_changed` and `materials_new`
  * arrive with the rest of backend step 6, each with its row here.
  * ────────────────────────────────────────────────────────────────────── */
 
@@ -32,7 +35,8 @@ export type NotificationType =
   | 'enrollment_approved'
   | 'enrollment_rejected'
   | 'group_joined'
-  | 'ai_reviewed';
+  | 'ai_reviewed'
+  | 'assignment_new';
 
 /** The screen's segment (Notifications §4.3). */
 export type NotificationFilter = 'all' | 'work' | 'course';
@@ -57,6 +61,22 @@ export interface SubmissionParams {
 /** A model's verdict — the submission's facts plus which way it went (one type, two outcomes). */
 export interface AiReviewParams extends SubmissionParams {
   passed: boolean;
+}
+
+export type AssignmentKind =
+  | 'LESSON'
+  | 'CONTAINER'
+  | 'VOCABULARY_LIST'
+  | 'GRAMMAR_RULE'
+  | 'EXERCISE';
+
+export interface AssignmentParams {
+  /** As content-service called it when it was assigned; null on older rows. */
+  title: string | null;
+  /** null when the server names a kind the phone does not know. */
+  kind: AssignmentKind | null;
+  /** ISO 8601 */
+  dueAt: string | null;
 }
 
 export interface ClassParams {
@@ -93,6 +113,7 @@ export type NotificationItem = Base &
         params: AiReviewParams;
         target: Extract<NotificationTarget, { kind: 'submission' }>;
       }
+    | { type: 'assignment_new'; params: AssignmentParams; target: { kind: 'none' } }
     | { type: 'class_scheduled'; params: ClassParams; target: { kind: 'none' } }
     | {
         type: 'enrollment_approved' | 'enrollment_rejected' | 'group_joined';
@@ -121,6 +142,7 @@ const FILTER_OF: Record<
   submission_passed: 'work',
   submission_returned: 'work',
   ai_reviewed: 'work',
+  assignment_new: 'work',
   class_scheduled: 'course',
   enrollment_approved: 'course',
   enrollment_rejected: 'course',
@@ -220,6 +242,39 @@ function aiReview(
   return item;
 }
 
+const ASSIGNMENT_KINDS: readonly string[] = [
+  'LESSON',
+  'CONTAINER',
+  'VOCABULARY_LIST',
+  'GRAMMAR_RULE',
+  'EXERCISE',
+];
+
+function assignment(
+  id: string,
+  createdAt: string,
+  read: boolean,
+  data: Record<string, unknown>,
+) {
+  if (!isString(data.assignmentId)) return skip('assignment without an id', data);
+  const title = stringOrNull(data.contentTitle);
+  const item: NotificationItem = {
+    id,
+    createdAt,
+    read,
+    type: 'assignment_new',
+    params: {
+      title: title && title.trim() ? title : null,
+      kind: ASSIGNMENT_KINDS.includes(data.contentType as string)
+        ? (data.contentType as AssignmentKind)
+        : null,
+      dueAt: isIsoDate(data.dueAt) ? data.dueAt : null,
+    },
+    target: { kind: 'none' },
+  };
+  return item;
+}
+
 function lesson(
   id: string,
   createdAt: string,
@@ -294,6 +349,8 @@ export function adaptNotification(raw: unknown): NotificationItem | null {
   switch (raw.type) {
     case 'ATTEMPT_REVIEWED':
       return submission(raw.id, raw.createdAt, read, data);
+    case 'ASSIGNMENT_NEW':
+      return assignment(raw.id, raw.createdAt, read, data);
     case 'AI_REVIEWED':
       return aiReview(raw.id, raw.createdAt, read, data);
     case 'LESSON_REMINDER':

@@ -75,6 +75,8 @@ export const uk: Translations = {
       hasComment: 'Є відгук викладача.',
       aiReviewed: 'Перевірено ШІ: {title}',
       aiPassed: 'Зараховано.',
+      assignment: 'Нове завдання: {title}',
+      assignmentDue: 'здати до {date}',
       class: 'Заняття {weekday}, {time}',
       exam: 'Іспит {weekday}, {time}',
       classRange: '{start}–{end}',

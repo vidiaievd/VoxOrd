@@ -63,6 +63,18 @@ const WORDS: Record<
 
 const MINUTE = 60_000;
 
+function dayMonth(d: Date, l: Lang): string {
+  const month = MONTHS[l][d.getMonth()];
+  return l === 'en' ? `${month} ${d.getDate()}` : `${d.getDate()} ${month}`;
+}
+
+/** «Oct 28» / «28 окт» in the device's time zone — a due day named in a row. '' when unreadable. */
+export function formatDayMonth(at: string | Date, lang: string): string {
+  const d = at instanceof Date ? at : new Date(at);
+  if (Number.isNaN(d.getTime())) return '';
+  return dayMonth(d, lang === 'ru' || lang === 'uk' ? lang : 'en');
+}
+
 function dayStart(d: Date): number {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 }
@@ -89,11 +101,7 @@ export function formatNotificationTime(
   if (days <= 0) return `${Math.floor(minutes / 60)} ${w.hour}`;
   if (days === 1) return w.yesterday;
 
-  const month = MONTHS[l][created.getMonth()];
-  const date =
-    l === 'en'
-      ? `${month} ${created.getDate()}`
-      : `${created.getDate()} ${month}`;
+  const date = dayMonth(created, l);
   if (created.getFullYear() === now.getFullYear()) return date;
   return l === 'en'
     ? `${date}, ${created.getFullYear()}`

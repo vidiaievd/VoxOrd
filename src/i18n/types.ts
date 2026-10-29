@@ -76,6 +76,8 @@ export interface Translations {
       hasComment: string;
       aiReviewed: string;
       aiPassed: string;
+      assignment: string;
+      assignmentDue: string;
       class: string; // '{weekday}' '{time}'
       exam: string; // '{weekday}' '{time}'
       classRange: string; // '{start}' '{end}'

@@ -24,7 +24,7 @@ export const NotificationRow = React.memo(function NotificationRow({
   const { t, language } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const { icon, title, body } = describeNotification(item, t);
+  const { icon, title, body } = describeNotification(item, t, language);
   const time = formatNotificationTime(item.createdAt, now, language);
   const opens = item.target.kind !== 'none';
   const label = [

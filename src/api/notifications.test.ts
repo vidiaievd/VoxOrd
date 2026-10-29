@@ -79,6 +79,35 @@ describe('adaptNotification', () => {
     ).toBeNull();
   });
 
+  it('maps a new assignment to assignment_new under «work», opening nothing yet', () => {
+    const item = adaptNotification(row('n-assignment'))!;
+    expect(item).toEqual({
+      id: 'n-assignment',
+      createdAt: row('n-assignment').createdAt,
+      read: true,
+      type: 'assignment_new',
+      params: {
+        title: 'Skriv en søknad',
+        kind: 'LESSON',
+        dueAt: '2026-10-28T18:00:00.000Z',
+      },
+      target: { kind: 'none' },
+    });
+    expect(matchesFilter(item, 'work')).toBe(true);
+    const older = adaptNotification({
+      ...row('n-assignment'),
+      templateData: {
+        assignmentId: 'asg-1',
+        contentType: 'PODCAST',
+        dueAt: 'soon',
+      },
+    })!;
+    expect(older.params).toEqual({ title: null, kind: null, dueAt: null });
+    expect(
+      adaptNotification({ ...row('n-assignment'), templateData: {} }),
+    ).toBeNull();
+  });
+
   it('maps a returned review to submission_returned, keeping the item counts', () => {
     const item = adaptNotification(row('n-returned'))!;
     expect(item.type).toBe('submission_returned');
@@ -212,6 +241,7 @@ describe('parseNotificationsPage', () => {
       'n-passed',
       'n-returned',
       'n-ai',
+      'n-assignment',
       'n-class',
       'n-group',
       'n-approved',
@@ -240,8 +270,8 @@ describe('matchesFilter', () => {
       .map(n => n.id);
 
   it('splits the feed into work and courses & school', () => {
-    expect(ids('all')).toHaveLength(7);
-    expect(ids('work')).toEqual(['n-passed', 'n-returned', 'n-ai']);
+    expect(ids('all')).toHaveLength(8);
+    expect(ids('work')).toEqual(['n-passed', 'n-returned', 'n-ai', 'n-assignment']);
     expect(ids('course')).toEqual([
       'n-class',
       'n-group',

@@ -67,6 +67,8 @@ export const en: Translations = {
       hasComment: 'Your teacher left feedback.',
       aiReviewed: 'Checked by AI: {title}',
       aiPassed: 'Passed.',
+      assignment: 'New assignment: {title}',
+      assignmentDue: 'due {date}',
       class: 'Class {weekday}, {time}',
       exam: 'Exam {weekday}, {time}',
       classRange: '{start}–{end}',

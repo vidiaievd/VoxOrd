@@ -79,6 +79,30 @@ describe('describeNotification', () => {
     });
   });
 
+  it('words a new assignment with its kind and due day, falling back to the kind for a name', () => {
+    const asg = (params: Record<string, unknown>) =>
+      ({
+        ...base,
+        type: 'assignment_new',
+        target: { kind: 'none' },
+        params: { title: 'Skriv en søknad', kind: 'LESSON', dueAt: null, ...params },
+      } as NotificationItem);
+    const due = new Date(2026, 9, 28, 18).toISOString();
+    const ru = describeNotification(asg({ dueAt: due }), tIn('ru'), 'ru');
+    expect(ru.icon).toBe('ClipboardText');
+    expect(ru.title).toBe('Новое задание: Skriv en søknad');
+    expect(ru.body).toBe('Урок, сдать до 28 окт.');
+    expect(describeNotification(asg({ dueAt: due }), tIn('en'), 'en').body).toBe(
+      'Lesson, due Oct 28.',
+    );
+    expect(
+      describeNotification(asg({ title: null, kind: 'EXERCISE' }), tIn('uk'), 'uk'),
+    ).toMatchObject({ title: 'Нове завдання: Вправа', body: 'Вправа.' });
+    expect(
+      describeNotification(asg({ title: null, kind: 'CONTAINER' }), tIn('en'), 'en'),
+    ).toMatchObject({ title: 'New assignment: work', body: null });
+  });
+
   it('asks for a resubmission on returned work', () => {
     const item = { ...sub(), type: 'submission_returned' } as NotificationItem;
     const r = describeNotification(item, tIn('ru'));

@@ -1,10 +1,21 @@
 import type {
+  AssignmentKind,
   NotificationItem,
   SubmissionParams,
 } from '../../api/notifications';
+import { formatDayMonth } from '../../utils/formatNotificationTime';
 import type { IconName } from '../../components/ui/Icon';
 
 type T = (path: string, vars?: Record<string, string | number>) => string;
+
+/** The material's kind, as `itemType` names it; a whole course has no such label. */
+const KIND_KEY: Record<AssignmentKind, string | null> = {
+  LESSON: 'itemType.lesson',
+  VOCABULARY_LIST: 'itemType.vocabulary_list',
+  GRAMMAR_RULE: 'itemType.grammar_rule',
+  EXERCISE: 'itemType.exercise',
+  CONTAINER: null,
+};
 
 export interface RowText {
   icon: IconName;
@@ -32,7 +43,11 @@ function passedLine(p: SubmissionParams, t: T): string | null {
  * The words of one row (Notifications §5.2), built from the item's facts in the reader's
  * language — the server sends a type and its data, never text.
  */
-export function describeNotification(item: NotificationItem, t: T): RowText {
+export function describeNotification(
+  item: NotificationItem,
+  t: T,
+  lang = 'en',
+): RowText {
   switch (item.type) {
     case 'submission_passed':
     case 'submission_returned': {
@@ -72,6 +87,24 @@ export function describeNotification(item: NotificationItem, t: T): RowText {
           title: p.title ?? p.courseTitle ?? t('notifications.row.workFallback'),
         }),
         body: facts,
+      };
+    }
+    case 'assignment_new': {
+      // «Урок, сдать до 28 окт.» — the spec's «{itemKind}, сдать до {d MMMM}».
+      const p = item.params;
+      const kindKey = p.kind ? KIND_KEY[p.kind] : null;
+      const kind = kindKey ? t(kindKey) : null;
+      const due = p.dueAt ? formatDayMonth(p.dueAt, lang) : '';
+      const parts = [
+        kind,
+        due ? t('notifications.row.assignmentDue', { date: due }) : null,
+      ].filter((part): part is string => !!part);
+      return {
+        icon: 'ClipboardText',
+        title: t('notifications.row.assignment', {
+          title: p.title ?? kind ?? t('notifications.row.workFallback'),
+        }),
+        body: parts.length ? `${parts.join(', ')}.` : null,
       };
     }
     case 'class_scheduled': {
