@@ -43,6 +43,7 @@ import { OfflineSessionBanner } from '../components/OfflineSessionBanner';
 import { useAuth } from '../hooks/useAuth';
 import { setLastCourseId } from '../store/lastCourseStore';
 import { useDueCount } from '../hooks/useDueCount';
+import { useKeepUnreadFresh, useUnreadCount } from '../hooks/useUnreadCount';
 
 /** How long a second Back on Today has to follow the first to leave the app. */
 const EXIT_WINDOW_MS = 2000;
@@ -66,6 +67,9 @@ function Navigator() {
 
   // The Practice badge, fetched again on arrival at a screen when over a minute old.
   const due = useDueCount(screen.name);
+  // The Notifications badge, kept fresh the same way.
+  useKeepUnreadFresh(screen.name);
+  const unread = useUnreadCount();
 
   // Signed out — by the Settings button or by a session the server dropped — the next
   // sign-in starts from Today, not from wherever the last one left off.
@@ -585,7 +589,7 @@ function Navigator() {
         <TabBar
           activeTab={activeTab}
           onTabPress={handleTabPress}
-          badges={{ Practice: due.count, Notifications: 0 }}
+          badges={{ Practice: due.count, Notifications: unread }}
         />
       )}
     </View>

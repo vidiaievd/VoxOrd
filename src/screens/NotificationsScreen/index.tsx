@@ -19,7 +19,6 @@ import type {
 import { Button, Icon, Skeleton } from '../../components/ui';
 import { SegmentedControl } from '../../components/ui/SegmentedControl';
 import { useNotifications } from '../../hooks/useNotifications';
-import { useRefreshOnForeground } from '../../hooks/useRefreshOnForeground';
 import { useTranslation } from '../../i18n';
 import { openNotification } from '../../navigation/openNotification';
 import type { Screen } from '../../navigation/screens';
@@ -62,11 +61,8 @@ export function NotificationsScreen({ onNavigate }: Props) {
       .catch(() => undefined);
   }, []);
 
-  // The times are read against «now»; a wake-up moves it, no timer needed.
-  useRefreshOnForeground(() => {
-    setNow(new Date());
-    return notificationsStore.refresh();
-  });
+  // The times are read against «now»; a wake-up moves it, no timer needed. The navigator's
+  // `useKeepUnreadFresh` refetches the feed on the same wake-up.
   useEffect(() => {
     const sub = AppState.addEventListener('change', s => {
       if (s === 'active') setNow(new Date());
