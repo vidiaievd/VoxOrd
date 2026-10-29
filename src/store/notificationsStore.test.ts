@@ -289,9 +289,22 @@ describe('reads', () => {
     await store.flush();
     // The queued single read was replaced, never sent; read-all went out once it could.
     expect(api.markNotificationRead).toHaveBeenCalledTimes(1);
-    expect(api.markAllNotificationsRead).toHaveBeenLastCalledWith();
+    // Up to the newest row the learner had — a server time, not the press.
+    expect(api.markAllNotificationsRead).toHaveBeenLastCalledWith(
+      samplePage().items[0].createdAt,
+    );
     expect(store.pendingCount).toBe(0);
-    expect(store.getState().unreadCount).toBe(0);
+    // What arrived after the press stays unread once the server has it too (step 6d).
+    expect(store.getState().unreadCount).toBe(1);
+    expect(store.getState().items.find(n => n.id === 'n-later')!.read).toBe(false);
+  });
+
+  it('marks all read up to the press time when nothing is loaded', async () => {
+    api.getNotifications.mockRejectedValue(offline());
+    api.markAllNotificationsRead.mockResolvedValue(undefined);
+    await store.markAllRead(now);
+    await store.flush();
+    expect(api.markAllNotificationsRead).toHaveBeenLastCalledWith(now.toISOString());
   });
 });
 

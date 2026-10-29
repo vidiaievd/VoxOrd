@@ -334,6 +334,7 @@ describe('requests', () => {
     mockPost.mockResolvedValue(undefined);
     await markNotificationRead('n-1');
     await markAllNotificationsRead();
+    await markAllNotificationsRead('2026-10-29T12:00:00.000Z');
     expect(mockPost).toHaveBeenNthCalledWith(
       1,
       '/api/v1/notifications/n-1/read',
@@ -341,6 +342,11 @@ describe('requests', () => {
     expect(mockPost).toHaveBeenNthCalledWith(
       2,
       '/api/v1/notifications/read-all',
+    );
+    expect(mockPost).toHaveBeenNthCalledWith(
+      3,
+      '/api/v1/notifications/read-all',
+      { before: '2026-10-29T12:00:00.000Z' },
     );
   });
 });

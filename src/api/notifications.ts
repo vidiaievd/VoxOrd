@@ -472,9 +472,11 @@ export async function markNotificationRead(id: string): Promise<void> {
 }
 
 /**
- * Everything unread on the server, including what arrived after the screen loaded — the
- * service takes no `before` yet (backend step 6d). 204, no body.
+ * Everything unread on the server created at or before `before` (ISO) — the newest item the
+ * learner had, so what arrived after stays unread (backend step 6d). Without it: everything.
+ * 204, no body.
  */
-export async function markAllNotificationsRead(): Promise<void> {
-  await apiClient.post<void>(`${PATH}/read-all`);
+export async function markAllNotificationsRead(before?: string): Promise<void> {
+  if (before) await apiClient.post<void>(`${PATH}/read-all`, { before });
+  else await apiClient.post<void>(`${PATH}/read-all`);
 }

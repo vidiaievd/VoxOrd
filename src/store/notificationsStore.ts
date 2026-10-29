@@ -179,15 +179,23 @@ class NotificationsStore {
     this.flush().catch(() => undefined);
   }
 
-  /** Everything read: at once on the phone, then on the server. */
+  /**
+   * Everything read: at once on the phone, then on the server. «Everything» is up to the newest
+   * item the learner has — a server time, so a phone clock that runs ahead cannot swallow a
+   * notification that arrives meanwhile (backend step 6d). With nothing loaded, the press time.
+   */
   async markAllRead(now: Date = new Date()): Promise<void> {
     this.syncUser();
     const userId = this.userId;
     if (!userId) return;
     await this.loadOutbox();
+    const newest = this.feed.items.reduce<string | null>(
+      (at, n) => (at === null || n.createdAt > at ? n.createdAt : at),
+      null,
+    );
     this.outbox = [
       ...this.outbox.filter(e => e.userId !== userId),
-      { kind: 'readAll', at: now.toISOString(), userId },
+      { kind: 'readAll', at: newest ?? now.toISOString(), userId },
     ];
     await this.persistOutbox();
     this.flush().catch(() => undefined);
@@ -294,7 +302,7 @@ class NotificationsStore {
       if (entry.userId !== userId) continue;
       try {
         if (entry.kind === 'read') await markNotificationRead(entry.id);
-        else await markAllNotificationsRead();
+        else await markAllNotificationsRead(entry.at);
       } catch (e) {
         const status = e instanceof ApiError ? e.status : null;
         if (shouldRetry(status)) break;
@@ -420,11 +428,16 @@ export function appendPage(feed: Feed, page: NotificationsPage): Feed {
 /** The server has taken a read: the feed says so until the next page confirms it. */
 export function confirmRead(feed: Feed, entry: ReadEntry): Feed {
   if (entry.kind === 'readAll') {
-    // The server's read-all has no `before` (backend step 6d): it read everything, hidden too.
+    // The server read up to `at` (backend step 6d). Loaded rows after it stay unread; hidden
+    // ones are forgotten — the next page brings back any that came later.
+    const at = entry.at;
+    const items = feed.items.map(n =>
+      n.read || n.createdAt > at ? n : { ...n, read: true },
+    );
     return {
       ...feed,
-      items: feed.items.map(n => (n.read ? n : { ...n, read: true })),
-      serverUnread: 0,
+      items,
+      serverUnread: items.filter(n => !n.read).length,
       hiddenUnreadIds: [],
     };
   }
