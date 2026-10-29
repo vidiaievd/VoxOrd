@@ -13,3 +13,7 @@ export * from './Toast';
 export * from './AnswerFeedback';
 export * from './answerTone';
 export * from './ChoiceOption';
+export * from './SettingsGroup';
+export * from './SettingsRow';
+export * from './SubScreen';
+export * from './Toggle';
