@@ -532,7 +532,7 @@ function Navigator() {
         );
 
       case 'Notifications':
-        return <NotificationsScreen />;
+        return <NotificationsScreen onNavigate={navigateTo} />;
 
       case 'Submission':
         return (

@@ -43,6 +43,45 @@ export interface Translations {
     title: string;
     empty: string;
     emptyBody: string;
+    readAll: string;
+    filter: { all: string; work: string; course: string };
+    offline: string;
+    emptyFilter: string;
+    emptyWork: string;
+    emptyCourse: string;
+    loadError: string;
+    retry: string;
+    loadMore: string;
+    footer: string; // text before the link
+    footerLink: string;
+    unreadLabel: string;
+    openWork: string;
+    /** «on Monday» — the preposition is part of the word, it differs by language and day. */
+    weekday: {
+      mon: string;
+      tue: string;
+      wed: string;
+      thu: string;
+      fri: string;
+      sat: string;
+      sun: string;
+    };
+    row: {
+      workFallback: string;
+      passed: string; // '{title}'
+      returned: string; // '{title}'
+      passedItems: string; // '{approved}' '{total}'
+      score: string; // '{percent}'
+      returnedHint: string;
+      hasComment: string;
+      class: string; // '{weekday}' '{time}'
+      exam: string; // '{weekday}' '{time}'
+      classRange: string; // '{start}' '{end}'
+      enrollmentApproved: string;
+      enrollmentRejected: string;
+      groupJoined: string;
+      groupJoinedNamed: string; // '{group}'
+    };
   };
 
   /** Home — «Today»: carry on with a course, review what is due, open another course. */
