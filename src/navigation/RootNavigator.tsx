@@ -8,6 +8,8 @@ import { NotificationsScreen } from '../screens/NotificationsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { CardScreen } from '../screens/CardScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
+import { AccountScreen } from '../screens/AccountScreen';
+import { AppLanguageScreen } from '../screens/AppLanguageScreen';
 import { ModeSelector } from '../screens/LearningScreen/ModeSelector';
 import { MatchingExercise } from '../screens/LearningScreen/exercises/MatchingExercise';
 import { QuizExercise } from '../screens/LearningScreen/exercises/QuizExercise';
@@ -471,8 +473,24 @@ function Navigator() {
         );
 
       case 'Settings':
-        return <SettingsScreen onBack={goBack} />;
+        return (
+          <SettingsScreen
+            onBack={goBack}
+            onOpenLanguage={() => navigateTo({ name: 'AppLanguage' })}
+            onOpenAccount={() => navigateTo({ name: 'Account' })}
+          />
+        );
 
+      case 'AppLanguage':
+        return <AppLanguageScreen onBack={goBack} />;
+
+      case 'Account':
+        return <AccountScreen onBack={goBack} />;
+
+      // Built in plan 07 steps 5–6; nothing links here yet, so Profile stands in.
+      case 'EditName':
+      case 'Subscription':
+      case 'School':
       case 'Profile':
         return <ProfileScreen onOpenSettings={() => navigateTo({ name: 'Settings' })} />;
 

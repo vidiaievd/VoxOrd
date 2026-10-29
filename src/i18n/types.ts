@@ -405,6 +405,20 @@ export interface Translations {
     apiBaseUrl: string;
     apiBaseUrlSave: string;
     apiBaseUrlSaved: string;
+    notificationsGroup: string;
+    dailyGoal: string;
+    minutesValue: string;
+    translationLanguage: string;
+    autoplayAudio: string;
+    reviewReminder: string;
+    reviewReminderEvery: string;
+    reviewReminderTime: string;
+    notifWork: string;
+    notifSchool: string;
+    downloadAhead: string;
+    wifiOnly: string;
+    onThisPhone: string;
+    appLanguage: string;
   };
 
   courses: {

@@ -30,6 +30,18 @@ export interface AppSettings {
   offlineMediaOnCellular: boolean;
   /** The size of a text in the reader. */
   readerFontSize: ReaderFontSize;
+  /** Words are spoken when a card or a word list shows them. */
+  autoplayAudio: boolean;
+  // Account-level preferences. Kept on the phone until `accountPrefsStore` (plan 07, step 8)
+  // gives them a home on the server.
+  dailyGoalMin: number;
+  /** Language word translations are shown in; `null` follows the interface language. */
+  translationLanguage: LanguageCode | null;
+  notifReviewReminder: boolean;
+  /** «HH:mm», local time. */
+  notifReviewReminderTime: string;
+  notifWork: boolean;
+  notifSchool: boolean;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -44,6 +56,13 @@ const DEFAULT_SETTINGS: AppSettings = {
   offlineUnitsAhead: 2,
   offlineMediaOnCellular: false,
   readerFontSize: 17,
+  autoplayAudio: true,
+  dailyGoalMin: 10,
+  translationLanguage: null,
+  notifReviewReminder: false,
+  notifReviewReminderTime: '19:00',
+  notifWork: true,
+  notifSchool: true,
 };
 
 const storage = createAsyncStorage('voxord_settings');

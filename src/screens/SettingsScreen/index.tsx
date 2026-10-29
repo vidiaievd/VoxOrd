@@ -1,84 +1,57 @@
 import React from 'react';
-import { ScrollView, View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LanguageSection } from './sections/LanguageSection';
-import { AppearanceSection } from './sections/AppearanceSection';
-import { LearningSection } from './sections/LearningSection';
-import { StatisticsSection } from './sections/StatisticsSection';
-import { AccountSection } from './sections/AccountSection';
-import { OfflineSection } from './sections/OfflineSection';
-import { DeveloperSection } from './sections/DeveloperSection';
-import { SettingsSection } from './components/SettingsSection';
-import { SettingsRow } from './components/SettingsRow';
+import { SettingsGroup, SettingsRow, SubScreen } from '../../components/ui';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
-import { ColorScheme } from '../../theme/colors';
-import { NavHeader } from '../../components/ui';
+import { AboutGroup } from './sections/AboutGroup';
+import { AppearanceGroup } from './sections/AppearanceGroup';
+import { DeveloperSection } from './sections/DeveloperSection';
+import { LearningGroup } from './sections/LearningGroup';
+import { NotificationsGroup } from './sections/NotificationsGroup';
+import { OfflineGroup } from './sections/OfflineGroup';
 
-/** `onBack`: Settings opened from Profile, with the way back to it in a header. */
-export function SettingsScreen({ onBack }: { onBack?: () => void } = {}) {
+interface SettingsScreenProps {
+  onBack: () => void;
+  onOpenLanguage: () => void;
+  onOpenAccount: () => void;
+}
+
+/** Settings (Profile §6.3): device and account preferences, nested under the Profile tab. */
+export function SettingsScreen({
+  onBack,
+  onOpenLanguage,
+  onOpenAccount,
+}: SettingsScreenProps) {
   const { t } = useTranslation();
-
   const { colors } = useTheme();
-  const styles = makeStyles(colors);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      {onBack && <NavHeader parentLabel={t('nav.profile')} onBack={onBack} />}
-      <View style={styles.header}>
-        <Text style={styles.title}>{t('settings.title')}</Text>
-      </View>
-
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: colors.bg }}
+      edges={['top']}
+    >
+      <SubScreen
+        backLabel={t('nav.profile')}
+        onBack={onBack}
+        title={t('settings.title')}
       >
-        <StatisticsSection />
-        <LanguageSection />
-        <AppearanceSection />
-        <LearningSection />
-        <AccountSection />
-        <OfflineSection />
-        <DeveloperSection />
-
-        <SettingsSection title={t('settings.about')}>
+        {/* Temporary: the Profile root takes over the way into Account in step 5. */}
+        <SettingsGroup>
           <SettingsRow
+            isFirst
             type="navigate"
-            icon="ℹ️"
-            label={t('settings.version')}
-            badge="1.0.0"
-            onPress={() => {}}
+            icon="UserCircle"
+            label={t('settings.account')}
+            onPress={onOpenAccount}
           />
-          <SettingsRow
-            type="navigate"
-            icon="💬"
-            label={t('settings.feedback')}
-            onPress={() => {}}
-            isLast
-          />
-        </SettingsSection>
-      </ScrollView>
+        </SettingsGroup>
+        <LearningGroup />
+        <NotificationsGroup />
+        <OfflineGroup />
+        <AppearanceGroup onOpenLanguage={onOpenLanguage} />
+        <AboutGroup />
+        {__DEV__ ? <DeveloperSection /> : null}
+      </SubScreen>
     </SafeAreaView>
   );
 }
-
-const makeStyles = (colors: ColorScheme) =>
-  StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    header: {
-      paddingHorizontal: 24,
-      paddingTop: 8,
-      paddingBottom: 16,
-    },
-    title: {
-      fontSize: 28,
-      fontWeight: '800',
-      color: colors.textPrimary,
-    },
-    scroll: {
-      paddingBottom: 32,
-    },
-  });

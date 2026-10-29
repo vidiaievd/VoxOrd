@@ -1,33 +1,35 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { useTranslation } from '../../../i18n';
-import { SettingsSection } from '../components/SettingsSection';
-import { SettingsRow } from '../components/SettingsRow';
+import { SettingsGroup, SettingsRow } from '../../../components/ui';
 import { useAuth } from '../../../hooks/useAuth';
 import { useSettings } from '../../../hooks/useSettings';
+import { useTranslation } from '../../../i18n';
 import { useModal } from '../../../providers/ModalProvider';
 import { courseDownloader } from '../../../services/courseDownload';
 import { mediaCache } from '../../../services/mediaCache';
 import { ALL_UNITS, settingsStore } from '../../../store/settingsStore';
+import {
+  formatBytes,
+  settingFromWifiOnly,
+  wifiOnlyFromSetting,
+} from '../settingsModel';
 
 const UNITS_AHEAD_OPTIONS = [1, 2, 3, 5, ALL_UNITS];
 
 function formatTime(ms: number): string {
   const d = new Date(ms);
   const pad = (n: number) => String(n).padStart(2, '0');
-  return `${pad(d.getDate())}.${pad(d.getMonth() + 1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${pad(d.getDate())}.${pad(d.getMonth() + 1)} ${pad(
+    d.getHours(),
+  )}:${pad(d.getMinutes())}`;
 }
 
 /**
- * Downloading the courses for use without the network (offline plan, B3): how far ahead, whether
- * media may use mobile data, when it last ran and how much the media take. The download runs by
- * itself when the connection comes back; «download now» is for the learner about to leave it.
+ * Downloading the courses for use without the network (offline plan, B3): how far ahead,
+ * whether media may use mobile data, when it last ran and how much the media take. The
+ * download runs by itself when the connection comes back; «download now» is for the learner
+ * about to leave it.
  */
-export function OfflineSection() {
+export function OfflineGroup() {
   const { t } = useTranslation();
   const settings = useSettings();
   const { show } = useModal();
@@ -61,30 +63,36 @@ export function OfflineSection() {
   const downloadValue = status.running
     ? t('settings.offlineDownloading')
     : status.lowStorage
-      ? t('settings.offlineLowStorage')
-      : status.lastFinishedAt !== null
-        ? formatTime(status.lastFinishedAt)
-        : t('settings.offlineNever');
+    ? t('settings.offlineLowStorage')
+    : status.lastFinishedAt !== null
+    ? formatTime(status.lastFinishedAt)
+    : t('settings.offlineNever');
 
   /** A changed window or allowance is worth acting on at once, not at the next sync. */
   const downloadNow = () => {
     // Offline there is nothing to download from; the rows still say what is kept.
     if (offline) return;
-    void courseDownloader.run(true).catch(e => console.warn('[CourseDownload] failed:', e));
+    void courseDownloader
+      .run(true)
+      .catch(e => console.warn('[CourseDownload] failed:', e));
   };
 
   return (
-    <SettingsSection title={t('settings.offline')}>
+    <SettingsGroup title={t('settings.offline')}>
       <SettingsRow
-        type="select"
-        icon="📚"
-        label={t('settings.offlineUnitsAhead')}
+        isFirst
+        type="navigate"
+        icon="CloudArrowDown"
+        label={t('settings.downloadAhead')}
         value={unitsLabel(settings.offlineUnitsAhead)}
         onPress={() =>
           show({
             type: 'picker',
-            title: t('settings.offlineUnitsAhead'),
-            options: UNITS_AHEAD_OPTIONS.map(n => ({ value: n, label: unitsLabel(n) })),
+            title: t('settings.downloadAhead'),
+            options: UNITS_AHEAD_OPTIONS.map(n => ({
+              value: n,
+              label: unitsLabel(n),
+            })),
             current: settings.offlineUnitsAhead,
             onSelect: async v => {
               await settingsStore.set('offlineUnitsAhead', v);
@@ -96,17 +104,18 @@ export function OfflineSection() {
       />
       <SettingsRow
         type="toggle"
-        icon="📶"
-        label={t('settings.offlineMediaOnCellular')}
-        value={settings.offlineMediaOnCellular}
-        onChange={async on => {
-          await settingsStore.set('offlineMediaOnCellular', on);
-          if (on) downloadNow();
+        icon="WifiHigh"
+        label={t('settings.wifiOnly')}
+        value={wifiOnlyFromSetting(settings.offlineMediaOnCellular)}
+        onChange={async wifiOnly => {
+          const cellular = settingFromWifiOnly(wifiOnly);
+          await settingsStore.set('offlineMediaOnCellular', cellular);
+          if (cellular) downloadNow();
         }}
       />
       <SettingsRow
-        type="select"
-        icon="⬇️"
+        type="navigate"
+        icon="DownloadSimple"
         label={t('settings.offlineDownload')}
         value={downloadValue}
         onPress={() => {
@@ -114,9 +123,9 @@ export function OfflineSection() {
         }}
       />
       <SettingsRow
-        type="select"
-        icon="🗑️"
-        label={t('settings.offlineMediaClear')}
+        type="navigate"
+        icon="DeviceMobile"
+        label={t('settings.onThisPhone')}
         value={mediaBytes === null ? '—' : formatBytes(mediaBytes)}
         onPress={() =>
           show({
@@ -130,8 +139,7 @@ export function OfflineSection() {
             },
           })
         }
-        isLast
       />
-    </SettingsSection>
+    </SettingsGroup>
   );
 }

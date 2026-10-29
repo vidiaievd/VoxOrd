@@ -123,7 +123,12 @@ export type Screen =
        */
       origin?: 'unit' | 'practice';
     }
-  | { name: 'Settings' };
+  | { name: 'Settings' }
+  | { name: 'AppLanguage' }
+  | { name: 'Account' }
+  | { name: 'EditName' }
+  | { name: 'Subscription' }
+  | { name: 'School'; schoolId: string; groupId?: string };
 
 /**
  * Where «Back» leads from each screen — the on-screen arrow and the phone's own Back button
@@ -150,7 +155,14 @@ export function backTarget(screen: Screen): Screen | null {
     case 'Submission':
       return screen.returnTo ?? { name: 'Notifications' };
     case 'Settings':
+    case 'Account':
+    case 'Subscription':
+    case 'School':
       return { name: 'Profile' };
+    case 'AppLanguage':
+      return { name: 'Settings' };
+    case 'EditName':
+      return { name: 'Account' };
     case 'CourseHome':
       return { name: 'Courses' };
     case 'CatalogCourse':
@@ -160,7 +172,9 @@ export function backTarget(screen: Screen): Screen | null {
     case 'SchoolPublic':
       return screen.returnTo;
     case 'UnitContents':
-      return screen.returnTo ?? { name: 'CourseHome', courseId: screen.courseId };
+      return (
+        screen.returnTo ?? { name: 'CourseHome', courseId: screen.courseId }
+      );
     case 'LessonReader':
     case 'GrammarRuleReader':
       if (screen.returnTo) return screen.returnTo;
@@ -252,6 +266,11 @@ const WITH_TAB_BAR: ReadonlySet<Screen['name']> = new Set<Screen['name']>([
   'Notifications',
   'Profile',
   'Settings',
+  'AppLanguage',
+  'Account',
+  'EditName',
+  'Subscription',
+  'School',
 ]);
 
 export function showsTabBar(screen: Screen): boolean {
