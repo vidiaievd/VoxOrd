@@ -65,6 +65,8 @@ export const en: Translations = {
       score: 'Score: {percent}%.',
       returnedHint: 'Fix it and submit again.',
       hasComment: 'Your teacher left feedback.',
+      aiReviewed: 'Checked by AI: {title}',
+      aiPassed: 'Passed.',
       class: 'Class {weekday}, {time}',
       exam: 'Exam {weekday}, {time}',
       classRange: '{start}–{end}',

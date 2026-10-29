@@ -1,4 +1,7 @@
-import type { NotificationItem } from '../../api/notifications';
+import type {
+  NotificationItem,
+  SubmissionParams,
+} from '../../api/notifications';
 import type { IconName } from '../../components/ui/Icon';
 
 type T = (path: string, vars?: Record<string, string | number>) => string;
@@ -11,6 +14,19 @@ export interface RowText {
 }
 
 const WEEKDAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
+
+/** «Принято 3 из 5.», else «Результат: 80%.», else nothing — a pass's one line of facts. */
+function passedLine(p: SubmissionParams, t: T): string | null {
+  // A submission with nothing readable reports 0 of 0 — not worth saying.
+  if (p.approvedItems !== null && p.totalItems !== null && p.totalItems > 0)
+    return t('notifications.row.passedItems', {
+      approved: p.approvedItems,
+      total: p.totalItems,
+    });
+  if (p.score !== null)
+    return t('notifications.row.score', { percent: Math.round(p.score) });
+  return null;
+}
 
 /**
  * The words of one row (Notifications §5.2), built from the item's facts in the reader's
@@ -26,19 +42,8 @@ export function describeNotification(item: NotificationItem, t: T): RowText {
         p.title ?? p.courseTitle ?? t('notifications.row.workFallback');
       const lines: string[] = [];
       if (passed) {
-        if (p.approvedItems !== null && p.totalItems !== null)
-          lines.push(
-            t('notifications.row.passedItems', {
-              approved: p.approvedItems,
-              total: p.totalItems,
-            }),
-          );
-        else if (p.score !== null)
-          lines.push(
-            t('notifications.row.score', {
-              percent: Math.round(p.score * 100),
-            }),
-          );
+        const facts = passedLine(p, t);
+        if (facts) lines.push(facts);
       } else {
         lines.push(t('notifications.row.returnedHint'));
       }
@@ -52,6 +57,21 @@ export function describeNotification(item: NotificationItem, t: T): RowText {
           },
         ),
         body: lines.length ? lines.join(' ') : null,
+      };
+    }
+    case 'ai_reviewed': {
+      // The spec's body is the model's summary; that text never leaves the engine, so the
+      // row says which way it went and the mark, and the work itself holds the review.
+      const p = item.params;
+      const facts = p.passed
+        ? passedLine(p, t) ?? t('notifications.row.aiPassed')
+        : t('notifications.row.returnedHint');
+      return {
+        icon: 'Sparkle',
+        title: t('notifications.row.aiReviewed', {
+          title: p.title ?? p.courseTitle ?? t('notifications.row.workFallback'),
+        }),
+        body: facts,
       };
     }
     case 'class_scheduled': {

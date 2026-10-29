@@ -37,13 +37,46 @@ describe('adaptNotification', () => {
       params: {
         title: 'Beskriv bildet',
         courseTitle: 'Ny i Norge A2',
-        score: 1,
+        score: 100,
         hasComment: true,
         approvedItems: null,
         totalItems: null,
       },
       target: { kind: 'submission', submissionId: 'att-1', exerciseId: 'ex-1' },
     });
+  });
+
+  it('maps a model\'s verdict to ai_reviewed under «work», with its outcome and the work as target', () => {
+    const item = adaptNotification(row('n-ai'))!;
+    expect(item).toEqual({
+      id: 'n-ai',
+      createdAt: row('n-ai').createdAt,
+      read: true,
+      type: 'ai_reviewed',
+      params: {
+        title: 'Min familie',
+        courseTitle: 'Ny i Norge A2',
+        score: 85,
+        hasComment: false,
+        approvedItems: null,
+        totalItems: null,
+        passed: true,
+      },
+      target: { kind: 'submission', submissionId: 'att-3', exerciseId: 'ex-3' },
+    });
+    expect(matchesFilter(item, 'work')).toBe(true);
+    expect(matchesFilter(item, 'course')).toBe(false);
+    const returned = adaptNotification({
+      ...row('n-ai'),
+      templateData: { ...row('n-ai').templateData, outcome: 'returned' },
+    })!;
+    expect(returned.params).toMatchObject({ passed: false });
+    expect(
+      adaptNotification({
+        ...row('n-ai'),
+        templateData: { ...row('n-ai').templateData, outcome: 'pending' },
+      }),
+    ).toBeNull();
   });
 
   it('maps a returned review to submission_returned, keeping the item counts', () => {
@@ -53,7 +86,7 @@ describe('adaptNotification', () => {
       title: 'En e-post til sjefen',
       approvedItems: 2,
       totalItems: 5,
-      score: 0.4,
+      score: 40,
     });
   });
 
@@ -178,6 +211,7 @@ describe('parseNotificationsPage', () => {
     expect(page.items.map(n => n.id)).toEqual([
       'n-passed',
       'n-returned',
+      'n-ai',
       'n-class',
       'n-group',
       'n-approved',
@@ -206,8 +240,8 @@ describe('matchesFilter', () => {
       .map(n => n.id);
 
   it('splits the feed into work and courses & school', () => {
-    expect(ids('all')).toHaveLength(6);
-    expect(ids('work')).toEqual(['n-passed', 'n-returned']);
+    expect(ids('all')).toHaveLength(7);
+    expect(ids('work')).toEqual(['n-passed', 'n-returned', 'n-ai']);
     expect(ids('course')).toEqual([
       'n-class',
       'n-group',

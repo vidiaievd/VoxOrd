@@ -73,6 +73,8 @@ export const ru: Translations = {
       score: 'Результат: {percent}%.',
       returnedHint: 'Нужно исправить и сдать снова.',
       hasComment: 'Есть отзыв преподавателя.',
+      aiReviewed: 'Проверено ИИ: {title}',
+      aiPassed: 'Зачтено.',
       class: 'Занятие {weekday}, {time}',
       exam: 'Экзамен {weekday}, {time}',
       classRange: '{start}–{end}',

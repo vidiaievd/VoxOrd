@@ -74,6 +74,8 @@ export interface Translations {
       score: string; // '{percent}'
       returnedHint: string;
       hasComment: string;
+      aiReviewed: string;
+      aiPassed: string;
       class: string; // '{weekday}' '{time}'
       exam: string; // '{weekday}' '{time}'
       classRange: string; // '{start}' '{end}'

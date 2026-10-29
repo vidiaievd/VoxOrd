@@ -86,7 +86,7 @@ describe('loading', () => {
 
     const s = store.getState();
     expect(s.status).toBe('ready');
-    expect(s.items).toHaveLength(6);
+    expect(s.items).toHaveLength(7);
     // 5 on the server, of which the nudge and the teacher row are hidden… and the odd
     // outcome — 3 hidden unread; the learner sees 2 unread rows.
     expect(s.unreadCount).toBe(2);
@@ -99,7 +99,7 @@ describe('loading', () => {
     boot();
     await store.hydrate();
     expect(store.getState().status).toBe('ready');
-    expect(store.getState().items).toHaveLength(6);
+    expect(store.getState().items).toHaveLength(7);
     expect(api.getNotifications).not.toHaveBeenCalled();
   });
 
@@ -112,7 +112,7 @@ describe('loading', () => {
     api.getNotifications.mockRejectedValueOnce(offline());
     await store.refresh();
     expect(store.getState()).toMatchObject({ status: 'ready', offline: true });
-    expect(store.getState().items).toHaveLength(6);
+    expect(store.getState().items).toHaveLength(7);
 
     await store.refresh();
     expect(store.getState().offline).toBe(false);
@@ -156,8 +156,8 @@ describe('loading', () => {
     expect(api.getNotifications).toHaveBeenLastCalledWith('n-odd-outcome');
     const s = store.getState();
     expect(s.pageStatus).toBe('idle');
-    expect(s.items.map(n => n.id)).toHaveLength(7);
-    expect(s.items[6].id).toBe('n-older');
+    expect(s.items.map(n => n.id)).toHaveLength(8);
+    expect(s.items[7].id).toBe('n-older');
     expect(s.hasMore).toBe(false);
   });
 
@@ -320,7 +320,7 @@ describe('learners', () => {
 
     auth.setSignedIn(LEARNER);
     await store.hydrate();
-    expect(store.getState().items).toHaveLength(6);
+    expect(store.getState().items).toHaveLength(7);
     await store.flush();
     expect(api.markNotificationRead).toHaveBeenCalledWith('n-passed');
   });

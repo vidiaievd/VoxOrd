@@ -73,6 +73,8 @@ export const uk: Translations = {
       score: 'Результат: {percent}%.',
       returnedHint: 'Потрібно виправити й здати знову.',
       hasComment: 'Є відгук викладача.',
+      aiReviewed: 'Перевірено ШІ: {title}',
+      aiPassed: 'Зараховано.',
       class: 'Заняття {weekday}, {time}',
       exam: 'Іспит {weekday}, {time}',
       classRange: '{start}–{end}',

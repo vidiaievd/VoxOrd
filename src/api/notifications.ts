@@ -16,10 +16,13 @@ import { isRecord, isString, stringOrNull } from './guards';
  *   ENROLLMENT_APPROVED   → enrollment_approved   ┐ the learner's own school news, under
  *   ENROLLMENT_REJECTED   → enrollment_rejected   │ «Courses & school», no target until the
  *   GROUP_ASSIGNED        → group_joined          ┘ phone has a school screen (owner, 2026-10-29)
+ *   AI_REVIEWED           → ai_reviewed (a model's verdict closed the work — at once, or at the
+ *                           school's term; backend step 6a). Never a summary: the review's text
+ *                           stays in the engine, so the row says the outcome and the mark
  * Anything else — teacher and admin types, the teacher's nudge (STUDY_REMINDER, hidden by the
  * owner's decision), a type added upstream later, an outcome nobody knows — is dropped, with a
- * `__DEV__` log. The spec's `ai_reviewed`, `assignment_new`, `class_changed` and
- * `materials_new` arrive with backend step 6, each with its row here.
+ * `__DEV__` log. The spec's `ai_reviewed`, `assignment_new`, `class_changed` The spec's `assignment_new`, `class_changed` and `materials_new`
+ * arrive with the rest of backend step 6, each with its row here.
  * ────────────────────────────────────────────────────────────────────── */
 
 export type NotificationType =
@@ -28,7 +31,8 @@ export type NotificationType =
   | 'class_scheduled'
   | 'enrollment_approved'
   | 'enrollment_rejected'
-  | 'group_joined';
+  | 'group_joined'
+  | 'ai_reviewed';
 
 /** The screen's segment (Notifications §4.3). */
 export type NotificationFilter = 'all' | 'work' | 'course';
@@ -42,12 +46,17 @@ export interface SubmissionParams {
   /** The exercise as it read when started, else its module or course; null on older work. */
   title: string | null;
   courseTitle: string | null;
-  /** 0..1 as the engine reports it; null when the work has no mark. */
+  /** 0–100, an integer as the engine marks it; null when the work has no mark. */
   score: number | null;
   /** A teacher wrote something — in general or on a single sentence. */
   hasComment: boolean;
   approvedItems: number | null;
   totalItems: number | null;
+}
+
+/** A model's verdict — the submission's facts plus which way it went (one type, two outcomes). */
+export interface AiReviewParams extends SubmissionParams {
+  passed: boolean;
 }
 
 export interface ClassParams {
@@ -79,6 +88,11 @@ export type NotificationItem = Base &
         params: SubmissionParams;
         target: Extract<NotificationTarget, { kind: 'submission' }>;
       }
+    | {
+        type: 'ai_reviewed';
+        params: AiReviewParams;
+        target: Extract<NotificationTarget, { kind: 'submission' }>;
+      }
     | { type: 'class_scheduled'; params: ClassParams; target: { kind: 'none' } }
     | {
         type: 'enrollment_approved' | 'enrollment_rejected' | 'group_joined';
@@ -106,6 +120,7 @@ const FILTER_OF: Record<
 > = {
   submission_passed: 'work',
   submission_returned: 'work',
+  ai_reviewed: 'work',
   class_scheduled: 'course',
   enrollment_approved: 'course',
   enrollment_rejected: 'course',
@@ -140,12 +155,8 @@ function skip(reason: string, raw: unknown): null {
   return null;
 }
 
-function submission(
-  id: string,
-  createdAt: string,
-  read: boolean,
-  data: Record<string, unknown>,
-) {
+/** The facts both a teacher's and a model's verdict carry; null when the row is not one. */
+function verdict(data: Record<string, unknown>) {
   const outcome = data.outcome;
   if (outcome !== 'approved' && outcome !== 'returned')
     return skip(`outcome ${String(outcome)}`, data);
@@ -153,28 +164,58 @@ function submission(
     return skip('attempt without ids', data);
   const path = isRecord(data.exercisePath) ? data.exercisePath : null;
   const courseTitle = stringOrNull(path?.course);
+  const params: SubmissionParams = {
+    title:
+      stringOrNull(path?.exercise) ?? stringOrNull(path?.module) ?? courseTitle,
+    courseTitle,
+    score: numberOrNull(data.score),
+    // Older rows (before plan 47) carry only `comment`; a model's never has one.
+    hasComment: data.hasComment === true || isString(data.comment),
+    approvedItems: numberOrNull(data.approvedItems),
+    totalItems: numberOrNull(data.totalItems),
+  };
+  const target = {
+    kind: 'submission' as const,
+    submissionId: data.attemptId,
+    exerciseId: data.exerciseId,
+  };
+  return { passed: outcome === 'approved', params, target };
+}
+
+function submission(
+  id: string,
+  createdAt: string,
+  read: boolean,
+  data: Record<string, unknown>,
+) {
+  const v = verdict(data);
+  if (!v) return null;
   const item: NotificationItem = {
     id,
     createdAt,
     read,
-    type: outcome === 'approved' ? 'submission_passed' : 'submission_returned',
-    params: {
-      title:
-        stringOrNull(path?.exercise) ??
-        stringOrNull(path?.module) ??
-        courseTitle,
-      courseTitle,
-      score: numberOrNull(data.score),
-      // Older rows (before plan 47) carry only `comment`.
-      hasComment: data.hasComment === true || isString(data.comment),
-      approvedItems: numberOrNull(data.approvedItems),
-      totalItems: numberOrNull(data.totalItems),
-    },
-    target: {
-      kind: 'submission',
-      submissionId: data.attemptId,
-      exerciseId: data.exerciseId,
-    },
+    type: v.passed ? 'submission_passed' : 'submission_returned',
+    params: v.params,
+    target: v.target,
+  };
+  return item;
+}
+
+function aiReview(
+  id: string,
+  createdAt: string,
+  read: boolean,
+  data: Record<string, unknown>,
+) {
+  const v = verdict(data);
+  if (!v) return null;
+  const item: NotificationItem = {
+    id,
+    createdAt,
+    read,
+    type: 'ai_reviewed',
+    params: { ...v.params, passed: v.passed },
+    target: v.target,
   };
   return item;
 }
@@ -253,6 +294,8 @@ export function adaptNotification(raw: unknown): NotificationItem | null {
   switch (raw.type) {
     case 'ATTEMPT_REVIEWED':
       return submission(raw.id, raw.createdAt, read, data);
+    case 'AI_REVIEWED':
+      return aiReview(raw.id, raw.createdAt, read, data);
     case 'LESSON_REMINDER':
       return lesson(raw.id, raw.createdAt, read, data);
     case 'ENROLLMENT_APPROVED':

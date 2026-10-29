@@ -38,7 +38,7 @@ describe('describeNotification', () => {
   });
 
   it('falls back to the score, then to the course title, then to a plain word', () => {
-    expect(describeNotification(sub({ score: 0.756 }), tIn('ru')).body).toBe(
+    expect(describeNotification(sub({ score: 76 }), tIn('ru')).body).toBe(
       'Результат: 76%.',
     );
     expect(
@@ -48,6 +48,35 @@ describe('describeNotification', () => {
     const bare = describeNotification(sub({ title: null }), tIn('uk'));
     expect(bare.title).toBe('Зараховано: робота');
     expect(bare.body).toBeNull();
+  });
+
+  it('says nothing of 0 of 0 accepted — falls to the score', () => {
+    expect(
+      describeNotification(
+        sub({ approvedItems: 0, totalItems: 0, score: 80 }),
+        tIn('en'),
+      ).body,
+    ).toBe('Score: 80%.');
+  });
+
+  it('words a model\'s verdict with its mark, or a plain pass, or the resubmission hint', () => {
+    const ai = (over: Partial<SubmissionParams> & { passed: boolean }) =>
+      ({
+        ...sub(over),
+        type: 'ai_reviewed',
+        params: { ...sub(over).params, passed: over.passed },
+      } as NotificationItem);
+    const scored = describeNotification(ai({ passed: true, score: 85 }), tIn('ru'));
+    expect(scored.icon).toBe('Sparkle');
+    expect(scored.title).toBe('Проверено ИИ: Beskriv bildet');
+    expect(scored.body).toBe('Результат: 85%.');
+    expect(describeNotification(ai({ passed: true }), tIn('en')).body).toBe('Passed.');
+    expect(
+      describeNotification(ai({ passed: false, title: null }), tIn('uk')),
+    ).toMatchObject({
+      title: 'Перевірено ШІ: робота',
+      body: 'Потрібно виправити й здати знову.',
+    });
   });
 
   it('asks for a resubmission on returned work', () => {
