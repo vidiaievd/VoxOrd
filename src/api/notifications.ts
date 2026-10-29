@@ -91,8 +91,13 @@ export interface NotificationsPage {
   items: NotificationItem[];
   /** The id to ask for the next page with; null on the last one. */
   nextCursor: string | null;
-  /** Unread across the whole feed, as the server counts it — the tab badge's number. */
+  /**
+   * Unread across the whole feed, as the server counts it — hidden types included, so the
+   * badge subtracts `hiddenUnreadIds` it has seen.
+   */
   unreadCount: number;
+  /** Unread rows of this page the phone does not show (the teacher's nudge, a teacher type). */
+  hiddenUnreadIds: string[];
 }
 
 const FILTER_OF: Record<
@@ -269,12 +274,19 @@ export function parseNotificationsPage(raw: unknown): NotificationsPage | null {
     typeof raw.unreadCount !== 'number'
   )
     return null;
+  const items: NotificationItem[] = [];
+  const hiddenUnreadIds: string[] = [];
+  for (const row of raw.items) {
+    const item = adaptNotification(row);
+    if (item) items.push(item);
+    else if (isRecord(row) && isString(row.id) && row.isRead === false)
+      hiddenUnreadIds.push(row.id);
+  }
   return {
-    items: raw.items
-      .map(adaptNotification)
-      .filter((n): n is NotificationItem => n !== null),
+    items,
     nextCursor: stringOrNull(raw.nextCursor),
     unreadCount: Math.max(0, raw.unreadCount),
+    hiddenUnreadIds,
   };
 }
 

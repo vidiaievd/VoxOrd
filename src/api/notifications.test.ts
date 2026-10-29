@@ -185,6 +185,11 @@ describe('parseNotificationsPage', () => {
     ]);
     expect(page.unreadCount).toBe(5);
     expect(page.nextCursor).toBe('n-odd-outcome');
+    expect(page.hiddenUnreadIds).toEqual([
+      'n-nudge',
+      'n-teacher',
+      'n-odd-outcome',
+    ]);
   });
 
   it('answers null for something that is not a page', () => {
