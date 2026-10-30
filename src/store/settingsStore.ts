@@ -1,5 +1,6 @@
 import { createAsyncStorage } from '@react-native-async-storage/async-storage';
 import { LanguageCode } from '../db/types';
+import type { UiLanguagePref } from '../i18n/uiLanguage';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 export type CardMode = 'flip' | 'pronunciation' | 'writing' | 'test';
@@ -13,7 +14,12 @@ export type ReaderFontSize = (typeof READER_FONT_SIZES)[number];
 export const ALL_UNITS = -1;
 
 export interface AppSettings {
-  uiLanguage: LanguageCode;
+  /**
+   * The interface language as chosen; read it through `useUiLanguage()` /
+   * `currentUiLanguage()`, which turn «as on the phone» into a language. Fresh installs
+   * start on `'system'`; a value saved by an older build (always a language) is kept.
+   */
+  uiLanguage: UiLanguagePref;
   learningLanguage: string;
   theme: ThemeMode;
   cardModes: CardMode[];
@@ -45,7 +51,7 @@ export interface AppSettings {
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
-  uiLanguage: 'ru',
+  uiLanguage: 'system',
   learningLanguage: 'no',
   theme: 'system',
   cardModes: ['flip'],
@@ -112,7 +118,8 @@ class SettingsStore {
     return () => this.listeners.delete(listener);
   }
 
-  private notify(): void {
+  /** Tell listeners something they derive from settings changed — the phone's language. */
+  notify(): void {
     this.listeners.forEach(l => l());
   }
 }

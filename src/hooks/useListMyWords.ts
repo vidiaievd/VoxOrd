@@ -3,7 +3,7 @@ import { getVocabularyList, formatTranslation, type VocabularyItemDisplay } from
 import { deleteMyWord, listMyWords, type PersonalWord } from '../api/personalVocabulary';
 import { wordCaptureQueueStore } from '../store/wordCaptureQueueStore';
 import { removeMyWord, syncMyWords } from '../lib/myWordsSync';
-import { useSettings } from './useSettings';
+import { useUiLanguage } from '../i18n';
 
 /** A word of the list that is in «My words»; `null` while its server entry is not known (added offline). */
 type Entries = Map<string, PersonalWord | null>;
@@ -31,7 +31,7 @@ export function useListMyWords(
   listId: string,
   items: readonly VocabularyItemDisplay[],
 ): ListMyWords {
-  const { uiLanguage } = useSettings();
+  const uiLanguage = useUiLanguage();
   const [targetLanguage, setTargetLanguage] = useState<string | null>(null);
   const [entries, setEntries] = useState<Entries>(new Map());
   // Own words the student took out in this visit — they are still marked `personal` in the list.

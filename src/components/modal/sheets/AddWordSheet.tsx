@@ -14,8 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../../providers/ThemeProvider';
 import { ColorScheme } from '../../../theme/colors';
-import { useTranslation } from '../../../i18n';
-import { useSettings } from '../../../hooks/useSettings';
+import { useTranslation, useUiLanguage } from '../../../i18n';
 import {
   lookupWord,
   type LookupWordResponse,
@@ -56,7 +55,7 @@ export function AddWordSheet({
 }: AddWordSheetProps) {
   const { colors } = useTheme();
   const { t } = useTranslation();
-  const { uiLanguage } = useSettings();
+  const uiLanguage = useUiLanguage();
   const styles = makeStyles(colors);
   // The app draws edge to edge: without this the sheet's last button sits under the
   // phone's navigation bar.

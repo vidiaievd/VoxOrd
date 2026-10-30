@@ -5,7 +5,7 @@ import {
   vocabularyImportRepository,
   type ImportResult,
 } from '../repositories/VocabularyImportRepository';
-import { useSettings } from './useSettings';
+import { useUiLanguage } from '../i18n';
 
 export interface VocabularyImportState {
   /** Null until the local lookup finishes; true when this list is already a deck. */
@@ -22,7 +22,7 @@ export interface VocabularyImportState {
  * CEFR level — absent from the reader payload) is fetched here.
  */
 export function useVocabularyImport(listId: string): VocabularyImportState {
-  const { uiLanguage } = useSettings();
+  const uiLanguage = useUiLanguage();
   const [alreadyImported, setAlreadyImported] = useState<boolean | null>(null);
   const [status, setStatus] = useState<'idle' | 'running' | 'done' | 'error'>('idle');
   const [result, setResult] = useState<ImportResult | null>(null);

@@ -419,6 +419,11 @@ export interface Translations {
     wifiOnly: string;
     onThisPhone: string;
     appLanguage: string;
+    /** «As on the phone»: the interface follows the phone's language. */
+    appLanguageSystem: string;
+    appLanguageNote: string;
+    /** A language's name in the interface language — the line under its endonym. */
+    languageNames: { ru: string; uk: string; en: string };
   };
 
   courses: {

@@ -19,7 +19,7 @@ import { Button, Card, Icon, useToast } from '../../components/ui';
 import { useAuth } from '../../hooks/useAuth';
 import { useSettings } from '../../hooks/useSettings';
 import { useSwrResource } from '../../hooks/useSwrResource';
-import { useTranslation } from '../../i18n';
+import { useTranslation, useUiLanguage } from '../../i18n';
 import { courseHomeResource } from '../../lib/courseResources';
 import type { Screen } from '../../navigation/screens';
 import { useTheme } from '../../providers/ThemeProvider';
@@ -51,7 +51,8 @@ export function AssistantScreen({ route, onBack, onNavigate }: AssistantScreenPr
   const { t } = useTranslation();
   const { colors, typography } = useTheme();
   const toast = useToast();
-  const { uiLanguage, learningLanguage } = useSettings();
+  const { learningLanguage } = useSettings();
+  const uiLanguage = useUiLanguage();
   const { offline: sessionOffline } = useAuth();
   const net = useNetInfo();
   const offline = sessionOffline || net.isConnected === false;

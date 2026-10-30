@@ -4,7 +4,7 @@ import { isNetworkError } from '../api/isNetworkError';
 import { getContainer, getMyCourses, type CourseListItem } from '../api/courses';
 import type { Container, UnitContentsItem, UnitSummary } from '../api/types';
 import { getVocabularyList, type VocabularyListReaderContent } from '../api/vocabulary';
-import { translate } from '../i18n';
+import { currentUiLanguage, translate } from '../i18n';
 import {
   courseHomeResource,
   exerciseDisplayResource,
@@ -514,7 +514,7 @@ const runStorage = createAsyncStorage('voxord_course_download');
 
 export const courseDownloader = new CourseDownloader({
   getUserId: () => authStore.getState().user?.id ?? null,
-  getUiLanguage: () => settingsStore.getAll().uiLanguage,
+  getUiLanguage: currentUiLanguage,
   getUnitsAhead: () => settingsStore.getAll().offlineUnitsAhead,
   mediaAllowed: async () => {
     if (settingsStore.getAll().offlineMediaOnCellular) return true;

@@ -6,7 +6,7 @@ import { useCourseReviewSets } from './useCourseReviewSets';
 import { useGrammarDue, type GrammarDue } from './useGrammarDue';
 import { useMistakes } from './useMistakes';
 import type { MergedMistakes } from '../lib/mistakes';
-import { useSettings } from './useSettings';
+import { useUiLanguage } from '../i18n';
 
 export interface MyWordsSummary {
   total: number;
@@ -55,7 +55,7 @@ export function orderDecks(decks: readonly Deck[]): Deck[] {
  * section — no part waits for another, and none forces a sync on the root.
  */
 export function usePracticeHome(): PracticeHome {
-  const { uiLanguage } = useSettings();
+  const uiLanguage = useUiLanguage();
   const sets = useCourseReviewSets();
   const [decks, setDecks] = useState<Part<Deck[]>>({ status: 'loading' });
   const [myWords, setMyWords] = useState<Part<MyWordsSummary>>({ status: 'loading' });

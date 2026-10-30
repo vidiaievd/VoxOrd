@@ -417,6 +417,10 @@ export const uk: Translations = {
     wifiOnly: 'Лише через Wi-Fi',
     onThisPhone: 'На телефоні',
     appLanguage: 'Мова застосунку',
+    appLanguageSystem: 'Як у телефоні',
+    appLanguageNote:
+      'Змінюється лише мова інтерфейсу. Мова курсу та переклад слів налаштовуються окремо.',
+    languageNames: { ru: 'Російська', uk: 'Українська', en: 'Англійська' },
   },
   courses: {
     title: 'Курси',

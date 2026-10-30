@@ -409,6 +409,10 @@ export const en: Translations = {
     wifiOnly: 'Wi-Fi only',
     onThisPhone: 'On this phone',
     appLanguage: 'App language',
+    appLanguageSystem: 'As on the phone',
+    appLanguageNote:
+      'Only the interface language changes. The course language and word translations are set separately.',
+    languageNames: { ru: 'Russian', uk: 'Ukrainian', en: 'English' },
   },
   courses: {
     title: 'Courses',

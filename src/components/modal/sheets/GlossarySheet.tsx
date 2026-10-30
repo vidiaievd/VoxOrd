@@ -3,8 +3,7 @@ import { Animated, Easing, Modal, PanResponder, Pressable, Text, View } from 're
 import Tts from 'react-native-tts';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../../providers/ThemeProvider';
-import { useTranslation } from '../../../i18n';
-import { useSettings } from '../../../hooks/useSettings';
+import { useTranslation, useUiLanguage } from '../../../i18n';
 import type { ReaderGlossaryEntry } from '../../../api/lessons';
 import {
   deleteMyWord,
@@ -47,7 +46,7 @@ const SWIPE_CLOSE = 80;
 export function GlossarySheet({ visible, entry, capture, onClose }: GlossarySheetProps) {
   const { colors, typography } = useTheme();
   const { t } = useTranslation();
-  const { uiLanguage } = useSettings();
+  const uiLanguage = useUiLanguage();
   // The app draws edge to edge: without this the sheet's last button sits under the
   // phone's navigation bar.
   const insets = useSafeAreaInsets();

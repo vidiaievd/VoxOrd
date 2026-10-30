@@ -1,8 +1,7 @@
 import React from 'react';
 import { Text, View } from 'react-native';
 import { Icon, PressableScale } from '../../components/ui';
-import { useSettings } from '../../hooks/useSettings';
-import { useTranslation } from '../../i18n';
+import { useTranslation, useUiLanguage } from '../../i18n';
 import type { MistakeRowData } from '../../lib/mistakes';
 import { useTheme } from '../../providers/ThemeProvider';
 import { radii } from '../../theme/spacing';
@@ -23,7 +22,7 @@ function calendarDaysBetween(at: Date, now: Date): number {
 export function MistakeRow({ row, onPress }: { row: MistakeRowData; onPress: () => void }) {
   const { t } = useTranslation();
   const { colors, typography } = useTheme();
-  const { uiLanguage } = useSettings();
+  const uiLanguage = useUiLanguage();
 
   const at = new Date(row.attemptedAt);
   const days = calendarDaysBetween(at, new Date());

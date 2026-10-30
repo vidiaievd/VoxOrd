@@ -15,11 +15,10 @@ import ReanimatedSwipeable, {
 } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { SessionHeader } from '../../components/practice';
 import { Button, Icon, Overline, Skeleton, Tag } from '../../components/ui';
-import { useTranslation } from '../../i18n';
+import { useTranslation, useUiLanguage } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { useModal } from '../../providers/ModalProvider';
 import { radii } from '../../theme/spacing';
-import { useSettings } from '../../hooks/useSettings';
 import {
   deleteMyWord,
   updateMyWord,
@@ -45,7 +44,7 @@ type Load =
 export function MyWordsScreen({ onBack }: MyWordsScreenProps) {
   const { t } = useTranslation();
   const { colors, typography } = useTheme();
-  const { uiLanguage } = useSettings();
+  const uiLanguage = useUiLanguage();
   const { show } = useModal();
   const [load, setLoad] = useState<Load>({ status: 'loading' });
   const [refreshing, setRefreshing] = useState(false);

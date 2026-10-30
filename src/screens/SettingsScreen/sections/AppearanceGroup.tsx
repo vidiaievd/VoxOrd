@@ -1,14 +1,12 @@
 import React from 'react';
 import { SettingsGroup, SettingsRow } from '../../../components/ui';
 import { useSettings } from '../../../hooks/useSettings';
-import { useTranslation } from '../../../i18n';
+import {
+  UI_LANGUAGE_ENDONYMS,
+  isUiLanguage,
+  useTranslation,
+} from '../../../i18n';
 import { settingsStore, ThemeMode } from '../../../store/settingsStore';
-
-const UI_LANGUAGE_NAMES = {
-  ru: 'Русский',
-  uk: 'Українська',
-  en: 'English',
-} as const;
 
 export function AppearanceGroup({
   onOpenLanguage,
@@ -17,9 +15,9 @@ export function AppearanceGroup({
 }) {
   const { t } = useTranslation();
   const settings = useSettings();
-  const language =
-    UI_LANGUAGE_NAMES[settings.uiLanguage as keyof typeof UI_LANGUAGE_NAMES] ??
-    settings.uiLanguage;
+  const language = isUiLanguage(settings.uiLanguage)
+    ? UI_LANGUAGE_ENDONYMS[settings.uiLanguage]
+    : t('settings.appLanguageSystem');
 
   return (
     <SettingsGroup title={t('settings.appearance')}>

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useTranslation } from '../../i18n';
+import { useTranslation, useUiLanguage } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { useModal } from '../../providers/ModalProvider';
 import { useLessonReader } from '../../hooks/useLessonReader';
@@ -91,7 +91,7 @@ export function LessonReaderScreen({
   );
 
   // Words added while offline go out when a text is opened with a connection again.
-  const { uiLanguage } = useSettings();
+  const uiLanguage = useUiLanguage();
   useEffect(() => {
     wordCaptureQueueStore
       .flush()

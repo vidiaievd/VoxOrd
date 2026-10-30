@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import type { VocabularyListReaderContent } from '../api/vocabulary';
 import { vocabularyListResource } from '../lib/courseResources';
-import { useSettings } from './useSettings';
+import { useUiLanguage } from '../i18n';
 import { useSwrResource } from './useSwrResource';
 
 export interface VocabularyListState {
@@ -27,7 +27,7 @@ export interface VocabularyListState {
  * mirroring the course-home cache's same limitation.
  */
 export function useVocabularyList(listId: string): VocabularyListState {
-  const { uiLanguage } = useSettings();
+  const uiLanguage = useUiLanguage();
   const resource = useMemo(
     () => vocabularyListResource(listId, uiLanguage),
     [listId, uiLanguage],

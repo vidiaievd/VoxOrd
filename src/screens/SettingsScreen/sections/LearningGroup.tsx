@@ -1,7 +1,7 @@
 import React from 'react';
 import { SettingsGroup, SettingsRow } from '../../../components/ui';
 import { useSettings } from '../../../hooks/useSettings';
-import { useTranslation } from '../../../i18n';
+import { useTranslation, useUiLanguage } from '../../../i18n';
 import { useModal } from '../../../providers/ModalProvider';
 import { LanguageCode } from '../../../db/types';
 import { settingsStore } from '../../../store/settingsStore';
@@ -19,9 +19,10 @@ export function LearningGroup() {
   const { t } = useTranslation();
   const settings = useSettings();
   const { show } = useModal();
+  const uiLanguage = useUiLanguage();
   const translation = resolveTranslationLanguage(
     settings.translationLanguage,
-    settings.uiLanguage,
+    uiLanguage,
   );
   const hintLabel = {
     always: t('settings.spellingHintAlways'),

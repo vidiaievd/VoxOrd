@@ -39,3 +39,11 @@ jest.mock('react-native-linear-gradient', () => {
     default: props => React.createElement(View, { testID: 'linear-gradient', ...props }),
   };
 });
+
+// The phone's languages come from native code. Tests see a Russian phone unless they say
+// otherwise (`getLocales.mockReturnValue(...)`).
+jest.mock('react-native-localize', () => ({
+  getLocales: jest.fn(() => [
+    { languageCode: 'ru', countryCode: 'RU', languageTag: 'ru-RU', isRTL: false },
+  ]),
+}));
