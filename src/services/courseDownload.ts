@@ -94,7 +94,7 @@ export interface CourseDownloadDeps {
   getContainer(courseId: string): Promise<Container>;
   /** Writes a fetched value where the screen with this key will read it. */
   store(key: string, value: unknown): Promise<void>;
-  /** Puts a course vocabulary list into the phone's decks, unless it is there already. */
+  /** Puts a course vocabulary list into the phone's decks, unless it is there in this translation language. */
   importList(
     listId: string,
     reader: VocabularyListReaderContent,
@@ -549,12 +549,28 @@ export const courseDownloader = new CourseDownloader({
     await writeCacheSnapshot(key, value);
   },
   importList: async (listId, reader, translationLanguage) => {
-    if ((await vocabularyImportRepository.findDeckIdForList(listId)) !== null) return;
+    // A deck imported in another translation language is imported again: the upsert keeps the
+    // learner's progress and replaces the translations.
+    const langKey = `list-lang:${listId}`;
+    if ((await vocabularyImportRepository.findDeckIdForList(listId)) !== null) {
+      let recorded: string | null = null;
+      try {
+        recorded = await runStorage.getItem(langKey);
+      } catch {
+        // Unreadable marker: import again rather than keep stale translations.
+      }
+      if (recorded === translationLanguage) return;
+    }
     const list = await getVocabularyList(listId);
     const plan = buildImportPlan(list, reader, translationLanguage);
     await vocabularyImportRepository.importList(plan, {
       coursesGroupTitle: translate('vocabulary.coursesGroup'),
     });
+    try {
+      await runStorage.setItem(langKey, translationLanguage);
+    } catch {
+      // Without the marker the next walk imports once more; harmless.
+    }
   },
   media: {
     download: id => mediaCache.download(id),
