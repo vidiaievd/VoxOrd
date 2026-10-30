@@ -1,15 +1,19 @@
 import React from 'react';
 import { SettingsGroup, SettingsRow } from '../../../components/ui';
+import type { TranslationLanguage } from '../../../api/accountPrefs';
+import {
+  useAccountPrefs,
+  useTranslationLanguage,
+} from '../../../hooks/useAccountPrefs';
 import { useSettings } from '../../../hooks/useSettings';
-import { useTranslation, useUiLanguage } from '../../../i18n';
+import { useTranslation } from '../../../i18n';
 import { useModal } from '../../../providers/ModalProvider';
-import { LanguageCode } from '../../../db/types';
+import { accountPrefsStore } from '../../../store/accountPrefsStore';
 import { settingsStore } from '../../../store/settingsStore';
-import { resolveTranslationLanguage } from '../settingsModel';
 
 const GOAL_OPTIONS = [5, 10, 15, 20, 30];
 const SESSION_OPTIONS = [10, 20, 30, 50];
-const TRANSLATION_OPTIONS: { value: LanguageCode; label: string }[] = [
+const TRANSLATION_OPTIONS: { value: TranslationLanguage; label: string }[] = [
   { value: 'ru', label: 'Русский' },
   { value: 'uk', label: 'Українська' },
   { value: 'en', label: 'English' },
@@ -19,11 +23,9 @@ export function LearningGroup() {
   const { t } = useTranslation();
   const settings = useSettings();
   const { show } = useModal();
-  const uiLanguage = useUiLanguage();
-  const translation = resolveTranslationLanguage(
-    settings.translationLanguage,
-    uiLanguage,
-  );
+  // Goal and translation language are the learner's account's, shared by their devices.
+  const { dailyGoalMin } = useAccountPrefs();
+  const translation = useTranslationLanguage();
   const hintLabel = {
     always: t('settings.spellingHintAlways'),
     after_mistake: t('settings.spellingHintAfterMistake'),
@@ -37,7 +39,7 @@ export function LearningGroup() {
         type="navigate"
         icon="Target"
         label={t('settings.dailyGoal')}
-        value={t('settings.minutesValue', { n: settings.dailyGoalMin })}
+        value={t('settings.minutesValue', { n: dailyGoalMin })}
         onPress={() =>
           show({
             type: 'picker',
@@ -46,8 +48,8 @@ export function LearningGroup() {
               value: n,
               label: t('settings.minutesValue', { n }),
             })),
-            current: settings.dailyGoalMin,
-            onSelect: v => settingsStore.set('dailyGoalMin', v),
+            current: dailyGoalMin,
+            onSelect: v => accountPrefsStore.set('dailyGoalMin', v),
             closeLabel: t('common.close'),
           })
         }
@@ -66,7 +68,7 @@ export function LearningGroup() {
             title: t('settings.translationLanguage'),
             options: TRANSLATION_OPTIONS,
             current: translation,
-            onSelect: v => settingsStore.set('translationLanguage', v),
+            onSelect: v => accountPrefsStore.set('translationLanguage', v),
             closeLabel: t('common.close'),
           })
         }

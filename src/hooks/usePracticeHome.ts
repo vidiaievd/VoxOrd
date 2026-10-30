@@ -6,7 +6,7 @@ import { useCourseReviewSets } from './useCourseReviewSets';
 import { useGrammarDue, type GrammarDue } from './useGrammarDue';
 import { useMistakes } from './useMistakes';
 import type { MergedMistakes } from '../lib/mistakes';
-import { useUiLanguage } from '../i18n';
+import { useTranslationLanguage } from './useAccountPrefs';
 
 export interface MyWordsSummary {
   total: number;
@@ -55,7 +55,7 @@ export function orderDecks(decks: readonly Deck[]): Deck[] {
  * section — no part waits for another, and none forces a sync on the root.
  */
 export function usePracticeHome(): PracticeHome {
-  const uiLanguage = useUiLanguage();
+  const translationLanguage = useTranslationLanguage();
   const sets = useCourseReviewSets();
   const [decks, setDecks] = useState<Part<Deck[]>>({ status: 'loading' });
   const [myWords, setMyWords] = useState<Part<MyWordsSummary>>({ status: 'loading' });
@@ -76,7 +76,7 @@ export function usePracticeHome(): PracticeHome {
 
   useEffect(() => {
     let live = true;
-    listMyWords({ translationLanguage: uiLanguage })
+    listMyWords({ translationLanguage })
       .then(words => {
         if (!live) return;
         setMyWords({
@@ -91,7 +91,7 @@ export function usePracticeHome(): PracticeHome {
     return () => {
       live = false;
     };
-  }, [uiLanguage, nonce]);
+  }, [translationLanguage, nonce]);
 
   const { reload: reloadSets } = sets;
   const reload = useCallback(() => {

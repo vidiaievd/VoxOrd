@@ -3,7 +3,7 @@ import { getVocabularyList, formatTranslation, type VocabularyItemDisplay } from
 import { deleteMyWord, listMyWords, type PersonalWord } from '../api/personalVocabulary';
 import { wordCaptureQueueStore } from '../store/wordCaptureQueueStore';
 import { removeMyWord, syncMyWords } from '../lib/myWordsSync';
-import { useUiLanguage } from '../i18n';
+import { useTranslationLanguage } from './useAccountPrefs';
 
 /** A word of the list that is in «My words»; `null` while its server entry is not known (added offline). */
 type Entries = Map<string, PersonalWord | null>;
@@ -31,7 +31,7 @@ export function useListMyWords(
   listId: string,
   items: readonly VocabularyItemDisplay[],
 ): ListMyWords {
-  const uiLanguage = useUiLanguage();
+  const translationLanguage = useTranslationLanguage();
   const [targetLanguage, setTargetLanguage] = useState<string | null>(null);
   const [entries, setEntries] = useState<Entries>(new Map());
   // Own words the student took out in this visit — they are still marked `personal` in the list.
@@ -58,7 +58,7 @@ export function useListMyWords(
   useEffect(() => {
     if (!targetLanguage) return;
     let cancelled = false;
-    listMyWords({ translationLanguage: uiLanguage, targetLanguage })
+    listMyWords({ translationLanguage, targetLanguage })
       .then(words => {
         if (cancelled) return;
         const mine = new Set(items.map(i => i.itemId));
@@ -74,7 +74,7 @@ export function useListMyWords(
     return () => {
       cancelled = true;
     };
-  }, [targetLanguage, uiLanguage, items]);
+  }, [targetLanguage, translationLanguage, items]);
 
   const isMine = useCallback(
     (item: VocabularyItemDisplay) =>
@@ -91,7 +91,7 @@ export function useListMyWords(
       const translation = formatTranslation(item);
       const outcome = await wordCaptureQueueStore.submit({
         targetLanguage,
-        translationLanguage: uiLanguage,
+        translationLanguage,
         surfaceForm: item.word,
         ...(translation ? { translation } : {}),
       });
@@ -108,7 +108,7 @@ export function useListMyWords(
       });
       return true;
     },
-    [targetLanguage, uiLanguage],
+    [targetLanguage, translationLanguage],
   );
 
   const toggle = useCallback(
@@ -122,7 +122,7 @@ export function useListMyWords(
         capture(item)
           .then(ok => {
             if (ok) {
-              syncMyWords(uiLanguage).catch(() => undefined);
+              syncMyWords(translationLanguage).catch(() => undefined);
               return;
             }
             if (!mounted.current) return;
@@ -150,7 +150,7 @@ export function useListMyWords(
         if (mounted.current) setEntries(before);
       });
     },
-    [targetLanguage, entries, isMine, capture, uiLanguage],
+    [targetLanguage, entries, isMine, capture, translationLanguage],
   );
 
   const addAll = useCallback(async () => {
@@ -158,8 +158,8 @@ export function useListMyWords(
     for (const item of items) {
       if (!isMine(item)) await capture(item);
     }
-    syncMyWords(uiLanguage).catch(() => undefined);
-  }, [targetLanguage, items, isMine, capture, uiLanguage]);
+    syncMyWords(translationLanguage).catch(() => undefined);
+  }, [targetLanguage, items, isMine, capture, translationLanguage]);
 
   return { targetLanguage, isMine, mineCount, toggle, addAll };
 }

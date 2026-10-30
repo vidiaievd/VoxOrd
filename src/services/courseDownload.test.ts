@@ -67,6 +67,7 @@ function makeDeps(overrides: Partial<CourseDownloadDeps> = {}) {
   const deps: CourseDownloadDeps = {
     getUserId: () => 'user-1',
     getUiLanguage: () => 'ru',
+    getTranslationLanguage: () => 'ru',
     getUnitsAhead: () => 1,
     mediaAllowed: async () => true,
     freeBytes: async () => 10 * 1024 * 1024 * 1024,

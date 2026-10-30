@@ -1,13 +1,3 @@
-import { LanguageCode } from '../../db/types';
-
-/** The language word translations are shown in: the stored choice, else the interface language. */
-export function resolveTranslationLanguage(
-  stored: LanguageCode | null,
-  uiLanguage: LanguageCode,
-): LanguageCode {
-  return stored ?? uiLanguage;
-}
-
 /** Reminder times offered in the picker: every hour from 07:00 to 22:00. */
 export const REMINDER_TIMES = Array.from(
   { length: 16 },

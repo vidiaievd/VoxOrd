@@ -3,7 +3,8 @@ import { Animated, Easing, Modal, PanResponder, Pressable, Text, View } from 're
 import Tts from 'react-native-tts';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../../providers/ThemeProvider';
-import { useTranslation, useUiLanguage } from '../../../i18n';
+import { useTranslation } from '../../../i18n';
+import { useTranslationLanguage } from '../../../hooks/useAccountPrefs';
 import type { ReaderGlossaryEntry } from '../../../api/lessons';
 import {
   deleteMyWord,
@@ -46,7 +47,7 @@ const SWIPE_CLOSE = 80;
 export function GlossarySheet({ visible, entry, capture, onClose }: GlossarySheetProps) {
   const { colors, typography } = useTheme();
   const { t } = useTranslation();
-  const uiLanguage = useUiLanguage();
+  const translationLanguage = useTranslationLanguage();
   // The app draws edge to edge: without this the sheet's last button sits under the
   // phone's navigation bar.
   const insets = useSafeAreaInsets();
@@ -103,7 +104,7 @@ export function GlossarySheet({ visible, entry, capture, onClose }: GlossaryShee
     setMine({ state: 'unknown' });
     lookupWord({
       targetLanguage: capture.source.targetLanguage,
-      translationLanguage: uiLanguage,
+      translationLanguage,
       form: capture.surfaceForm,
     })
       .then(result => {
@@ -114,7 +115,7 @@ export function GlossarySheet({ visible, entry, capture, onClose }: GlossaryShee
     return () => {
       cancelled = true;
     };
-  }, [capture, uiLanguage]);
+  }, [capture, translationLanguage]);
 
   useEffect(() => () => void Tts.stop(), []);
 
@@ -135,7 +136,7 @@ export function GlossarySheet({ visible, entry, capture, onClose }: GlossaryShee
     const { source, surfaceForm } = capture;
     const outcome = await wordCaptureQueueStore.submit({
       targetLanguage: source.targetLanguage,
-      translationLanguage: uiLanguage,
+      translationLanguage,
       surfaceForm,
       ...(entry.translation ? { translation: entry.translation.text } : {}),
       ...(source.contextSentence ? { contextSentence: source.contextSentence } : {}),
@@ -144,7 +145,7 @@ export function GlossarySheet({ visible, entry, capture, onClose }: GlossaryShee
     });
     if (outcome.kind === 'saved') {
       setMine({ state: 'yes', word: outcome.response.word });
-      syncMyWords(uiLanguage).catch(() => undefined);
+      syncMyWords(translationLanguage).catch(() => undefined);
     } else if (outcome.kind === 'queued') {
       setMine({ state: 'queued' });
     } else {

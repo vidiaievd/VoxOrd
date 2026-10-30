@@ -5,6 +5,7 @@ import { getContainer, getMyCourses, type CourseListItem } from '../api/courses'
 import type { Container, UnitContentsItem, UnitSummary } from '../api/types';
 import { getVocabularyList, type VocabularyListReaderContent } from '../api/vocabulary';
 import { currentUiLanguage, translate } from '../i18n';
+import { currentTranslationLanguage } from '../lib/translationLanguage';
 import {
   courseHomeResource,
   exerciseDisplayResource,
@@ -72,9 +73,17 @@ export interface CourseRun {
   mediaDone: boolean;
 }
 
+/** The two languages a walk fetches in: interface (texts, exercises) and word translations. */
+interface Languages {
+  ui: string;
+  translation: string;
+}
+
 export interface CourseDownloadDeps {
   getUserId(): string | null;
   getUiLanguage(): string;
+  /** Word translations in vocabulary lists: the learner's choice, else the interface language. */
+  getTranslationLanguage(): string;
   /** Units to keep beyond the current one; `ALL_UNITS` for the whole course. */
   getUnitsAhead(): number;
   /** Whether media may be downloaded now — Wi-Fi, or the learner allowed mobile data. */
@@ -86,7 +95,11 @@ export interface CourseDownloadDeps {
   /** Writes a fetched value where the screen with this key will read it. */
   store(key: string, value: unknown): Promise<void>;
   /** Puts a course vocabulary list into the phone's decks, unless it is there already. */
-  importList(listId: string, reader: VocabularyListReaderContent, uiLanguage: string): Promise<void>;
+  importList(
+    listId: string,
+    reader: VocabularyListReaderContent,
+    translationLanguage: string,
+  ): Promise<void>;
   media: {
     download(id: string): Promise<boolean>;
     retainOnly(ids: Set<string>): Promise<void>;
@@ -232,7 +245,10 @@ export class CourseDownloader {
   private async walk(force: boolean, onlyCourse?: string): Promise<void> {
     const userId = this.deps.getUserId();
     if (!userId) return;
-    const uiLanguage = this.deps.getUiLanguage();
+    const langs: Languages = {
+      ui: this.deps.getUiLanguage(),
+      translation: this.deps.getTranslationLanguage(),
+    };
     const ahead = this.deps.getUnitsAhead();
     this.setStatus({ running: true });
     // Units this walk took on; whatever it leaves unfinished is closed in `finally`.
@@ -266,7 +282,7 @@ export class CourseDownloader {
           this.unitProgress.set(unit.id, { complete: false, items: {}, sizeBytes: null });
         }
         this.listeners.forEach(l => l());
-        const runKey = `${userId}:${container.id}:${uiLanguage}:${window.map(u => u.id).join(',')}`;
+        const runKey = `${userId}:${container.id}:${langs.ui}:${langs.translation}:${window.map(u => u.id).join(',')}`;
         const last = await this.deps.getRun(runKey);
         const fresh = last !== null && this.deps.now() - last.at < DOWNLOAD_INTERVAL_MS;
         if (!force && last !== null && fresh && (last.mediaDone || !mediaAllowed)) {
@@ -279,7 +295,7 @@ export class CourseDownloader {
           continue;
         }
 
-        const walked = await this.walkUnits(window, container.id, uiLanguage);
+        const walked = await this.walkUnits(window, container.id, langs);
         failed += walked.failed;
         walked.mediaIds.forEach(id => keep.add(id));
 
@@ -350,7 +366,7 @@ export class CourseDownloader {
   private async walkUnits(
     units: UnitSummary[],
     courseId: string,
-    uiLanguage: string,
+    langs: Languages,
   ): Promise<{ failed: number; mediaIds: Set<string>; mediaByUnit: Map<string, Set<string>> }> {
     let failed = 0;
     const mediaIds = new Set<string>();
@@ -389,7 +405,7 @@ export class CourseDownloader {
       const results = await mapLimit(items, CONCURRENCY, async item => {
         if (item.contentType === 'container') return true;
         this.setItemState(unit.id, item.id, 'downloading');
-        const ok = await this.fetchItem(item, courseId, uiLanguage, containerOf, unitMedia);
+        const ok = await this.fetchItem(item, courseId, langs, containerOf, unitMedia);
         this.setItemState(unit.id, item.id, ok ? 'done' : 'failed');
         return ok;
       });
@@ -402,7 +418,7 @@ export class CourseDownloader {
   private async fetchItem(
     item: UnitContentsItem,
     courseId: string,
-    uiLanguage: string,
+    { ui: uiLanguage, translation }: Languages,
     containerOf: (id: string) => Promise<Container>,
     mediaIds: Set<string>,
   ): Promise<boolean> {
@@ -434,10 +450,10 @@ export class CourseDownloader {
         return true;
       }
       case 'vocabulary_list': {
-        const reader = await this.fetch(vocabularyListResource(item.contentId, uiLanguage));
+        const reader = await this.fetch(vocabularyListResource(item.contentId, translation));
         if (!kept(reader)) return false;
         try {
-          await this.deps.importList(item.contentId, reader, uiLanguage);
+          await this.deps.importList(item.contentId, reader, translation);
         } catch (e) {
           if (isNetworkError(e)) throw new OfflineAbort();
           console.warn(`[CourseDownload] Importing list ${item.contentId} failed:`, e);
@@ -515,6 +531,7 @@ const runStorage = createAsyncStorage('voxord_course_download');
 export const courseDownloader = new CourseDownloader({
   getUserId: () => authStore.getState().user?.id ?? null,
   getUiLanguage: currentUiLanguage,
+  getTranslationLanguage: currentTranslationLanguage,
   getUnitsAhead: () => settingsStore.getAll().offlineUnitsAhead,
   mediaAllowed: async () => {
     if (settingsStore.getAll().offlineMediaOnCellular) return true;
@@ -531,10 +548,10 @@ export const courseDownloader = new CourseDownloader({
     setMemoryCache(key, value);
     await writeCacheSnapshot(key, value);
   },
-  importList: async (listId, reader, uiLanguage) => {
+  importList: async (listId, reader, translationLanguage) => {
     if ((await vocabularyImportRepository.findDeckIdForList(listId)) !== null) return;
     const list = await getVocabularyList(listId);
-    const plan = buildImportPlan(list, reader, uiLanguage);
+    const plan = buildImportPlan(list, reader, translationLanguage);
     await vocabularyImportRepository.importList(plan, {
       coursesGroupTitle: translate('vocabulary.coursesGroup'),
     });

@@ -14,7 +14,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../../providers/ThemeProvider';
 import { ColorScheme } from '../../../theme/colors';
-import { useTranslation, useUiLanguage } from '../../../i18n';
+import { useTranslation } from '../../../i18n';
+import { useTranslationLanguage } from '../../../hooks/useAccountPrefs';
 import {
   lookupWord,
   type LookupWordResponse,
@@ -55,7 +56,7 @@ export function AddWordSheet({
 }: AddWordSheetProps) {
   const { colors } = useTheme();
   const { t } = useTranslation();
-  const uiLanguage = useUiLanguage();
+  const translationLanguage = useTranslationLanguage();
   const styles = makeStyles(colors);
   // The app draws edge to edge: without this the sheet's last button sits under the
   // phone's navigation bar.
@@ -69,7 +70,7 @@ export function AddWordSheet({
     let cancelled = false;
     lookupWord({
       targetLanguage: source.targetLanguage,
-      translationLanguage: uiLanguage,
+      translationLanguage,
       form: surfaceForm,
     })
       .then(result => !cancelled && setLookup({ status: 'loaded', result }))
@@ -77,7 +78,7 @@ export function AddWordSheet({
     return () => {
       cancelled = true;
     };
-  }, [surfaceForm, source.targetLanguage, uiLanguage]);
+  }, [surfaceForm, source.targetLanguage, translationLanguage]);
 
   useEffect(() => {
     if (saving !== 'saved' && saving !== 'queued') return;
@@ -95,7 +96,7 @@ export function AddWordSheet({
     const own = translation.trim();
     const outcome = await wordCaptureQueueStore.submit({
       targetLanguage: source.targetLanguage,
-      translationLanguage: uiLanguage,
+      translationLanguage,
       surfaceForm,
       ...(own && !catalogTranslation ? { translation: own } : {}),
       ...(source.contextSentence
@@ -111,7 +112,7 @@ export function AddWordSheet({
     setSaving(outcome.kind === 'saved' ? 'saved' : outcome.kind);
     // A translated word goes into review and the «My words» deck straight away, not only
     // the next time that screen is opened. In the background: the sheet does not wait.
-    if (outcome.kind === 'saved') syncMyWords(uiLanguage).catch(() => undefined);
+    if (outcome.kind === 'saved') syncMyWords(translationLanguage).catch(() => undefined);
   };
 
   const headword = existing?.word ?? catalog?.word ?? surfaceForm;

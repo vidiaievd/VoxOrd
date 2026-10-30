@@ -7,7 +7,6 @@ import { AboutGroup } from './sections/AboutGroup';
 import { AppearanceGroup } from './sections/AppearanceGroup';
 import { DeveloperSection } from './sections/DeveloperSection';
 import { LearningGroup } from './sections/LearningGroup';
-import { NotificationsGroup } from './sections/NotificationsGroup';
 import { OfflineGroup } from './sections/OfflineGroup';
 
 interface SettingsScreenProps {
@@ -46,7 +45,8 @@ export function SettingsScreen({
           />
         </SettingsGroup>
         <LearningGroup />
-        <NotificationsGroup />
+        {/* `NotificationsGroup` stays out until the platform sends push: none of its
+            switches would change anything (plan 07, step 8). */}
         <OfflineGroup />
         <AppearanceGroup onOpenLanguage={onOpenLanguage} />
         <AboutGroup />

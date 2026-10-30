@@ -1,5 +1,4 @@
 import { createAsyncStorage } from '@react-native-async-storage/async-storage';
-import { LanguageCode } from '../db/types';
 import type { UiLanguagePref } from '../i18n/uiLanguage';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
@@ -38,11 +37,8 @@ export interface AppSettings {
   readerFontSize: ReaderFontSize;
   /** Words are spoken when a card or a word list shows them. */
   autoplayAudio: boolean;
-  // Account-level preferences. Kept on the phone until `accountPrefsStore` (plan 07, step 8)
-  // gives them a home on the server.
-  dailyGoalMin: number;
-  /** Language word translations are shown in; `null` follows the interface language. */
-  translationLanguage: LanguageCode | null;
+  // Notification choices: on the phone only, and their rows are hidden — the platform has no
+  // push yet (plan 07, step 8). Daily goal and translation language live in `accountPrefsStore`.
   notifReviewReminder: boolean;
   /** «HH:mm», local time. */
   notifReviewReminderTime: string;
@@ -63,8 +59,6 @@ const DEFAULT_SETTINGS: AppSettings = {
   offlineMediaOnCellular: false,
   readerFontSize: 17,
   autoplayAudio: true,
-  dailyGoalMin: 10,
-  translationLanguage: null,
   notifReviewReminder: false,
   notifReviewReminderTime: '19:00',
   notifWork: true,

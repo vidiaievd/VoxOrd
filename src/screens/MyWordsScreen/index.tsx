@@ -15,7 +15,8 @@ import ReanimatedSwipeable, {
 } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { SessionHeader } from '../../components/practice';
 import { Button, Icon, Overline, Skeleton, Tag } from '../../components/ui';
-import { useTranslation, useUiLanguage } from '../../i18n';
+import { useTranslation } from '../../i18n';
+import { useTranslationLanguage } from '../../hooks/useAccountPrefs';
 import { useTheme } from '../../providers/ThemeProvider';
 import { useModal } from '../../providers/ModalProvider';
 import { radii } from '../../theme/spacing';
@@ -44,7 +45,7 @@ type Load =
 export function MyWordsScreen({ onBack }: MyWordsScreenProps) {
   const { t } = useTranslation();
   const { colors, typography } = useTheme();
-  const uiLanguage = useUiLanguage();
+  const translationLanguage = useTranslationLanguage();
   const { show } = useModal();
   const [load, setLoad] = useState<Load>({ status: 'loading' });
   const [refreshing, setRefreshing] = useState(false);
@@ -53,7 +54,7 @@ export function MyWordsScreen({ onBack }: MyWordsScreenProps) {
     try {
       // Words tapped offline first, so they are in the list that comes back.
       await wordCaptureQueueStore.flush().catch(() => undefined);
-      const result = await syncMyWords(uiLanguage);
+      const result = await syncMyWords(translationLanguage);
       setLoad({
         status: 'loaded',
         words: result.words,
@@ -65,7 +66,7 @@ export function MyWordsScreen({ onBack }: MyWordsScreenProps) {
         message: e instanceof Error ? e.message : String(e),
       });
     }
-  }, [uiLanguage]);
+  }, [translationLanguage]);
 
   useEffect(() => {
     void reload();
@@ -245,7 +246,7 @@ export function MyWordsScreen({ onBack }: MyWordsScreenProps) {
                   >
                     <PendingRow
                       word={word}
-                      translationLanguage={uiLanguage}
+                      translationLanguage={translationLanguage}
                       onSaved={reload}
                       onDelete={() => handleDelete(word)}
                     />

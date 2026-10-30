@@ -1,7 +1,6 @@
 import {
   REMINDER_TIMES,
   formatBytes,
-  resolveTranslationLanguage,
   settingFromWifiOnly,
   wifiOnlyFromSetting,
 } from './settingsModel';
@@ -12,11 +11,6 @@ describe('settingsModel', () => {
     expect(wifiOnlyFromSetting(true)).toBe(false);
     expect(settingFromWifiOnly(true)).toBe(false);
     expect(settingFromWifiOnly(false)).toBe(true);
-  });
-
-  it('translation language follows the interface language until chosen', () => {
-    expect(resolveTranslationLanguage(null, 'uk')).toBe('uk');
-    expect(resolveTranslationLanguage('en', 'uk')).toBe('en');
   });
 
   it('offers hourly reminder times from 07:00 to 22:00', () => {
