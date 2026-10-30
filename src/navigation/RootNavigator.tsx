@@ -487,12 +487,19 @@ function Navigator() {
       case 'Account':
         return <AccountScreen onBack={goBack} />;
 
-      // Built in plan 07 steps 5–6; nothing links here yet, so Profile stands in.
+      // Built in plan 07 step 6; until then these routes show Profile.
       case 'EditName':
       case 'Subscription':
       case 'School':
       case 'Profile':
-        return <ProfileScreen onOpenSettings={() => navigateTo({ name: 'Settings' })} />;
+        return (
+          <ProfileScreen
+            onOpenSettings={() => navigateTo({ name: 'Settings' })}
+            onOpenAccount={() => navigateTo({ name: 'Account' })}
+            onOpenSubscription={() => navigateTo({ name: 'Subscription' })}
+            onOpenSchool={schoolId => navigateTo({ name: 'School', schoolId })}
+          />
+        );
 
       case 'Practice':
         return (

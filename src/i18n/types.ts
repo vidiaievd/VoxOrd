@@ -354,6 +354,31 @@ export interface Translations {
     };
   };
 
+  profile: {
+    viaEmail: string;
+    sub: {
+      kicker: string;
+      free: string;
+      trial: string;
+      until: string;
+      credits: string;
+      manage: string;
+      details: string;
+    };
+    schools: string;
+    schoolMeta: string;
+    schoolGroup: string;
+    schoolNoGroup: string;
+    progress: string;
+    skills: {
+      vocabulary: string;
+      grammar: string;
+      reading: string;
+      listening: string;
+      speaking: string;
+      writing: string;
+    };
+  };
   settings: {
     title: string;
     statistics: string;
