@@ -35,7 +35,7 @@ describe('ui primitives', () => {
     const tree = render(<Button label="Go" disabled onPress={onPress} />);
     const btn = tree.root.findByProps({ accessibilityRole: 'button' });
     expect(btn.props.accessibilityLabel).toBe('Go');
-    expect(btn.props.accessibilityState).toEqual({ disabled: true });
+    expect(btn.props.accessibilityState).toEqual({ disabled: true, busy: false });
     expect(btn.props.disabled).toBe(true);
     const inner = btn.findAll(n => n.props.style && flat(n)?.opacity === 0.45);
     expect(inner.length).toBeGreaterThan(0);

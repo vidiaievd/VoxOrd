@@ -1,113 +1,107 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { ColorScheme } from '../../theme/colors';
+import { Pressable, Text, View } from 'react-native';
 import { useTheme } from '../../providers/ThemeProvider';
 import { useTranslation } from '../../i18n';
+import { radii } from '../../theme/spacing';
+import { Icon } from '../../components/ui/Icon';
+import { Spinner } from '../../components/ui/Spinner';
+import { Tag, type TagVariant } from '../../components/ui/Tag';
 import type { UnitContentsItem } from '../../api/types';
+import { contentIcon } from './contentIcon';
 
 interface ContentItemRowProps {
   item: UnitContentsItem;
-  /** Lessons, exercises, vocabulary lists and grammar rules are all tappable. */
+  /** Opens the item; a locked item never calls it. */
   onPress?: () => void;
+  /** Tap on a locked row: the screen says why with a toast. */
+  onLockedPress?: () => void;
+  /** The material is being fetched for the phone (spinner), or could not be (crossed cloud). */
+  download?: 'fetching' | 'failed';
 }
 
-const ICON_BY_CONTENT_TYPE: Record<string, string> = {
-  lesson: '📖',
-  vocabulary_list: '🔤',
-  grammar_rule: '📐',
-  exercise: '✏️',
+const TAG_BY_STATUS: Record<UnitContentsItem['status'], TagVariant> = {
+  completed: 'neutral',
+  submitted: 'neutral',
+  in_progress: 'accent',
+  available: 'outline',
+  locked: 'neutral',
 };
 
-export function ContentItemRow({ item, onPress }: ContentItemRowProps) {
-  const { colors } = useTheme();
+/** «Text · 5 min», «Rule · mastery 40%» — the kind and what the payload knows about it. */
+function useMeta(item: UnitContentsItem): string {
   const { t } = useTranslation();
-  const styles = makeStyles(colors);
-  const locked = item.status === 'locked';
-
-  const badge = {
-    completed: { label: t('unitContents.statusCompleted'), color: colors.success },
-    submitted: { label: t('unitContents.statusSubmitted'), color: colors.textSecondary },
-    in_progress: { label: t('unitContents.statusInProgress'), color: colors.accent },
-    available: { label: t('unitContents.statusAvailable'), color: colors.textMuted },
-    locked: { label: t('unitContents.statusLocked'), color: colors.textMuted },
-  }[item.status];
-
-  const icon = ICON_BY_CONTENT_TYPE[item.contentType] ?? '📄';
-
-  const content = (
-    <>
-      <Text style={styles.icon}>{icon}</Text>
-      <View style={styles.info}>
-        <Text style={styles.title} numberOfLines={2}>
-          {item.title ?? t('unitContents.untitled')}
-        </Text>
-        {item.durationMinutes !== null && (
-          <Text style={styles.meta}>
-            {t('unitContents.duration', { minutes: item.durationMinutes })}
-          </Text>
-        )}
-        {item.contentType === 'grammar_rule' && item.masteryPercent !== null && (
-          <Text style={styles.meta}>
-            {t('unitContents.masteryPercent', { percent: item.masteryPercent })}
-          </Text>
-        )}
-      </View>
-      <View style={[styles.badge, { backgroundColor: `${badge.color}22` }]}>
-        <Text style={[styles.badgeText, { color: badge.color }]}>{badge.label}</Text>
-      </View>
-    </>
-  );
-
-  if (onPress && !locked) {
-    return (
-      <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.85}>
-        {content}
-      </TouchableOpacity>
-    );
+  const minutes = item.durationMinutes;
+  const withMinutes = (kind: string) =>
+    minutes === null ? kind : `${kind} · ${t('unitContents.duration', { minutes })}`;
+  switch (item.contentType) {
+    case 'lesson':
+      return withMinutes(
+        item.lessonKind === 'audio' ? t('unitContents.kindAudio') : t('unitContents.kindText'),
+      );
+    case 'vocabulary_list':
+      return t('unitContents.kindWords');
+    case 'grammar_rule':
+      return item.masteryPercent === null
+        ? t('unitContents.kindRule')
+        : t('unitContents.metaRule', { percent: item.masteryPercent });
+    case 'exercise':
+      return withMinutes(t('unitContents.kindExercise'));
+    default:
+      return '';
   }
-
-  return <View style={[styles.row, locked && styles.rowLocked]}>{content}</View>;
 }
 
-const makeStyles = (colors: ColorScheme) =>
-  StyleSheet.create({
-    row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: colors.backgroundCard,
-      borderRadius: 14,
-      padding: 12,
-      marginHorizontal: 16,
-      marginBottom: 8,
-    },
-    rowLocked: {
-      opacity: 0.6,
-    },
-    icon: {
-      fontSize: 20,
-      marginRight: 10,
-    },
-    info: {
-      flex: 1,
-      marginRight: 8,
-    },
-    title: {
-      fontSize: 14,
-      fontWeight: '700',
-      color: colors.textPrimary,
-    },
-    meta: {
-      fontSize: 12,
-      color: colors.textMuted,
-      marginTop: 2,
-    },
-    badge: {
-      borderRadius: 10,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-    },
-    badgeText: {
-      fontSize: 11,
-      fontWeight: '700',
-    },
-  });
+export function ContentItemRow({ item, onPress, onLockedPress, download }: ContentItemRowProps) {
+  const { colors, typography } = useTheme();
+  const { t } = useTranslation();
+  const locked = item.status === 'locked';
+  const active = item.status === 'in_progress';
+  const meta = useMeta(item);
+
+  const statusLabel = {
+    completed: t('unitContents.statusCompleted'),
+    submitted: t('unitContents.statusSubmitted'),
+    in_progress: t('unitContents.statusInProgress'),
+    available: t('unitContents.statusAvailable'),
+    locked: t('unitContents.statusLocked'),
+  }[item.status];
+  const title = item.title ?? t('unitContents.untitled');
+  const handler = locked ? onLockedPress : onPress;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${title}, ${statusLabel}`}
+      accessibilityState={{ disabled: locked && !onLockedPress }}
+      disabled={!handler}
+      onPress={handler}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        paddingVertical: 11,
+        paddingHorizontal: 12,
+        borderRadius: radii.plate,
+        borderWidth: 1,
+        borderColor: active ? colors.accent700 : 'transparent',
+        backgroundColor: pressed ? colors.neutral900 : colors.surface,
+        opacity: locked ? 0.6 : 1,
+      })}
+    >
+      <Icon name={contentIcon(item)} size={20} color={colors.neutral300} />
+      <View style={{ flex: 1 }}>
+        <Text style={[typography.body, { color: colors.text }]} numberOfLines={2}>
+          {title}
+        </Text>
+        {meta !== '' && (
+          <Text style={[typography.meta, { color: colors.neutral500 }]} numberOfLines={1}>
+            {meta}
+          </Text>
+        )}
+      </View>
+      {download === 'fetching' && <Spinner size={16} color={colors.neutral400} />}
+      {download === 'failed' && <Icon name="CloudSlash" size={16} color={colors.neutral500} />}
+      <Tag label={statusLabel} variant={TAG_BY_STATUS[item.status]} />
+    </Pressable>
+  );
+}

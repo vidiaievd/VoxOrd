@@ -246,7 +246,7 @@ export function ErrorCorrectionBody({
           spellCheck={false}
           returnKeyType="done"
           placeholder={isWord ? t('exerciseRunner.errorCorrection.strikePlaceholder') : ''}
-          placeholderTextColor={colors.textMuted}
+          placeholderTextColor={colors.neutral500}
         />
       </View>
     );
@@ -460,8 +460,8 @@ function CorrectionNote({ feedback }: { feedback: CorrectionSelfCheckItem }) {
   );
   const done = left === 0 && strayEdits === 0;
   return (
-    <View style={[styles.selfCheck, { borderColor: done ? colors.success : colors.backgroundPressed }]}>
-      <Text style={[styles.selfCheckHead, done && { color: colors.success }]}>{headline}</Text>
+    <View style={[styles.selfCheck, { borderColor: done ? colors.accentBase : colors.neutral800 }]}>
+      <Text style={[styles.selfCheckHead, done && { color: colors.accent300 }]}>{headline}</Text>
       {left > 0 ? (
         <Text style={styles.metaText}>
           {t('exerciseRunner.errorCorrection.selfCheck.remaining', { count: left })}
@@ -499,21 +499,21 @@ const makeStyles = (colors: ColorScheme) =>
     audio: { marginBottom: 14 },
     toFind: {
       fontSize: 13,
-      fontWeight: '700',
-      color: colors.accent,
+      fontWeight: '500',
+      color: colors.accentBase,
       marginBottom: 6,
     },
-    note: { fontSize: 13, color: colors.textSecondary, marginBottom: 8, lineHeight: 18 },
-    howTo: { fontSize: 13, color: colors.textMuted, marginBottom: 10, lineHeight: 18 },
-    progress: { fontSize: 12, color: colors.textMuted, marginBottom: 10 },
+    note: { fontSize: 13, color: colors.neutral400, marginBottom: 8, lineHeight: 18 },
+    howTo: { fontSize: 13, color: colors.neutral500, marginBottom: 10, lineHeight: 18 },
+    progress: { fontSize: 12, color: colors.neutral500, marginBottom: 10 },
     card: {
-      backgroundColor: colors.backgroundCard,
+      backgroundColor: colors.surface,
       borderRadius: 16,
       padding: 14,
       marginBottom: 12,
     },
     cardJoined: { marginTop: -8 },
-    number: { fontSize: 12, fontWeight: '700', color: colors.textMuted, marginBottom: 6 },
+    number: { fontSize: 12, fontWeight: '500', color: colors.neutral500, marginBottom: 6 },
     line: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', rowGap: 6 },
     word: {
       paddingHorizontal: 4,
@@ -523,38 +523,38 @@ const makeStyles = (colors: ColorScheme) =>
       minHeight: 32,
       justifyContent: 'center',
     },
-    wordActive: { backgroundColor: colors.accentLight },
-    wordText: { fontSize: 18, lineHeight: 24, color: colors.textPrimary },
+    wordActive: { backgroundColor: colors.accent900 },
+    wordText: { fontSize: 18, lineHeight: 24, color: colors.text },
     wordStruck: {
       fontSize: 18,
       lineHeight: 24,
-      color: colors.textMuted,
+      color: colors.neutral500,
       textDecorationLine: 'line-through',
     },
-    wordFixed: { fontSize: 18, lineHeight: 24, fontWeight: '700', color: colors.accent },
+    wordFixed: { fontSize: 18, lineHeight: 24, fontWeight: '500', color: colors.accentBase },
     insertChip: {
       paddingHorizontal: 8,
       paddingVertical: 4,
       marginRight: 4,
       borderRadius: 8,
-      backgroundColor: colors.accentLight,
+      backgroundColor: colors.accent900,
     },
-    insertChipText: { fontSize: 17, fontWeight: '700', color: colors.accent },
+    insertChipText: { fontSize: 17, fontWeight: '500', color: colors.accentBase },
     editor: {
       marginTop: 10,
       padding: 12,
       borderRadius: 12,
       borderWidth: 1.5,
-      borderColor: colors.accent,
-      backgroundColor: colors.backgroundInput,
+      borderColor: colors.accentBase,
+      backgroundColor: colors.surface,
       gap: 8,
     },
-    editorLabel: { fontSize: 12, fontWeight: '700', color: colors.textMuted },
+    editorLabel: { fontSize: 12, fontWeight: '500', color: colors.neutral500 },
     editorInput: {
       fontSize: 18,
-      color: colors.textPrimary,
+      color: colors.text,
       borderBottomWidth: 2,
-      borderColor: colors.accent,
+      borderColor: colors.accentBase,
       paddingVertical: 6,
     },
     editorRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
@@ -562,28 +562,29 @@ const makeStyles = (colors: ColorScheme) =>
       minWidth: 40,
       height: 36,
       borderRadius: 10,
-      backgroundColor: colors.backgroundPressed,
+      backgroundColor: colors.neutral800,
       alignItems: 'center',
       justifyContent: 'center',
       paddingHorizontal: 10,
     },
-    charKeyPressed: { backgroundColor: colors.accentLight },
-    charKeyText: { fontSize: 18, fontWeight: '600', color: colors.textPrimary },
+    charKeyPressed: { backgroundColor: colors.accent900 },
+    charKeyText: { fontSize: 18, fontWeight: '500', color: colors.text },
     primarySmall: {
-      backgroundColor: colors.accent,
+      borderWidth: 1,
+      borderColor: colors.accentBase,
       borderRadius: 10,
       paddingHorizontal: 14,
       paddingVertical: 9,
     },
-    primarySmallText: { fontSize: 14, fontWeight: '700', color: colors.textInverted },
+    primarySmallText: { fontSize: 14, fontWeight: '500', color: colors.accent300 },
     ghostSmall: {
       borderRadius: 10,
       borderWidth: 1.5,
-      borderColor: colors.backgroundPressed,
+      borderColor: colors.neutral800,
       paddingHorizontal: 12,
       paddingVertical: 8,
     },
-    ghostSmallText: { fontSize: 14, fontWeight: '600', color: colors.textSecondary },
+    ghostSmallText: { fontSize: 14, fontWeight: '500', color: colors.neutral400 },
     meta: {
       flexDirection: 'row',
       flexWrap: 'wrap',
@@ -592,9 +593,9 @@ const makeStyles = (colors: ColorScheme) =>
       rowGap: 4,
       marginTop: 10,
     },
-    metaText: { fontSize: 12, color: colors.textMuted },
-    link: { fontSize: 13, fontWeight: '600', color: colors.accent, paddingVertical: 4 },
+    metaText: { fontSize: 12, color: colors.neutral500 },
+    link: { fontSize: 13, fontWeight: '500', color: colors.accentBase, paddingVertical: 4 },
     selfCheck: { marginTop: 10, padding: 10, borderRadius: 12, borderWidth: 1.5, gap: 4 },
-    selfCheckHead: { fontSize: 13, fontWeight: '700', color: colors.textSecondary },
-    hint: { fontSize: 13, color: colors.textSecondary, lineHeight: 18, marginTop: 2 },
+    selfCheckHead: { fontSize: 13, fontWeight: '500', color: colors.neutral400 },
+    hint: { fontSize: 13, color: colors.neutral400, lineHeight: 18, marginTop: 2 },
   });

@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Icon } from '../../components/ui';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
@@ -268,7 +269,7 @@ export function ReadAloudBody({
     case 'opening':
       return (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.accent} />
+          <ActivityIndicator size="large" color={colors.accentBase} />
         </View>
       );
 
@@ -380,6 +381,7 @@ function ReaderCard({
   t: T;
   styles: Styles;
 }) {
+  const { colors } = useTheme();
   const mode =
     content.mode === 'read'
       ? t('exerciseRunner.readAloud.card.modeRead')
@@ -391,7 +393,7 @@ function ReaderCard({
     <View style={styles.card}>
       <View style={styles.cardHead}>
         <View style={styles.cardIcon}>
-          <Text style={styles.cardIconGlyph}>🎙</Text>
+          <Icon name="Microphone" size={18} color={colors.accent300} />
         </View>
         <View style={styles.flex}>
           <Text style={styles.title}>{title}</Text>
@@ -944,7 +946,7 @@ function RecorderCard({
           <Clock seconds={clockSeconds(state, prompt)} warn />
         ) : (
           <Text
-            style={[styles.countdown, { color: colors.warning }]}
+            style={[styles.countdown, { color: colors.neutral300 }]}
             accessibilityLiveRegion="assertive"
           >
             {Math.max(1, COUNTDOWN_SECONDS - state.t)}
@@ -975,7 +977,7 @@ function RecorderCard({
         <View style={styles.recHeadRow}>
           <View style={styles.liveHead}>
             <LiveDot />
-            <Text style={[styles.recHead, { color: colors.danger }]}>
+            <Text style={[styles.recHead, { color: colors.neutral400 }]}>
               {t('exerciseRunner.readAloud.rec.head')}
             </Text>
           </View>
@@ -1025,7 +1027,6 @@ function RecorderCard({
       <>
         <View style={styles.recHeadRow}>
           <Text style={styles.recHead}>
-            🎧{' '}
             {t('exerciseRunner.readAloud.idle.head', {
               n: own.length,
               total: rec.takes,
@@ -1130,7 +1131,7 @@ function RecorderCard({
         ) : (
           <View style={styles.msg}>
             <Text style={styles.msgText}>
-              🔒 {t('exerciseRunner.readAloud.spent', { count: rec.takes })}
+              {t('exerciseRunner.readAloud.spent', { count: rec.takes })}
             </Text>
           </View>
         )}
@@ -1428,7 +1429,7 @@ function AfterHandIn({
           <>
             <View style={styles.waitRow}>
               {slow ? null : (
-                <ActivityIndicator size="small" color={colors.accent} />
+                <ActivityIndicator size="small" color={colors.accentBase} />
               )}
               <Text style={[styles.sentText, styles.flex]}>
                 <Text style={styles.bold}>
@@ -1615,7 +1616,7 @@ const makeStyles = (colors: ColorScheme) =>
     col: { gap: 12 },
     flex: { flex: 1 },
     dim: { opacity: 0.45 },
-    bold: { fontWeight: '700' },
+    bold: { fontWeight: '500' },
     center: {
       alignItems: 'center',
       justifyContent: 'center',
@@ -1625,43 +1626,43 @@ const makeStyles = (colors: ColorScheme) =>
     },
     centerTitle: {
       fontSize: 16,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
       textAlign: 'center',
     },
     centerDesc: {
       fontSize: 13,
-      color: colors.textMuted,
+      color: colors.neutral500,
       textAlign: 'center',
       lineHeight: 19,
     },
     title: {
       fontSize: 16,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
     },
     sub: {
       fontSize: 13,
-      color: colors.textSecondary,
+      color: colors.neutral400,
       lineHeight: 18,
     },
     instruction: {
       fontSize: 15,
-      color: colors.textPrimary,
+      color: colors.text,
       lineHeight: 21,
     },
     mono: {
       fontFamily: 'monospace',
       fontSize: 11,
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     card: {
       gap: 12,
       padding: 16,
       borderRadius: 14,
       borderWidth: 1,
-      borderColor: colors.border,
-      backgroundColor: colors.backgroundCard,
+      borderColor: colors.neutral800,
+      backgroundColor: colors.surface,
     },
     cardHead: {
       flexDirection: 'row',
@@ -1672,11 +1673,10 @@ const makeStyles = (colors: ColorScheme) =>
       width: 40,
       height: 40,
       borderRadius: 20,
-      backgroundColor: colors.accentLight,
+      backgroundColor: colors.accent900,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    cardIconGlyph: { fontSize: 18 },
     runTop: { gap: 6 },
     progressRow: {
       flexDirection: 'row',
@@ -1687,48 +1687,48 @@ const makeStyles = (colors: ColorScheme) =>
       flex: 1,
       height: 4,
       borderRadius: 2,
-      backgroundColor: colors.border,
+      backgroundColor: colors.neutral800,
       overflow: 'hidden',
     },
     progressFill: {
       height: '100%',
-      backgroundColor: colors.accent,
+      backgroundColor: colors.accentBase,
     },
     guide: {
       gap: 4,
       padding: 12,
       borderRadius: 10,
-      backgroundColor: colors.backgroundInput,
+      backgroundColor: colors.surface,
     },
     carried: {
       gap: 4,
       padding: 12,
       borderRadius: 10,
       borderWidth: 1,
-      borderColor: colors.success,
-      backgroundColor: colors.backgroundInput,
+      borderColor: colors.accentBase,
+      backgroundColor: colors.surface,
     },
-    carriedTitle: { fontWeight: '700', color: colors.success },
-    carriedRow: { fontSize: 13, color: colors.success },
+    carriedTitle: { fontWeight: '500', color: colors.accent300 },
+    carriedRow: { fontSize: 13, color: colors.accent300 },
     promptLabel: {
       fontSize: 13,
-      fontWeight: '700',
-      color: colors.textSecondary,
+      fontWeight: '500',
+      color: colors.neutral400,
     },
     rec: {
       gap: 12,
       padding: 16,
       borderRadius: 12,
       borderWidth: 1,
-      borderColor: colors.border,
-      backgroundColor: colors.backgroundCard,
+      borderColor: colors.neutral800,
+      backgroundColor: colors.surface,
     },
     recLive: {
-      borderColor: colors.danger,
+      borderColor: colors.neutral600,
       borderWidth: 2,
     },
     recPrep: {
-      borderColor: colors.warning,
+      borderColor: colors.accent700,
       borderWidth: 2,
     },
     recHeadRow: {
@@ -1744,36 +1744,37 @@ const makeStyles = (colors: ColorScheme) =>
     },
     recHead: {
       fontSize: 11,
-      fontWeight: '700',
+      fontWeight: '500',
       letterSpacing: 1.2,
       textTransform: 'uppercase',
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     countdown: {
       fontFamily: 'monospace',
       fontSize: 28,
-      fontWeight: '700',
+      fontWeight: '500',
       textAlign: 'center',
     },
     clockSub: {
       fontSize: 12,
-      color: colors.textMuted,
+      color: colors.neutral500,
       textAlign: 'center',
     },
     limitTrack: {
       height: 4,
       borderRadius: 2,
-      backgroundColor: colors.border,
+      backgroundColor: colors.neutral800,
       overflow: 'hidden',
     },
     limitFill: {
       height: '100%',
-      backgroundColor: colors.danger,
+      backgroundColor: colors.neutral600,
     },
     recBtn: {
       minHeight: 52,
       borderRadius: 12,
-      backgroundColor: colors.danger,
+      borderWidth: 1,
+      borderColor: colors.accentBase,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
@@ -1781,62 +1782,62 @@ const makeStyles = (colors: ColorScheme) =>
       paddingHorizontal: 16,
     },
     stopBtn: {
-      backgroundColor: '#1a1a2e',
+      borderColor: colors.neutral600,
     },
     recDot: {
       width: 14,
       height: 14,
       borderRadius: 7,
-      backgroundColor: '#fff',
+      backgroundColor: colors.accentBase,
     },
     stopSquare: {
       width: 12,
       height: 12,
       borderRadius: 2,
-      backgroundColor: '#fff',
+      backgroundColor: colors.text,
     },
     recBtnText: {
       fontSize: 15,
-      fontWeight: '700',
-      color: '#fff',
+      fontWeight: '500',
+      color: colors.accent300,
     },
     recGhost: {
       minHeight: 48,
       borderRadius: 12,
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: colors.neutral800,
       alignItems: 'center',
       justifyContent: 'center',
     },
     recGhostText: {
       fontSize: 15,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
     },
     msg: {
       paddingVertical: 10,
       paddingHorizontal: 12,
       borderRadius: 10,
-      backgroundColor: colors.backgroundInput,
+      backgroundColor: colors.surface,
     },
     msgText: {
       fontSize: 13,
-      color: colors.textSecondary,
+      color: colors.neutral400,
     },
     msgOk: {
-      backgroundColor: 'rgba(52, 199, 89, 0.12)',
+      backgroundColor: colors.accent900,
     },
     msgOkText: {
       fontSize: 13,
-      fontWeight: '600',
-      color: colors.success,
+      fontWeight: '500',
+      color: colors.accent300,
     },
     msgError: {
-      backgroundColor: 'rgba(255, 59, 48, 0.1)',
+      backgroundColor: 'transparent',
     },
     msgErrorText: {
       fontSize: 13,
-      color: colors.danger,
+      color: colors.neutral400,
     },
     takes: { gap: 7 },
     takeWrap: { gap: 4 },
@@ -1848,8 +1849,8 @@ const makeStyles = (colors: ColorScheme) =>
     },
     link: {
       fontSize: 13,
-      fontWeight: '700',
-      color: colors.danger,
+      fontWeight: '500',
+      color: colors.neutral400,
       textDecorationLine: 'underline',
     },
     nav: {
@@ -1859,18 +1860,19 @@ const makeStyles = (colors: ColorScheme) =>
     ghost: {
       borderRadius: 12,
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: colors.neutral800,
       paddingVertical: 12,
       alignItems: 'center',
     },
     ghostText: {
       fontSize: 14,
-      fontWeight: '600',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
     },
     actions: { gap: 8 },
     primary: {
-      backgroundColor: colors.accent,
+      borderWidth: 1,
+      borderColor: colors.accentBase,
       borderRadius: 14,
       paddingVertical: 14,
       paddingHorizontal: 20,
@@ -1879,17 +1881,17 @@ const makeStyles = (colors: ColorScheme) =>
     },
     primaryText: {
       fontSize: 15,
-      fontWeight: '700',
-      color: colors.textInverted,
+      fontWeight: '500',
+      color: colors.accent300,
     },
     note: {
       fontSize: 12,
-      color: colors.textMuted,
+      color: colors.neutral500,
       textAlign: 'center',
     },
     error: {
       fontSize: 13,
-      color: colors.danger,
+      color: colors.neutral400,
       textAlign: 'center',
     },
     waitRow: {
@@ -1906,21 +1908,21 @@ const makeStyles = (colors: ColorScheme) =>
       flex: 1,
       height: 4,
       borderRadius: 2,
-      backgroundColor: colors.border,
+      backgroundColor: colors.neutral800,
     },
-    stepDone: { backgroundColor: colors.success },
-    stepNow: { backgroundColor: colors.accent },
+    stepDone: { backgroundColor: colors.accentBase },
+    stepNow: { backgroundColor: colors.accentBase },
     sent: {
       gap: 10,
       padding: 14,
       borderRadius: 12,
       borderWidth: 1,
-      borderColor: colors.accent,
-      backgroundColor: colors.accentLight,
+      borderColor: colors.accentBase,
+      backgroundColor: colors.accent900,
     },
     sentText: {
       fontSize: 14,
       lineHeight: 20,
-      color: colors.textPrimary,
+      color: colors.text,
     },
   });

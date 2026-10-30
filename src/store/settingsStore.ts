@@ -1,15 +1,24 @@
 import { createAsyncStorage } from '@react-native-async-storage/async-storage';
-import { LanguageCode } from '../db/types';
+import type { UiLanguagePref } from '../i18n/uiLanguage';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 export type CardMode = 'flip' | 'pronunciation' | 'writing' | 'test';
 export type SpellingHintMode = 'always' | 'after_mistake' | 'never';
 
+/** The sizes a text can be read at, in points (Courses §8.1). */
+export const READER_FONT_SIZES = [15, 17, 20] as const;
+export type ReaderFontSize = (typeof READER_FONT_SIZES)[number];
+
 /** `offlineUnitsAhead` meaning the whole course rather than a number of units. */
 export const ALL_UNITS = -1;
 
 export interface AppSettings {
-  uiLanguage: LanguageCode;
+  /**
+   * The interface language as chosen; read it through `useUiLanguage()` /
+   * `currentUiLanguage()`, which turn «as on the phone» into a language. Fresh installs
+   * start on `'system'`; a value saved by an older build (always a language) is kept.
+   */
+  uiLanguage: UiLanguagePref;
   learningLanguage: string;
   theme: ThemeMode;
   cardModes: CardMode[];
@@ -24,10 +33,21 @@ export interface AppSettings {
   offlineUnitsAhead: number;
   /** Course media may be downloaded over mobile data too, not only Wi-Fi. */
   offlineMediaOnCellular: boolean;
+  /** The size of a text in the reader. */
+  readerFontSize: ReaderFontSize;
+  /** Words are spoken when a card or a word list shows them. */
+  autoplayAudio: boolean;
+  // Notification choices: on the phone only, and their rows are hidden — the platform has no
+  // push yet (plan 07, step 8). Daily goal and translation language live in `accountPrefsStore`.
+  notifReviewReminder: boolean;
+  /** «HH:mm», local time. */
+  notifReviewReminderTime: string;
+  notifWork: boolean;
+  notifSchool: boolean;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
-  uiLanguage: 'ru',
+  uiLanguage: 'system',
   learningLanguage: 'no',
   theme: 'system',
   cardModes: ['flip'],
@@ -37,6 +57,12 @@ const DEFAULT_SETTINGS: AppSettings = {
   spellingHintMode: 'after_mistake',
   offlineUnitsAhead: 2,
   offlineMediaOnCellular: false,
+  readerFontSize: 17,
+  autoplayAudio: true,
+  notifReviewReminder: false,
+  notifReviewReminderTime: '19:00',
+  notifWork: true,
+  notifSchool: true,
 };
 
 const storage = createAsyncStorage('voxord_settings');
@@ -86,7 +112,8 @@ class SettingsStore {
     return () => this.listeners.delete(listener);
   }
 
-  private notify(): void {
+  /** Tell listeners something they derive from settings changed — the phone's language. */
+  notify(): void {
     this.listeners.forEach(l => l());
   }
 }

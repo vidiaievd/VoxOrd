@@ -11,7 +11,9 @@ import {
 import {
   createEvidence,
   gradeSession,
+  phaseBreakdown,
   recordWordAttempt,
+  type PhaseScore,
   type SessionEvidence,
 } from '../lib/sessionEvidence';
 import type { AttemptResult } from '../lib/sessionGrader';
@@ -50,12 +52,20 @@ export interface CourseReviewSessionState {
   phase: CourseReviewPhase | null;
   phaseIndex: number;
   totalPhases: number;
+  /** The planned phases in order — what the tracker draws. Empty while loading. */
+  phases: CourseReviewPhase[];
+  /** At least one graded answer is in — leaving now would cost something. */
+  hasAnswers: boolean;
   /** Words for the non-scoring flashcard preview; empty unless NEW cards exist. */
   previewWords: DeepSessionWord[];
   /** Ratings actually posted, available once the session completes. */
   submitted: Array<{ wordId: number; rating: ReviewRating }>;
   /** Due words that produced no answer at all — left due on purpose. */
   ungradedCount: number;
+  /** Per drilled phase, first-try correctness; set once the session completes. */
+  byPhase: PhaseScore[];
+  /** From the first phase to submission; 0 until the session completes. */
+  elapsedMs: number;
 }
 
 export interface UseCourseReviewSessionResult {
@@ -89,6 +99,10 @@ export function useCourseReviewSession(
   const [submitted, setSubmitted] = useState<
     Array<{ wordId: number; rating: ReviewRating }>
   >([]);
+  const [hasAnswers, setHasAnswers] = useState(false);
+  const [byPhase, setByPhase] = useState<PhaseScore[]>([]);
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const startedAtRef = useRef(0);
 
   // Evidence lives in a ref as well as state: `advance` and `finishEarly` read
   // it synchronously, and a state read there would see a stale closure.
@@ -111,6 +125,7 @@ export function useCourseReviewSession(
       setPreviewWords(words);
       setPhases(planPhases(set, words.map((word) => word.wordId)));
       setPhaseIndex(0);
+      startedAtRef.current = Date.now();
       setStage('running');
     })();
     return () => {
@@ -150,9 +165,17 @@ export function useCourseReviewSession(
       posted.push({ wordId, rating });
     }
 
+    // Read-only views of the same ledger, for the summary — they decide nothing.
+    setByPhase(
+      phaseBreakdown(
+        evidenceRef.current,
+        (phases ?? []).filter((p): p is Exclude<CourseReviewPhase, 'preview'> => p !== 'preview'),
+      ),
+    );
+    setElapsedMs(Date.now() - startedAtRef.current);
     setSubmitted(posted);
     setStage('complete');
-  }, [set]);
+  }, [set, phases]);
 
   const advance = useCallback(() => {
     if (!phases) return;
@@ -187,6 +210,7 @@ export function useCourseReviewSession(
           phase,
           result,
         );
+        setHasAnswers(true);
       },
     }),
     [set, phases, phaseIndex],
@@ -203,9 +227,13 @@ export function useCourseReviewSession(
       phase,
       phaseIndex,
       totalPhases: phases?.length ?? 0,
+      phases: phases ?? [],
+      hasAnswers,
       previewWords,
       submitted,
       ungradedCount,
+      byPhase,
+      elapsedMs,
     },
     tracking,
     wordIds,

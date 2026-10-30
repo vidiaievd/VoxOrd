@@ -1,31 +1,31 @@
 import React, { useEffect, useMemo } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ActivityIndicator,
-  ScrollView,
-  TouchableOpacity,
-} from 'react-native';
+import { View, Text, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from '../../i18n';
+import { useTranslationLanguage } from '../../hooks/useAccountPrefs';
 import { useTheme } from '../../providers/ThemeProvider';
-import { ColorScheme } from '../../theme/colors';
+import { useModal } from '../../providers/ModalProvider';
 import { useLessonReader } from '../../hooks/useLessonReader';
 import { useMarkLessonRead } from '../../hooks/useMarkLessonRead';
+import { useUnitNumber } from '../../hooks/useUnitNumber';
 import { buildGlossaryIndex } from '../../utils/tokenizeGlossary';
 import { ParagraphView } from './ParagraphView';
 import { AudioLessonView } from './AudioLessonView';
 import { NarrationBar } from './NarrationBar';
-import { useNarrationId } from '../../hooks/useNarration';
+import { useNarration, useNarrationId } from '../../hooks/useNarration';
 import { wordCaptureQueueStore } from '../../store/wordCaptureQueueStore';
+import { settingsStore, READER_FONT_SIZES } from '../../store/settingsStore';
 import { syncMyWords } from '../../lib/myWordsSync';
+import { paragraphTones } from '../../lib/text/narrationProgress';
 import { useSettings } from '../../hooks/useSettings';
+import { Button, NavHeader, Spinner } from '../../components/ui';
 import { ReaderCaptureContext, type ReaderCapture } from './captureContext';
 
 interface LessonReaderScreenProps {
   lessonId: string;
   courseId: string;
+  /** The unit the text belongs to — its number is the header's parent label. */
+  unitId: string;
   onBack: () => void;
   /**
    * Go on to the exercises this text leads into — the button at the end of the text, the
@@ -44,18 +44,22 @@ interface LessonReaderScreenProps {
 export function LessonReaderScreen({
   lessonId,
   courseId,
+  unitId,
   onBack,
   onPractice,
   alreadyRead = false,
 }: LessonReaderScreenProps) {
   const { t } = useTranslation();
-  const { colors } = useTheme();
-  const styles = makeStyles(colors);
+  const { colors, typography } = useTheme();
+  const { show } = useModal();
+  const { readerFontSize } = useSettings();
+  const unitNumber = useUnitNumber(courseId, unitId);
   const { status, data, error, refresh } = useLessonReader(lessonId, courseId);
   const { status: markStatus, error: markError, markAsRead } = useMarkLessonRead(lessonId);
   // A text's recording, when it has one (plan 74 narrates texts into it). Looked for only on
   // a text: an audio lesson's whole screen is its recording already.
   const narrationId = useNarrationId(data?.kind === 'text' ? data.mediaIds : []);
+  const narration = useNarration(narrationId);
   const glossaryIndex = useMemo(
     () => buildGlossaryIndex(data?.glossary ?? []),
     [data?.glossary],
@@ -73,14 +77,43 @@ export function LessonReaderScreen({
     [data?.targetLanguage, data?.variantId],
   );
 
+  const paragraphs = useMemo(() => data?.paragraphs ?? [], [data?.paragraphs]);
+  const tones = useMemo(
+    () =>
+      paragraphTones(
+        paragraphs.map(p => p.target.length),
+        {
+          started: narration.status === 'playing' || narration.status === 'paused',
+          position: narration.position,
+          duration: narration.duration,
+        },
+      ),
+    [paragraphs, narration.status, narration.position, narration.duration],
+  );
+
   // Words added while offline go out when a text is opened with a connection again.
-  const { uiLanguage } = useSettings();
+  const translationLanguage = useTranslationLanguage();
   useEffect(() => {
     wordCaptureQueueStore
       .flush()
-      .then((delivered) => (delivered.size > 0 ? syncMyWords(uiLanguage) : undefined))
+      .then((delivered) => (delivered.size > 0 ? syncMyWords(translationLanguage) : undefined))
       .catch(() => undefined);
-  }, [uiLanguage]);
+  }, [translationLanguage]);
+
+  const openTextSize = () =>
+    show({
+      type: 'picker',
+      title: t('lessonReader.textSize'),
+      current: readerFontSize,
+      closeLabel: t('common.close'),
+      options: READER_FONT_SIZES.map(size => ({
+        value: size,
+        label: `${{ 15: t('lessonReader.textSizeSmall'), 17: t('lessonReader.textSizeMedium'), 20: t('lessonReader.textSizeLarge') }[size]} · ${size}`,
+      })),
+      onSelect: (size: (typeof READER_FONT_SIZES)[number]) => {
+        settingsStore.set('readerFontSize', size).catch(() => undefined);
+      },
+    });
 
   /*
     Reaching the end of the text is what marks it read. Going on to the exercises does not
@@ -98,54 +131,65 @@ export function LessonReaderScreen({
   };
 
   const finishControls = (
-    <>
-      {markStatus === 'error' && <Text style={styles.footerError}>{markError?.message}</Text>}
-      <TouchableOpacity
-        style={styles.markReadBtn}
-        onPress={handleFinish}
+    <View style={{ gap: 8 }}>
+      {markStatus === 'error' && (
+        <Text style={[typography.secondary, { color: colors.neutral400, textAlign: 'center' }]}>
+          {markError?.message}
+        </Text>
+      )}
+      <Button
+        block
+        size={48}
+        variant="primary"
+        label={onPractice ? t('lessonReader.toExercises') : t('lessonReader.finish')}
         disabled={markStatus === 'submitting'}
-      >
-        {markStatus === 'submitting' ? (
-          <ActivityIndicator size="small" color={colors.textInverted} />
-        ) : (
-          <Text style={styles.markReadText}>
-            {onPractice ? t('lessonReader.toExercises') : t('lessonReader.finish')}
-          </Text>
-        )}
-      </TouchableOpacity>
-    </>
+        onPress={handleFinish}
+      />
+    </View>
   );
 
+  const centered = { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, gap: 8 } as const;
+  const title = data?.displayTitle ?? data?.title ?? t('lessonReader.title');
+
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-          <Text style={styles.backText}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          {data?.displayTitle ?? data?.title ?? t('lessonReader.title')}
-        </Text>
-      </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top', 'bottom']}>
+      <NavHeader
+        parentLabel={unitNumber ? t('lessonReader.back', { n: unitNumber }) : t('lessonReader.title')}
+        onBack={onBack}
+        right={
+          data?.kind === 'text'
+            ? {
+                icon: 'TextAa',
+                accessibilityLabel: t('lessonReader.textSize'),
+                onPress: openTextSize,
+              }
+            : undefined
+        }
+      />
 
       {status === 'loading' && (
-        <View style={styles.centerFill}>
-          <ActivityIndicator size="large" color={colors.accent} />
+        <View style={centered}>
+          <Spinner size={24} color={colors.neutral400} />
         </View>
       )}
 
       {status === 'error' && (
-        <View style={styles.centerFill}>
-          <Text style={styles.emptyTitle}>{t('lessonReader.loadError')}</Text>
-          <Text style={styles.emptyDesc}>{error?.message}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={refresh}>
-            <Text style={styles.retryButtonText}>{t('courses.retry')}</Text>
-          </TouchableOpacity>
+        <View style={centered}>
+          <Text style={[typography.cardTitleMedium, { color: colors.text, textAlign: 'center' }]}>
+            {t('lessonReader.loadError')}
+          </Text>
+          <Text style={[typography.body, { color: colors.neutral400, textAlign: 'center' }]}>
+            {error?.message}
+          </Text>
+          <Button variant="secondary" size={44} label={t('courses.retry')} onPress={refresh} />
         </View>
       )}
 
       {status === 'loaded' && data && data.kind !== 'text' && data.kind !== 'audio' && (
-        <View style={styles.centerFill}>
-          <Text style={styles.emptyTitle}>{t('lessonReader.unsupportedKind')}</Text>
+        <View style={centered}>
+          <Text style={[typography.cardTitleMedium, { color: colors.text, textAlign: 'center' }]}>
+            {t('lessonReader.unsupportedKind')}
+          </Text>
         </View>
       )}
 
@@ -155,121 +199,51 @@ export function LessonReaderScreen({
 
       {status === 'loaded' && data && data.kind === 'text' && (
         <>
-          {narrationId ? <NarrationBar mediaId={narrationId} /> : null}
+          {narrationId ? <NarrationBar narration={narration} /> : null}
           <ReaderCaptureContext.Provider value={capture}>
-            <ScrollView contentContainerStyle={styles.scroll}>
-              {(data.paragraphs ?? []).map((paragraph, i) => (
+            <ScrollView
+              contentContainerStyle={{
+                paddingTop: 18,
+                paddingHorizontal: 20,
+                paddingBottom: 24,
+                gap: 14,
+              }}
+            >
+              <Text style={{ ...typography.h1, fontSize: 24, lineHeight: 30, letterSpacing: -0.2, color: colors.text }}>
+                {title}
+              </Text>
+              {paragraphs.map((paragraph, i) => (
                 <ParagraphView
                   key={i}
                   paragraph={paragraph}
                   paragraphIndex={i}
                   glossaryIndex={glossaryIndex}
+                  textStyle={{ fontSize: readerFontSize, tone: tones[i] ?? 'plain' }}
                 />
               ))}
-              {(data.paragraphs ?? []).length === 0 && (
-                <Text style={styles.emptyDesc}>{t('lessonReader.noContent')}</Text>
+              {paragraphs.length === 0 && (
+                <Text style={[typography.body, { color: colors.neutral400, textAlign: 'center' }]}>
+                  {t('lessonReader.noContent')}
+                </Text>
               )}
-              {!alreadyRead && <View style={styles.endOfText}>{finishControls}</View>}
+              {!alreadyRead && <View style={{ marginTop: 14 }}>{finishControls}</View>}
             </ScrollView>
           </ReaderCaptureContext.Provider>
-          {alreadyRead && <View style={styles.footer}>{finishControls}</View>}
+          {alreadyRead && (
+            <View
+              style={{
+                paddingHorizontal: 18,
+                paddingTop: 12,
+                paddingBottom: 14,
+                borderTopWidth: 1,
+                borderTopColor: colors.neutral800,
+              }}
+            >
+              {finishControls}
+            </View>
+          )}
         </>
       )}
     </SafeAreaView>
   );
 }
-
-const makeStyles = (colors: ColorScheme) =>
-  StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: 20,
-      paddingVertical: 12,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    backBtn: {
-      padding: 8,
-      marginRight: 8,
-    },
-    backText: {
-      fontSize: 22,
-      color: colors.textPrimary,
-    },
-    headerTitle: {
-      flex: 1,
-      fontSize: 17,
-      fontWeight: '700',
-      color: colors.textPrimary,
-    },
-    centerFill: {
-      flex: 1,
-      flexGrow: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: 32,
-    },
-    emptyTitle: {
-      fontSize: 17,
-      fontWeight: '700',
-      color: colors.textPrimary,
-      marginBottom: 6,
-      textAlign: 'center',
-    },
-    emptyDesc: {
-      fontSize: 14,
-      color: colors.textMuted,
-      textAlign: 'center',
-      lineHeight: 20,
-    },
-    retryButton: {
-      marginTop: 16,
-      paddingHorizontal: 20,
-      paddingVertical: 10,
-      borderRadius: 12,
-      backgroundColor: colors.accent,
-    },
-    retryButtonText: {
-      fontSize: 14,
-      fontWeight: '700',
-      color: colors.textInverted,
-    },
-    scroll: {
-      padding: 20,
-    },
-    endOfText: {
-      marginTop: 28,
-      paddingTop: 20,
-      borderTopWidth: 1,
-      borderTopColor: colors.border,
-    },
-    footer: {
-      paddingHorizontal: 20,
-      paddingTop: 12,
-      paddingBottom: 20,
-      borderTopWidth: 1,
-      borderTopColor: colors.border,
-    },
-    footerError: {
-      fontSize: 13,
-      color: colors.danger,
-      textAlign: 'center',
-      marginBottom: 8,
-    },
-    markReadBtn: {
-      backgroundColor: colors.accent,
-      borderRadius: 14,
-      paddingVertical: 14,
-      alignItems: 'center',
-    },
-    markReadText: {
-      fontSize: 15,
-      fontWeight: '700',
-      color: colors.textInverted,
-    },
-  });

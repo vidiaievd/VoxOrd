@@ -24,7 +24,7 @@ import {
   runnerReducer,
   type RunnerState,
 } from '../screens/ExerciseRunner/runnerMachine';
-import { useSettings } from './useSettings';
+import { useUiLanguage } from '../i18n';
 import { exerciseDisplayResource } from '../lib/courseResources';
 
 
@@ -135,7 +135,7 @@ export function useExerciseRunner(
   exerciseIds: string[],
   startIndex: number,
 ): ExerciseRunnerController {
-  const { uiLanguage } = useSettings();
+  const uiLanguage = useUiLanguage();
   const [state, dispatch] = useReducer(
     runnerReducer,
     undefined,

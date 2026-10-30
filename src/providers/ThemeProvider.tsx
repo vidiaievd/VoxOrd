@@ -1,12 +1,14 @@
 import React, {
   createContext,
   useContext,
+  useEffect,
   useMemo,
   ReactNode,
 } from 'react';
 import { Platform, StatusBar, useColorScheme } from 'react-native';
 import { ColorScheme, lightColors, darkColors } from '../theme/colors';
 import { typography, Typography } from '../theme/typography';
+import { setNavigationBar } from '../theme/systemBars';
 import { useSettings } from '../hooks/useSettings';
 import { ThemeMode } from '../store/settingsStore';
 
@@ -40,6 +42,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     () => isDark ? darkColors : lightColors,
     [isDark]
   );
+
+  useEffect(() => {
+    setNavigationBar(colors.bg, isDark);
+  }, [colors.bg, isDark]);
 
   const value = useMemo(
     () => ({ colors, typography, isDark, themeMode: theme }),

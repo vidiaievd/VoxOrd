@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import type { GrammarRuleExplanation } from '../api/grammarRules';
 import { grammarRuleResource } from '../lib/courseResources';
-import { useSettings } from './useSettings';
+import { useUiLanguage } from '../i18n';
 import { useSwrResource } from './useSwrResource';
 
 export interface GrammarRuleReaderState {
@@ -20,7 +20,7 @@ export interface GrammarRuleReaderState {
  * yet to supply these directly.
  */
 export function useGrammarRuleReader(ruleId: string, courseId: string): GrammarRuleReaderState {
-  const { uiLanguage } = useSettings();
+  const uiLanguage = useUiLanguage();
   const resource = useMemo(
     () => grammarRuleResource(ruleId, courseId, uiLanguage),
     [ruleId, courseId, uiLanguage],

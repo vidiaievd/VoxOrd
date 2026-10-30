@@ -1,5 +1,7 @@
 import { ApiError, apiClient } from './client';
 import {
+  applyToDraft,
+  AssistEventReader,
   contextFields,
   contextKey,
   getAvailability,
@@ -16,16 +18,18 @@ import {
 } from './assistant';
 
 jest.mock('./client', () => ({
-  apiClient: { get: jest.fn(), post: jest.fn() },
+  apiClient: { get: jest.fn(), post: jest.fn(), stream: jest.fn() },
   ApiError: jest.requireActual('./client').ApiError,
 }));
 
 const mockGet = apiClient.get as jest.Mock;
 const mockPost = apiClient.post as jest.Mock;
+const mockStream = apiClient.stream as jest.Mock;
 
 beforeEach(() => {
   mockGet.mockReset();
   mockPost.mockReset();
+  mockStream.mockReset();
 });
 
 const apiError = (status: number | null, body?: unknown, code?: string) =>
@@ -204,6 +208,114 @@ describe('sendMessage', () => {
   it('a malformed answer is silence, never invented text', async () => {
     mockPost.mockResolvedValue({ callId: 'c', text: 'something the model said' });
     expect(await sendMessage(unit, [], 'hei')).toEqual({ kind: 'silent' });
+  });
+});
+
+/** One server-sent event as ai-service writes it. */
+const sse = (event: string, data: unknown) => `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+
+describe('AssistEventReader', () => {
+  it('reads frames cut anywhere, with CRLF, skipping comments, unknown events and bad data', () => {
+    const reader = new AssistEventReader();
+    const text =
+      ': keep-alive\r\n\r\n' +
+      sse('delta', { block: 0, text: 'Verbet ' }).replace(/\n/g, '\r\n') +
+      sse('ping', {}) +
+      'event: delta\ndata: not json\n\n' +
+      sse('delta', { block: 0, type: 'text', text: 'står' }) +
+      sse('reset', {}) +
+      sse('refused', { reason: 'quota' });
+    const events = [];
+    for (let i = 0; i < text.length; i += 7) events.push(...reader.feed(text.slice(i, i + 7)));
+    expect(events).toEqual([
+      { kind: 'delta', block: 0, type: null, text: 'Verbet ' },
+      { kind: 'delta', block: 0, type: 'text', text: 'står' },
+      { kind: 'reset' },
+      { kind: 'refused', reason: 'quota' },
+    ]);
+  });
+
+  it('drops a delta with no block it can place', () => {
+    const reader = new AssistEventReader();
+    expect(reader.feed(sse('delta', { block: -1, text: 'x' }) + sse('delta', { block: 999, text: 'x' }))).toEqual([]);
+  });
+});
+
+describe('applyToDraft', () => {
+  it('appends to its block, learns the type once, and empties on reset', () => {
+    let draft = applyToDraft([], { kind: 'delta', block: 1, type: null, text: 'Da ' });
+    draft = applyToDraft(draft, { kind: 'delta', block: 1, type: 'example', text: 'kom' });
+    expect(draft).toEqual([
+      { type: null, text: '' },
+      { type: 'example', text: 'Da kom' },
+    ]);
+    expect(applyToDraft(draft, { kind: 'reset' })).toEqual([]);
+  });
+});
+
+describe('sendMessage streamed', () => {
+  /** The server streams `text` in pieces of `size`, then the response ends. */
+  const streams = (text: string, size = 11) =>
+    mockStream.mockImplementation(async (_path, options) => {
+      for (let i = 0; i < text.length; i += size) options.onText(text.slice(i, i + size));
+      return { streamed: true, body: undefined };
+    });
+
+  it('asks with stream=1, shows the text as it comes, and ends with the checked answer', async () => {
+    streams(
+      sse('delta', { block: 0, type: 'text', text: 'Etter «da» ' }) +
+        sse('delta', { block: 0, text: 'står verbet' }) +
+        sse('answer', answer),
+    );
+    const drafts: unknown[] = [];
+    const outcome = await sendMessage(unit, [], 'hei', (d) => drafts.push(d));
+
+    const [path, options] = mockStream.mock.calls[0];
+    expect(path).toBe('/api/v1/ai/assist/messages');
+    expect(options.query).toEqual({ stream: 1 });
+    expect(options.body.message).toBe('hei');
+    expect(drafts).toEqual([
+      [{ type: 'text', text: 'Etter «da» ' }],
+      [{ type: 'text', text: 'Etter «da» står verbet' }],
+    ]);
+    expect(outcome.kind).toBe('answer');
+    if (outcome.kind === 'answer') expect(outcome.answer.blocks[1].emphasis).toEqual([[3, 6]]);
+  });
+
+  it.each([
+    [sse('refused', { reason: 'quota' }), { kind: 'refused', reason: 'quota' }],
+    [sse('unavailable', {}), { kind: 'silent' }],
+    ['', { kind: 'silent' }],
+    [sse('answer', { callId: 'c', text: 'not an answer' }), { kind: 'silent' }],
+  ])('drops the streamed text when the turn ends otherwise (%#)', async (ending, expected) => {
+    streams(sse('delta', { block: 0, text: 'Verbet står' }) + ending);
+    expect(await sendMessage(unit, [], 'hei', () => undefined)).toEqual(expected);
+  });
+
+  it('reads a turn the server did not stream as JSON', async () => {
+    mockStream.mockResolvedValue({ streamed: false, body: answer });
+    expect((await sendMessage(unit, [], 'hei', () => undefined)).kind).toBe('answer');
+  });
+
+  it('maps a failure before the stream as without it', async () => {
+    mockStream.mockRejectedValue(apiError(429));
+    expect(await sendMessage(unit, [], 'hei', () => undefined)).toEqual({ kind: 'rate_limited' });
+  });
+
+  it('keeps the closing answer when the connection breaks after it', async () => {
+    mockStream.mockImplementation(async (_path, options) => {
+      options.onText(sse('answer', answer));
+      throw apiError(null);
+    });
+    expect((await sendMessage(unit, [], 'hei', () => undefined)).kind).toBe('answer');
+  });
+
+  it('a connection broken mid-answer is the server out of reach, its text dropped', async () => {
+    mockStream.mockImplementation(async (_path, options) => {
+      options.onText(sse('delta', { block: 0, text: 'Verbet' }));
+      throw apiError(null);
+    });
+    expect(await sendMessage(unit, [], 'hei', () => undefined)).toEqual({ kind: 'unreachable' });
   });
 });
 

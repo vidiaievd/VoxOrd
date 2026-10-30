@@ -109,6 +109,13 @@ describe('parseSubmission', () => {
     expect(parseSubmission({ ...row, exercisePath: null })?.title).toBeNull();
   });
 
+  it('reads the unit a rewrite opens in, and null from an engine that does not send it', () => {
+    expect(parseSubmission({ ...row, unitId: 'unit-7' })?.unitId).toBe('unit-7');
+    // The recorded row predates the field.
+    expect('unitId' in row).toBe(false);
+    expect(parseSubmission(row)?.unitId).toBeNull();
+  });
+
   it('reads a model’s provisional verdict on waiting work, and only there (plan 80)', () => {
     const provisional = {
       outcome: 'approved',

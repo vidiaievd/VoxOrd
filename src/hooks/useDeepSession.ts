@@ -37,23 +37,13 @@ export interface UseDeepSessionResult {
 
 export const PHASE_ORDER: DeepPhase[] = ['flashcard', 'listening', 'quiz', 'spelling'];
 
-const TRANSITION_DELAY_MS = 3000;
+const TRANSITION_DELAY_MS = 1200;
 
 export function getNextPhase(current: DeepPhase): DeepPhase {
   const idx = PHASE_ORDER.indexOf(current);
   if (idx === -1 || idx === PHASE_ORDER.length - 1) return 'complete';
   return PHASE_ORDER[idx + 1];
 }
-
-const PHASE_LABELS: Record<DeepPhase, { icon: string; label: string }> = {
-  flashcard: { icon: '🃏', label: 'Flashcards' },
-  listening: { icon: '👂', label: 'Listening' },
-  quiz: { icon: '⚡', label: 'Quiz' },
-  spelling: { icon: '✍️', label: 'Spelling' },
-  complete: { icon: '🏆', label: 'Complete' },
-};
-
-export { PHASE_LABELS };
 
 export function useDeepSession(deckId: number): UseDeepSessionResult {
   const [isLoading, setIsLoading] = useState(true);

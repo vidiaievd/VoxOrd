@@ -83,13 +83,13 @@ export function grammarRuleResource(
 
 export function vocabularyListResource(
   listId: string,
-  uiLanguage: string,
+  translationLanguage: string,
 ): CourseResource<VocabularyListReaderContent> {
   return {
-    key: `vocab-reader:${listId}:${uiLanguage}`,
+    key: `vocab-reader:${listId}:${translationLanguage}`,
     load: () =>
       getVocabularyListReader(listId, {
-        translationLanguage: uiLanguage,
+        translationLanguage,
         includeExamples: true,
         examplesLimit: 3,
       }),

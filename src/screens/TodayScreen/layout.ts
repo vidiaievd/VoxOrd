@@ -26,6 +26,12 @@ export type HomeBlockId =
 export const HOME_SHOW_ASSIGNMENT = false;
 
 /**
+ * Today's blocks that wait for a backend. `aiPlan` (D1): no practice-plan agent yet, so D
+ * shows Continue and Review in its place (`HOME_FALLBACK`).
+ */
+export const TODAY_FEATURES = { aiPlan: false } as const;
+
+/**
  * The order of Today's blocks per variant (Home spec §6.3). Each block decides for itself
  * whether it has anything to say; the screen only walks the list.
  */

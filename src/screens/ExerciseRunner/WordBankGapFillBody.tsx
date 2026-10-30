@@ -219,14 +219,14 @@ export function WordBankGapFillBody({
     const wasRight = v?.correct === true;
     const tone =
       shown !== undefined && !wasRight
-        ? colors.warning
+        ? colors.neutral300
         : v === null
           ? selected === gapKey
-            ? colors.accent
-            : colors.textMuted
+            ? colors.accentBase
+            : colors.neutral500
           : v.correct
-            ? colors.success
-            : colors.danger;
+            ? colors.accent300
+            : colors.neutral400;
 
     const box =
       task.bank === null && shown === undefined && !wasRight ? (
@@ -239,7 +239,7 @@ export function WordBankGapFillBody({
           autoCorrect={false}
           spellCheck={false}
           placeholder={token.label}
-          placeholderTextColor={colors.textMuted}
+          placeholderTextColor={colors.neutral500}
           accessibilityLabel={token.label}
         />
       ) : (
@@ -262,8 +262,8 @@ export function WordBankGapFillBody({
                   shown !== undefined || v !== null
                     ? tone
                     : word === ''
-                      ? colors.textMuted
-                      : colors.textPrimary,
+                      ? colors.neutral500
+                      : colors.text,
               },
             ]}
           >
@@ -375,7 +375,7 @@ export function WordBankGapFillBody({
             accessibilityRole="button"
           >
             {sending ? (
-              <ActivityIndicator size="small" color={colors.textInverted} />
+              <ActivityIndicator size="small" color={colors.accent300} />
             ) : (
               <Text style={styles.primaryBtnText}>
                 {allFilled
@@ -423,18 +423,18 @@ const makeStyles = (colors: ColorScheme) =>
       gap: 8,
       padding: 12,
       borderRadius: 12,
-      backgroundColor: colors.backgroundCard,
+      backgroundColor: colors.surface,
       marginBottom: 14,
     },
     restoredText: {
       fontSize: 13,
-      color: colors.textSecondary,
+      color: colors.neutral400,
       flexShrink: 1,
     },
     restoredLink: {
       fontSize: 13,
-      fontWeight: '700',
-      color: colors.accent,
+      fontWeight: '500',
+      color: colors.accentBase,
     },
     sentence: {
       marginBottom: 14,
@@ -449,7 +449,7 @@ const makeStyles = (colors: ColorScheme) =>
     word: {
       fontSize: 18,
       lineHeight: 26,
-      color: colors.textPrimary,
+      color: colors.text,
     },
     gapWrap: {
       flexDirection: 'row',
@@ -461,7 +461,7 @@ const makeStyles = (colors: ColorScheme) =>
       paddingHorizontal: 10,
       borderBottomWidth: 2,
       borderRadius: 6,
-      backgroundColor: colors.backgroundInput,
+      backgroundColor: colors.surface,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -471,7 +471,7 @@ const makeStyles = (colors: ColorScheme) =>
     },
     gapText: {
       fontSize: 17,
-      fontWeight: '600',
+      fontWeight: '500',
     },
     // Every typed gap is the same width: sizing one to its answer would give its length away.
     typedGap: {
@@ -481,13 +481,13 @@ const makeStyles = (colors: ColorScheme) =>
       paddingVertical: 4,
       borderBottomWidth: 2,
       borderRadius: 6,
-      backgroundColor: colors.backgroundInput,
+      backgroundColor: colors.surface,
       fontSize: 17,
-      color: colors.textPrimary,
+      color: colors.text,
     },
     hint: {
       fontSize: 13,
-      color: colors.textSecondary,
+      color: colors.neutral400,
       marginTop: 6,
     },
     bankBlock: {
@@ -496,7 +496,7 @@ const makeStyles = (colors: ColorScheme) =>
     },
     remaining: {
       fontSize: 12,
-      color: colors.textMuted,
+      color: colors.neutral500,
       marginBottom: 8,
     },
     bank: {
@@ -508,50 +508,51 @@ const makeStyles = (colors: ColorScheme) =>
       minHeight: 40,
       paddingHorizontal: 14,
       borderRadius: 12,
-      backgroundColor: colors.accentLight,
+      backgroundColor: colors.accent900,
       alignItems: 'center',
       justifyContent: 'center',
     },
     chipSpent: {
-      backgroundColor: colors.backgroundPressed,
+      backgroundColor: colors.neutral800,
     },
     chipText: {
       fontSize: 16,
-      fontWeight: '600',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
     },
     chipTextSpent: {
-      color: colors.textMuted,
+      color: colors.neutral500,
       textDecorationLine: 'line-through',
     },
     note: {
       marginTop: 10,
       padding: 12,
       borderRadius: 12,
-      backgroundColor: colors.backgroundCard,
+      backgroundColor: colors.surface,
     },
     noteLabel: {
       fontSize: 13,
-      fontWeight: '700',
-      color: colors.textSecondary,
+      fontWeight: '500',
+      color: colors.neutral400,
       marginBottom: 4,
     },
     noteText: {
       fontSize: 14,
       lineHeight: 20,
-      color: colors.textPrimary,
+      color: colors.text,
     },
     error: {
       marginTop: 12,
       fontSize: 13,
-      color: colors.danger,
+      color: colors.neutral400,
     },
     actions: {
       marginTop: 16,
       gap: 10,
     },
     primaryBtn: {
-      backgroundColor: colors.accent,
+      borderWidth: 1,
+      borderColor: colors.accentBase,
       borderRadius: 14,
       minHeight: TAP_MIN,
       paddingVertical: 14,
@@ -560,13 +561,13 @@ const makeStyles = (colors: ColorScheme) =>
     },
     primaryBtnText: {
       fontSize: 15,
-      fontWeight: '700',
-      color: colors.textInverted,
+      fontWeight: '500',
+      color: colors.accent300,
     },
     ghostBtn: {
       borderRadius: 14,
       borderWidth: 2,
-      borderColor: colors.border,
+      borderColor: colors.neutral800,
       minHeight: TAP_MIN,
       paddingVertical: 12,
       alignItems: 'center',
@@ -574,8 +575,8 @@ const makeStyles = (colors: ColorScheme) =>
     },
     ghostBtnText: {
       fontSize: 15,
-      fontWeight: '700',
-      color: colors.textSecondary,
+      fontWeight: '500',
+      color: colors.neutral400,
     },
     btnDim: {
       opacity: 0.5,

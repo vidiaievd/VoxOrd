@@ -16,6 +16,16 @@ export interface ResultsSummary {
    */
   handledRatio: number;
   totalTimeSpentSeconds: number;
+  /** The exercises handed in for review, in set order, each once — the «Under review» row. */
+  reviewIds: string[];
+  /** The exercises answered wrong, in set order, each once — a «try again» row apiece. */
+  wrongIds: string[];
+  /**
+   * Who the handed-in work waits for (plan 79's `reviewer`). An attempt closed as `none` waits
+   * for nobody; an engine that does not say is read as a teacher, as before plan 79.
+   */
+  waitingTeacher: number;
+  waitingAi: number;
 }
 
 /**
@@ -29,12 +39,23 @@ export function buildResultsSummary(results: ItemResult[]): ResultsSummary {
   let needsReview = 0;
   let incorrect = 0;
   let totalTimeSpentSeconds = 0;
+  let waitingTeacher = 0;
+  let waitingAi = 0;
+  const reviewIds: string[] = [];
+  const wrongIds: string[] = [];
 
-  for (const { verdict, timeSpentSeconds } of results) {
+  for (const { exerciseId, verdict, timeSpentSeconds } of results) {
     totalTimeSpentSeconds += timeSpentSeconds;
     if (verdict.correct) correct += 1;
-    else if (verdict.requiresReview) needsReview += 1;
-    else incorrect += 1;
+    else if (verdict.requiresReview) {
+      needsReview += 1;
+      if (!reviewIds.includes(exerciseId)) reviewIds.push(exerciseId);
+      if (verdict.reviewer === 'ai') waitingAi += 1;
+      else if (verdict.reviewer !== 'none') waitingTeacher += 1;
+    } else {
+      incorrect += 1;
+      if (!wrongIds.includes(exerciseId)) wrongIds.push(exerciseId);
+    }
   }
 
   const total = results.length;
@@ -46,5 +67,16 @@ export function buildResultsSummary(results: ItemResult[]): ResultsSummary {
     accuracy: total > 0 ? correct / total : 0,
     handledRatio: total > 0 ? (correct + needsReview) / total : 0,
     totalTimeSpentSeconds,
+    reviewIds,
+    wrongIds,
+    waitingTeacher,
+    waitingAi,
   };
+}
+
+/** A set's time as the results tile shows it — m:ss. */
+export function formatSetTime(totalSeconds: number): string {
+  const minutes = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+  return `${minutes}:${String(secs).padStart(2, '0')}`;
 }

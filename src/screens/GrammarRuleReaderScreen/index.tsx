@@ -1,16 +1,23 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Markdown from 'react-native-markdown-display';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
+import { Typography } from '../../theme/typography';
+import { radii } from '../../theme/spacing';
 import { useGrammarRuleReader } from '../../hooks/useGrammarRuleReader';
+import { useUnitContents } from '../../hooks/useUnitContents';
+import { useUnitNumber } from '../../hooks/useUnitNumber';
 import { getGrammarRulePoolExerciseIds } from '../../api/grammarRules';
+import { Button, NavHeader, Spinner } from '../../components/ui';
 
 interface GrammarRuleReaderScreenProps {
   ruleId: string;
   courseId: string;
+  /** The unit the rule belongs to — its number is the header's parent label. */
+  unitId: string;
   onBack: () => void;
   /** Launches the exercise runner over this rule's practice pool. */
   onPracticePress: (exerciseIds: string[]) => void;
@@ -19,22 +26,43 @@ interface GrammarRuleReaderScreenProps {
 export function GrammarRuleReaderScreen({
   ruleId,
   courseId,
+  unitId,
   onBack,
   onPracticePress,
 }: GrammarRuleReaderScreenProps) {
   const { t } = useTranslation();
-  const { colors } = useTheme();
-  const styles = makeStyles(colors);
+  const { colors, typography } = useTheme();
+  const unitNumber = useUnitNumber(courseId, unitId);
   const { status, data, error, refresh } = useGrammarRuleReader(ruleId, courseId);
-  const markdownStyle = useMemo(() => makeMarkdownStyle(colors), [colors]);
+  const markdownStyle = useMemo(() => makeMarkdownStyle(colors, typography), [colors, typography]);
   const [practiceStatus, setPracticeStatus] = useState<'idle' | 'loading' | 'empty' | 'error'>(
     'idle',
   );
+  // The practice pool, asked for on open so the button can say how many exercises wait. Until
+  // it is known — or when it could not be fetched — the button says nothing of a number and a
+  // press asks again.
+  const [pool, setPool] = useState<string[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getGrammarRulePoolExerciseIds(ruleId)
+      .then(ids => !cancelled && setPool(ids))
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [ruleId]);
+
+  // The rule's mastery is on its row in the unit; the cached unit gives it without a request.
+  const mastery = useUnitContents(unitId).data?.sections
+    .flatMap(section => section.items)
+    .find(item => item.contentType === 'grammar_rule' && item.contentId === ruleId)
+    ?.masteryPercent;
 
   const handlePractice = async () => {
     setPracticeStatus('loading');
     try {
-      const exerciseIds = await getGrammarRulePoolExerciseIds(ruleId);
+      const exerciseIds = pool ?? (await getGrammarRulePoolExerciseIds(ruleId));
       if (exerciseIds.length === 0) {
         setPracticeStatus('empty');
         return;
@@ -46,61 +74,88 @@ export function GrammarRuleReaderScreen({
     }
   };
 
+  const centered = { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, gap: 8 } as const;
+  const note = { ...typography.secondary, color: colors.neutral400, textAlign: 'center' } as const;
+
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-          <Text style={styles.backText}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          {data?.displayTitle ?? t('grammarRuleReader.title')}
-        </Text>
-      </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top', 'bottom']}>
+      <NavHeader
+        parentLabel={unitNumber ? t('lessonReader.back', { n: unitNumber }) : t('grammarRuleReader.title')}
+        onBack={onBack}
+      />
 
       {status === 'loading' && (
-        <View style={styles.centerFill}>
-          <ActivityIndicator size="large" color={colors.accent} />
+        <View style={centered}>
+          <Spinner size={24} color={colors.neutral400} />
         </View>
       )}
 
       {status === 'error' && (
-        <View style={styles.centerFill}>
-          <Text style={styles.emptyTitle}>{t('grammarRuleReader.loadError')}</Text>
-          <Text style={styles.emptyDesc}>{error?.message}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={refresh}>
-            <Text style={styles.retryButtonText}>{t('courses.retry')}</Text>
-          </TouchableOpacity>
+        <View style={centered}>
+          <Text style={[typography.cardTitleMedium, { color: colors.text, textAlign: 'center' }]}>
+            {t('grammarRuleReader.loadError')}
+          </Text>
+          <Text style={[typography.body, { color: colors.neutral400, textAlign: 'center' }]}>
+            {error?.message}
+          </Text>
+          <Button variant="secondary" size={44} label={t('courses.retry')} onPress={refresh} />
         </View>
       )}
 
       {status === 'loaded' && data && (
         <>
-          <ScrollView contentContainerStyle={styles.scroll}>
-            {data.displaySummary ? <Text style={styles.summary}>{data.displaySummary}</Text> : null}
+          <ScrollView
+            contentContainerStyle={{ paddingTop: 4, paddingHorizontal: 20, paddingBottom: 24, gap: 14 }}
+          >
+            <Text style={[typography.meta, { color: colors.neutral500 }]}>
+              {typeof mastery === 'number'
+                ? t('grammarRuleReader.meta', { pct: mastery })
+                : t('grammarRuleReader.title')}
+            </Text>
+            <Text style={{ ...typography.h1, fontSize: 24, lineHeight: 30, letterSpacing: -0.2, color: colors.text }}>
+              {data.displayTitle}
+            </Text>
+            {data.displaySummary ? (
+              <Text style={{ ...typography.cardTitle, lineHeight: 23, color: colors.neutral300 }}>
+                {data.displaySummary}
+              </Text>
+            ) : null}
             {data.bodyMarkdown ? (
               <Markdown style={markdownStyle}>{data.bodyMarkdown}</Markdown>
             ) : (
-              <Text style={styles.emptyDesc}>{t('grammarRuleReader.noContent')}</Text>
+              <Text style={[typography.body, { color: colors.neutral400, textAlign: 'center' }]}>
+                {t('grammarRuleReader.noContent')}
+              </Text>
             )}
           </ScrollView>
-          <View style={styles.footer}>
+          <View
+            style={{
+              paddingHorizontal: 18,
+              paddingTop: 12,
+              paddingBottom: 14,
+              gap: 8,
+              borderTopWidth: 1,
+              borderTopColor: colors.neutral800,
+            }}
+          >
             {practiceStatus === 'empty' ? (
-              <Text style={styles.footerError}>{t('grammarRuleReader.noPracticeExercises')}</Text>
+              <Text style={note}>{t('grammarRuleReader.noPracticeExercises')}</Text>
             ) : null}
             {practiceStatus === 'error' ? (
-              <Text style={styles.footerError}>{t('grammarRuleReader.practiceLoadError')}</Text>
+              <Text style={note}>{t('grammarRuleReader.practiceLoadError')}</Text>
             ) : null}
-            <TouchableOpacity
-              style={styles.practiceBtn}
-              onPress={handlePractice}
+            <Button
+              block
+              size={48}
+              variant="primary"
+              label={
+                pool && pool.length > 0
+                  ? t('grammarRuleReader.goToPracticeN', { count: pool.length })
+                  : t('grammarRuleReader.goToPractice')
+              }
               disabled={practiceStatus === 'loading'}
-            >
-              {practiceStatus === 'loading' ? (
-                <ActivityIndicator size="small" color={colors.textInverted} />
-              ) : (
-                <Text style={styles.practiceBtnText}>{t('grammarRuleReader.goToPractice')}</Text>
-              )}
-            </TouchableOpacity>
+              onPress={handlePractice}
+            />
           </View>
         </>
       )}
@@ -108,131 +163,46 @@ export function GrammarRuleReaderScreen({
   );
 }
 
-const makeStyles = (colors: ColorScheme) =>
-  StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: 20,
-      paddingVertical: 12,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    backBtn: {
-      padding: 8,
-      marginRight: 8,
-    },
-    backText: {
-      fontSize: 22,
-      color: colors.textPrimary,
-    },
-    headerTitle: {
-      flex: 1,
-      fontSize: 17,
-      fontWeight: '700',
-      color: colors.textPrimary,
-    },
-    centerFill: {
-      flex: 1,
-      flexGrow: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: 32,
-    },
-    emptyTitle: {
-      fontSize: 17,
-      fontWeight: '700',
-      color: colors.textPrimary,
-      marginBottom: 6,
-      textAlign: 'center',
-    },
-    emptyDesc: {
-      fontSize: 14,
-      color: colors.textMuted,
-      textAlign: 'center',
-      lineHeight: 20,
-    },
-    retryButton: {
-      marginTop: 16,
-      paddingHorizontal: 20,
-      paddingVertical: 10,
-      borderRadius: 12,
-      backgroundColor: colors.accent,
-    },
-    retryButtonText: {
-      fontSize: 14,
-      fontWeight: '700',
-      color: colors.textInverted,
-    },
-    scroll: {
-      padding: 20,
-    },
-    summary: {
-      fontSize: 15,
-      color: colors.textSecondary,
-      lineHeight: 21,
-      marginBottom: 16,
-    },
-    footer: {
-      paddingHorizontal: 20,
-      paddingTop: 12,
-      paddingBottom: 20,
-      borderTopWidth: 1,
-      borderTopColor: colors.border,
-    },
-    footerError: {
-      fontSize: 13,
-      color: colors.danger,
-      textAlign: 'center',
-      marginBottom: 8,
-    },
-    practiceBtn: {
-      backgroundColor: colors.accent,
-      borderRadius: 14,
-      paddingVertical: 14,
-      alignItems: 'center',
-    },
-    practiceBtnText: {
-      fontSize: 15,
-      fontWeight: '700',
-      color: colors.textInverted,
-    },
-  });
-
-const makeMarkdownStyle = (colors: ColorScheme) => ({
+/**
+ * Markdown on the Nocturne look (Courses §8.3). The library hard-codes light backgrounds
+ * and black borders for blockquotes, code and tables — each is overridden, or the dark theme
+ * renders near-white text on near-white. The seed's example boxes are blockquotes (`>`).
+ */
+const makeMarkdownStyle = (colors: ColorScheme, typography: Typography) => ({
   body: {
-    color: colors.textPrimary,
-    fontSize: 15,
-    lineHeight: 22,
+    ...typography.cardTitle,
+    lineHeight: 23,
+    color: colors.neutral200,
   },
   heading1: {
-    fontSize: 22,
-    fontWeight: '700' as const,
-    color: colors.textPrimary,
+    ...typography.resumeTitle,
+    color: colors.text,
     marginTop: 4,
     marginBottom: 8,
   },
   heading2: {
+    ...typography.cardTitleMedium,
     fontSize: 18,
-    fontWeight: '700' as const,
-    color: colors.textPrimary,
+    lineHeight: 24,
+    color: colors.text,
     marginTop: 16,
     marginBottom: 6,
   },
   heading3: {
-    fontSize: 16,
-    fontWeight: '700' as const,
-    color: colors.textPrimary,
+    ...typography.cardTitleMedium,
+    color: colors.text,
     marginTop: 12,
     marginBottom: 4,
   },
+  // The verb in an example stands out by weight and colour, not by a heavier face.
   strong: {
-    fontWeight: '700' as const,
-    color: colors.textPrimary,
+    fontFamily: typography.cardTitleMedium.fontFamily,
+    fontWeight: 'normal' as const,
+    color: colors.accent300,
+  },
+  paragraph: {
+    marginTop: 0,
+    marginBottom: 8,
   },
   bullet_list: {
     marginBottom: 8,
@@ -241,49 +211,62 @@ const makeMarkdownStyle = (colors: ColorScheme) => ({
     marginBottom: 8,
   },
   code_inline: {
-    backgroundColor: colors.backgroundCard,
-    color: colors.textPrimary,
+    backgroundColor: colors.surface,
+    color: colors.text,
+    borderWidth: 0,
     borderRadius: 4,
     paddingHorizontal: 4,
   },
-  // The seed content's example boxes are markdown blockquotes (`>`), which
-  // hit this style, not code_block/fence — confirmed on-device (the example
-  // box, not a fenced fence-flavored block). Library default hardcodes a
-  // light #F5F5F5 background with no text color override (styles.js), so
-  // dark-theme body text renders near-white on near-white — illegible.
+  // Examples: a plate, no accent bar on the left.
   blockquote: {
-    backgroundColor: colors.backgroundCard,
-    borderColor: colors.accent,
-    borderLeftWidth: 4,
+    backgroundColor: colors.surface,
+    color: colors.text,
+    borderLeftWidth: 0,
+    borderRadius: radii.plate,
     marginLeft: 0,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    marginVertical: 4,
+    padding: 14,
   },
-  // Library defaults hardcode a light #f5f5f5 background (styles.js) with no
-  // text color override, so on the dark theme body text renders near-white
-  // on near-white — illegible. Overridden here rather than left to inherit,
-  // in case a rule's markdown ever does use a real fenced code block.
   code_block: {
-    backgroundColor: colors.backgroundCard,
-    borderColor: colors.border,
-    color: colors.textPrimary,
-    borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderWidth: 0,
+    color: colors.text,
+    borderRadius: radii.plate,
     padding: 10,
   },
   fence: {
-    backgroundColor: colors.backgroundCard,
-    borderColor: colors.border,
-    color: colors.textPrimary,
-    borderRadius: 8,
+    backgroundColor: colors.surface,
+    borderWidth: 0,
+    color: colors.text,
+    borderRadius: radii.plate,
     padding: 10,
   },
-  // Library defaults hardcode black (#000000) borders (styles.js) — barely
-  // visible against a dark background.
+  // No outer frame and no vertical lines: a hairline above every row.
   table: {
-    borderColor: colors.border,
-    borderRadius: 6,
+    borderWidth: 0,
+    borderRadius: 0,
   },
   tr: {
-    borderColor: colors.border,
+    borderBottomWidth: 0,
+    borderTopWidth: 1,
+    borderColor: colors.neutral800,
+  },
+  th: {
+    ...typography.meta,
+    color: colors.neutral500,
+    flex: 1,
+    paddingTop: 8,
+    paddingRight: 4,
+    paddingBottom: 8,
+    paddingLeft: 0,
+  },
+  td: {
+    ...typography.meta,
+    color: colors.neutral200,
+    flex: 1,
+    paddingTop: 8,
+    paddingRight: 4,
+    paddingBottom: 8,
+    paddingLeft: 0,
   },
 });

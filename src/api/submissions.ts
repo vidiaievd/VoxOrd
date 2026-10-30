@@ -45,6 +45,8 @@ export interface Submission {
   title: string | null;
   courseTitle: string | null;
   containerId: string | null;
+  /** The unit the exercise sat in when started — where «Rewrite» opens; null on older work. */
+  unitId: string | null;
   schoolId: string | null;
   /** ISO 8601 */
   submittedAt: string;
@@ -137,6 +139,7 @@ export function parseSubmission(raw: unknown): Submission | null {
     title: stringOrNull(path?.exercise) ?? stringOrNull(path?.module) ?? courseTitle,
     courseTitle,
     containerId: stringOrNull(raw.containerId),
+    unitId: stringOrNull(raw.unitId),
     schoolId: stringOrNull(raw.schoolId),
     submittedAt: raw.submittedAt,
     status: raw.status as SubmissionStatus,
@@ -222,6 +225,18 @@ export function latestReviewed(
     if (!latest || at > Date.parse(latest.decision!.at)) latest = s;
   }
   return latest;
+}
+
+/**
+ * Block 6b's row: the latest verdict a model gave on its own (`review_direct`, plan 79) —
+ * a model's word on a school's behalf (plan 80) belongs to block 6, not here.
+ */
+export function latestDirectReview(items: readonly Submission[], now: Date = new Date()): Submission | null {
+  return latestReviewed(
+    items.filter((s) => s.schoolId === null),
+    'ai',
+    now,
+  );
 }
 
 /**

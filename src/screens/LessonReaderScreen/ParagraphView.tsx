@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Image } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, Image } from 'react-native';
 import { ColorScheme } from '../../theme/colors';
 import { useTheme } from '../../providers/ThemeProvider';
 import { useModal } from '../../providers/ModalProvider';
@@ -9,7 +9,16 @@ import { getMediaAsset } from '../../api/media';
 import { tokenizeGlossary } from '../../utils/tokenizeGlossary';
 import { sentenceAt, wordRuns } from '../../lib/text/wordRuns';
 import type { WordCaptureSource } from '../../api/personalVocabulary';
-import { ReaderCaptureContext, useReaderCapture, type ReaderCapture } from './captureContext';
+import {
+  ReaderCaptureContext,
+  ReaderTextStyleContext,
+  useReaderCapture,
+  useReaderTextStyle,
+  type ReaderCapture,
+  type ReaderTextStyle,
+} from './captureContext';
+import { Icon } from '../../components/ui';
+import { useTranslation } from '../../i18n';
 import { readerBlocks, type Inline, type ReaderBlock } from '../../lib/text/readerBlocks';
 
 interface ParagraphViewProps {
@@ -17,6 +26,8 @@ interface ParagraphViewProps {
   /** Position of the paragraph in the text — where a word saved from it was met. */
   paragraphIndex: number;
   glossaryIndex: Map<string, ReaderGlossaryEntry>;
+  /** Size in points and colour by narration progress. */
+  textStyle: ReaderTextStyle;
 }
 
 /**
@@ -24,9 +35,15 @@ interface ParagraphViewProps {
  * a quoted document, lists, a table, an image — with the glossary's words tappable inside
  * every run of text, and the paragraph's translation behind the eye.
  */
-export function ParagraphView({ paragraph, paragraphIndex, glossaryIndex }: ParagraphViewProps) {
+export function ParagraphView({
+  paragraph,
+  paragraphIndex,
+  glossaryIndex,
+  textStyle,
+}: ParagraphViewProps) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
-  const styles = makeStyles(colors);
+  const styles = makeStyles(colors, textStyle);
   const [showTranslation, setShowTranslation] = useState(false);
   const blocks = useMemo(() => readerBlocks(paragraph.target), [paragraph.target]);
   const textCapture = useReaderCapture();
@@ -40,6 +57,7 @@ export function ParagraphView({ paragraph, paragraphIndex, glossaryIndex }: Para
 
   return (
     <ReaderCaptureContext.Provider value={capture}>
+      <ReaderTextStyleContext.Provider value={textStyle}>
       <View style={styles.paragraph}>
         {blocks.map((block, i) => (
           <BlockView key={i} block={block} glossaryIndex={glossaryIndex} />
@@ -47,13 +65,27 @@ export function ParagraphView({ paragraph, paragraphIndex, glossaryIndex }: Para
 
         {paragraph.translation && (
           <>
-            <TouchableOpacity onPress={() => setShowTranslation(v => !v)}>
-              <Text style={styles.toggle}>{showTranslation ? '🙈' : '👁'}</Text>
-            </TouchableOpacity>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                showTranslation ? t('lessonReader.hideTranslation') : t('lessonReader.showTranslation')
+              }
+              accessibilityState={{ expanded: showTranslation }}
+              onPress={() => setShowTranslation(v => !v)}
+              hitSlop={8}
+              style={styles.toggle}
+            >
+              <Icon
+                name="Translate"
+                size={18}
+                color={showTranslation ? colors.accent300 : colors.neutral500}
+              />
+            </Pressable>
             {showTranslation && <Text style={styles.translation}>{paragraph.translation}</Text>}
           </>
         )}
       </View>
+      </ReaderTextStyleContext.Provider>
     </ReaderCaptureContext.Provider>
   );
 }
@@ -66,7 +98,7 @@ function BlockView({
   glossaryIndex: Map<string, ReaderGlossaryEntry>;
 }) {
   const { colors } = useTheme();
-  const styles = makeStyles(colors);
+  const styles = makeStyles(colors, useReaderTextStyle());
 
   switch (block.kind) {
     case 'text':
@@ -138,8 +170,8 @@ function Inlines({
   glossaryIndex: Map<string, ReaderGlossaryEntry>;
 }) {
   const { colors } = useTheme();
-  const styles = makeStyles(colors);
-  const { show } = useModal();
+  const styles = makeStyles(colors, useReaderTextStyle());
+  const { show, config } = useModal();
   const capture = useReaderCapture();
   const blockText = useMemo(() => inlines.map((inline) => inline.text).join(''), [inlines]);
 
@@ -168,10 +200,11 @@ function Inlines({
               tokenStart += token.text.length;
               if (token.entry) {
                 const source = sourceAt(offset);
+                const selected = config?.type === 'glossary' && config.entry === token.entry;
                 return (
                   <Text
                     key={j}
-                    style={styles.glossaryWord}
+                    style={selected ? styles.glossaryWordSelected : styles.glossaryWord}
                     onPress={() =>
                       show({
                         type: 'glossary',
@@ -221,7 +254,7 @@ function TableView({
   glossaryIndex: Map<string, ReaderGlossaryEntry>;
 }) {
   const { colors } = useTheme();
-  const styles = makeStyles(colors);
+  const styles = makeStyles(colors, useReaderTextStyle());
   const rows = block.header ? [block.header, ...block.rows] : block.rows;
 
   return (
@@ -255,7 +288,7 @@ function TableView({
 /** An image of the text, fetched by its media id; its URL is signed and fetched on show. */
 function LessonImage({ mediaId, alt }: { mediaId: string; alt: string }) {
   const { colors } = useTheme();
-  const styles = makeStyles(colors);
+  const styles = makeStyles(colors, useReaderTextStyle());
   const [uri, setUri] = useState<string | null>(null);
   const [ratio, setRatio] = useState(16 / 9);
 
@@ -304,8 +337,17 @@ function speakerTone(speaker: string, colors: ColorScheme): string {
   return tones[hash % tones.length]!;
 }
 
-const makeStyles = (colors: ColorScheme) =>
-  StyleSheet.create({
+/** Line height that goes with a reader size: 15/24, 17/28, 20/32. */
+const LINE_HEIGHT: Record<number, number> = { 15: 24, 17: 28, 20: 32 };
+
+const makeStyles = (colors: ColorScheme, text: ReaderTextStyle) => {
+  const tone = {
+    plain: colors.neutral200,
+    read: colors.neutral300,
+    current: colors.text,
+    unread: colors.neutral500,
+  }[text.tone];
+  return StyleSheet.create({
     paragraph: {
       marginBottom: 8,
     },
@@ -313,15 +355,15 @@ const makeStyles = (colors: ColorScheme) =>
       marginBottom: 12,
     },
     target: {
-      fontSize: 17,
-      lineHeight: 26,
-      color: colors.textPrimary,
+      fontSize: text.fontSize,
+      lineHeight: LINE_HEIGHT[text.fontSize] ?? Math.round(text.fontSize * 1.65),
+      color: tone,
     },
     heading: {
-      fontSize: 20,
-      lineHeight: 28,
+      fontSize: text.fontSize + 3,
+      lineHeight: (LINE_HEIGHT[text.fontSize] ?? 28) + 2,
       fontWeight: '700',
-      color: colors.textPrimary,
+      color: tone === colors.neutral200 ? colors.text : tone,
     },
     bold: {
       fontWeight: '700',
@@ -329,10 +371,16 @@ const makeStyles = (colors: ColorScheme) =>
     italic: {
       fontStyle: 'italic',
     },
+    // A dashed underline in neutral500; Android draws the line solid, as it ignores the style.
     glossaryWord: {
-      color: colors.accent,
-      fontWeight: '700',
       textDecorationLine: 'underline',
+      textDecorationStyle: 'dashed',
+      textDecorationColor: colors.neutral500,
+    },
+    glossaryWordSelected: {
+      backgroundColor: colors.accent800,
+      color: colors.accent100,
+      borderRadius: 4,
     },
     turn: {
       borderLeftWidth: 3,
@@ -349,9 +397,9 @@ const makeStyles = (colors: ColorScheme) =>
       marginBottom: 4,
     },
     bullet: {
-      fontSize: 17,
-      lineHeight: 26,
-      color: colors.textMuted,
+      fontSize: text.fontSize,
+      lineHeight: LINE_HEIGHT[text.fontSize] ?? Math.round(text.fontSize * 1.65),
+      color: colors.neutral500,
       width: 18,
     },
     listText: {
@@ -362,32 +410,32 @@ const makeStyles = (colors: ColorScheme) =>
       paddingBottom: 2,
       borderRadius: 12,
       borderWidth: 1,
-      borderColor: colors.border,
-      backgroundColor: colors.backgroundInput,
+      borderColor: colors.neutral800,
+      backgroundColor: colors.surface,
     },
     table: {
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: colors.neutral800,
       borderRadius: 10,
       overflow: 'hidden',
     },
     tableRow: {
       flexDirection: 'row',
       borderBottomWidth: 1,
-      borderBottomColor: colors.border,
+      borderBottomColor: colors.neutral800,
     },
     tableRowLast: {
       borderBottomWidth: 0,
     },
     tableHeader: {
-      backgroundColor: colors.backgroundInput,
+      backgroundColor: colors.surface,
     },
     tableCell: {
       width: 170,
       paddingHorizontal: 10,
       paddingVertical: 8,
       borderLeftWidth: 1,
-      borderLeftColor: colors.border,
+      borderLeftColor: colors.neutral800,
     },
     tableCellFirst: {
       width: 120,
@@ -396,31 +444,32 @@ const makeStyles = (colors: ColorScheme) =>
     cellText: {
       fontSize: 15,
       lineHeight: 21,
-      color: colors.textPrimary,
+      color: tone,
     },
     image: {
       width: '100%',
       borderRadius: 12,
     },
     imagePlaceholder: {
-      backgroundColor: colors.backgroundInput,
+      backgroundColor: colors.surface,
     },
     caption: {
       marginTop: 6,
       fontSize: 13,
-      color: colors.textMuted,
+      color: colors.neutral500,
       textAlign: 'center',
     },
     toggle: {
-      fontSize: 16,
-      marginTop: -4,
+      alignSelf: 'flex-start',
+      marginTop: -2,
       marginBottom: 8,
     },
     translation: {
       marginBottom: 12,
       fontSize: 15,
       lineHeight: 22,
-      color: colors.textMuted,
+      color: colors.neutral400,
       fontStyle: 'italic',
     },
   });
+};

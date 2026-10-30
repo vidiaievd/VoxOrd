@@ -321,7 +321,7 @@ function HighlightInTextRunner({
   if (resuming) {
     return (
       <View style={styles.notice}>
-        <ActivityIndicator color={colors.accent} />
+        <ActivityIndicator color={colors.accentBase} />
       </View>
     );
   }
@@ -375,10 +375,10 @@ function HighlightInTextRunner({
                 styles.railStep,
                 {
                   backgroundColor: completed[i]
-                    ? colors.success
+                    ? colors.accentBase
                     : i === index
-                    ? colors.accent
-                    : colors.backgroundPressed,
+                    ? colors.accent700
+                    : colors.neutral800,
                 },
               ]}
             />
@@ -434,7 +434,7 @@ function HighlightInTextRunner({
         <View style={styles.legend}>
           {revealed ? (
             <Swatch
-              style={{ backgroundColor: colors.accentLight }}
+              style={{ backgroundColor: colors.accent900 }}
               styles={styles}
             >
               {t('exerciseRunner.highlightInText.legendKey')}
@@ -442,13 +442,13 @@ function HighlightInTextRunner({
           ) : (
             <>
               <Swatch
-                style={{ backgroundColor: tint(colors.success, 0.18) }}
+                style={{ backgroundColor: tint(colors.accentBase, 0.18) }}
                 styles={styles}
               >
                 {t('exerciseRunner.highlightInText.legendRight')}
               </Swatch>
               <Swatch
-                style={{ backgroundColor: tint(colors.danger, 0.12) }}
+                style={{ backgroundColor: tint(colors.neutral600, 0.12) }}
                 styles={styles}
               >
                 {t('exerciseRunner.highlightInText.legendExtra')}
@@ -554,7 +554,7 @@ function HighlightInTextRunner({
                 accessibilityRole="button"
               >
                 {sending ? (
-                  <ActivityIndicator size="small" color={colors.textInverted} />
+                  <ActivityIndicator size="small" color={colors.accent300} />
                 ) : (
                   <Text style={styles.primaryBtnText}>
                     {marks.length > 0
@@ -588,7 +588,7 @@ function HighlightInTextRunner({
                 {sending ? (
                   <ActivityIndicator
                     size="small"
-                    color={colors.textSecondary}
+                    color={colors.neutral400}
                   />
                 ) : (
                   <Text style={styles.ghostBtnText}>
@@ -856,14 +856,14 @@ function MarkablePassage({
                       styles.token,
                       tone.box,
                       cell?.keyLine === true && {
-                        borderBottomColor: colors.accent,
+                        borderBottomColor: colors.accentBase,
                       },
                       startsRun && styles.runStart,
                       endsRun && styles.runEnd,
                     ]}
                   >
                     {ordinal !== null && (
-                      <Text style={[styles.ordinal, { color: colors.accent }]}>
+                      <Text style={[styles.ordinal, { color: colors.accentBase }]}>
                         {ordinal}
                       </Text>
                     )}
@@ -963,33 +963,33 @@ function cellTone(
   switch (cell?.m) {
     case 'sel':
       return {
-        box: { backgroundColor: tint(colors.warning, 0.26) },
-        text: { fontWeight: '600' },
+        box: { backgroundColor: tint(colors.accent700, 0.26) },
+        text: { fontWeight: '500' },
       };
     case 'ok':
       return {
-        box: { backgroundColor: tint(colors.success, 0.18) },
-        text: { fontWeight: '600' },
+        box: { backgroundColor: tint(colors.accentBase, 0.18) },
+        text: { fontWeight: '500' },
       };
     case 'fp':
       return {
-        box: { backgroundColor: tint(colors.danger, 0.12) },
-        text: { color: colors.danger, textDecorationLine: 'line-through' },
+        box: { backgroundColor: tint(colors.neutral600, 0.12) },
+        text: { color: colors.neutral400, textDecorationLine: 'line-through' },
       };
     case 'near':
       return {
-        box: { backgroundColor: tint(colors.warning, 0.14) },
+        box: { backgroundColor: tint(colors.accent700, 0.14) },
         text: null,
       };
     case 'miss':
       return {
-        box: { borderBottomColor: colors.accent },
-        text: { color: colors.accent },
+        box: { borderBottomColor: colors.accentBase },
+        text: { color: colors.accentBase },
       };
     case 'key':
       return {
-        box: { backgroundColor: colors.accentLight },
-        text: { color: colors.accent, fontWeight: '600' },
+        box: { backgroundColor: colors.accent900 },
+        text: { color: colors.accentBase, fontWeight: '500' },
       };
     default:
       return { box: {}, text: null };
@@ -1019,10 +1019,10 @@ function Note({
 }) {
   const accent =
     tone === 'ok'
-      ? colors.success
+      ? colors.accent300
       : tone === 'bad'
-      ? colors.danger
-      : colors.accent;
+      ? colors.neutral400
+      : colors.accentBase;
   return (
     <View
       style={[
@@ -1061,14 +1061,14 @@ const makeStyles = (colors: ColorScheme) =>
     },
     noticeTitle: {
       fontSize: 16,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
       textAlign: 'center',
       marginBottom: 6,
     },
     noticeDesc: {
       fontSize: 13,
-      color: colors.textMuted,
+      color: colors.neutral500,
       textAlign: 'center',
       lineHeight: 19,
     },
@@ -1086,11 +1086,11 @@ const makeStyles = (colors: ColorScheme) =>
     railCount: {
       fontSize: 11,
       fontVariant: ['tabular-nums'],
-      color: colors.textMuted,
+      color: colors.neutral500,
       marginLeft: 2,
     },
     prompt: {
-      backgroundColor: colors.accentLight,
+      backgroundColor: colors.accent900,
       borderRadius: 12,
       paddingHorizontal: 12,
       paddingVertical: 11,
@@ -1098,20 +1098,20 @@ const makeStyles = (colors: ColorScheme) =>
     },
     promptText: {
       fontSize: 15,
-      fontWeight: '600',
+      fontWeight: '500',
       lineHeight: 21,
-      color: colors.textPrimary,
+      color: colors.text,
     },
     promptHow: {
       fontSize: 12.5,
       lineHeight: 17,
-      color: colors.accent,
+      color: colors.accentBase,
       marginTop: 3,
     },
     instruction: {
       fontSize: 14,
       lineHeight: 20,
-      color: colors.textSecondary,
+      color: colors.neutral400,
       marginBottom: 12,
     },
     audio: {
@@ -1152,7 +1152,7 @@ const makeStyles = (colors: ColorScheme) =>
     word: {
       fontSize: 17,
       lineHeight: 24,
-      color: colors.textPrimary,
+      color: colors.text,
     },
     gap: {
       paddingTop: 3,
@@ -1164,7 +1164,7 @@ const makeStyles = (colors: ColorScheme) =>
     ordinal: {
       fontSize: 9,
       lineHeight: 11,
-      fontWeight: '700',
+      fontWeight: '500',
       opacity: 0.75,
       marginRight: 1,
     },
@@ -1192,11 +1192,11 @@ const makeStyles = (colors: ColorScheme) =>
     missSwatch: {
       borderRadius: 0,
       borderBottomWidth: 2,
-      borderBottomColor: colors.accent,
+      borderBottomColor: colors.accentBase,
     },
     swatchText: {
       fontSize: 11.5,
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     verdict: {
       gap: 7,
@@ -1216,15 +1216,15 @@ const makeStyles = (colors: ColorScheme) =>
     noteText: {
       fontSize: 14,
       lineHeight: 20,
-      color: colors.textPrimary,
+      color: colors.text,
     },
     bold: {
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
     },
     bottom: {
       borderTopWidth: 1,
-      borderTopColor: colors.border,
+      borderTopColor: colors.neutral800,
       paddingTop: 12,
       gap: 10,
     },
@@ -1237,7 +1237,7 @@ const makeStyles = (colors: ColorScheme) =>
     counterText: {
       fontSize: 12.5,
       fontVariant: ['tabular-nums'],
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     clearBtn: {
       minHeight: TAP_MIN,
@@ -1246,14 +1246,15 @@ const makeStyles = (colors: ColorScheme) =>
     },
     clearText: {
       fontSize: 13,
-      fontWeight: '700',
-      color: colors.textSecondary,
+      fontWeight: '500',
+      color: colors.neutral400,
     },
     actions: {
       gap: 10,
     },
     primaryBtn: {
-      backgroundColor: colors.accent,
+      borderWidth: 1,
+      borderColor: colors.accentBase,
       borderRadius: 14,
       minHeight: TAP_MIN,
       paddingVertical: 14,
@@ -1262,8 +1263,8 @@ const makeStyles = (colors: ColorScheme) =>
     },
     primaryBtnText: {
       fontSize: 15,
-      fontWeight: '700',
-      color: colors.textInverted,
+      fontWeight: '500',
+      color: colors.accent300,
     },
     ghostBtn: {
       borderRadius: 14,
@@ -1274,15 +1275,15 @@ const makeStyles = (colors: ColorScheme) =>
     },
     ghostBtnText: {
       fontSize: 14,
-      fontWeight: '600',
-      color: colors.textSecondary,
+      fontWeight: '500',
+      color: colors.neutral400,
     },
     btnDim: {
       opacity: 0.5,
     },
     attempt: {
       fontSize: 12.5,
-      color: colors.textMuted,
+      color: colors.neutral500,
       textAlign: 'center',
     },
     reasons: {
@@ -1291,10 +1292,10 @@ const makeStyles = (colors: ColorScheme) =>
     reason: {
       fontSize: 13,
       lineHeight: 19,
-      color: colors.textSecondary,
+      color: colors.neutral400,
     },
     error: {
       fontSize: 13,
-      color: colors.danger,
+      color: colors.neutral400,
     },
   });

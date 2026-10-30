@@ -1,5 +1,5 @@
 import { contents, item, unit } from './__fixtures__/unitContents';
-import { itemsInOrder, nextItem } from './nextItem';
+import { itemsInOrder, nextAfterSet, nextItem } from './nextItem';
 
 describe('itemsInOrder', () => {
   it('lists sections in order, then the ungrouped rest', () => {
@@ -45,5 +45,32 @@ describe('nextItem', () => {
 
   it('has nothing for a finished course', () => {
     expect(nextItem({ units: [unit(0, 'done'), unit(1, 'done')] }, {})).toBeNull();
+  });
+});
+
+describe('nextAfterSet', () => {
+  it('takes the first open material after the set', () => {
+    const c = contents([
+      [item('t', 'available', 'lesson'), item('a', 'in_progress'), item('b', 'available')],
+      [item('done', 'completed', 'lesson'), item('w', 'available', 'vocabulary_list')],
+    ]);
+    expect(nextAfterSet(c, ['c-a', 'c-b'])?.id).toBe('w');
+  });
+
+  it('never names an exercise of the set itself, even one left open', () => {
+    const c = contents([[item('a', 'available'), item('b', 'completed')]]);
+    expect(nextAfterSet(c, ['c-a', 'c-b'])).toBeNull();
+  });
+
+  it('falls back to an open material before the set', () => {
+    const c = contents([[item('t', 'available', 'lesson'), item('a', 'completed')]]);
+    expect(nextAfterSet(c, ['c-a'])?.id).toBe('t');
+  });
+
+  it('skips containers and locked materials', () => {
+    const c = contents([
+      [item('a', 'completed'), item('box', 'available', 'container'), item('l', 'locked', 'lesson'), item('g', 'available', 'grammar_rule')],
+    ]);
+    expect(nextAfterSet(c, ['c-a'])?.id).toBe('g');
   });
 });

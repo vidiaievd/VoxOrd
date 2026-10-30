@@ -1,12 +1,10 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useState } from 'react';
+import { LayoutChangeEvent, Pressable, Text, View } from 'react-native';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
-import { ColorScheme } from '../../theme/colors';
-import { useNarration } from '../../hooks/useNarration';
-
-/** How far one press of «back» or «forward» moves, in seconds. */
-const JUMP_SECONDS = 10;
+import type { NarrationController } from '../../hooks/useNarration';
+import { Button, ProgressTrack } from '../../components/ui';
+import { radii } from '../../theme/spacing';
 
 function clock(seconds: number): string {
   const whole = Math.max(0, Math.floor(seconds));
@@ -14,125 +12,95 @@ function clock(seconds: number): string {
 }
 
 /**
- * The text's narration, in a strip under the header: back 10 s, play or pause, forward 10 s,
- * where it is, and the speed. It stays put while the text scrolls under it, so the recording
- * can be followed along the page.
+ * The text's narration, in a block under the header: play or pause, where it is, and the
+ * speed. It stays put while the text scrolls under it, so the recording can be followed along
+ * the page. The controller is the screen's, which also reads the position to colour the
+ * paragraphs. Tapping the track jumps there — it replaces the old ±10 s buttons, which the
+ * redesign has no room for.
  */
-export function NarrationBar({ mediaId }: { mediaId: string }) {
+export function NarrationBar({ narration }: { narration: NarrationController }) {
   const { t } = useTranslation();
-  const { colors } = useTheme();
-  const styles = makeStyles(colors);
-  const { status, position, duration, speed, toggle, seekBy, cycleSpeed } = useNarration(mediaId);
+  const { colors, typography } = useTheme();
+  const { status, position, duration, speed, toggle, seekBy, cycleSpeed } = narration;
+  const [trackWidth, setTrackWidth] = useState(0);
 
   const started = status === 'playing' || status === 'paused';
+  const known = duration > 0;
+
+  const seekToTouch = (x: number) => {
+    if (!started || !known || trackWidth <= 0) return;
+    const to = Math.min(1, Math.max(0, x / trackWidth)) * duration;
+    seekBy(to - position);
+  };
 
   return (
-    <View style={styles.bar}>
-      <TouchableOpacity
-        style={styles.jump}
-        onPress={() => seekBy(-JUMP_SECONDS)}
-        disabled={!started}
-        accessibilityLabel={t('lessonReader.narration.back')}
-      >
-        <Text style={[styles.jumpText, !started && styles.dim]}>↺10</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.play}
-        onPress={toggle}
+    <View
+      style={{
+        marginHorizontal: 18,
+        marginBottom: 4,
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        borderRadius: radii.plate,
+        backgroundColor: colors.surface,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+      }}
+    >
+      <Button
+        variant="secondary"
+        size={36}
+        iconOnly
+        icon={status === 'playing' ? 'Pause' : 'Play'}
         disabled={status === 'loading'}
         accessibilityLabel={
           status === 'playing' ? t('lessonReader.narration.pause') : t('lessonReader.narration.play')
         }
-      >
-        {status === 'loading' ? (
-          <ActivityIndicator size="small" color={colors.textInverted} />
+        onPress={toggle}
+      />
+
+      <View style={{ flex: 1, gap: 6 }}>
+        {status === 'error' ? (
+          <Text style={[typography.meta, { color: colors.neutral400 }]}>
+            {t('lessonReader.narration.error')}
+          </Text>
         ) : (
-          <Text style={styles.playText}>{status === 'playing' ? '❚❚' : '▶'}</Text>
+          <>
+            <Pressable
+              accessibilityLabel={t('lessonReader.narration.label')}
+              onLayout={(e: LayoutChangeEvent) => setTrackWidth(e.nativeEvent.layout.width)}
+              onPress={(e) => seekToTouch(e.nativeEvent.locationX)}
+              // The track is 3 high: the touch area is taller than what is drawn.
+              style={{ paddingVertical: 6 }}
+            >
+              <View pointerEvents="none">
+                <ProgressTrack
+                  value={known ? position / duration : 0}
+                  height={3}
+                  fill={colors.accent300}
+                />
+              </View>
+            </Pressable>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <Text style={{ fontSize: 11, color: colors.neutral500, fontVariant: ['tabular-nums'] }}>
+                {clock(position)}
+              </Text>
+              <Text style={{ fontSize: 11, color: colors.neutral500, fontVariant: ['tabular-nums'] }}>
+                {known ? clock(duration) : t('lessonReader.narration.label')}
+              </Text>
+            </View>
+          </>
         )}
-      </TouchableOpacity>
+      </View>
 
-      <TouchableOpacity
-        style={styles.jump}
-        onPress={() => seekBy(JUMP_SECONDS)}
-        disabled={!started}
-        accessibilityLabel={t('lessonReader.narration.forward')}
-      >
-        <Text style={[styles.jumpText, !started && styles.dim]}>10↻</Text>
-      </TouchableOpacity>
-
-      <Text style={styles.time} numberOfLines={1}>
-        {status === 'error'
-          ? t('lessonReader.narration.error')
-          : started || duration > 0
-            ? `${clock(position)} / ${clock(duration)}`
-            : t('lessonReader.narration.label')}
-      </Text>
-
-      <TouchableOpacity
-        style={styles.speed}
+      <Pressable
         onPress={cycleSpeed}
+        accessibilityRole="button"
         accessibilityLabel={t('lessonReader.narration.speed')}
+        hitSlop={8}
       >
-        <Text style={styles.speedText}>{`${speed}×`}</Text>
-      </TouchableOpacity>
+        <Text style={{ fontSize: 12, color: colors.neutral300 }}>{`${speed}×`}</Text>
+      </Pressable>
     </View>
   );
 }
-
-const makeStyles = (colors: ColorScheme) =>
-  StyleSheet.create({
-    bar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: 16,
-      paddingVertical: 8,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-      backgroundColor: colors.background,
-    },
-    jump: {
-      paddingHorizontal: 8,
-      paddingVertical: 6,
-    },
-    jumpText: {
-      fontSize: 14,
-      fontWeight: '700',
-      color: colors.textPrimary,
-    },
-    dim: {
-      opacity: 0.35,
-    },
-    play: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: colors.accent,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginHorizontal: 4,
-    },
-    playText: {
-      fontSize: 15,
-      color: colors.textInverted,
-    },
-    time: {
-      flex: 1,
-      marginLeft: 8,
-      fontSize: 13,
-      color: colors.textSecondary,
-      fontVariant: ['tabular-nums'],
-    },
-    speed: {
-      paddingHorizontal: 10,
-      paddingVertical: 5,
-      borderRadius: 999,
-      borderWidth: 1,
-      borderColor: colors.border,
-    },
-    speedText: {
-      fontSize: 12,
-      fontWeight: '700',
-      color: colors.textPrimary,
-    },
-  });

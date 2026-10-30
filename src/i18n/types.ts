@@ -43,6 +43,55 @@ export interface Translations {
     title: string;
     empty: string;
     emptyBody: string;
+    readAll: string;
+    filter: { all: string; work: string; course: string };
+    offline: string;
+    emptyFilter: string;
+    emptyWork: string;
+    emptyCourse: string;
+    loadError: string;
+    retry: string;
+    loadMore: string;
+    footer: string; // text before the link
+    footerLink: string;
+    unreadLabel: string;
+    openWork: string;
+    /** «on Monday» — the preposition is part of the word, it differs by language and day. */
+    weekday: {
+      mon: string;
+      tue: string;
+      wed: string;
+      thu: string;
+      fri: string;
+      sat: string;
+      sun: string;
+    };
+    row: {
+      workFallback: string;
+      passed: string; // '{title}'
+      returned: string; // '{title}'
+      passedItems: string; // '{approved}' '{total}'
+      score: string; // '{percent}'
+      returnedHint: string;
+      hasComment: string;
+      aiReviewed: string;
+      aiPassed: string;
+      assignment: string;
+      assignmentDue: string;
+      classMoved: string;
+      examMoved: string;
+      classCancelled: string;
+      examCancelled: string;
+      classRestored: string;
+      examRestored: string;
+      class: string; // '{weekday}' '{time}'
+      exam: string; // '{weekday}' '{time}'
+      classRange: string; // '{start}' '{end}'
+      enrollmentApproved: string;
+      enrollmentRejected: string;
+      groupJoined: string;
+      groupJoinedNamed: string; // '{group}'
+    };
   };
 
   /** Home — «Today»: carry on with a course, review what is due, open another course. */
@@ -106,8 +155,16 @@ export interface Translations {
     openCourse: string;
     dismiss: string;
     /** Block 6: the latest review, and what is still waiting. */
+    /** Block 2 (C): the assistant's line in the flow. */
+    assist: {
+      ask: string; // '{unit}'
+      askPlain: string;
+      voice: string;
+    };
     teacher: {
       title: string;
+      /** C: the latest review, talked over with the assistant. */
+      discuss: string;
       waiting: string; // '{count}'
       offline: string;
       aiDrafted: string;
@@ -116,6 +173,25 @@ export interface Translations {
       aiAcceptedAtTerm: string;
       aiVerdict: string;
       aiQuote: string; // '{comment}'
+    };
+    /** Block 6b (D): the latest work a model reviewed on its own. */
+    aiReviewed: {
+      title: string;
+      open: string;
+      rewrite: string;
+    };
+    /** Block D2: prompts for the assistant, made on the phone. */
+    suggest: {
+      title: string;
+      unit: string; // '{unit}'
+      topic: string; // '{topic}'
+      work: string; // '{title}'
+    };
+    /** Block D3: the period's AI-review credits — credits, never a count of reviews. */
+    aiCredits: {
+      line: string; // '{used}', '{total}'
+      until: string; // '{date}'
+      more: string;
     };
     /** Block 10. */
     soloWriting: {
@@ -133,6 +209,8 @@ export interface Translations {
     /** Block 7. */
     nextClass: {
       title: string;
+      /** C: get ready for the class with the assistant. */
+      prepare: string;
       today: string;
       tomorrow: string;
       inDays: PluralForms; // '{count}'
@@ -185,6 +263,52 @@ export interface Translations {
     marks: string;
     mark: string; // '{mark}'
     loadFailed: string;
+    discuss: string;
+  };
+  /** The learner's assistant (mobile redesign 03; platform plan 83). */
+  assistant: {
+    title: string;
+    subtitleCourse: string; // '{course}'
+    subtitleAll: string;
+    close: string;
+    /** Always at the top of the thread, not dismissible. */
+    aiLabel: string;
+    empty: string;
+    contextUnit: string; // '{label}'
+    contextUnitUnnamed: string;
+    contextSubmission: string; // '{label}'
+    contextSubmissionUnnamed: string;
+    contextClass: string; // '{label}'
+    contextClassUnnamed: string;
+    contextWord: string; // '{label}'
+    /** For screen readers: what tapping the chip does. */
+    contextRemoveHint: string;
+    contextRemoved: string;
+    contextRestore: string;
+    citeGrammarRule: string; // '{title}'
+    citeLesson: string; // '{title}'
+    citeUnit: string; // '{title}'
+    citeWord: string; // '{title}'
+    citeMyWord: string; // '{title}'
+    addWord: string; // '{lemma}'
+    placeholder: string;
+    listening: string;
+    mic: string;
+    micStop: string;
+    micUnavailable: string;
+    send: string;
+    needsNetwork: string;
+    typing: string;
+    refused: string;
+    refusedFree: string;
+    refusedQuota: string;
+    silent: string;
+    rateLimited: string;
+    unreachable: string;
+    retry: string;
+    helpful: string;
+    notHelpful: string;
+    feedbackFailed: string;
   };
   /** What kind of material an item is, for «Lesson · 5 min». */
   itemType: {
@@ -230,6 +354,88 @@ export interface Translations {
     };
   };
 
+  account: {
+    kicker: string;
+    groupData: string;
+    name: string;
+    nameEmpty: string;
+    email: string;
+    editNameTitle: string;
+    editNameHint: string;
+    nameSaveFailed: string;
+    delete: string;
+    deleteTitle: string;
+    deleteBody: string;
+    deleteContinue: string;
+    needsNetwork: string;
+    deletePasswordTitle: string;
+    deletePasswordHint: string;
+    password: string;
+    deleteConfirm: string;
+    wrongPassword: string;
+    contactSupport: string;
+    locked: string;
+    deleteFailed: string;
+    deleteDone: string;
+  };
+
+  subscription: {
+    title: string;
+    kicker: string;
+    free: string;
+    included: string;
+    aiReview: string;
+    ofTotal: string;
+    assistant: string;
+    practice: string;
+    nothingIncluded: string;
+    untilDate: string;
+    schoolAccess: string;
+    paidBy: string;
+    schoolNote: string;
+  };
+
+  school: {
+    kicker: string;
+    group: string;
+    classes: string;
+    nextClass: string;
+    courses: string;
+    sees: string;
+    seesProgress: string;
+    seesWork: string;
+    leave: string;
+    leaveTitle: string;
+    leaveBody: string;
+    leaveFailed: string;
+    notFound: string;
+  };
+
+  profile: {
+    viaEmail: string;
+    sub: {
+      kicker: string;
+      free: string;
+      trial: string;
+      until: string;
+      credits: string;
+      manage: string;
+      details: string;
+    };
+    schools: string;
+    schoolMeta: string;
+    schoolGroup: string;
+    schoolNoGroup: string;
+    progress: string;
+    skills: {
+      vocabulary: string;
+      grammar: string;
+      reading: string;
+      listening: string;
+      speaking: string;
+      writing: string;
+    };
+  };
   settings: {
     title: string;
     statistics: string;
@@ -281,6 +487,25 @@ export interface Translations {
     apiBaseUrl: string;
     apiBaseUrlSave: string;
     apiBaseUrlSaved: string;
+    notificationsGroup: string;
+    dailyGoal: string;
+    minutesValue: string;
+    translationLanguage: string;
+    autoplayAudio: string;
+    reviewReminder: string;
+    reviewReminderEvery: string;
+    reviewReminderTime: string;
+    notifWork: string;
+    notifSchool: string;
+    downloadAhead: string;
+    wifiOnly: string;
+    onThisPhone: string;
+    appLanguage: string;
+    /** «As on the phone»: the interface follows the phone's language. */
+    appLanguageSystem: string;
+    appLanguageNote: string;
+    /** A language's name in the interface language — the line under its endonym. */
+    languageNames: { ru: string; uk: string; en: string };
   };
 
   courses: {
@@ -294,6 +519,109 @@ export interface Translations {
     noCoursesYetDesc: string;
     loadError: string;
     retry: string;
+  };
+
+  coursesTab: {
+    mine: string;
+    catalog: string;
+    nowStudying: string;
+    schoolTag: string; // '{name}'
+    unitN: string; // '{n}', '{title}'
+    next: string; // '{title}'
+    unitsDone: string; // '{done}', '{total}'
+    continue: string;
+    courseDone: string;
+    repeatMaterial: string;
+    moreCourses: string;
+    selfStudy: string;
+    school: string;
+    notStarted: string;
+    onPhone: PluralForms; // '{count}', '{size}'
+    nextUnits: PluralForms; // '{count}'
+    nextUnitsWifi: PluralForms; // '{count}'
+    sizeMb: string;
+    sizeGb: string;
+    openCatalog: string;
+  };
+
+  /** The catalogue segment and a course before enrolment (plan 04 step 9, Courses spec §5.3, 5c). */
+  catalog: {
+    search: string;
+    language: string;
+    level: string;
+    allLanguages: string;
+    allLevels: string;
+    skill: string;
+    allSkills: string;
+    group: string; // '{lang}', '{level}'
+    mine: string;
+    units: PluralForms; // '{count}'
+    empty: string;
+    reset: string;
+    loadError: string;
+    retry: string;
+    learn: string;
+    program: string;
+    allUnits: PluralForms; // '{count}'
+    fewerUnits: string;
+    unitN: string; // '{n}'
+    enroll: string;
+    enrollNote: string;
+    enrollFailed: string;
+    enrollForbidden: string;
+    openCourse: string;
+    paidNote: string;
+    schoolNote: string;
+    offlineNote: string;
+    picksTitle: string; // '{level}'
+    picksTitleNoLevel: string;
+    lang: {
+      nb: string;
+      nn: string;
+      no: string;
+      en: string;
+      de: string;
+      es: string;
+      fr: string;
+      uk: string;
+      ru: string;
+      ja: string;
+    };
+  };
+
+  /** «Find a school» and a school's page (plan 04 step 9c). */
+  findSchool: {
+    title: string;
+    intro: string;
+    search: string;
+    loadError: string;
+    empty: string;
+    none: string;
+    clear: string;
+    mine: string;
+    open: string;
+    rowTitle: string;
+    rowBody: string;
+    application: string;
+    language: string;
+    level: string;
+    notSaying: string;
+    levelUnknown: string;
+    apply: string;
+    reapply: string;
+    applyNote: string;
+    offlineNote: string;
+    sent: string;
+    applyFailed: string;
+    applyGone: string;
+    openCourses: string;
+    statePending: string;
+    stateAccepted: string;
+    stateMember: string;
+    stateClosed: string;
+    stateRejected: string;
+    tagPending: string;
+    tagAccepted: string;
   };
 
   courseHome: {
@@ -311,6 +639,27 @@ export interface Translations {
     skillWriting: string;
     reviewsDue: PluralForms; // '{count} reviews due'
     startReview: string;
+    dueLabel: string;
+    allReviewed: string;
+    masteryLabel: string;
+    bySkill: string;
+    units: string;
+    unitProgress: string; // '{done} of {total}'
+    unitProgressNext: string; // '{done} of {total} · next: {title}'
+    unitMaterials: PluralForms; // '{count} items'
+    lockedReason: string;
+    menu: string;
+    downloadCourse: string;
+    removeFromPhone: string;
+    leaveCourse: string;
+    downloadStarted: string;
+    downloadFailed: string;
+    removed: string;
+    leaveTitle: string;
+    leaveMessage: string; // '{course}'
+    leaveConfirm: string;
+    leaveFailed: string;
+    unitNotSaved: string;
   };
 
   unitContents: {
@@ -326,6 +675,28 @@ export interface Translations {
     statusAvailable: string;
     statusLocked: string;
     masteryPercent: string; // 'Mastery: {percent}%'
+    header: string; // 'Unit {n} · {done} of {total}'
+    saved: string;
+    notSaved: string;
+    saving: string;
+    savedSize: string; // '{size}'
+    savingPct: string; // '{pct}'
+    sizeMb: string; // '{mb}'
+    sizeUnderMb: string;
+    secTexts: string;
+    secWordsGrammar: string;
+    secExercises: string; // '{count}'
+    continueItem: string; // '{item}'
+    nextUnit: string; // '{unit}'
+    kindText: string;
+    kindAudio: string;
+    kindWords: string;
+    kindRule: string;
+    kindExercise: string;
+    metaRule: string; // '{percent}'
+    lockedToast: string;
+    outsideWindowToast: string;
+    itemNotSaved: string;
   };
 
   /** «My words» — words the student adds from a text (plan 75). */
@@ -347,6 +718,9 @@ export interface Translations {
     /** On a word of a unit's list that the student added themselves. */
     mineBadge: string;
     limitReached: string;
+    searchPlaceholder: string;
+    searchOpen: string;
+    noMatches: string;
     deleteHint: string;
     deleteTitle: string;
     deleteMessage: string;
@@ -383,6 +757,18 @@ export interface Translations {
     toExercises: string;
     /** The same button when the text leads into none: it closes the reader. */
     finish: string;
+    /** Parent label of the header: 'Unit {n}'. */
+    back: string;
+    textSize: string;
+    textSizeSmall: string;
+    textSizeMedium: string;
+    textSizeLarge: string;
+    addToMyWords: string;
+    inMyWords: string;
+    addedNote: string;
+    showTranslation: string;
+    hideTranslation: string;
+    listenToWord: string;
   };
 
   grammarRuleReader: {
@@ -390,6 +776,8 @@ export interface Translations {
     loadError: string;
     noContent: string;
     goToPractice: string;
+    goToPracticeN: PluralForms; // 'Go to practice · {count} exercises'
+    meta: string; // 'Grammar · mastery {pct}%'
     noPracticeExercises: string;
     practiceLoadError: string;
   };
@@ -400,6 +788,16 @@ export interface Translations {
     noItems: string;
     noTranslation: string;
     wordCount: string; // '{count} words'
+    meta: PluralForms; // '{count} words · {mine} in My words'
+    learnCards: string;
+    addAll: string;
+    addedAll: string;
+    search: string;
+    searchPlaceholder: string;
+    noMatches: string;
+    addToMyWords: string;
+    removeFromMyWords: string;
+    cardsEmpty: string;
     forms: string;
     examples: string;
     register: string; // 'Register: {register}'
@@ -484,12 +882,18 @@ export interface Translations {
     loadError: string;
     progress: string; // '{current} / {total}'
     check: string;
+    /** Footer label for work handed in rather than checked — `writing_task` (Courses §8.5). */
+    send: string;
+    /** Accessibility label of the header's X. */
+    close: string;
     continue: string;
     finish: string;
     tryAgain: string;
     correct: string;
     incorrect: string;
     submittedForReview: string;
+    /** Feedback title once work goes to a teacher (Courses §8.5). */
+    sentForReview: string;
     expectedAnswer: string; // '{answer}'
     reviewNote: string;
     /** Free-form work with nobody to read it — `reviewer: none` (plan 79, step 2.1c). */
@@ -1223,11 +1627,22 @@ export interface Translations {
     resultsOkayMessage: string;
     resultsKeepGoingTitle: string;
     resultsKeepGoingMessage: string;
-    resultsAccuracy: string;
-    resultsCorrectOf: string; // '{correct}', '{total}'
-    resultsTime: string;
-    resultsByOutcome: string;
     resultsNeedsReview: string;
+    resultsKicker: string; // '{n}'
+    resultsKickerNoUnit: string;
+    resultsWaiting: PluralForms; // '{count}'
+    resultsWaitingAi: PluralForms; // '{count}'
+    statAccuracy: string;
+    statCounted: string;
+    statCountedValue: string; // '{counted}', '{total}'
+    statTime: string;
+    outCorrect: string;
+    outCorrectSub: string;
+    outWrong: string;
+    outRetry: string; // '{title}'
+    outRetryUntitled: string;
+    nextItem: string; // '{item}'
+    toUnit: string;
   };
 
   review: {
@@ -1255,6 +1670,149 @@ export interface Translations {
     phaseListening: string;
     phaseQuiz: string;
     phaseSpelling: string;
+  };
+
+  // Practice tab (mobile redesign 05, Practice §11).
+  practice: {
+    title: string;
+    reviewKicker: string;
+    todayOf: string; // 'Today {done} of {limit}'
+    dueNow: string;
+    srcCourseWords: PluralForms; // '{count} words from courses'
+    srcMyWords: PluralForms; // '{count} from My words'
+    srcRules: PluralForms;
+    srcExercises: PluralForms;
+    reviewCta: string; // 'Review · ~{min} min'
+    forecast: string; // 'Next: {first} · {second}'
+    forecastOne: string; // 'Next: {first}'
+    forecastTomorrow: string; // 'tomorrow {count}'
+    forecastWeekday: string; // '{weekday} {count}'
+    weekdayIn: {
+      sun: string;
+      mon: string;
+      tue: string;
+      wed: string;
+      thu: string;
+      fri: string;
+      sat: string;
+    };
+    queueEmpty: string;
+    loadError: string;
+    grammarSection: string;
+    grammarRowSub: PluralForms; // 'Unit {unit} · {count} days without practice'
+    grammarRowNever: string; // 'Unit {unit} · not practised yet'
+    mistakesSection: string;
+    mistakeRowSub: string; // 'Unit {unit} · mistake {when}'
+    mistakeUntitled: string;
+    whenToday: string;
+    whenYesterday: string;
+    decksSection: string;
+    decksAll: string; // 'All {count}'
+    deckMeta: PluralForms; // '{course} · unit {unit} · {count} words'
+    deckMetaPersonal: PluralForms; // '{count} words'
+    myWordsTitle: string;
+    myWordsRow: PluralForms; // '{count} words'
+    myWordsPending: PluralForms; // '{count} waiting for translation'
+  };
+
+  reviewSession: {
+    newWord: string;
+    tapToFlip: string;
+    next: string;
+    check: string;
+    dontKnow: string;
+    pickTranslation: string;
+    listenPick: string;
+    writeIn: string; // 'Write {langIn}'
+    langIn: { nb: string; de: string; en: string };
+    langInOther: string;
+    correct: string;
+    almost: string; // 'Almost: {answer}'
+    correctIs: string; // 'Correct: {answer}'
+    todayOfLeft: string;
+    done: string;
+    nextSession: PluralForms; // 'Next: {when}, {count} cards'
+    statCards: string;
+    statTime: string;
+    statHard: string;
+    byPhase: string;
+    hardWords: string;
+    queuedOffline: PluralForms;
+    unresolvedRowSub: PluralForms; // 'Unit {unit} · {count} words waiting'
+    saveList: string;
+    exitTitle: string;
+    exitBody: string;
+    exitConfirm: string;
+    phaseOf: string; // 'Phase {i} of {n}'
+    phaseCorrect: string; // '{correct} of {total} correct'
+    tomorrow: string;
+    unresolvedWaiting: PluralForms; // '{count} words waiting'
+    listen: string;
+    tryAgain: string;
+    ttsMissing: string;
+    ttsMissingBody: string;
+    ttsInstall: string;
+    ttsError: string;
+  };
+
+  modes: {
+    deep: string;
+    deepSub: string; // '… · ~{min} min'
+    deepCooldown: string; // 'Available in {time}'
+    assessment: string;
+    assessmentSub: string;
+    section: string;
+    soon: string;
+    learned: string;
+    new: string;
+    repeat: string;
+    wordList: string;
+    deckMeta: PluralForms; // '{course} · unit {unit} · {count} words'
+    flashcard: string;
+    flashcardDesc: string;
+    matching: string;
+    matchingDesc: string;
+    quiz: string;
+    quizDesc: string;
+    spelling: string;
+    spellingDesc: string;
+    listening: string;
+    listeningDesc: string;
+    pronunciation: string;
+    pronunciationDesc: string;
+    context: string;
+    contextDesc: string;
+    notEnoughWords: string;
+    itemWord: string;
+    itemPhrase: string;
+  };
+
+  grammarReview: {
+    kicker: string; // 'Rule · unit {unit}'
+    lastPractice: string; // 'Last practice {when}'
+    neverPracticed: string;
+    daysAgo: PluralForms; // '{count} days ago'
+    loadError: string;
+    emptyPool: string;
+    mastery: string;
+    masteryWas: string; // '{now}% · was {peak}%'
+    openRule: string;
+    weakSection: string;
+    weakRow: string; // '{wrong} of {total} wrong'
+    poolNote: PluralForms; // '{count} tasks in the review. Tasks with mistakes come first.'
+    cta: PluralForms; // 'Review · {count} tasks · ~{min} min'
+  };
+
+  results: {
+    excellent: string;
+    good: string;
+    okay: string;
+    keepGoing: string;
+    accuracy: string;
+    correct: string;
+    byMode: string;
+    again: string;
+    done: string;
   };
 
   audioLesson: {

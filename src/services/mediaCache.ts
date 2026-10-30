@@ -112,6 +112,14 @@ export class MediaCache {
     return Object.values(await this.load()).reduce((sum, entry) => sum + entry.size, 0);
   }
 
+  /** Bytes kept for these assets; those not kept count for nothing. */
+  async bytesOf(ids: Iterable<string>): Promise<number> {
+    const index = await this.load();
+    let sum = 0;
+    for (const id of ids) sum += index[id]?.size ?? 0;
+    return sum;
+  }
+
   private async fetchOne(id: string): Promise<boolean> {
     const index = await this.load();
     if (index[id] && (await this.deps.files.exists(this.pathOf(index[id])))) return true;

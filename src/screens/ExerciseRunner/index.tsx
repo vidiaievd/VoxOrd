@@ -1,25 +1,29 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ActivityIndicator,
   ScrollView,
-  TouchableOpacity,
   KeyboardAvoidingView,
-  Keyboard,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
+import { Button, ProgressTrack, Spinner } from '../../components/ui';
 import { useTranslation } from '../../i18n';
 import { useModal } from '../../providers/ModalProvider';
 import { useBackIntercept } from '../../navigation/backIntercept';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
 import { useExerciseRunner } from '../../hooks/useExerciseRunner';
+import { useKeyboardShown } from '../../hooks/useKeyboardShown';
+import { useRecordMistakes } from '../../hooks/useRecordMistakes';
 import { bodyOwnsCheck, ExerciseBody, type FooterAction } from './ExerciseBody';
 import { AiVerdict } from './AiVerdict';
 import { FeedbackBar } from './FeedbackBar';
 import { SetResultsScreen } from './SetResultsScreen';
+import type { Screen } from '../../navigation/screens';
 
 interface ExerciseRunnerScreenProps {
   /** The exercise (content) ids in this set, in order. */
@@ -35,6 +39,13 @@ interface ExerciseRunnerScreenProps {
    * not drawn at all.
    */
   onOpenSourceLesson?: () => void;
+  /** Where the set lives — the results screen reads the unit for «Next» and its number. */
+  unitId: string;
+  courseId: string;
+  /** Handed on to a «try again» runner opened from the results. */
+  sourceLessonId?: string;
+  /** Open another screen from the results: «Next · {item}» or a wrong exercise again. */
+  onOpen: (screen: Screen) => void;
 }
 
 export function ExerciseRunnerScreen({
@@ -43,8 +54,13 @@ export function ExerciseRunnerScreen({
   onBack,
   onComplete,
   onOpenSourceLesson,
+  unitId,
+  courseId,
+  sourceLessonId,
+  onOpen,
 }: ExerciseRunnerScreenProps) {
   const keyboardShown = useKeyboardShown();
+  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
@@ -64,6 +80,7 @@ export function ExerciseRunnerScreen({
     retry,
     retryAttempt,
   } = useExerciseRunner(exerciseIds, startIndex);
+  useRecordMistakes(state, courseId, unitId);
 
   /**
    * A body's own button in place of Check — `ExerciseBodyProps.setFooterAction`. A body that
@@ -80,7 +97,9 @@ export function ExerciseRunnerScreen({
     to ask once the set is finished, or before an item has even loaded.
   */
   const midSet =
-    state.phase === 'answering' || state.phase === 'checking' || state.phase === 'feedback';
+    state.phase === 'answering' ||
+    state.phase === 'checking' ||
+    state.phase === 'feedback';
   const leave = useCallback(() => {
     if (!midSet) {
       onBack();
@@ -100,216 +119,291 @@ export function ExerciseRunnerScreen({
     return true;
   });
 
-  const progressRatio = progress.total > 0 ? progress.current / progress.total : 0;
-
   // A non-empty finished set gets the full results summary (own SafeAreaView,
   // no header/progress-bar chrome); an empty set (edge case) falls through to
   // the plain "set complete" card below, since there's nothing to summarize.
   if (state.phase === 'complete' && state.results.length > 0) {
-    return <SetResultsScreen results={state.results} onContinue={onComplete} />;
+    return (
+      <SetResultsScreen
+        results={state.results}
+        exerciseIds={exerciseIds}
+        unitId={unitId}
+        courseId={courseId}
+        sourceLessonId={sourceLessonId}
+        onOpen={onOpen}
+        onToUnit={onComplete}
+      />
+    );
   }
 
+  const inItem =
+    (state.phase === 'answering' ||
+      state.phase === 'checking' ||
+      state.phase === 'feedback') &&
+    state.display !== null;
+  // A body that runs its own checks draws its own controls, so while answering the footer
+  // would be an empty strip. It comes back for the verdict, where Continue is «Fullfør» (plan
+  // 54 §8 Q6), and for a body that put its own button there.
+  const footerShown =
+    inItem &&
+    (state.phase === 'feedback' ||
+      footerAction !== null ||
+      !bodyOwnsCheck(state.display!.templateCode));
+  const onSurface = state.phase === 'feedback' && state.verdict !== null;
+
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={leave} style={styles.backBtn}>
-          <Text style={styles.backText}>←</Text>
-        </TouchableOpacity>
-        <View style={styles.progressWrap}>
-          <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${progressRatio * 100}%` }]} />
-          </View>
-          <Text style={styles.progressLabel}>
-            {t('exerciseRunner.progress', {
-              current: progress.current,
-              total: progress.total,
-            })}
-          </Text>
-        </View>
+        <Button
+          variant="ghost"
+          size={44}
+          iconOnly
+          icon="X"
+          accessibilityLabel={t('exerciseRunner.close')}
+          onPress={leave}
+        />
+        <SetProgress current={progress.current} total={progress.total} />
+        <Text style={styles.progressLabel}>
+          {t('exerciseRunner.progress', {
+            current: progress.current,
+            total: progress.total,
+          })}
+        </Text>
       </View>
 
       {state.phase === 'loading' && (
         <View style={styles.centerFill}>
-          <ActivityIndicator size="large" color={colors.accent} />
+          <Spinner size={24} color={colors.neutral400} />
         </View>
       )}
 
       {state.phase === 'loadError' && (
         <View style={styles.centerFill}>
           <Text style={styles.emptyTitle}>{t('exerciseRunner.loadError')}</Text>
-          {state.loadError ? <Text style={styles.emptyDesc}>{state.loadError}</Text> : null}
-          <TouchableOpacity style={styles.retryButton} onPress={retry}>
-            <Text style={styles.retryButtonText}>{t('courses.retry')}</Text>
-          </TouchableOpacity>
+          {state.loadError ? (
+            <Text style={styles.emptyDesc}>{state.loadError}</Text>
+          ) : null}
+          <Button
+            variant="secondary"
+            size={44}
+            label={t('courses.retry')}
+            onPress={retry}
+            style={styles.centerButton}
+          />
         </View>
       )}
 
       {state.phase === 'complete' && (
         <View style={styles.centerFill}>
-          <Text style={styles.completeEmoji}>🎉</Text>
-          <Text style={styles.emptyTitle}>{t('exerciseRunner.setComplete')}</Text>
-          <Text style={styles.emptyDesc}>{t('exerciseRunner.setCompleteDesc')}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={onComplete}>
-            <Text style={styles.retryButtonText}>{t('exerciseRunner.done')}</Text>
-          </TouchableOpacity>
+          <Text style={styles.emptyTitle}>
+            {t('exerciseRunner.setComplete')}
+          </Text>
+          <Text style={styles.emptyDesc}>
+            {t('exerciseRunner.setCompleteDesc')}
+          </Text>
+          <Button
+            size={44}
+            label={t('exerciseRunner.done')}
+            onPress={onComplete}
+            style={styles.centerButton}
+          />
         </View>
       )}
 
-      {(state.phase === 'answering' ||
-        state.phase === 'checking' ||
-        state.phase === 'feedback') &&
-        state.display && (
-          // The fields of a body sit anywhere down the page; without this the keyboard
-          // covers the one being typed in. `handled` lets a tap on a body's button land
-          // while the keyboard is up instead of only closing it.
-          <KeyboardAvoidingView style={styles.flex} behavior="padding" enabled={keyboardShown}>
-            <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-              <ExerciseBody
-                // Force a remount per item (mirrors the web reader's
-                // key={contentId}) so a body's local input state (selection,
-                // typed text) never leaks from one exercise to the next.
-                // attemptSeq also forces a remount on a same-item retry.
-                key={`${state.display.id}:${state.attemptSeq}`}
-                display={state.display}
-                phase={state.phase}
-                disabled={state.phase !== 'answering'}
-                verdict={state.verdict}
-                onAnswerChange={setAnswer}
-                answerQuestion={answerQuestion}
-                checkRow={checkRow}
-                checkTable={checkTable}
-                finishTable={finishTable}
-                openAttempt={openAttempt}
-                openedContent={openedContent}
-                onOpenSourceLesson={onOpenSourceLesson}
-                setFooterAction={setFooterAction}
+      {inItem && state.display && (
+        // The fields of a body sit anywhere down the page; without this the keyboard
+        // covers the one being typed in. `handled` lets a tap on a body's button land
+        // while the keyboard is up instead of only closing it.
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior="padding"
+          enabled={keyboardShown}
+        >
+          <ScrollView
+            contentContainerStyle={styles.scroll}
+            keyboardShouldPersistTaps="handled"
+          >
+            <ExerciseBody
+              // Force a remount per item (mirrors the web reader's
+              // key={contentId}) so a body's local input state (selection,
+              // typed text) never leaks from one exercise to the next.
+              // attemptSeq also forces a remount on a same-item retry.
+              key={`${state.display.id}:${state.attemptSeq}`}
+              display={state.display}
+              phase={state.phase}
+              disabled={state.phase !== 'answering'}
+              verdict={state.verdict}
+              onAnswerChange={setAnswer}
+              answerQuestion={answerQuestion}
+              checkRow={checkRow}
+              checkTable={checkTable}
+              finishTable={finishTable}
+              openAttempt={openAttempt}
+              openedContent={openedContent}
+              onOpenSourceLesson={onOpenSourceLesson}
+              setFooterAction={setFooterAction}
+            />
+            {/* A model reads the work of a learner nobody reviews (plan 79, 2.3d): its
+                verdict and review land under the work, while the footer says it went in. */}
+            {state.phase === 'feedback' &&
+            state.verdict?.requiresReview &&
+            state.verdict.reviewer === 'ai' ? (
+              <AiVerdict
+                key={state.verdict.attemptId}
+                exerciseId={state.exerciseIds[state.idx]}
+                attemptId={state.verdict.attemptId}
+                templateCode={state.display.templateCode}
               />
-              {/* A model reads the work of a learner nobody reviews (plan 79, 2.3d): its
-                  verdict and review land under the work, while the footer says it went in. */}
-              {state.phase === 'feedback' &&
-              state.verdict?.requiresReview &&
-              state.verdict.reviewer === 'ai' ? (
-                <AiVerdict
-                  key={state.verdict.attemptId}
-                  exerciseId={state.exerciseIds[state.idx]}
-                  attemptId={state.verdict.attemptId}
-                  templateCode={state.display.templateCode}
-                />
-              ) : null}
-            </ScrollView>
-
-            {/* A body that runs its own checks draws its own controls, so while
-                answering the footer bar would be an empty strip with a border. It
-                comes back for the verdict, where Continue is «Fullfør» (plan 54
-                §8 Q6), and for a body that put its own button there. */}
-            {state.phase === 'feedback' ||
-            footerAction !== null ||
-            !bodyOwnsCheck(state.display.templateCode) ? (
-              <View style={styles.footer}>
-                {state.phase === 'feedback' && state.verdict ? (
-                  <>
-                    {/* A body that owns its check states the verdict itself, against the
-                        pass mark. `verdict.correct` there means «every item right», so the
-                        generic bar would say «Incorrect» over a passed board. */}
-                    {bodyOwnsCheck(state.display.templateCode) ? null : (
-                      <FeedbackBar verdict={state.verdict} />
-                    )}
-                    {!state.verdict.correct && !state.verdict.requiresReview ? (
-                      <TouchableOpacity style={styles.secondaryBtn} onPress={retryAttempt}>
-                        <Text style={styles.secondaryBtnText}>{t('exerciseRunner.tryAgain')}</Text>
-                      </TouchableOpacity>
-                    ) : null}
-                    <TouchableOpacity style={styles.primaryBtn} onPress={advance}>
-                      <Text style={styles.primaryBtnText}>
-                        {isLast ? t('exerciseRunner.finish') : t('exerciseRunner.continue')}
-                      </Text>
-                    </TouchableOpacity>
-                  </>
-                ) : footerAction && state.phase === 'answering' ? (
-                  <>
-                    {footerAction.error ? (
-                      <Text style={styles.footerError}>{footerAction.error}</Text>
-                    ) : null}
-                    <TouchableOpacity
-                      style={[
-                        styles.primaryBtn,
-                        (footerAction.disabled || footerAction.busy) && styles.primaryBtnDisabled,
-                      ]}
-                      onPress={footerAction.onPress}
-                      disabled={footerAction.disabled || footerAction.busy}
-                    >
-                      {footerAction.busy ? (
-                        <ActivityIndicator size="small" color={colors.textInverted} />
-                      ) : (
-                        <Text style={styles.primaryBtnText}>{footerAction.label}</Text>
-                      )}
-                    </TouchableOpacity>
-                    {footerAction.secondary ? (
-                      <TouchableOpacity
-                        style={styles.linkBtn}
-                        onPress={footerAction.secondary.onPress}
-                        disabled={footerAction.secondary.disabled || footerAction.busy}
-                      >
-                        <Text
-                          style={[
-                            styles.linkBtnText,
-                            (footerAction.secondary.disabled || footerAction.busy) &&
-                              styles.linkBtnTextDisabled,
-                          ]}
-                        >
-                          {footerAction.secondary.label}
-                        </Text>
-                      </TouchableOpacity>
-                    ) : null}
-                    {footerAction.note ? (
-                      <Text style={styles.footerNote}>{footerAction.note}</Text>
-                    ) : null}
-                  </>
-                ) : (
-                  <>
-                    {state.submitError ? (
-                      <Text style={styles.footerError}>{state.submitError}</Text>
-                    ) : null}
-                    <TouchableOpacity
-                      style={[
-                        styles.primaryBtn,
-                        (!state.canSubmit || state.phase === 'checking') && styles.primaryBtnDisabled,
-                      ]}
-                      onPress={check}
-                      disabled={!state.canSubmit || state.phase === 'checking'}
-                    >
-                      {state.phase === 'checking' ? (
-                        <ActivityIndicator size="small" color={colors.textInverted} />
-                      ) : (
-                        <Text style={styles.primaryBtnText}>{t('exerciseRunner.check')}</Text>
-                      )}
-                    </TouchableOpacity>
-                  </>
-                )}
-              </View>
             ) : null}
-          </KeyboardAvoidingView>
-        )}
+          </ScrollView>
+
+          {footerShown ? (
+            <View
+              style={[
+                styles.footer,
+                onSurface && styles.footerOnSurface,
+                { paddingBottom: 12 + (keyboardShown ? 0 : insets.bottom) },
+              ]}
+            >
+              {state.phase === 'feedback' && state.verdict ? (
+                <>
+                  {/* A body that owns its check states the verdict itself, against the
+                      pass mark. `verdict.correct` there means «every item right», so the
+                      generic bar would say «Incorrect» over a passed board. */}
+                  {bodyOwnsCheck(state.display.templateCode) ? null : (
+                    <View style={styles.feedback}>
+                      <FeedbackBar verdict={state.verdict} />
+                    </View>
+                  )}
+                  {!state.verdict.correct && !state.verdict.requiresReview ? (
+                    <Button
+                      variant="secondary"
+                      size={44}
+                      block
+                      label={t('exerciseRunner.tryAgain')}
+                      onPress={retryAttempt}
+                    />
+                  ) : null}
+                  <Button
+                    size={52}
+                    block
+                    label={
+                      isLast
+                        ? t('exerciseRunner.finish')
+                        : t('exerciseRunner.continue')
+                    }
+                    onPress={advance}
+                  />
+                </>
+              ) : footerAction && state.phase === 'answering' ? (
+                <>
+                  {footerAction.error ? (
+                    <Text style={styles.footerError}>{footerAction.error}</Text>
+                  ) : null}
+                  <Button
+                    size={52}
+                    block
+                    label={footerAction.label}
+                    disabled={footerAction.disabled}
+                    busy={footerAction.busy}
+                    onPress={footerAction.onPress}
+                  />
+                  {footerAction.secondary ? (
+                    <Button
+                      variant="ghost"
+                      size={44}
+                      block
+                      label={footerAction.secondary.label}
+                      disabled={
+                        footerAction.secondary.disabled || footerAction.busy
+                      }
+                      onPress={footerAction.secondary.onPress}
+                    />
+                  ) : null}
+                  {footerAction.note ? (
+                    <Text style={styles.footerNote}>{footerAction.note}</Text>
+                  ) : null}
+                </>
+              ) : (
+                <>
+                  {state.submitError ? (
+                    <Text style={styles.footerError}>{state.submitError}</Text>
+                  ) : null}
+                  <Button
+                    size={52}
+                    block
+                    label={
+                      handsIn(state.display.templateCode)
+                        ? t('exerciseRunner.send')
+                        : t('exerciseRunner.check')
+                    }
+                    disabled={!state.canSubmit}
+                    busy={state.phase === 'checking'}
+                    onPress={check}
+                  />
+                </>
+              )}
+            </View>
+          ) : (
+            <View style={{ height: insets.bottom }} />
+          )}
+        </KeyboardAvoidingView>
+      )}
     </SafeAreaView>
   );
 }
 
 /**
- * Whether the soft keyboard is up. The avoiding view is switched on only while it is: on Android
- * edge-to-edge the hide event still reports the navigation bar's inset as a keyboard, and an
- * always-on view kept that much empty space under the footer after every edit.
+ * Work that is handed in to be read rather than checked on the spot — its footer says
+ * «Отправить» (Courses §8.5). `read_aloud`, the other one, draws its own button.
  */
-function useKeyboardShown(): boolean {
-  const [shown, setShown] = useState(false);
-  useEffect(() => {
-    const show = Keyboard.addListener('keyboardDidShow', () => setShown(true));
-    const hide = Keyboard.addListener('keyboardDidHide', () => setShown(false));
-    return () => {
-      show.remove();
-      hide.remove();
-    };
-  }, []);
-  return shown;
+function handsIn(templateCode: string): boolean {
+  return templateCode === 'writing_task';
+}
+
+/** Above this many items the segments get too thin to read; one track instead (Courses §8.5). */
+const MAX_SEGMENTS = 12;
+
+/** One segment per item of the set: done `accent`, current `accent700`, ahead `neutral800`. */
+function SetProgress({ current, total }: { current: number; total: number }) {
+  const { colors } = useTheme();
+  const { t } = useTranslation();
+  if (total > MAX_SEGMENTS) {
+    return (
+      <View
+        style={{ flex: 1 }}
+        accessible
+        accessibilityLabel={t('exerciseRunner.progress', { current, total })}
+      >
+        <ProgressTrack value={total > 0 ? (current - 1) / total : 0} />
+      </View>
+    );
+  }
+  return (
+    <View
+      style={{ flex: 1, flexDirection: 'row', gap: 4 }}
+      accessibilityRole="progressbar"
+      accessibilityLabel={t('exerciseRunner.progress', { current, total })}
+      accessibilityValue={{ min: 0, max: total, now: current }}
+    >
+      {Array.from({ length: total }, (_, i) => (
+        <View
+          key={i}
+          style={{
+            flex: 1,
+            height: 4,
+            borderRadius: 2,
+            backgroundColor:
+              i + 1 < current
+                ? colors.accentBase
+                : i + 1 === current
+                ? colors.accent700
+                : colors.neutral800,
+          }}
+        />
+      ))}
+    </View>
+  );
 }
 
 const makeStyles = (colors: ColorScheme) =>
@@ -319,48 +413,20 @@ const makeStyles = (colors: ColorScheme) =>
     },
     container: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: colors.bg,
     },
     header: {
+      height: 48,
       flexDirection: 'row',
       alignItems: 'center',
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    backBtn: {
-      padding: 8,
-      marginRight: 8,
-    },
-    backText: {
-      fontSize: 22,
-      color: colors.textPrimary,
-    },
-    progressWrap: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    progressTrack: {
-      flex: 1,
-      height: 6,
-      borderRadius: 3,
-      backgroundColor: colors.border,
-      overflow: 'hidden',
-      marginRight: 10,
-    },
-    progressFill: {
-      height: '100%',
-      borderRadius: 3,
-      backgroundColor: colors.accent,
+      gap: 10,
+      paddingLeft: 4,
+      paddingRight: 8,
     },
     progressLabel: {
       fontSize: 12,
-      fontWeight: '700',
-      color: colors.textMuted,
-      minWidth: 40,
-      textAlign: 'right',
+      color: colors.neutral400,
+      paddingRight: 12,
     },
     centerFill: {
       flex: 1,
@@ -369,96 +435,51 @@ const makeStyles = (colors: ColorScheme) =>
       justifyContent: 'center',
       paddingHorizontal: 32,
     },
-    completeEmoji: {
-      fontSize: 44,
-      marginBottom: 12,
-    },
     emptyTitle: {
       fontSize: 17,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
       marginBottom: 6,
       textAlign: 'center',
     },
     emptyDesc: {
-      fontSize: 14,
-      color: colors.textMuted,
+      fontSize: 13,
+      color: colors.neutral500,
       textAlign: 'center',
-      lineHeight: 20,
+      lineHeight: 19,
     },
-    retryButton: {
+    centerButton: {
       marginTop: 16,
-      paddingHorizontal: 20,
-      paddingVertical: 10,
-      borderRadius: 12,
-      backgroundColor: colors.accent,
-    },
-    retryButtonText: {
-      fontSize: 14,
-      fontWeight: '700',
-      color: colors.textInverted,
+      alignSelf: 'center',
     },
     scroll: {
-      padding: 20,
+      paddingTop: 20,
+      paddingHorizontal: 20,
+      paddingBottom: 24,
       flexGrow: 1,
     },
     footer: {
       paddingHorizontal: 20,
       paddingTop: 12,
-      paddingBottom: 20,
+      gap: 10,
+    },
+    footerOnSurface: {
+      backgroundColor: colors.surface,
       borderTopWidth: 1,
-      borderTopColor: colors.border,
+      borderTopColor: colors.neutral800,
+      paddingTop: 14,
+    },
+    feedback: {
+      marginBottom: 4,
     },
     footerError: {
       fontSize: 13,
-      color: colors.danger,
+      color: colors.neutral400,
       textAlign: 'center',
-      marginBottom: 8,
     },
     footerNote: {
       fontSize: 12,
-      color: colors.textMuted,
+      color: colors.neutral500,
       textAlign: 'center',
-      marginTop: 8,
-    },
-    primaryBtn: {
-      backgroundColor: colors.accent,
-      borderRadius: 14,
-      paddingVertical: 14,
-      alignItems: 'center',
-    },
-    primaryBtnDisabled: {
-      opacity: 0.5,
-    },
-    primaryBtnText: {
-      fontSize: 15,
-      fontWeight: '700',
-      color: colors.textInverted,
-    },
-    secondaryBtn: {
-      borderRadius: 14,
-      borderWidth: 2,
-      borderColor: colors.accent,
-      paddingVertical: 12,
-      alignItems: 'center',
-      marginBottom: 10,
-    },
-    secondaryBtnText: {
-      fontSize: 15,
-      fontWeight: '700',
-      color: colors.accent,
-    },
-    linkBtn: {
-      paddingVertical: 10,
-      marginTop: 4,
-      alignItems: 'center',
-    },
-    linkBtnText: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: colors.accent,
-    },
-    linkBtnTextDisabled: {
-      opacity: 0.5,
     },
   });

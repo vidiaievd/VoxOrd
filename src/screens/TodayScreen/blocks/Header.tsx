@@ -10,6 +10,8 @@ interface HeaderProps {
   hasCourses: boolean;
   dueCount: number;
   nextClassAt: Date | null;
+  /** Off in variant D, whose plan for today says what is on. */
+  showDayLine?: boolean;
 }
 
 /** «Tuesday, 24 October» with a capital — the locale gives it in lower case. */
@@ -27,7 +29,14 @@ function dateLine(now: Date, language: string): string {
 }
 
 /** Block 1: the date, the greeting and the one thing that is on today. */
-export function Header({ name, offline, hasCourses, dueCount, nextClassAt }: HeaderProps) {
+export function Header({
+  name,
+  offline,
+  hasCourses,
+  dueCount,
+  nextClassAt,
+  showDayLine = true,
+}: HeaderProps) {
   const { t, language } = useTranslation();
   const { colors, typography } = useTheme();
   const now = new Date();
@@ -41,7 +50,7 @@ export function Header({ name, offline, hasCourses, dueCount, nextClassAt }: Hea
       <Text accessibilityRole="header" style={[typography.h1, { color: colors.text }]}>
         {name ? t('today.greeting', { name }) : t('today.greetingPlain')}
       </Text>
-      <Text style={[typography.body, { color: colors.neutral400 }]}>{dayLine}</Text>
+      {showDayLine ? <Text style={[typography.body, { color: colors.neutral400 }]}>{dayLine}</Text> : null}
     </View>
   );
 }

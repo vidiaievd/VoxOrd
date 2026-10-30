@@ -13,6 +13,11 @@ export async function getMyEnrollments(): Promise<Enrollment[]> {
   return apiClient.get<Enrollment[]>(ENROLLMENTS_PATH);
 }
 
+/** Leaves a self-study course; the server rejects a school-assigned enrollment. */
+export async function leaveEnrollment(enrollmentId: string): Promise<void> {
+  await apiClient.delete<unknown>(`${ENROLLMENTS_PATH}/${enrollmentId}`);
+}
+
 export async function getContainer(containerId: string): Promise<Container> {
   return apiClient.get<Container>(CONTAINER_PATH(containerId));
 }
