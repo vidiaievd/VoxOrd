@@ -354,6 +354,63 @@ export interface Translations {
     };
   };
 
+  account: {
+    kicker: string;
+    groupData: string;
+    name: string;
+    nameEmpty: string;
+    email: string;
+    editNameTitle: string;
+    editNameHint: string;
+    nameSaveFailed: string;
+    delete: string;
+    deleteTitle: string;
+    deleteBody: string;
+    deleteContinue: string;
+    needsNetwork: string;
+    deletePasswordTitle: string;
+    deletePasswordHint: string;
+    password: string;
+    deleteConfirm: string;
+    wrongPassword: string;
+    contactSupport: string;
+    locked: string;
+    deleteFailed: string;
+    deleteDone: string;
+  };
+
+  subscription: {
+    title: string;
+    kicker: string;
+    free: string;
+    included: string;
+    aiReview: string;
+    ofTotal: string;
+    assistant: string;
+    practice: string;
+    nothingIncluded: string;
+    untilDate: string;
+    schoolAccess: string;
+    paidBy: string;
+    schoolNote: string;
+  };
+
+  school: {
+    kicker: string;
+    group: string;
+    classes: string;
+    nextClass: string;
+    courses: string;
+    sees: string;
+    seesProgress: string;
+    seesWork: string;
+    leave: string;
+    leaveTitle: string;
+    leaveBody: string;
+    leaveFailed: string;
+    notFound: string;
+  };
+
   profile: {
     viaEmail: string;
     sub: {

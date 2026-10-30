@@ -36,6 +36,9 @@ const CASES: {
   AppLanguage: [[{ name: 'AppLanguage' }, { name: 'Settings' }, 'Profile']],
   Account: [[{ name: 'Account' }, { name: 'Profile' }, 'Profile']],
   EditName: [[{ name: 'EditName' }, { name: 'Account' }, 'Profile']],
+  DeleteAccount: [
+    [{ name: 'DeleteAccount' }, { name: 'Account' }, 'Profile'],
+  ],
   Subscription: [[{ name: 'Subscription' }, { name: 'Profile' }, 'Profile']],
   School: [
     [{ name: 'School', schoolId: 's1' }, { name: 'Profile' }, 'Profile'],
@@ -293,6 +296,7 @@ describe('showsTabBar', () => {
     'AppLanguage',
     'Account',
     'EditName',
+    'DeleteAccount',
     'Subscription',
     'School',
   ];

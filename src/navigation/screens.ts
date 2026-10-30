@@ -127,6 +127,7 @@ export type Screen =
   | { name: 'AppLanguage' }
   | { name: 'Account' }
   | { name: 'EditName' }
+  | { name: 'DeleteAccount' }
   | { name: 'Subscription' }
   | { name: 'School'; schoolId: string; groupId?: string };
 
@@ -162,6 +163,7 @@ export function backTarget(screen: Screen): Screen | null {
     case 'AppLanguage':
       return { name: 'Settings' };
     case 'EditName':
+    case 'DeleteAccount':
       return { name: 'Account' };
     case 'CourseHome':
       return { name: 'Courses' };
@@ -269,6 +271,7 @@ const WITH_TAB_BAR: ReadonlySet<Screen['name']> = new Set<Screen['name']>([
   'AppLanguage',
   'Account',
   'EditName',
+  'DeleteAccount',
   'Subscription',
   'School',
 ]);

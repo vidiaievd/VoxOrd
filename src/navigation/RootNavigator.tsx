@@ -9,6 +9,10 @@ import { ProfileScreen } from '../screens/ProfileScreen';
 import { CardScreen } from '../screens/CardScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { AccountScreen } from '../screens/AccountScreen';
+import { DeleteAccountScreen } from '../screens/DeleteAccountScreen';
+import { EditNameScreen } from '../screens/EditNameScreen';
+import { SchoolScreen } from '../screens/SchoolScreen';
+import { SubscriptionScreen } from '../screens/SubscriptionScreen';
 import { AppLanguageScreen } from '../screens/AppLanguageScreen';
 import { ModeSelector } from '../screens/LearningScreen/ModeSelector';
 import { MatchingExercise } from '../screens/LearningScreen/exercises/MatchingExercise';
@@ -485,12 +489,39 @@ function Navigator() {
         return <AppLanguageScreen onBack={goBack} />;
 
       case 'Account':
-        return <AccountScreen onBack={goBack} />;
+        return (
+          <AccountScreen
+            onBack={goBack}
+            onEditName={() => navigateTo({ name: 'EditName' })}
+            onDeleteAccount={() => navigateTo({ name: 'DeleteAccount' })}
+          />
+        );
 
-      // Built in plan 07 step 6; until then these routes show Profile.
       case 'EditName':
+        return <EditNameScreen onBack={goBack} />;
+
+      case 'DeleteAccount':
+        return <DeleteAccountScreen onBack={goBack} />;
+
       case 'Subscription':
+        return (
+          <SubscriptionScreen
+            onBack={goBack}
+            onOpenCourse={courseId => navigateTo({ name: 'CourseHome', courseId })}
+          />
+        );
+
       case 'School':
+        return (
+          <SchoolScreen
+            schoolId={screen.schoolId}
+            groupId={screen.groupId}
+            onBack={goBack}
+            onOpenCourse={courseId => navigateTo({ name: 'CourseHome', courseId })}
+            onLeft={() => navigateTo({ name: 'Profile' })}
+          />
+        );
+
       case 'Profile':
         return (
           <ProfileScreen
