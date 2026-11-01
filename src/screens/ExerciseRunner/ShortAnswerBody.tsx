@@ -18,6 +18,7 @@ import {
 import type { AudioTranscript as AudioTranscriptWords } from '../../api/exercises';
 import type { ExerciseBodyProps } from './ExerciseBody';
 import { ShortAnswerLegacyBody } from './ShortAnswerLegacyBody';
+import { RunnerPrecheck } from './RunnerPrecheck';
 import {
   buildShortAnswerSubmission,
   canHandIn,
@@ -137,6 +138,8 @@ function ShortAnswerSet({
   checkTable,
   finishTable,
   setFooterAction,
+  openAttempt,
+  precheckAvailable,
   set,
   verdict: closingVerdict,
 }: ExerciseBodyProps & { set: Set }) {
@@ -582,6 +585,18 @@ function ShortAnswerSet({
         placeholder={t('exerciseRunner.shortAnswer.placeholder')}
         placeholderTextColor={colors.neutral500}
       />
+
+      {/* «Check» before the answer is final (platform plan 84): the question on screen, read by a
+          model without handing it in. Remounted per question, so a panel never outlives its text. */}
+      {precheckAvailable && phase === 'writing' && !submitted ? (
+        <RunnerPrecheck
+          key={`precheck:${question.id}`}
+          exerciseId={display.id}
+          answer={value.trim() ? { answers: [{ questionId: question.id, text: value.trim() }] } : null}
+          disabled={disabled || sending || locked}
+          openAttempt={openAttempt}
+        />
+      ) : null}
 
       {submitted ? (
         <View style={[styles.card, { borderColor: toneColor }]}>

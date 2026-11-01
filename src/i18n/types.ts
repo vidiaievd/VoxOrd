@@ -884,6 +884,36 @@ export interface Translations {
     check: string;
     /** Footer label for work handed in rather than checked — `writing_task` (Courses §8.5). */
     send: string;
+    /** Footer label of the hand-in when a check with a model is offered beside it. */
+    sendToTeacher: string;
+    /** «Check» before hand-in — a rehearsal with a model (platform plan 84). */
+    precheck: {
+      button: string;
+      offline: string;
+      failed: string;
+      title: string;
+      subtitle: string;
+      noScores: string;
+      noRemarks: string;
+      left: string; // '{count}'
+      line: {
+        keySettles: string;
+        exerciseLimit: string;
+        learnerLimit: string;
+        poolEmpty: string;
+        emptyAnswer: string;
+        notReady: string;
+        failed: string;
+      };
+      kind: {
+        grammar: string;
+        lexis: string;
+        spelling: string;
+        pronunciation: string;
+        fluency: string;
+        content: string;
+      };
+    };
     /** Accessibility label of the header's X. */
     close: string;
     continue: string;

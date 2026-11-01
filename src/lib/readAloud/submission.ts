@@ -100,6 +100,22 @@ export function toSubmission(state: RecorderState, config: RecorderConfig): Subm
   return { recordings };
 }
 
+/**
+ * What a rehearsal sends (platform plan 84): the chosen take of every prompt that has one
+ * uploaded, in prompt order. Unlike the hand-in this does not need them all — a reading may
+ * be rehearsed a passage at a time. Null when nothing is uploaded yet.
+ */
+export function toRehearsalDraft(state: RecorderState, config: RecorderConfig): Submission | null {
+  const recordings: SubmittedRecording[] = [];
+  for (const p of config.prompts) {
+    const own = takesOf(state, p.id);
+    const chosen = own[chosenIndex(state, config, p.id)];
+    if (!chosen || chosen.assetId === null) continue;
+    recordings.push({ itemId: p.id, assetId: chosen.assetId, seconds: chosen.seconds, takes: own.length });
+  }
+  return recordings.length === 0 ? null : { recordings };
+}
+
 /** The asset ids of takes the student made and the teacher will not hear — deleted after submitting. */
 export function unsentAssets(state: RecorderState, submission: Submission): string[] {
   const sent = new Set<string>();

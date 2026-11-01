@@ -162,6 +162,12 @@ export interface ExerciseBodyProps {
    * unmounts; one that never calls it keeps the footer it always had.
    */
   setFooterAction?: (action: FooterAction | null) => void;
+  /**
+   * The school of this course lets its learners rehearse with a model and its plan covers it
+   * (platform plan 84): a body whose template has a check before hand-in draws «Check». Only a
+   * hint for drawing — the engine refuses the check itself when this is wrong.
+   */
+  precheckAvailable?: boolean;
 }
 
 /** A body's button in the runner's footer — see `setFooterAction`. */

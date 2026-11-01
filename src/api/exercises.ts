@@ -823,6 +823,9 @@ export const remoteAttempts = {
 
 const isLocal = (attemptId: string) => local !== null && local.isLocal(attemptId);
 
+/** Whether the attempt lives on this phone alone — the server has no record of it. */
+export const isLocalAttempt = isLocal;
+
 /** `POST /exercises/:exerciseId/attempts` — on the server, or on the phone when it must be. */
 export async function startAttempt(
   exerciseId: string,

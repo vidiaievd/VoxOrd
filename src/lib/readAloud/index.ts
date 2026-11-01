@@ -72,6 +72,7 @@ export {
   readSubmission,
   toDraft,
   toSubmission,
+  toRehearsalDraft,
   unsentAssets,
 } from './submission';
 
