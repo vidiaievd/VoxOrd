@@ -1,8 +1,11 @@
 import React from 'react';
-import { Text } from 'react-native';
+import { Text, TouchableOpacity } from 'react-native';
 import ReactTestRenderer, { act } from 'react-test-renderer';
 import { PrecheckPanel } from './PrecheckPanel';
 import { parsePrecheckResult } from '../../api/precheck';
+import { addReachedAtom } from '../../api/srs';
+
+jest.mock('../../api/srs', () => ({ addReachedAtom: jest.fn() }));
 
 /**
  * What a rehearsal puts on screen (platform plan 84): the remarks of a text, the words heard of
@@ -106,5 +109,48 @@ describe('PrecheckPanel', () => {
       <PrecheckPanel result={result({ ai: { status: 'not_asked', reason: 'disabled' } })} />,
     );
     expect(tree.toJSON()).toBeNull();
+  });
+
+  describe('worth revisiting (plan 85, step 7)', () => {
+    const rule = (atomId: string, status: string) => ({
+      atomType: 'grammar_rule_atom', atomId, status, ruleTitle: `Rule ${atomId}`, title: 'Point',
+    });
+    const withRules = () =>
+      result({
+        ai: { status: 'ok' },
+        courseId: 'course-1',
+        feedback: {
+          summary: 's',
+          items: ['queued', 'reached'].map((id) => ({
+            kind: 'grammar', target: {}, explanation: 'x', severity: 'minor',
+            atomRef: rule(id, id === 'queued' ? 'in_queue' : 'covered'),
+          })),
+        },
+      });
+
+    it('says a queued rule was marked and offers «Add» only for a reached one', () => {
+      const tree = render(<PrecheckPanel result={withRules()} />);
+      const all = texts(tree);
+      expect(all).toContain('exerciseRunner.precheck.revisit.title');
+      expect(all).toContain('Rule queued');
+      expect(all).toContain('exerciseRunner.precheck.revisit.marked');
+      expect(tree.root.findAllByType(TouchableOpacity)).toHaveLength(1);
+    });
+
+    it('adds the reached rule with the attempt’s course and confirms it', async () => {
+      (addReachedAtom as jest.Mock).mockResolvedValue({});
+      const tree = render(<PrecheckPanel result={withRules()} />);
+      const button = tree.root.findByType(TouchableOpacity);
+      await act(async () => {
+        button.props.onPress();
+      });
+      expect(addReachedAtom).toHaveBeenCalledWith('reached', 'course-1');
+      expect(texts(tree)).toContain('exerciseRunner.precheck.revisit.added');
+    });
+
+    it('offers nothing when the remarks name no rule', () => {
+      const tree = render(<PrecheckPanel result={result({ ai: { status: 'ok' }, feedback: { summary: 's', items: [] } })} />);
+      expect(texts(tree)).not.toContain('exerciseRunner.precheck.revisit.title');
+    });
   });
 });

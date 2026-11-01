@@ -5,6 +5,7 @@ import {
   mayAskAgain,
   noticeOf,
   precheckCapable,
+  rulesToRevisit,
   wordsByPassage,
 } from './precheck';
 
@@ -44,7 +45,7 @@ describe('parsePrecheckResult', () => {
     });
     expect(result?.ai).toEqual({ status: 'ok' });
     expect(result?.feedback?.items).toEqual([
-      { kind: 'grammar', original: 'jeg har gå', suggestion: 'jeg har gått', explanation: 'Perfektum.', severity: 'major' },
+      { kind: 'grammar', original: 'jeg har gå', suggestion: 'jeg har gått', explanation: 'Perfektum.', severity: 'major', atom: null },
     ]);
     expect(result?.feedback?.words).toEqual([
       { text: 'Hei', passageIndex: 0, accuracy: 91 },
@@ -138,5 +139,39 @@ describe('words', () => {
       [0, ['a', 'b']],
       [2, ['c']],
     ]);
+  });
+});
+
+describe('rule atoms of remarks (plan 85, step 7)', () => {
+  const atomRef = (atomId: string, status: string) => ({
+    atomType: 'grammar_rule_atom', atomId, status, ruleTitle: 'Inversjon', title: 'V2',
+  });
+  const item = (atomRef: unknown) => ({ kind: 'grammar', target: {}, explanation: 'x', severity: 'minor', atomRef });
+
+  it('reads an atom only when all of it is readable', () => {
+    const result = parsePrecheckResult({
+      ...base,
+      ai: { status: 'ok' },
+      courseId: 'c-1',
+      feedback: {
+        summary: 's',
+        items: [item(atomRef('a1', 'in_queue')), item({ atomType: 'grammar_rule_atom', atomId: 'a2' }), item(atomRef('a3', 'weird'))],
+      },
+    });
+    expect(result?.courseId).toBe('c-1');
+    expect(result?.feedback?.items.map((i) => i.atom)).toEqual([
+      { atomId: 'a1', status: 'in_queue', ruleTitle: 'Inversjon', title: 'V2' },
+      null,
+      null,
+    ]);
+  });
+
+  it('lists each rule once, in the order first named', () => {
+    const result = parsePrecheckResult({
+      ...base,
+      ai: { status: 'ok' },
+      feedback: { summary: 's', items: [item(atomRef('b', 'covered')), item(null), item(atomRef('a', 'in_queue')), item(atomRef('b', 'covered'))] },
+    });
+    expect(rulesToRevisit(result!.feedback!).map((r) => r.atomId)).toEqual(['b', 'a']);
   });
 });

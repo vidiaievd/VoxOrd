@@ -1,13 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ApiError } from '../../api/client';
+import { addReachedAtom } from '../../api/srs';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
-import type { Feedback, FeedbackItem, PrecheckResult } from '../../api/precheck';
+import type { Feedback, FeedbackAtom, FeedbackItem, PrecheckResult } from '../../api/precheck';
 import {
   accuracyBand,
   checksLeft,
   noticeOf,
+  rulesToRevisit,
   wordsByPassage,
   type AccuracyBand,
 } from './templates/precheck';
@@ -66,7 +69,7 @@ export function PrecheckPanel({
             </View>
           ) : null}
           {result.feedback !== null ? (
-            <FeedbackBody feedback={result.feedback} passageLabel={passageLabel} styles={styles} colors={colors} />
+            <FeedbackBody feedback={result.feedback} courseId={result.courseId} passageLabel={passageLabel} styles={styles} colors={colors} />
           ) : null}
         </>
       )}
@@ -80,11 +83,13 @@ export function PrecheckPanel({
 
 function FeedbackBody({
   feedback,
+  courseId,
   passageLabel,
   styles,
   colors,
 }: {
   feedback: Feedback;
+  courseId: string | null;
   passageLabel?: (passageIndex: number) => string;
   styles: ReturnType<typeof makeStyles>;
   colors: ColorScheme;
@@ -135,7 +140,88 @@ function FeedbackBody({
       {feedback.items.map((item, i) => (
         <Remark key={i} item={item} styles={styles} />
       ))}
+      <Revisit rules={rulesToRevisit(feedback)} courseId={courseId} styles={styles} />
     </>
+  );
+}
+
+type AddState = 'idle' | 'busy' | 'added' | 'failed' | 'gone';
+
+/**
+ * «Worth revisiting» (platform plan 85, step 7): the rules the remarks point at. A rule already
+ * in the learner's review was pulled closer by the server — said as such, with no button. A
+ * rule reached but without a card gets «Add». Nothing here promises when the rule comes up:
+ * the cards of rules are not drawn in the due queue yet.
+ */
+function Revisit({
+  rules,
+  courseId,
+  styles,
+}: {
+  rules: FeedbackAtom[];
+  courseId: string | null;
+  styles: ReturnType<typeof makeStyles>;
+}) {
+  const { t } = useTranslation();
+  if (rules.length === 0) return null;
+  return (
+    <View style={styles.revisit}>
+      <Text style={styles.kind}>{t('exerciseRunner.precheck.revisit.title')}</Text>
+      {rules.map((rule) => (
+        <RevisitRule key={rule.atomId} rule={rule} courseId={courseId} styles={styles} />
+      ))}
+    </View>
+  );
+}
+
+function RevisitRule({
+  rule,
+  courseId,
+  styles,
+}: {
+  rule: FeedbackAtom;
+  courseId: string | null;
+  styles: ReturnType<typeof makeStyles>;
+}) {
+  const { t } = useTranslation();
+  const [state, setState] = useState<AddState>('idle');
+
+  const add = async () => {
+    if (courseId === null || state === 'busy') return;
+    setState('busy');
+    try {
+      await addReachedAtom(rule.atomId, courseId);
+      setState('added');
+    } catch (e) {
+      // 422: the server does not count the rule as reached — the offer was wrong, drop it.
+      setState(e instanceof ApiError && e.status === 422 ? 'gone' : 'failed');
+    }
+  };
+
+  const offer = rule.status === 'covered' && courseId !== null && state !== 'gone' && state !== 'added';
+  return (
+    <View style={styles.revisitRow}>
+      <View style={styles.revisitName}>
+        <Text style={styles.fragment}>{rule.ruleTitle}</Text>
+        <Text style={styles.sub}>{rule.title}</Text>
+        {rule.status === 'in_queue' ? (
+          <Text style={styles.sub}>{t('exerciseRunner.precheck.revisit.marked')}</Text>
+        ) : null}
+        {state === 'added' ? <Text style={styles.sub}>{t('exerciseRunner.precheck.revisit.added')}</Text> : null}
+        {state === 'failed' ? <Text style={styles.sub}>{t('exerciseRunner.precheck.revisit.failed')}</Text> : null}
+      </View>
+      {offer ? (
+        <TouchableOpacity
+          style={[styles.addButton, state === 'busy' && styles.buttonOff]}
+          onPress={() => void add()}
+          disabled={state === 'busy'}
+          accessibilityRole="button"
+          accessibilityLabel={t('exerciseRunner.precheck.revisit.add')}
+        >
+          <Text style={styles.addText}>{t('exerciseRunner.precheck.revisit.add')}</Text>
+        </TouchableOpacity>
+      ) : null}
+    </View>
   );
 }
 
@@ -245,6 +331,19 @@ const makeStyles = (colors: ColorScheme) =>
     kind: { fontSize: 11.5, fontWeight: '500', color: colors.neutral400 },
     fragment: { fontSize: 14, color: colors.text },
     explanation: { fontSize: 13.5, color: colors.neutral300, lineHeight: 19 },
+    revisit: { gap: 8, marginTop: 4 },
+    revisitRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    revisitName: { flex: 1, gap: 2 },
+    addButton: {
+      borderRadius: 12,
+      borderWidth: 1.5,
+      borderColor: colors.accentBase,
+      minHeight: 40,
+      paddingHorizontal: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    addText: { fontSize: 13.5, fontWeight: '500', color: colors.accentBase },
     buttonWrap: { gap: 6, marginTop: 12 },
     button: {
       borderRadius: 14,

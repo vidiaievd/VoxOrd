@@ -24,12 +24,25 @@ const CHECK_TIMEOUT_MS = 125000;
 
 export type FeedbackKind = 'grammar' | 'lexis' | 'spelling' | 'pronunciation' | 'fluency' | 'content';
 
+/**
+ * The rule a remark is about (plan 85, step 7) — only one the learner has reached in the
+ * course. `in_queue`: the learner has a card, and the server has already pulled it closer;
+ * `covered`: reached, no card.
+ */
+export interface FeedbackAtom {
+  atomId: string;
+  status: 'in_queue' | 'covered';
+  ruleTitle: string;
+  title: string;
+}
+
 export interface FeedbackItem {
   kind: FeedbackKind;
   original: string | null;
   suggestion: string | null;
   explanation: string;
   severity: 'minor' | 'major';
+  atom: FeedbackAtom | null;
 }
 
 export interface FeedbackWord {
@@ -67,6 +80,8 @@ export interface ReadingPrompt {
 }
 
 export interface PrecheckResult {
+  /** The course of the attempt; what «add the rule to review» is asked with. */
+  courseId: string | null;
   /** The free, key-based half (`error_correction`, `translate_*`); the template reads it. */
   selfCheck: unknown | null;
   ai: PrecheckAi;
@@ -74,6 +89,15 @@ export interface PrecheckResult {
   /** `read_aloud`: how much of each passage the speech model heard read. */
   reading: { passPercent: number; prompts: ReadingPrompt[] } | null;
   remaining: PrecheckRemaining | null;
+}
+
+/** Null unless all four fields are readable: half a rule is no rule to offer. */
+function parseAtom(raw: unknown): FeedbackAtom | null {
+  if (!isRecord(raw) || raw.atomType !== 'grammar_rule_atom' || !isString(raw.atomId)) return null;
+  if ((raw.status !== 'in_queue' && raw.status !== 'covered') || !isString(raw.ruleTitle) || !isString(raw.title)) {
+    return null;
+  }
+  return { atomId: raw.atomId, status: raw.status, ruleTitle: raw.ruleTitle, title: raw.title };
 }
 
 const KINDS: readonly string[] = ['grammar', 'lexis', 'spelling', 'pronunciation', 'fluency', 'content'];
@@ -89,6 +113,7 @@ function parseFeedback(raw: unknown): Feedback | null {
       suggestion: stringOrNull(entry.suggestion),
       explanation: entry.explanation,
       severity: entry.severity === 'major' ? 'major' : 'minor',
+      atom: parseAtom(entry.atomRef),
     });
   }
   const words: FeedbackWord[] = [];
@@ -141,6 +166,7 @@ export function parsePrecheckResult(raw: unknown): PrecheckResult | null {
   const ai = parseAi(raw.ai);
   if (ai === null) return null;
   return {
+    courseId: stringOrNull(raw.courseId),
     selfCheck: raw.selfCheck ?? null,
     ai,
     feedback: ai.status === 'ok' ? parseFeedback(raw.feedback) : null,

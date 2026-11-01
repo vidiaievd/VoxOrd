@@ -886,6 +886,13 @@ export const en: Translations = {
       subtitle: 'A hint before you hand in. Nothing is sent and nothing is graded — your teacher sets the grade.',
       noScores: 'No pronunciation scores for this language — only the words heard.',
       noRemarks: 'No remarks — it reads well.',
+      revisit: {
+        title: 'Worth revisiting',
+        marked: 'Marked for review',
+        add: 'Add to review',
+        added: 'Added to review',
+        failed: "Couldn't add it — try again later",
+      },
       left: 'About {count} checks left',
       line: {
         keySettles: 'Everything matches the key. Nothing to correct.',

@@ -895,6 +895,14 @@ export interface Translations {
       subtitle: string;
       noScores: string;
       noRemarks: string;
+      /** Rules the remarks point at (platform plan 85, step 7). */
+      revisit: {
+        title: string;
+        marked: string;
+        add: string;
+        added: string;
+        failed: string;
+      };
       left: string; // '{count}'
       line: {
         keySettles: string;
