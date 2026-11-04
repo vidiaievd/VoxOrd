@@ -5,6 +5,7 @@ import {
   chunksOf,
   drawnIn,
   faceSegs,
+  groupEndSign,
   signParts,
   type Chunk,
   type TokenMarks,
@@ -16,6 +17,13 @@ import { typography } from '../../theme/typography';
 /** The line height that leaves a line of signs above a line of letters. */
 const SIGN_LINE = 0.9;
 const WORD_LINE = 1.45;
+
+/**
+ * The colour of the letters set invisible on the line of signs. Not `'transparent'`: that is the
+ * integer 0, which React Native on Android reads as «no colour given» and paints in the default
+ * black. A zero-alpha colour with a non-zero RGB stays invisible.
+ */
+const INVISIBLE = 'rgba(255, 255, 255, 0)';
 
 /** `color` at `alpha` strength; a colour this cannot parse is returned as it was. */
 export function withAlpha(color: string, alpha: number): string {
@@ -65,13 +73,19 @@ export function ProsodyWordView({ word, marks, trailing, lens, fontSize, color }
   const medium = typography.cardTitleMedium.fontFamily;
   const accentWord = lens === 'melody' && marks?.accent !== undefined;
 
+  // The end of a group stands in the line of the text, after the word's punctuation.
+  const groupEnd = groupEndSign(marks, lens);
+  const split = /^(\S*)(\s*)$/.exec(trailing);
+  const punctuation = split?.[1] ?? trailing;
+  const space = split?.[2] ?? '';
+
   const signs = drawn ? signParts(word, marks, lens) : null;
   const face = drawn ? faceSegs(word, marks, lens) : [{ text: word }];
 
   return (
     <View>
       <Text
-        style={[base, { lineHeight: Math.round(fontSize * SIGN_LINE), color: 'transparent' }]}
+        style={[base, { lineHeight: Math.round(fontSize * SIGN_LINE), color: INVISIBLE }]}
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
       >
@@ -116,7 +130,15 @@ export function ProsodyWordView({ word, marks, trailing, lens, fontSize, color }
         {lens === 'melody' && marks?.linked === true ? (
           <Text style={{ color: colors.accent }}>‿</Text>
         ) : null}
-        {trailing}
+        {groupEnd === null ? (
+          trailing
+        ) : (
+          <>
+            {punctuation}
+            <Text style={{ color: colors.warning, fontFamily: medium }}> {groupEnd}</Text>
+            {space}
+          </>
+        )}
       </Text>
     </View>
   );

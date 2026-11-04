@@ -1,5 +1,5 @@
 import { emptyProsodyLayer, type ProsodyLayer, type SoundSeg } from '../../kernel/prosody';
-import { chunksOf, drawnIn, faceSegs, marksByStart, signParts } from './marks';
+import { chunksOf, drawnIn, faceSegs, groupEndSign, marksByStart, signParts } from './marks';
 
 const layer = (): ProsodyLayer => ({
   ...emptyProsodyLayer(),
@@ -67,11 +67,13 @@ describe('signParts', () => {
     ]);
   });
 
-  it('puts the toneme sign, then the end of the group after the rest of the word', () => {
+  it('puts only the toneme sign on the line of signs; the end of the group stays in the text', () => {
     const marks = marksByStart(TEXT, layer()).get(10)!;
     const parts = signParts('Anna', marks, 'melody')!;
-    expect(parts.map((p) => p.text)).toEqual(['∨', 'nna', '↘‖']);
+    expect(parts.map((p) => p.text)).toEqual(['∨']);
     expect(parts[0]).toMatchObject({ scale: 1 });
+    expect(groupEndSign(marks, 'melody')).toBe('↘‖');
+    expect(groupEndSign(marks, 'stress')).toBeNull();
   });
 
   it('has no signs where the lens has nothing to say', () => {

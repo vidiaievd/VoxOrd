@@ -217,8 +217,7 @@ export function signParts(word: string, marks: TokenMarks, lens: ProsodyLens): S
   }
 
   if (lens === 'melody') {
-    const { stress, boundary } = marks;
-    let rest = word;
+    const { stress } = marks;
     if (stress !== undefined) {
       const { s, e } = stress.vowel;
       if (s >= 0 && e <= word.length && s < e) {
@@ -231,22 +230,27 @@ export function signParts(word: string, marks: TokenMarks, lens: ProsodyLens): S
           tone: 'accent',
           scale: marks.accent !== undefined ? 1 : 0.75,
         });
-        rest = word.slice(e);
       }
     }
-    if (boundary !== undefined) {
-      gap(rest);
-      const arrow =
-        boundary.pitch === 'rise' ? '↗' : boundary.pitch === 'fall' ? '↘' : boundary.pitch === 'level' ? '→' : '';
-      const pause = boundary.pause === 'long' ? '‖' : boundary.pause === 'short' ? '|' : '';
-      if (arrow + pause !== '') {
-        parts.push({ kind: 'sign', text: arrow + pause, tone: 'pitch', scale: 0.85 });
-      }
-    }
+    // The end of a group is not here: it stands in the line of the text (`groupEndSign`), so
+    // the word's column does not grow by it and the line of signs keeps to the stress.
     return parts.some((p) => p.kind === 'sign') ? parts : null;
   }
 
   return null;
+}
+
+/**
+ * The end of an intonation group as a sign for the line of the text, after the word and its
+ * punctuation — `↘‖`, `↗|`. `null` where the word ends no group, or under another lens.
+ */
+export function groupEndSign(marks: TokenMarks | undefined, lens: ProsodyLens): string | null {
+  const boundary = marks?.boundary;
+  if (lens !== 'melody' || boundary === undefined) return null;
+  const arrow =
+    boundary.pitch === 'rise' ? '↗' : boundary.pitch === 'fall' ? '↘' : boundary.pitch === 'level' ? '→' : '';
+  const pause = boundary.pause === 'long' ? '‖' : boundary.pause === 'short' ? '|' : '';
+  return arrow + pause === '' ? null : arrow + pause;
 }
 
 /** One word of a passage with the text that follows it up to the next word. */
