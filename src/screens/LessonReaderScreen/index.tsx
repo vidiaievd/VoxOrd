@@ -19,6 +19,7 @@ import { syncMyWords } from '../../lib/myWordsSync';
 import { paragraphTones } from '../../lib/text/narrationProgress';
 import { useSettings } from '../../hooks/useSettings';
 import { Button, NavHeader, Spinner } from '../../components/ui';
+import { LessonSentenceDrill } from '../../components/prosody/LessonSentenceDrill';
 import { ProsodyControls } from '../../components/prosody/ProsodyControls';
 import { ProsodyLegend } from '../../components/prosody/ProsodyLegend';
 import { useLessonProsody, useProsodySettings, wantsProsody } from '../../hooks/useProsody';
@@ -73,7 +74,7 @@ export function LessonReaderScreen({
     data?.variantId ?? undefined,
     prosodyAvailable && wantsProsody(prosodySettings.mode),
   );
-  // «By sentence» is drawn as plain text until the sentence card is built.
+  // «By sentence» replaces the paragraphs with the sentence card (7f); the other modes draw in place.
   const drawnLens = prosodySettings.mode === 'text' ? prosodySettings.lens : null;
   const glossaryIndex = useMemo(
     () => buildGlossaryIndex(data?.glossary ?? []),
@@ -233,6 +234,7 @@ export function LessonReaderScreen({
                   lens={prosodySettings.lens}
                   legend={prosodySettings.legend}
                   melody={hasPhraseMarks(Object.values(prosodyLayers ?? {}).map(p => p.layer))}
+                  sentences
                   onChange={next => {
                     prosodySettings.setMode(next.mode).catch(() => undefined);
                     prosodySettings.setLens(next.lens).catch(() => undefined);
@@ -242,6 +244,12 @@ export function LessonReaderScreen({
               )}
               {prosodyAvailable && drawnLens !== null && prosodySettings.legend && (
                 <ProsodyLegend lens={drawnLens} />
+              )}
+              {prosodyAvailable && prosodySettings.mode === 'sentences' && prosodyLayers && (
+                <>
+                  {prosodySettings.legend && <ProsodyLegend lens={prosodySettings.lens} />}
+                  <LessonSentenceDrill layers={prosodyLayers} lens={prosodySettings.lens} />
+                </>
               )}
               {paragraphs.map((paragraph, i) => (
                 <ParagraphView
