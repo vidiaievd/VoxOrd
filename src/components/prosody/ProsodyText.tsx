@@ -34,6 +34,8 @@ export interface ProsodyTextProps {
   sounds?: readonly WordSounds[];
   /** `null` — nothing of the pronunciation is drawn, the text is plain. */
   lens: ProsodyLens | null;
+  /** Index in the layer's passage of this text's first word, when it is a part of it. */
+  tokenOffset?: number;
   fontSize: number;
   /** The text colour; the font family comes from the theme's typography. */
   color: string;
@@ -131,6 +133,7 @@ export function ProsodyText({
   layer,
   sounds = [],
   lens,
+  tokenOffset = 0,
   fontSize,
   color,
   style,
@@ -143,7 +146,7 @@ export function ProsodyText({
   };
   if (lens === null) return <Text style={[base, style]}>{text}</Text>;
 
-  const chunks: Chunk[] = chunksOf(text, layer, sounds);
+  const chunks: Chunk[] = chunksOf(text, layer, sounds, tokenOffset);
   const elements: React.ReactNode[] = [];
   for (const chunk of chunks) {
     elements.push(

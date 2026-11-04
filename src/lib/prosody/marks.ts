@@ -33,17 +33,20 @@ export interface TokenMarks {
 
 /**
  * The marks per word, keyed by the character offset where the word starts in `text`.
+ * `tokenOffset` is the index, in the layer's passage, of the first word of `text` — for a
+ * block that is only a part of the passage the layer was made for.
  * A mark whose anchor no longer matches its word (stale `w`) is dropped, not misplaced.
  */
 export function marksByStart(
   text: string,
   layer: ProsodyLayer,
   sounds: readonly WordSounds[] = [],
+  tokenOffset = 0,
 ): Map<number, TokenMarks> {
   const tokens = tokenize(text);
   const out = new Map<number, TokenMarks>();
   const at = (i: number, w: string) => {
-    const token = tokens[i];
+    const token = tokens[i - tokenOffset];
     if (token === undefined || token.w.toLowerCase() !== w.toLowerCase()) return undefined;
     let marks = out.get(token.s);
     if (marks === undefined) out.set(token.s, (marks = { word: token.w }));
@@ -266,8 +269,9 @@ export function chunksOf(
   text: string,
   layer: ProsodyLayer,
   sounds: readonly WordSounds[] = [],
+  tokenOffset = 0,
 ): Chunk[] {
-  const marks = marksByStart(text, layer, sounds);
+  const marks = marksByStart(text, layer, sounds, tokenOffset);
   const tokens = tokenize(text);
   const gapOf = (from: number, to: number) => {
     const raw = text.slice(from, to);
