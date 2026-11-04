@@ -17,6 +17,9 @@ import { getMediaAsset, type MediaAsset } from '../../api/media';
 import { formatSeconds, type Mode } from '../../lib/readAloud';
 import { bucketPeaks } from '../../services/recorder';
 import type { ReadAloudPrompt } from './templates/readAloud';
+import { ProsodyText } from '../../components/prosody/ProsodyText';
+import type { TextProsody } from '../../api/prosody';
+import type { ProsodyLens } from '../../store/settingsStore';
 
 /** Bars in a take's waveform (`ra-wave`). */
 const WAVE_BARS = 28;
@@ -309,9 +312,12 @@ export function LiveDot() {
 export function Material({
   mode,
   prompt,
+  prosody = null,
 }: {
   mode: Mode;
   prompt: ReadAloudPrompt;
+  /** One lens of the pronunciation layer made for exactly this passage (plan 86, step 7e). */
+  prosody?: { lens: ProsodyLens; data: TextProsody } | null;
 }) {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -320,7 +326,18 @@ export function Material({
   if (mode === 'read') {
     return (
       <View style={styles.source}>
-        <Text style={styles.sourceText}>{prompt.text ?? ''}</Text>
+        {prosody ? (
+          <ProsodyText
+            text={prompt.text ?? ''}
+            layer={prosody.data.layer}
+            sounds={prosody.data.sounds}
+            lens={prosody.lens}
+            fontSize={18}
+            color={colors.text}
+          />
+        ) : (
+          <Text style={styles.sourceText}>{prompt.text ?? ''}</Text>
+        )}
       </View>
     );
   }

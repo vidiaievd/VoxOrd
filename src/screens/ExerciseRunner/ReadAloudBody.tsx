@@ -59,6 +59,14 @@ import {
   type RecorderHandle,
   type RecorderPort,
 } from '../../services/recorder';
+import { ProsodyControls } from '../../components/prosody/ProsodyControls';
+import { ProsodyLegend } from '../../components/prosody/ProsodyLegend';
+import {
+  useExerciseProsody,
+  useProsodySettings,
+  wantsProsody,
+} from '../../hooks/useProsody';
+import { hasPhraseMarks } from '../../lib/prosody/phraseMarks';
 import { ExerciseAudioPlayer } from './audio';
 import { AiReviewPanel } from './AiReviewPanel';
 import { ReadAloudGraded } from './ReadAloudGraded';
@@ -529,6 +537,16 @@ function ReadAloudSession({
   /** The takes recorded here, kept for a retried upload. */
   const captures = useRef(new Map<string, CapturedTake>());
   const playback = useTakePlayback();
+  // Pronunciation over the passage — a reading in Norwegian, drawn once the learner leaves «Meaning».
+  const prosodySettings = useProsodySettings();
+  const prosodyAvailable =
+    whole.mode === 'read' && (whole.language === 'nb' || whole.language === 'no');
+  const prosodyLayers = useExerciseProsody(
+    exerciseId,
+    prosodyAvailable && wantsProsody(prosodySettings.mode),
+  );
+  // «By sentence» is drawn as the plain passage until the sentence card is built.
+  const drawnLens = prosodySettings.mode === 'text' ? prosodySettings.lens : null;
 
   const labelOf = (itemId: string) => {
     const i = whole.prompts.findIndex(p => p.id === itemId);
@@ -733,6 +751,7 @@ function ReadAloudSession({
   if (stage === 'sent') return null;
 
   const prompt = content.prompts[state.index];
+  const promptProsody = prompt ? prosodyLayers?.[prompt.id] : undefined;
   const total = content.prompts.length;
   const busy = ['prep', 'count', 'rec', 'stopping'].includes(state.phase);
 
@@ -808,7 +827,33 @@ function ReadAloudSession({
           {total > 1 ? (
             <Text style={styles.promptLabel}>{labelOf(prompt.id)}</Text>
           ) : null}
-          <Material mode={content.mode} prompt={prompt} />
+          {prosodyAvailable ? (
+            <ProsodyControls
+              mode={prosodySettings.mode}
+              lens={prosodySettings.lens}
+              legend={prosodySettings.legend}
+              melody={hasPhraseMarks(
+                Object.values(prosodyLayers ?? {}).map(p => p.layer),
+              )}
+              onChange={next => {
+                prosodySettings.setMode(next.mode).catch(() => undefined);
+                prosodySettings.setLens(next.lens).catch(() => undefined);
+                prosodySettings.setLegend(next.legend).catch(() => undefined);
+              }}
+            />
+          ) : null}
+          {prosodyAvailable && drawnLens !== null && prosodySettings.legend ? (
+            <ProsodyLegend lens={drawnLens} />
+          ) : null}
+          <Material
+            mode={content.mode}
+            prompt={prompt}
+            prosody={
+              drawnLens !== null && promptProsody !== undefined && promptProsody.text === prompt.text
+                ? { lens: drawnLens, data: promptProsody }
+                : null
+            }
+          />
           <RecorderCard
             recorder={recorder}
             config={config}
