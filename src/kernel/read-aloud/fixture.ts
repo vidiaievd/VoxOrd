@@ -9,7 +9,13 @@
 // Norwegian course, which is exactly why they live here and not in a default.
 
 import type { ReadAloudContent } from './model';
-import { DEFAULT_RECORDING, DEFAULT_REVIEW, DEFAULT_SETTINGS, defaultRubric } from './model';
+import {
+  DEFAULT_PRONUNCIATION_GUIDE,
+  DEFAULT_RECORDING,
+  DEFAULT_REVIEW,
+  DEFAULT_SETTINGS,
+  defaultRubric,
+} from './model';
 
 export const SAMPLE_PROMPT_IDS = ['p1aaaa', 'p2bbbb'] as const;
 
@@ -58,5 +64,9 @@ export function sampleDocument(): ReadAloudContent {
     recording: { ...DEFAULT_RECORDING },
     settings: { ...DEFAULT_SETTINGS },
     review: { ...DEFAULT_REVIEW, ai: { ...DEFAULT_REVIEW.ai } },
+    pronunciationGuide: {
+      ...DEFAULT_PRONUNCIATION_GUIDE,
+      lenses: [...DEFAULT_PRONUNCIATION_GUIDE.lenses],
+    },
   };
 }

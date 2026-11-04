@@ -7,6 +7,9 @@
 export type { ParagraphWithOffsets } from './paragraphs';
 export { splitParagraphs, splitParagraphsWithOffsets } from './paragraphs';
 
+export type { Sentence } from './sentences';
+export { splitSentences } from './sentences';
+
 export type { Token } from './words';
 export { tokenize, TOKENIZER_ID, wordsOf } from './words';
 export { TOKENIZER_FIXTURE } from './words-fixture';
