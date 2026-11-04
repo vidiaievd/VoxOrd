@@ -762,6 +762,22 @@ export interface Translations {
     legendAccent: string;
     legendFall: string;
     legendRise: string;
+    /** The sentence card: one sentence of a reading, said and heard on its own (plan 86, step 7e.2). */
+    drill: {
+      group: string;
+      position: string;
+      previous: string;
+      next: string;
+      say: string;
+      stop: string;
+      sending: string;
+      checking: string;
+      micDenied: string;
+      micMissing: string;
+      failed: string;
+      closed: string;
+      busy: string;
+    };
   };
   lessonReader: {
     title: string;
@@ -937,6 +953,8 @@ export interface Translations {
         poolEmpty: string;
         emptyAnswer: string;
         notReady: string;
+        sentenceLimit: string;
+        inaudible: string;
         failed: string;
       };
       kind: {

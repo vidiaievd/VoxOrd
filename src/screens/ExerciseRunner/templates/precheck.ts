@@ -42,6 +42,8 @@ export type PrecheckLine =
   | 'poolEmpty'
   | 'emptyAnswer'
   | 'notReady'
+  | 'sentenceLimit'
+  | 'inaudible'
   | 'failed';
 
 export function noticeOf(result: PrecheckResult): PrecheckNotice {
@@ -54,13 +56,19 @@ export function noticeOf(result: PrecheckResult): PrecheckNotice {
     case 'failed':
       return {
         kind: 'line',
-        key: ai.errorCode === 'recording_not_ready' || ai.errorCode === 'recording_missing' ? 'notReady' : 'failed',
+        key:
+          ai.errorCode === 'recording_not_ready' || ai.errorCode === 'recording_missing'
+            ? 'notReady'
+            : ai.errorCode === 'recording_inaudible'
+            ? 'inaudible'
+            : 'failed',
       };
     case 'refused':
       if (ai.reason === 'exercise_limit') return { kind: 'line', key: 'exerciseLimit' };
       if (ai.reason === 'learner_limit') return { kind: 'line', key: 'learnerLimit' };
       if (ai.reason === 'pool_empty') return { kind: 'line', key: 'poolEmpty' };
       if (ai.reason === 'unaskable') return { kind: 'line', key: 'emptyAnswer' };
+      if (ai.reason === 'attempt_limit') return { kind: 'line', key: 'sentenceLimit' };
       return { kind: 'line', key: 'failed' };
     case 'not_asked':
       return ai.reason === 'key_settles' ? { kind: 'line', key: 'keySettles' } : { kind: 'none' };

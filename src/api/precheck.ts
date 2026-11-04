@@ -102,7 +102,7 @@ function parseAtom(raw: unknown): FeedbackAtom | null {
 
 const KINDS: readonly string[] = ['grammar', 'lexis', 'spelling', 'pronunciation', 'fluency', 'content'];
 
-function parseFeedback(raw: unknown): Feedback | null {
+export function parseFeedback(raw: unknown): Feedback | null {
   if (!isRecord(raw) || !isString(raw.summary) || !Array.isArray(raw.items)) return null;
   const items: FeedbackItem[] = [];
   for (const entry of raw.items) {

@@ -14,6 +14,8 @@ export interface ProsodyControlsProps {
   onChange: (next: { mode: ProsodyMode; lens: ProsodyLens; legend: boolean }) => void;
   /** Whether melody is offered: only a text with phrase marks has one. */
   melody?: boolean;
+  /** Whether «By sentence» is offered: a reading the learner can say one sentence of and have it heard. */
+  sentences?: boolean;
 }
 
 const LENS_LABEL: Record<ProsodyLens, 'prosody.lensStress' | 'prosody.lensSounds' | 'prosody.lensRespell' | 'prosody.lensMelody'> = {
@@ -27,7 +29,14 @@ const LENS_LABEL: Record<ProsodyLens, 'prosody.lensStress' | 'prosody.lensSounds
  * What to show under a text: «Meaning» (nothing) or one lens of the pronunciation, and
  * whether its legend is on (plan 86, §4i.2). One lens at a time — their sum is not readable.
  */
-export function ProsodyControls({ mode, lens, legend, onChange, melody = true }: ProsodyControlsProps) {
+export function ProsodyControls({
+  mode,
+  lens,
+  legend,
+  onChange,
+  melody = true,
+  sentences = false,
+}: ProsodyControlsProps) {
   const { t } = useTranslation();
   const lenses = PROSODY_LENSES.filter((l) => l !== 'melody' || melody || lens === 'melody');
   const drawn = mode !== 'meaning';
@@ -49,9 +58,16 @@ export function ProsodyControls({ mode, lens, legend, onChange, melody = true }:
           key={l}
           label={t(LENS_LABEL[l])}
           selected={drawn && lens === l}
-          onPress={() => onChange({ mode: 'text', lens: l, legend })}
+          onPress={() => onChange({ mode: mode === 'sentences' ? mode : 'text', lens: l, legend })}
         />
       ))}
+      {sentences && (
+        <Chip
+          label={t('prosody.modeSentences')}
+          selected={mode === 'sentences'}
+          onPress={() => onChange({ mode: 'sentences', lens, legend })}
+        />
+      )}
       {drawn && (
         <Chip
           label={t('prosody.legendShow')}

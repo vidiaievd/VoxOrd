@@ -69,6 +69,7 @@ import {
 import { hasPhraseMarks } from '../../lib/prosody/phraseMarks';
 import { ExerciseAudioPlayer } from './audio';
 import { AiReviewPanel } from './AiReviewPanel';
+import { ReadAloudSentenceDrill } from './ReadAloudSentenceDrill';
 import { ReadAloudGraded } from './ReadAloudGraded';
 import { PrecheckButton, PrecheckPanel } from './PrecheckPanel';
 import { usePrecheckRun } from './usePrecheckRun';
@@ -545,8 +546,11 @@ function ReadAloudSession({
     exerciseId,
     prosodyAvailable && wantsProsody(prosodySettings.mode),
   );
-  // «By sentence» is drawn as the plain passage until the sentence card is built.
-  const drawnLens = prosodySettings.mode === 'text' ? prosodySettings.lens : null;
+  // «By sentence»: one sentence at a time, said and heard on its own; only while the work is open.
+  const sentenceDrill =
+    prosodyAvailable && stage === 'draft' && prosodySettings.mode === 'sentences';
+  const drawnLens =
+    prosodySettings.mode === 'text' || sentenceDrill ? prosodySettings.lens : null;
 
   const labelOf = (itemId: string) => {
     const i = whole.prompts.findIndex(p => p.id === itemId);
@@ -835,6 +839,7 @@ function ReadAloudSession({
               melody={hasPhraseMarks(
                 Object.values(prosodyLayers ?? {}).map(p => p.layer),
               )}
+              sentences={stage === 'draft'}
               onChange={next => {
                 prosodySettings.setMode(next.mode).catch(() => undefined);
                 prosodySettings.setLens(next.lens).catch(() => undefined);
@@ -845,15 +850,29 @@ function ReadAloudSession({
           {prosodyAvailable && drawnLens !== null && prosodySettings.legend ? (
             <ProsodyLegend lens={drawnLens} />
           ) : null}
-          <Material
-            mode={content.mode}
-            prompt={prompt}
-            prosody={
-              drawnLens !== null && promptProsody !== undefined && promptProsody.text === prompt.text
-                ? { lens: drawnLens, data: promptProsody }
-                : null
-            }
-          />
+          {sentenceDrill && prompt.text ? (
+            <ReadAloudSentenceDrill
+              exerciseId={exerciseId}
+              attemptId={attemptId}
+              prompt={{ id: prompt.id, text: prompt.text }}
+              prosody={promptProsody}
+              lens={drawnLens}
+              createPort={createPort}
+              micBusy={busy}
+            />
+          ) : (
+            <Material
+              mode={content.mode}
+              prompt={prompt}
+              prosody={
+                drawnLens !== null &&
+                promptProsody !== undefined &&
+                promptProsody.text === prompt.text
+                  ? { lens: drawnLens, data: promptProsody }
+                  : null
+              }
+            />
+          )}
           <RecorderCard
             recorder={recorder}
             config={config}
