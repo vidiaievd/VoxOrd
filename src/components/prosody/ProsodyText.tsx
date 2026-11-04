@@ -64,7 +64,8 @@ interface WordViewProps {
  * One word with its line of signs above it. A running text on a phone cannot carry a mark
  * over a letter, so every word is a small column: the signs on top, the word under. The signs
  * stand where their letters stand because the letters before them are set invisible, in the
- * same font — the sign line never changes the text, only decorates it.
+ * same font — the sign line never changes the text, only decorates it. The sounds lens has
+ * no signs and no such line: its marks are all on the letters.
  */
 export function ProsodyWordView({ word, marks, trailing, lens, fontSize, color }: WordViewProps) {
   const { colors } = useTheme();
@@ -84,30 +85,32 @@ export function ProsodyWordView({ word, marks, trailing, lens, fontSize, color }
 
   return (
     <View>
-      <Text
-        style={[base, { lineHeight: Math.round(fontSize * SIGN_LINE), color: INVISIBLE }]}
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-      >
-        {signs === null
-          ? ' '
-          : signs.map((part, k) =>
-              part.kind === 'gap' ? (
-                part.text
-              ) : (
-                <Text
-                  key={k}
-                  style={{
-                    fontSize: Math.round(fontSize * part.scale),
-                    color: part.tone === 'accent' ? colors.accent : colors.warning,
-                    fontFamily: medium,
-                  }}
-                >
-                  {part.text}
-                </Text>
-              ),
-            )}
-      </Text>
+      {lens === 'sounds' ? null : (
+        <Text
+          style={[base, { lineHeight: Math.round(fontSize * SIGN_LINE), color: INVISIBLE }]}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
+          {signs === null
+            ? ' '
+            : signs.map((part, k) =>
+                part.kind === 'gap' ? (
+                  part.text
+                ) : (
+                  <Text
+                    key={k}
+                    style={{
+                      fontSize: Math.round(fontSize * part.scale),
+                      color: part.tone === 'accent' ? colors.accent : colors.warning,
+                      fontFamily: medium,
+                    }}
+                  >
+                    {part.text}
+                  </Text>
+                ),
+              )}
+        </Text>
+      )}
       <Text style={[base, { lineHeight: Math.round(fontSize * WORD_LINE), color }]}>
         {face.map((seg, k) => (
           <Text
@@ -121,6 +124,9 @@ export function ProsodyWordView({ word, marks, trailing, lens, fontSize, color }
                     textDecorationLine: 'underline',
                     textDecorationColor: withAlpha(colors.accent, 0.4),
                   }
+                : null,
+              seg.tie
+                ? { textDecorationLine: 'underline', textDecorationColor: colors.accent }
                 : null,
             ]}
           >

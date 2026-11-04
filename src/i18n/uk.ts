@@ -756,7 +756,7 @@ export const uk: Translations = {
     legendStressed: 'Наголошений голосний',
     legendLong: 'Довгий голосний (смужка під ним)',
     legendSilent: 'Нечитабельна літера (бліда)',
-    legendTie: 'Літери одного звука (дужка над ними)',
+    legendTie: 'Літери одного звука (риска під ними)',
     legendWeak: 'Слабкий голосний (блідіший)',
     legendRespell: 'Слово так, як воно чується',
     legendRespellSigns: 'ŋ — це «ng»; ː робить голосний довгим',

@@ -53,6 +53,14 @@ export function ProsodyControls({
         selected={!drawn}
         onPress={() => onChange({ mode: 'meaning', lens, legend })}
       />
+      {/* Second, before the lenses: a mode like «Meaning», and past the screen edge it went unseen. */}
+      {sentences && (
+        <Chip
+          label={t('prosody.modeSentences')}
+          selected={mode === 'sentences'}
+          onPress={() => onChange({ mode: 'sentences', lens, legend })}
+        />
+      )}
       {lenses.map((l) => (
         <Chip
           key={l}
@@ -61,13 +69,6 @@ export function ProsodyControls({
           onPress={() => onChange({ mode: mode === 'sentences' ? mode : 'text', lens: l, legend })}
         />
       ))}
-      {sentences && (
-        <Chip
-          label={t('prosody.modeSentences')}
-          selected={mode === 'sentences'}
-          onPress={() => onChange({ mode: 'sentences', lens, legend })}
-        />
-      )}
       {drawn && (
         <Chip
           label={t('prosody.legendShow')}

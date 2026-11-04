@@ -106,6 +106,8 @@ export interface FaceSeg {
   fade?: number;
   /** A band under a long stressed vowel. */
   band?: boolean;
+  /** Letters of one sound, joined by a line under them (the sounds lens). */
+  tie?: boolean;
 }
 
 /** How strongly a vowel is said: stressed in full, a secondary stress a little less, the schwa least. */
@@ -134,14 +136,15 @@ export function faceSegs(word: string, marks: TokenMarks, lens: ProsodyLens): Fa
     for (const seg of marks.sounds) {
       const text = word.slice(seg.s, seg.e);
       if (text === '') continue;
+      const tie = seg.tie ? { tie: true } : null;
       if (seg.kind === 'silent') out.push({ text, fade: 0.22 });
       else if (seg.kind === 'vowel') {
         out.push(
           isStressedVowel(seg)
-            ? { text, accent: true, bold: true }
-            : { text, fade: vowelFade(seg) },
+            ? { text, accent: true, bold: true, ...tie }
+            : { text, fade: vowelFade(seg), ...tie },
         );
-      } else out.push({ text });
+      } else out.push({ text, ...tie });
     }
     return out;
   }
@@ -202,19 +205,8 @@ export function signParts(word: string, marks: TokenMarks, lens: ProsodyLens): S
     return any ? parts : null;
   }
 
-  if (lens === 'sounds' && marks.sounds !== undefined) {
-    // A bracket over the letters of one sound: an overline per letter, continuous to the eye.
-    let any = false;
-    for (const seg of marks.sounds) {
-      const letters = word.slice(seg.s, seg.e);
-      if (letters === '') continue;
-      if (seg.tie) {
-        parts.push({ kind: 'sign', text: '‾'.repeat([...letters].length), tone: 'accent', scale: 1 });
-        any = true;
-      } else gap(letters);
-    }
-    return any ? parts : null;
-  }
+  // The sounds lens has no line of signs: a tie is a line under its letters (`faceSegs`), so
+  // the passage keeps the spacing of a plain text and no bar drifts towards the line above.
 
   if (lens === 'melody') {
     const { stress } = marks;

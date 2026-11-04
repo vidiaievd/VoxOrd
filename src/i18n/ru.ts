@@ -756,7 +756,7 @@ export const ru: Translations = {
     legendStressed: 'Ударный гласный',
     legendLong: 'Долгий гласный (полоса под ним)',
     legendSilent: 'Нечитаемая буква (бледная)',
-    legendTie: 'Буквы одного звука (дужка над ними)',
+    legendTie: 'Буквы одного звука (черта под ними)',
     legendWeak: 'Слабый гласный (бледнее)',
     legendRespell: 'Слово так, как оно слышится',
     legendRespellSigns: 'ŋ — это «ng»; ː делает гласный долгим',

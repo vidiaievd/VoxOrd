@@ -56,6 +56,19 @@ describe('faceSegs', () => {
     expect(out[2]).toMatchObject({ text: 'd', fade: 0.22 });
     expect(out[1]).toMatchObject({ accent: true });
   });
+
+  it('ties the letters of one sound under the sounds lens, with nothing on the line of signs', () => {
+    const segs: SoundSeg[] = [
+      { s: 0, e: 1, kind: 'consonant', sounds: ['T'], stress: null, long: null, tie: false },
+      { s: 1, e: 2, kind: 'vowel', sounds: ['OH'], stress: 2, long: false, tie: false },
+      { s: 2, e: 4, kind: 'consonant', sounds: ['NG'], stress: null, long: null, tie: true },
+      { s: 4, e: 5, kind: 'vowel', sounds: ['AX'], stress: 0, long: false, tie: false },
+    ];
+    const marks = { word: 'tunge', sounds: segs };
+    const out = faceSegs('tunge', marks, 'sounds');
+    expect(out.filter((seg) => seg.tie).map((seg) => seg.text)).toEqual(['ng']);
+    expect(signParts('tunge', marks, 'sounds')).toBeNull();
+  });
 });
 
 describe('signParts', () => {

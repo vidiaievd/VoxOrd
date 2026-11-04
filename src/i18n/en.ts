@@ -748,7 +748,7 @@ export const en: Translations = {
     legendStressed: 'Stressed vowel',
     legendLong: 'Long vowel (band under it)',
     legendSilent: 'Silent letter (pale)',
-    legendTie: 'Letters of one sound (bracket over them)',
+    legendTie: 'Letters of one sound (line under them)',
     legendWeak: 'Weak vowel (fainter)',
     legendRespell: 'The word as it sounds',
     legendRespellSigns: 'ŋ is «ng»; ː makes the vowel long',
