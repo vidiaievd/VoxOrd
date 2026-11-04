@@ -737,6 +737,32 @@ export interface Translations {
     queued: string;
     refused: string;
   };
+  /** Pronunciation under a text: what to show and the legend of each sign (platform plan 86). */
+  prosody: {
+    lensGroup: string;
+    modeMeaning: string;
+    modeSentences: string;
+    modeText: string;
+    lensStress: string;
+    lensSounds: string;
+    lensRespell: string;
+    lensMelody: string;
+    legendShow: string;
+    legendTitle: string;
+    legendStressed: string;
+    legendLong: string;
+    legendSilent: string;
+    legendTie: string;
+    legendWeak: string;
+    legendRespell: string;
+    legendRespellSigns: string;
+    legendTone1: string;
+    legendTone2: string;
+    legendDot: string;
+    legendAccent: string;
+    legendFall: string;
+    legendRise: string;
+  };
   lessonReader: {
     title: string;
     loadError: string;
