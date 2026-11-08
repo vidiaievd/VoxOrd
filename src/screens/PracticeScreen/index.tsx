@@ -19,6 +19,7 @@ import { MistakeRow } from './MistakeRow';
 import type { MistakeRowData } from '../../lib/mistakes';
 import { MyWordsCard } from './MyWordsCard';
 import { ReviewHeroCard } from './ReviewHeroCard';
+import { SoundSessionCard } from './SoundSessionCard';
 
 /** Sets shown before «All N» opens the rest in place. */
 const DECKS_COLLAPSED = 3;
@@ -28,6 +29,7 @@ interface PracticeScreenProps {
   due: DueCount;
   onStartReview: () => void;
   onOpenMyWords: () => void;
+  onOpenSoundSession: () => void;
   onOpenDeck: (deck: Deck) => void;
   onOpenGrammar: (row: GrammarDueRowData) => void;
   onOpenMistake: (row: MistakeRowData) => void;
@@ -42,6 +44,7 @@ export function PracticeScreen({
   due,
   onStartReview,
   onOpenMyWords,
+  onOpenSoundSession,
   onOpenDeck,
   onOpenGrammar,
   onOpenMistake,
@@ -167,6 +170,7 @@ export function PracticeScreen({
         ) : null}
 
         <MyWordsCard summary={home.myWords} onPress={onOpenMyWords} />
+        <SoundSessionCard onPress={onOpenSoundSession} />
       </ScrollView>
     </SafeAreaView>
   );

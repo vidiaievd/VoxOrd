@@ -738,6 +738,118 @@ export interface Translations {
     refused: string;
   };
   /** Pronunciation under a text: what to show and the legend of each sign (platform plan 86). */
+  /** The pronunciation session (platform plan 86, VoxOrd step 15). */
+  soundSession: {
+    title: string;
+    back: string;
+    start: {
+      begin: string;
+      resume: string;
+      starting: string;
+      hint: string;
+      lowBudget: string;
+      schoolPays: string;
+      trainSound: string;
+      chosen: string;
+    };
+    refused: {
+      SESSION_LIMIT: string;
+      POOL_EMPTY: string;
+      NOT_AVAILABLE: string;
+      generic: string;
+      retry: string;
+    };
+    progress: {
+      diagnostic: string;
+      takes: string;
+      sounds: string;
+    };
+    status: {
+      pending: string;
+      open: string;
+      passed: string;
+      failed: string;
+    };
+    step: {
+      sayWord: string;
+      sayPair: string;
+      sayPhrase: string;
+      sayPairNow: string;
+      frame: string;
+      playing: string;
+      noClip: string;
+      howTo: string;
+      drill: string;
+      commonError: string;
+      listen: string;
+    };
+    record: {
+      record: string;
+      stop: string;
+      recording: string;
+      hearing: string;
+      micDenied: string;
+      micMissing: string;
+    };
+    notice: {
+      uploadFailed: string;
+      notReady: string;
+      inaudible: string;
+      tryAgain: string;
+      stale: string;
+    };
+    verdict: {
+      passed: string;
+      missed: string;
+      unmeasured: string;
+      tone: {
+        like_reference: string;
+        other_tone: string;
+        unsure: string;
+      };
+      next: string;
+      toEnd: string;
+    };
+    events: {
+      sound_passed: string;
+      sound_failed: string;
+      element_passed: string;
+      side_passed: string;
+      diagnostic_done: string;
+    };
+    ending: {
+      title: string;
+      body: string;
+      stopped: string;
+      take_limit: string;
+      finish: string;
+      submitting: string;
+      retry: string;
+    };
+    result: {
+      title: string;
+      score: string;
+      GOOD: string;
+      HARD: string;
+      AGAIN: string;
+      none: string;
+      passes: string;
+      fails: string;
+      weak: string;
+      flagged: string;
+      again: string;
+      empty: string;
+      cardsNote: string;
+    };
+    broken: {
+      title: string;
+      body: string;
+      reload: string;
+      restart: string;
+    };
+    practiceTitle: string;
+    practiceSub: string;
+  };
   prosody: {
     lensGroup: string;
     modeMeaning: string;

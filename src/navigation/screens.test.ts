@@ -179,6 +179,10 @@ const CASES: {
       'Practice',
     ],
   ],
+  SoundSession: [
+    [{ name: 'SoundSession' }, { name: 'Practice' }, 'Practice'],
+    [{ name: 'SoundSession', atomId: 'nb:kj' }, { name: 'Practice' }, 'Practice'],
+  ],
   ReviewSession: [
     [
       { name: 'ReviewSession', courseId: 'c1', from: 'CourseHome' },
