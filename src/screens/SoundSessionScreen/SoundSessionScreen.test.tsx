@@ -16,6 +16,7 @@ const mockStart = jest.fn();
 jest.mock('../../hooks/useSoundSession', () => ({ useSoundSession: () => mockHook }));
 jest.mock('./TakeButton', () => ({ TakeButton: () => null }));
 jest.mock('./ClipButtons', () => ({ ClipButtons: () => null }));
+jest.mock('./MelodyChart', () => ({ MelodyChart: () => null }));
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
 }));
@@ -94,7 +95,7 @@ beforeEach(() => mockStart.mockReset());
 describe('SoundSessionScreen', () => {
   it('offers the start, and starts the chosen sound', () => {
     mockHook = hook();
-    const { text, tree } = draw(<SoundSessionScreen atomId="nb:kj" onBack={() => undefined} />);
+    const { text, tree } = draw(<SoundSessionScreen atomId="nb:kj" onBack={() => undefined} onOpenCard={() => undefined} />);
     expect(text).toContain('soundSession.start.hint');
     expect(text).toContain('soundSession.start.chosen {"family":"kj"}');
     const button = tree.root.find(n => n.props.label === 'soundSession.start.trainSound {"family":"kj"}');
@@ -104,14 +105,14 @@ describe('SoundSessionScreen', () => {
 
   it('says what the door refused in its own words', () => {
     mockHook = hook({ phase: 'refused', refusal: { status: 422, code: 'SESSION_LIMIT', retryAfterMs: null, takeIndex: null } });
-    expect(draw(<SoundSessionScreen onBack={() => undefined} />).text).toContain('soundSession.refused.SESSION_LIMIT');
+    expect(draw(<SoundSessionScreen onBack={() => undefined} onOpenCard={() => undefined} />).text).toContain('soundSession.refused.SESSION_LIMIT');
     mockHook = hook({ phase: 'refused', refusal: { status: 500, code: 'X', retryAfterMs: null, takeIndex: null } });
-    expect(draw(<SoundSessionScreen onBack={() => undefined} />).text).toContain('soundSession.refused.generic');
+    expect(draw(<SoundSessionScreen onBack={() => undefined} onOpenCard={() => undefined} />).text).toContain('soundSession.refused.generic');
   });
 
   it('draws a step: the target, the frame, progress and the notice', () => {
     mockHook = hook({ phase: 'step', session: session(), notice: 'inaudible' });
-    const { text } = draw(<SoundSessionScreen onBack={() => undefined} />);
+    const { text } = draw(<SoundSessionScreen onBack={() => undefined} onOpenCard={() => undefined} />);
     expect(text).toContain('kyss');
     expect(text).toContain('Nå sier jeg kyss igjen.');
     expect(text).toContain('soundSession.progress.takes {"n":3,"max":40}');
@@ -122,9 +123,9 @@ describe('SoundSessionScreen', () => {
   it('warns about a low budget only for a metered learner', () => {
     const budget = { payer: 'learner', metered: true, remainingCredits: 10, estimatedCredits: 35 };
     mockHook = hook({ phase: 'step', session: session(), budget });
-    expect(draw(<SoundSessionScreen onBack={() => undefined} />).text).toContain('soundSession.start.lowBudget');
+    expect(draw(<SoundSessionScreen onBack={() => undefined} onOpenCard={() => undefined} />).text).toContain('soundSession.start.lowBudget');
     mockHook = hook({ phase: 'step', session: session(), budget: { ...budget, payer: 'school' } });
-    expect(draw(<SoundSessionScreen onBack={() => undefined} />).text).not.toContain('soundSession.start.lowBudget');
+    expect(draw(<SoundSessionScreen onBack={() => undefined} onOpenCard={() => undefined} />).text).not.toContain('soundSession.start.lowBudget');
   });
 
   it('draws the verdict with the strongest event line and a way to the end', () => {
@@ -141,7 +142,7 @@ describe('SoundSessionScreen', () => {
         session: session(),
       },
     });
-    const { text } = draw(<SoundSessionScreen onBack={() => undefined} />);
+    const { text } = draw(<SoundSessionScreen onBack={() => undefined} onOpenCard={() => undefined} />);
     expect(text).toContain('soundSession.verdict.missed');
     expect(text).toContain('Tongue higher.');
     expect(text).toContain('soundSession.events.sound_failed');
@@ -159,7 +160,7 @@ describe('SoundSessionScreen', () => {
         flagged: [],
       },
     });
-    const { text } = draw(<SoundSessionScreen onBack={() => undefined} />);
+    const { text } = draw(<SoundSessionScreen onBack={() => undefined} onOpenCard={() => undefined} />);
     expect(text).toContain('soundSession.result.score {"score":67}');
     expect(text).toContain('soundSession.result.HARD');
     expect(text).toContain('[y]');

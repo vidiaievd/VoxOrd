@@ -2,12 +2,13 @@ import React from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text, View } from 'react-native';
 import type { SessionResult, SoundSession, TakeResult } from '../../api/soundSession';
-import { Button, Overline, SubScreen } from '../../components/ui';
+import { Button, Overline, PressableScale, SubScreen } from '../../components/ui';
 import { useSoundSession, type TakeNotice } from '../../hooks/useSoundSession';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { radii } from '../../theme/spacing';
 import { ClipButtons } from './ClipButtons';
+import { MelodyChart } from './MelodyChart';
 import {
   eventLine,
   familyOf,
@@ -26,6 +27,8 @@ export interface SoundSessionScreenProps {
   /** The learner chose this sound on its card; the session practises that one. */
   atomId?: string;
   onBack: () => void;
+  /** The card of a sound: its hint on a step, its row in the result. */
+  onOpenCard: (atomId: string) => void;
 }
 
 /**
@@ -33,7 +36,7 @@ export interface SoundSessionScreenProps {
  * (say a word, a pair or a line against the model clip) → the verdict → … → hand in → the ratings.
  * The engine decides everything; this draws its answers (`useSoundSession`).
  */
-export function SoundSessionScreen({ atomId, onBack }: SoundSessionScreenProps) {
+export function SoundSessionScreen({ atomId, onBack, onOpenCard }: SoundSessionScreenProps) {
   const { t, language } = useTranslation();
   const { colors, typography } = useTheme();
   const s = useSoundSession({ language: LANGUAGE, locale: language });
@@ -126,7 +129,7 @@ export function SoundSessionScreen({ atomId, onBack }: SoundSessionScreenProps) 
   }
 
   if (s.phase === 'result' && s.result !== null) {
-    return frame(<ResultCard result={s.result} onAgain={s.reset} />);
+    return frame(<ResultCard result={s.result} onAgain={s.reset} onOpenCard={onOpenCard} />);
   }
 
   if (session === null) return null;
@@ -168,6 +171,12 @@ export function SoundSessionScreen({ atomId, onBack }: SoundSessionScreenProps) 
           {s.instruction !== null ? (
             <View style={{ gap: 6 }}>
               <Overline>{t('soundSession.step.howTo')}</Overline>
+              <Button
+                size={36}
+                variant="ghost"
+                label={t('soundSession.card.open')}
+                onPress={() => onOpenCard(s.instruction?.atomId ?? session.step?.atomId ?? '')}
+              />
               <Text style={secondary}>{s.instruction.howTo}</Text>
               {s.instruction.drill !== null ? (
                 <Text style={secondary}>
@@ -373,6 +382,7 @@ function VerdictCard({
       {toneText !== null ? (
         <Text style={[typography.secondary, { color: colors.neutral400 }]}>{toneText}</Text>
       ) : null}
+      {take.toneme !== null ? <MelodyChart melody={take.toneme.melody} /> : null}
       {fb !== null && (fb.summary !== '' || fb.items.length > 0) ? (
         <View style={{ gap: 6 }}>
           {fb.summary !== '' ? (
@@ -398,7 +408,15 @@ function VerdictCard({
   );
 }
 
-function ResultCard({ result, onAgain }: { result: SessionResult; onAgain: () => void }) {
+function ResultCard({
+  result,
+  onAgain,
+  onOpenCard,
+}: {
+  result: SessionResult;
+  onAgain: () => void;
+  onOpenCard: (atomId: string) => void;
+}) {
   const { t } = useTranslation();
   const { colors, typography } = useTheme();
   const rating = (r: SessionResult['sounds'][number]['rating']) =>
@@ -426,11 +444,14 @@ function ResultCard({ result, onAgain }: { result: SessionResult; onAgain: () =>
             </Text>
           ) : null}
           {result.sounds.map(sound => (
-            <View
+            <PressableScale
               key={sound.atomId}
+              accessibilityRole="button"
+              accessibilityLabel={`${t('soundSession.card.open')}: [${familyOf(sound.atomId)}]`}
+              onPress={() => onOpenCard(sound.atomId)}
               style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}
             >
-              <Text style={[typography.body, { color: colors.text }]}>
+              <Text style={[typography.body, { color: colors.accent300 }]}>
                 [{familyOf(sound.atomId)}]
               </Text>
               <Text style={[typography.meta, { color: colors.neutral500 }]}>
@@ -438,7 +459,7 @@ function ResultCard({ result, onAgain }: { result: SessionResult; onAgain: () =>
                 {t('soundSession.result.fails', { n: sound.fails })}
               </Text>
               <Text style={[typography.body, { color: colors.text }]}>{rating(sound.rating)}</Text>
-            </View>
+            </PressableScale>
           ))}
           <Text style={[typography.meta, { color: colors.neutral500 }]}>
             {t('soundSession.result.cardsNote')}

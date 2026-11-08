@@ -847,6 +847,25 @@ export interface Translations {
       reload: string;
       restart: string;
     };
+    melody: {
+      yours: string;
+      model: string;
+      label: string;
+      none: string;
+    };
+    card: {
+      train: string;
+      ipa: string;
+      description: string;
+      howTo: string;
+      drill: string;
+      commonError: string;
+      carriers: string;
+      loading: string;
+      failed: string;
+      notFound: string;
+      open: string;
+    };
     practiceTitle: string;
     practiceSub: string;
   };

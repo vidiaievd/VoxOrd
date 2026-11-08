@@ -183,6 +183,7 @@ const CASES: {
     [{ name: 'SoundSession' }, { name: 'Practice' }, 'Practice'],
     [{ name: 'SoundSession', atomId: 'nb:kj' }, { name: 'Practice' }, 'Practice'],
   ],
+  SoundCard: [[{ name: 'SoundCard', atomId: 'nb:kj' }, { name: 'SoundSession' }, 'Practice']],
   ReviewSession: [
     [
       { name: 'ReviewSession', courseId: 'c1', from: 'CourseHome' },

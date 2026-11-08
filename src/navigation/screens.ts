@@ -22,6 +22,8 @@ export type Screen =
   | { name: 'Profile' }
   /** The pronunciation session; `atomId` — the learner chose a sound (plan 86, VoxOrd step 15). */
   | { name: 'SoundSession'; atomId?: string }
+  /** The card of one sound (plan 86, VoxOrd step 15.4). */
+  | { name: 'SoundCard'; atomId: string }
   | {
       name: 'Assistant';
       context?: AssistantContext;
@@ -213,6 +215,8 @@ export function backTarget(screen: Screen): Screen | null {
     case 'GrammarReview':
     case 'SoundSession':
       return { name: 'Practice' };
+    case 'SoundCard':
+      return { name: 'SoundSession' };
     case 'ModeSelector':
       return { name: 'Practice' };
     case 'Matching':

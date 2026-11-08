@@ -41,6 +41,7 @@ import { MyWordsScreen } from '../screens/MyWordsScreen';
 import { SubmissionScreen } from '../screens/SubmissionScreen';
 import { AssistantScreen } from '../screens/AssistantScreen';
 import { SoundSessionScreen } from '../screens/SoundSessionScreen';
+import { SoundCardScreen } from '../screens/SoundSessionScreen/SoundCardScreen';
 import { TAB_ROOT, backTarget, showsTabBar, tabOf, type Screen, type Tab } from './screens';
 import { TabBar } from './TabBar';
 import { TabScrollProvider, useScrollTabToTop } from './tabScroll';
@@ -617,7 +618,22 @@ function Navigator() {
         );
 
       case 'SoundSession':
-        return <SoundSessionScreen atomId={screen.atomId} onBack={goBack} />;
+        return (
+          <SoundSessionScreen
+            atomId={screen.atomId}
+            onBack={goBack}
+            onOpenCard={atomId => navigateTo({ name: 'SoundCard', atomId })}
+          />
+        );
+
+      case 'SoundCard':
+        return (
+          <SoundCardScreen
+            atomId={screen.atomId}
+            onBack={goBack}
+            onTrain={atomId => navigateTo({ name: 'SoundSession', atomId })}
+          />
+        );
 
       case 'Assistant':
         return <AssistantScreen route={screen} onBack={goBack} onNavigate={navigateTo} />;
