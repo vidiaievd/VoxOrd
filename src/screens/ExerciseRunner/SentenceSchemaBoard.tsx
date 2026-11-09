@@ -85,8 +85,8 @@ export function SchemaBoard({
           fieldMark === undefined || fieldMark === 'empty'
             ? null
             : fieldMark === 'ok'
-              ? { bg: 'rgba(52, 199, 89, 0.10)', line: colors.success }
-              : { bg: 'rgba(255, 59, 48, 0.08)', line: colors.danger };
+              ? { bg: colors.accent900, line: colors.accent300 }
+              : { bg: 'transparent', line: colors.neutral400 };
         const armed = selectedField === field.id;
         const named = field.short !== '' || (labels && field.label !== '');
         // Dashed until the sentence is marked, filled or not. The dashed edge is what says
@@ -117,9 +117,9 @@ export function SchemaBoard({
                   named ? null : styles.cellWide,
                   {
                     borderStyle: edge,
-                    borderColor: tone?.line ?? (armed ? colors.accent : colors.textMuted),
+                    borderColor: tone?.line ?? (armed ? colors.accentBase : colors.neutral500),
                     backgroundColor:
-                      tone?.bg ?? (armed ? colors.accentLight : colors.backgroundCard),
+                      tone?.bg ?? (armed ? colors.accent900 : colors.surface),
                   },
                 ]}
                 onPress={() => onFieldPress(field.id)}
@@ -287,18 +287,18 @@ const makeStyles = (colors: ColorScheme) =>
     short: {
       fontFamily: 'monospace',
       fontSize: 11,
-      fontWeight: '700',
-      color: colors.accent,
+      fontWeight: '500',
+      color: colors.accentBase,
     },
     label: {
       fontSize: 11,
       lineHeight: 14,
-      color: colors.textSecondary,
+      color: colors.neutral400,
     },
     count: {
       fontFamily: 'monospace',
       fontSize: 10,
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     cell: {
       flex: 1,
@@ -320,46 +320,46 @@ const makeStyles = (colors: ColorScheme) =>
     empty: {
       marginHorizontal: 'auto',
       fontSize: 13,
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     chip: {
       borderRadius: 8,
       paddingHorizontal: 9,
       paddingVertical: 5,
-      backgroundColor: colors.accentLight,
+      backgroundColor: colors.accent900,
     },
     chipRight: {
-      backgroundColor: 'rgba(52, 199, 89, 0.14)',
+      backgroundColor: colors.accent900,
     },
     chipWrong: {
-      backgroundColor: 'rgba(255, 59, 48, 0.12)',
+      backgroundColor: 'transparent',
       // Never colour alone: a wrong piece is boxed as well as tinted.
       borderWidth: 1,
-      borderColor: colors.danger,
+      borderColor: colors.neutral600,
     },
     chipText: {
       fontSize: 14,
-      color: colors.textPrimary,
+      color: colors.text,
     },
     chipTextRight: {
-      color: colors.success,
-      fontWeight: '600',
+      color: colors.accent300,
+      fontWeight: '500',
     },
     chipTextWrong: {
-      color: colors.danger,
-      fontWeight: '600',
+      color: colors.neutral400,
+      fontWeight: '500',
     },
     hint: {
       fontSize: 10.5,
       lineHeight: 14,
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     bank: {
       marginTop: 14,
       paddingTop: 12,
       borderTopWidth: 1,
       borderStyle: 'dashed',
-      borderColor: colors.border,
+      borderColor: colors.neutral800,
       gap: 9,
     },
     bankHead: {
@@ -369,14 +369,14 @@ const makeStyles = (colors: ColorScheme) =>
     },
     bankLabel: {
       fontSize: 11,
-      fontWeight: '700',
+      fontWeight: '500',
       letterSpacing: 1.2,
       textTransform: 'uppercase',
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     bankLeft: {
       fontSize: 12,
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     bankWords: {
       flexDirection: 'row',
@@ -388,24 +388,24 @@ const makeStyles = (colors: ColorScheme) =>
       justifyContent: 'center',
       borderRadius: 999,
       borderWidth: 1,
-      borderColor: colors.border,
-      backgroundColor: colors.backgroundCard,
+      borderColor: colors.neutral800,
+      backgroundColor: colors.surface,
       paddingHorizontal: 14,
       paddingVertical: 7,
     },
     wordArmed: {
-      backgroundColor: colors.accent,
-      borderColor: colors.accent,
+      backgroundColor: colors.accent900,
+      borderColor: colors.accentBase,
     },
     wordUsed: {
       opacity: 0.3,
     },
     wordText: {
       fontSize: 14,
-      color: colors.textPrimary,
+      color: colors.text,
     },
     wordTextArmed: {
-      color: colors.textInverted,
-      fontWeight: '600',
+      color: colors.accent300,
+      fontWeight: '500',
     },
   });

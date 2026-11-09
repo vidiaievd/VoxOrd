@@ -1,16 +1,27 @@
 import { ApiError, apiClient } from './client';
 import { recordedGateway, SCHOOL_ID, USER_ID } from './__fixtures__/todayRecorded.router';
-import { getStudentSchools, isPlaced, parsePlacements } from './schools';
+import {
+  applyToSchool,
+  getPublicSchools,
+  getSchoolPage,
+  getStudentSchools,
+  isPlaced,
+  parsePlacements,
+} from './schools';
 
 jest.mock('./client', () => ({
-  apiClient: { get: jest.fn() },
+  apiClient: { get: jest.fn(), post: jest.fn() },
   ApiError: jest.requireActual('./client').ApiError,
 }));
 
 const mockGet = apiClient.get as jest.Mock;
+const mockPost = apiClient.post as jest.Mock;
 const offline = new ApiError({ message: 'offline', status: null, code: 'NETWORK_ERROR' });
 
-beforeEach(() => mockGet.mockReset());
+beforeEach(() => {
+  mockGet.mockReset();
+  mockPost.mockReset();
+});
 
 describe('getStudentSchools (recorded from dev)', () => {
   it('reads the school with every group the learner is placed in, and what each opens', async () => {
@@ -114,5 +125,95 @@ describe('isPlaced', () => {
     expect(isPlaced({ status: 'active', groupId: null })).toBe(false);
     expect(isPlaced({ status: 'left', groupId: 'g' })).toBe(false);
     expect(isPlaced({ status: 'rejected', groupId: 'g' })).toBe(false);
+  });
+});
+
+/** `GET /api/v1/schools/public?limit=100` on dev, 2026-10-28 (two of its three schools). */
+const PUBLIC_PAGE = {
+  items: [
+    {
+      schoolId: 'fc111d07-e0e5-42b1-9b8b-a1e011580c1d',
+      schoolSlug: 'nordic-school',
+      schoolName: 'Nordic school',
+      description: 'Norwegian language school',
+      city: 'Brekstad',
+      website: 'https://nordic-school.com',
+      isOpenForApplications: true,
+    },
+    { schoolId: SCHOOL_ID, schoolSlug: 'nordick', schoolName: 'Nordick', isOpenForApplications: true },
+  ],
+  pageInfo: { endCursor: 'eyJuYW1lIjoi', hasNextPage: false, total: 2 },
+};
+
+describe('getPublicSchools (recorded from dev)', () => {
+  it('reads every school, absent fields as null', async () => {
+    mockGet.mockResolvedValueOnce(PUBLIC_PAGE);
+    const schools = await getPublicSchools();
+    expect(mockGet).toHaveBeenCalledWith('/api/v1/schools/public', { query: { limit: 100, cursor: undefined } });
+    expect(schools).toEqual([
+      {
+        schoolId: 'fc111d07-e0e5-42b1-9b8b-a1e011580c1d',
+        slug: 'nordic-school',
+        name: 'Nordic school',
+        description: 'Norwegian language school',
+        avatarUrl: null,
+        city: 'Brekstad',
+        website: 'https://nordic-school.com',
+        isOpenForApplications: true,
+      },
+      expect.objectContaining({ slug: 'nordick', description: null, city: null }),
+    ]);
+  });
+
+  it('follows the cursor until the last page and drops rows that are not schools', async () => {
+    mockGet
+      .mockResolvedValueOnce({ items: [PUBLIC_PAGE.items[0], { schoolName: 'no id' }], pageInfo: { endCursor: 'c1', hasNextPage: true } })
+      .mockResolvedValueOnce({ items: [PUBLIC_PAGE.items[1]], pageInfo: { endCursor: 'c2', hasNextPage: false } });
+    const schools = await getPublicSchools();
+    expect(mockGet).toHaveBeenLastCalledWith('/api/v1/schools/public', { query: { limit: 100, cursor: 'c1' } });
+    expect(schools.map((s) => s.slug)).toEqual(['nordic-school', 'nordick']);
+  });
+});
+
+describe('getSchoolPage', () => {
+  it('reads the school and the learner\'s application to it', async () => {
+    mockGet.mockImplementation(async (path: string) =>
+      path === '/api/v1/schools/public/nordick'
+        ? PUBLIC_PAGE.items[1]
+        : path === `/api/v1/schools/${SCHOOL_ID}/memberships/me`
+          ? { id: 'm1', status: 'pending', schoolId: SCHOOL_ID }
+          : undefined,
+    );
+    const page = await getSchoolPage('nordick');
+    expect(page.school.name).toBe('Nordick');
+    expect(page.application).toEqual({ id: 'm1', status: 'pending' });
+  });
+
+  it('reads a 404 for the application as none, and any other failure as a failure', async () => {
+    const notFound = new ApiError({ message: 'none', status: 404 });
+    mockGet.mockImplementation(async (path: string) => {
+      if (path.endsWith('/memberships/me')) throw notFound;
+      return PUBLIC_PAGE.items[1];
+    });
+    expect((await getSchoolPage('nordick')).application).toBeNull();
+
+    mockGet.mockImplementation(async (path: string) => {
+      if (path.endsWith('/memberships/me')) throw offline;
+      return PUBLIC_PAGE.items[1];
+    });
+    await expect(getSchoolPage('nordick')).rejects.toBe(offline);
+  });
+});
+
+describe('applyToSchool', () => {
+  it('applies as the web\'s public page does', async () => {
+    mockPost.mockResolvedValueOnce({ id: 'm2', status: 'onboarding', schoolId: SCHOOL_ID });
+    const app = await applyToSchool(SCHOOL_ID, { language: 'nb', selfReportedLevel: 'A2' });
+    expect(mockPost).toHaveBeenCalledWith(`/api/v1/schools/${SCHOOL_ID}/memberships`, {
+      source: 'public-apply',
+      language: 'nb',
+      selfReportedLevel: 'A2',
+    });
+    expect(app).toEqual({ id: 'm2', status: 'onboarding' });
   });
 });

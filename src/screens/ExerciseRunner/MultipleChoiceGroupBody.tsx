@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { ApiError } from '../../api/client';
 import type { SubmitAttemptResponse } from '../../api/exercises';
+import { Icon, type IconName } from '../../components/ui';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
@@ -382,8 +383,8 @@ function MultipleChoiceGroupTableBody({
             key={row.id}
             style={[
               styles.card,
-              mark === 'ok' && { borderColor: colors.success },
-              mark === 'bad' && { borderColor: colors.danger },
+              mark === 'ok' && { borderColor: colors.accentBase },
+              mark === 'bad' && { borderColor: colors.neutral600 },
             ]}
           >
             <View style={styles.cardHead}>
@@ -416,9 +417,15 @@ function MultipleChoiceGroupTableBody({
                     accessibilityState={{ checked: answers[row.id] === column.id, disabled: inert }}
                     accessibilityLabel={`${row.text} — ${column.label}`}
                   >
-                    {state === 'bad' && <Text style={[styles.pillMark, { color: tone.fg }]}>✗</Text>}
+                    {state === 'bad' && (
+                      <View style={styles.pillMark}>
+                        <Icon name="X" size={14} color={tone.fg} />
+                      </View>
+                    )}
                     {(state === 'ok' || state === 'key' || state === 'sel') && (
-                      <Text style={[styles.pillMark, { color: tone.fg }]}>✓</Text>
+                      <View style={styles.pillMark}>
+                        <Icon name="Check" size={14} color={tone.fg} />
+                      </View>
                     )}
                     <Text style={[styles.pillLabel, { color: tone.fg }]}>{column.label}</Text>
                   </TouchableOpacity>
@@ -466,7 +473,7 @@ function MultipleChoiceGroupTableBody({
               accessibilityRole="button"
             >
               {sending ? (
-                <ActivityIndicator size="small" color={colors.textInverted} />
+                <ActivityIndicator size="small" color={colors.accent300} />
               ) : (
                 <Text style={styles.primaryBtnText}>
                   {t('exerciseRunner.multipleChoiceGroup.check')}
@@ -531,9 +538,14 @@ function RowIcon({
   colors: ColorScheme;
   styles: ReturnType<typeof makeStyles>;
 }) {
-  if (mark === 'ok') return <Text style={[styles.rowIcon, { color: colors.success }]}>✓</Text>;
-  if (mark === 'bad') return <Text style={[styles.rowIcon, { color: colors.danger }]}>✗</Text>;
-  return <Text style={[styles.rowIcon, { color: colors.textMuted }]}>⚠</Text>;
+  const icon: IconName = mark === 'ok' ? 'Check' : mark === 'bad' ? 'X' : 'WarningCircle';
+  const color =
+    mark === 'ok' ? colors.accent300 : mark === 'bad' ? colors.neutral400 : colors.neutral500;
+  return (
+    <View style={styles.rowIcon}>
+      <Icon name={icon} size={16} color={color} />
+    </View>
+  );
 }
 
 /**
@@ -562,7 +574,7 @@ function Summary({
   const passed = pct >= passThreshold;
   const wrong = totalItems - passedItems;
 
-  const tone = !closed ? colors.accent : passed ? colors.success : colors.warning;
+  const tone = !closed ? colors.accentBase : passed ? colors.accent300 : colors.neutral300;
 
   return (
     <View style={[styles.summary, { borderLeftColor: tone }]}>
@@ -598,18 +610,18 @@ function cellTone(
   colors: ColorScheme,
 ): { border: string; bg: string; fg: string } {
   if (state === 'sel') {
-    return { border: colors.accent, bg: colors.accentLight, fg: colors.textPrimary };
+    return { border: colors.accentBase, bg: colors.accent900, fg: colors.text };
   }
   if (state === 'ok') {
-    return { border: colors.success, bg: 'rgba(52, 199, 89, 0.12)', fg: colors.textPrimary };
+    return { border: colors.accent300, bg: colors.accent900, fg: colors.text };
   }
   if (state === 'bad') {
-    return { border: colors.danger, bg: 'rgba(255, 59, 48, 0.10)', fg: colors.textPrimary };
+    return { border: colors.neutral400, bg: 'transparent', fg: colors.text };
   }
   if (state === 'key') {
-    return { border: colors.success, bg: colors.backgroundCard, fg: colors.textPrimary };
+    return { border: colors.accent300, bg: colors.surface, fg: colors.text };
   }
-  return { border: colors.border, bg: colors.backgroundCard, fg: colors.textPrimary };
+  return { border: colors.neutral800, bg: colors.surface, fg: colors.text };
 }
 
 const makeStyles = (colors: ColorScheme) =>
@@ -621,14 +633,14 @@ const makeStyles = (colors: ColorScheme) =>
     },
     noticeTitle: {
       fontSize: 16,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
       textAlign: 'center',
       marginBottom: 6,
     },
     noticeDesc: {
       fontSize: 13,
-      color: colors.textMuted,
+      color: colors.neutral500,
       textAlign: 'center',
       lineHeight: 19,
     },
@@ -641,34 +653,34 @@ const makeStyles = (colors: ColorScheme) =>
       flex: 1,
       height: 4,
       borderRadius: 2,
-      backgroundColor: colors.border,
+      backgroundColor: colors.neutral800,
       overflow: 'hidden',
       marginRight: 10,
     },
     progressFill: {
       height: '100%',
       borderRadius: 2,
-      backgroundColor: colors.accent,
+      backgroundColor: colors.accentBase,
     },
     progressLabel: {
       fontSize: 12,
-      fontWeight: '700',
-      color: colors.textMuted,
+      fontWeight: '500',
+      color: colors.neutral500,
     },
     audio: {
       marginBottom: 12,
     },
     instruction: {
       fontSize: 15,
-      fontWeight: '600',
-      color: colors.textSecondary,
+      fontWeight: '500',
+      color: colors.neutral400,
       lineHeight: 21,
       marginBottom: 14,
     },
     passage: {
       borderLeftWidth: 2,
-      borderLeftColor: colors.border,
-      backgroundColor: colors.backgroundInput,
+      borderLeftColor: colors.neutral800,
+      backgroundColor: colors.surface,
       borderTopRightRadius: 10,
       borderBottomRightRadius: 10,
       paddingHorizontal: 14,
@@ -678,7 +690,7 @@ const makeStyles = (colors: ColorScheme) =>
     sourceLink: {
       alignSelf: 'flex-start',
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: colors.neutral800,
       borderRadius: 10,
       paddingHorizontal: 12,
       paddingVertical: 8,
@@ -686,25 +698,25 @@ const makeStyles = (colors: ColorScheme) =>
     },
     sourceLinkText: {
       fontSize: 13,
-      fontWeight: '700',
-      color: colors.textSecondary,
+      fontWeight: '500',
+      color: colors.neutral400,
     },
     passageLabel: {
       fontSize: 12,
-      fontWeight: '700',
-      color: colors.textMuted,
+      fontWeight: '500',
+      color: colors.neutral500,
       marginBottom: 6,
     },
     passageText: {
       fontSize: 15,
       lineHeight: 24,
-      color: colors.textSecondary,
+      color: colors.neutral400,
     },
     summary: {
       flexDirection: 'row',
       alignItems: 'center',
       borderLeftWidth: 3,
-      backgroundColor: colors.backgroundInput,
+      backgroundColor: colors.surface,
       borderRadius: 10,
       paddingHorizontal: 14,
       paddingVertical: 12,
@@ -712,7 +724,7 @@ const makeStyles = (colors: ColorScheme) =>
     },
     summaryScore: {
       fontSize: 20,
-      fontWeight: '800',
+      fontWeight: '500',
       marginRight: 12,
     },
     summaryBody: {
@@ -720,18 +732,18 @@ const makeStyles = (colors: ColorScheme) =>
     },
     summaryHead: {
       fontSize: 14,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
     },
     summaryLine: {
       fontSize: 13,
-      color: colors.textSecondary,
+      color: colors.neutral400,
       marginTop: 2,
     },
     card: {
       borderWidth: 1.5,
-      borderColor: colors.border,
-      backgroundColor: colors.backgroundCard,
+      borderColor: colors.neutral800,
+      backgroundColor: colors.surface,
       borderRadius: 14,
       paddingHorizontal: 14,
       paddingVertical: 12,
@@ -744,8 +756,8 @@ const makeStyles = (colors: ColorScheme) =>
     },
     rowNumber: {
       fontSize: 13,
-      fontWeight: '700',
-      color: colors.textMuted,
+      fontWeight: '500',
+      color: colors.neutral500,
       marginRight: 8,
       marginTop: 2,
     },
@@ -753,11 +765,9 @@ const makeStyles = (colors: ColorScheme) =>
       flex: 1,
       fontSize: 15.5,
       lineHeight: 22,
-      color: colors.textPrimary,
+      color: colors.text,
     },
     rowIcon: {
-      fontSize: 16,
-      fontWeight: '700',
       marginLeft: 8,
     },
     pills: {
@@ -788,83 +798,82 @@ const makeStyles = (colors: ColorScheme) =>
       borderStyle: 'dashed',
     },
     pillMark: {
-      fontSize: 14,
-      fontWeight: '700',
       marginRight: 6,
     },
     pillLabel: {
       fontSize: 14,
-      fontWeight: '700',
+      fontWeight: '500',
       textAlign: 'center',
     },
     explanation: {
       marginTop: 10,
       paddingTop: 10,
       borderTopWidth: 1,
-      borderTopColor: colors.border,
+      borderTopColor: colors.neutral800,
     },
     explanationText: {
       fontSize: 13,
       lineHeight: 19,
-      color: colors.textSecondary,
+      color: colors.neutral400,
     },
     quote: {
       fontSize: 13,
       lineHeight: 19,
       fontStyle: 'italic',
-      color: colors.textMuted,
+      color: colors.neutral500,
       marginTop: 4,
     },
     error: {
       fontSize: 13,
-      color: colors.danger,
+      color: colors.neutral400,
       marginTop: 10,
     },
     actions: {
       marginTop: 16,
     },
     primaryBtn: {
-      backgroundColor: colors.accent,
+      borderWidth: 1,
+      borderColor: colors.accentBase,
       borderRadius: 14,
       paddingVertical: 14,
       alignItems: 'center',
     },
     primaryBtnText: {
       fontSize: 15,
-      fontWeight: '700',
-      color: colors.textInverted,
+      fontWeight: '500',
+      color: colors.accent300,
     },
     ghostBtn: {
       marginTop: 10,
       borderRadius: 14,
       borderWidth: 2,
-      borderColor: colors.border,
+      borderColor: colors.neutral800,
       paddingVertical: 12,
       alignItems: 'center',
     },
     ghostBtnText: {
       fontSize: 15,
-      fontWeight: '700',
-      color: colors.textSecondary,
+      fontWeight: '500',
+      color: colors.neutral400,
     },
     btnDim: {
       opacity: 0.5,
     },
     remaining: {
       fontSize: 12.5,
-      color: colors.textMuted,
+      color: colors.neutral500,
       textAlign: 'center',
       marginTop: 8,
     },
     attempt: {
       fontSize: 12.5,
-      color: colors.textMuted,
+      color: colors.neutral500,
       textAlign: 'center',
       marginTop: 10,
     },
     closedHint: {
       fontSize: 12.5,
-      color: colors.textMuted,
+      color: colors.neutral500,
       textAlign: 'center',
       marginTop: 4,
     },

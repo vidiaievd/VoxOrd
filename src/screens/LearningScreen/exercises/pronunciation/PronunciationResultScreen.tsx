@@ -1,8 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatStrip } from '../../../../components/practice';
+import { Button } from '../../../../components/ui';
+import { useTranslation } from '../../../../i18n';
 import { useTheme } from '../../../../providers/ThemeProvider';
-import { ColorScheme } from '../../../../theme/colors';
+import { resultTitleKey } from '../../SessionResultsScreen';
 
 interface PronunciationResultScreenProps {
   correctCount: number;
@@ -10,90 +13,42 @@ interface PronunciationResultScreenProps {
   onContinue: () => void;
 }
 
+/** The result of a pronunciation run (Practice §8.3, same shape as 7.5): no emoji, no XP. */
 export function PronunciationResultScreen({
   correctCount,
   totalItems,
   onContinue,
 }: PronunciationResultScreenProps) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
-  const styles = makeStyles(colors);
-
-  const accuracy =
-    totalItems > 0 ? Math.round((correctCount / totalItems) * 100) : 0;
-  const emoji = accuracy >= 80 ? '🎤' : accuracy >= 50 ? '🗣️' : '📢';
+  const accuracy = totalItems > 0 ? correctCount / totalItems : 0;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <View style={styles.content}>
-        <Text style={styles.emoji}>{emoji}</Text>
-        <Text style={styles.title}>
-          {accuracy >= 80
-            ? 'Great pronunciation!'
-            : accuracy >= 50
-            ? 'Good effort!'
-            : 'Keep practicing!'}
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: colors.background }}
+      edges={['top', 'bottom']}
+    >
+      <View style={{ flex: 1, paddingTop: 28, paddingHorizontal: 20, gap: 18 }}>
+        <Text
+          accessibilityRole="header"
+          style={{ fontSize: 26, lineHeight: 30, fontWeight: '500', color: colors.text }}
+        >
+          {t(resultTitleKey(accuracy))}
         </Text>
-        <Text style={styles.score}>
-          {correctCount} / {totalItems}
-        </Text>
-        <Text style={styles.accuracy}>{accuracy}% accuracy</Text>
-
-        <TouchableOpacity style={styles.btn} onPress={onContinue}>
-          <Text style={styles.btnText}>Continue</Text>
-        </TouchableOpacity>
+        <StatStrip
+          items={[
+            {
+              value: `${Math.round(accuracy * 100)}%`,
+              label: t('results.accuracy'),
+              accent: true,
+            },
+            { value: `${correctCount}/${totalItems}`, label: t('results.correct') },
+          ]}
+        />
+      </View>
+      <View style={{ paddingTop: 12, paddingHorizontal: 20, paddingBottom: 12 }}>
+        <Button block label={t('results.done')} onPress={onContinue} />
       </View>
     </SafeAreaView>
   );
 }
-
-const makeStyles = (colors: ColorScheme) =>
-  StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    content: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: 32,
-    },
-    emoji: {
-      fontSize: 64,
-      marginBottom: 16,
-    },
-    title: {
-      fontSize: 24,
-      fontWeight: '800',
-      color: colors.textPrimary,
-      marginBottom: 8,
-      textAlign: 'center',
-    },
-    score: {
-      fontSize: 40,
-      fontWeight: '800',
-      color: colors.accent,
-      marginBottom: 4,
-    },
-    accuracy: {
-      fontSize: 16,
-      color: colors.textSecondary,
-      marginBottom: 40,
-    },
-    btn: {
-      backgroundColor: colors.accent,
-      borderRadius: 16,
-      paddingVertical: 14,
-      paddingHorizontal: 48,
-      shadowColor: colors.accent,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      elevation: 4,
-    },
-    btnText: {
-      fontSize: 16,
-      fontWeight: '700',
-      color: '#fff',
-    },
-  });

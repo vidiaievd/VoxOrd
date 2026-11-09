@@ -91,3 +91,39 @@ export function answeredCount(
 ): number {
   return gradeSession(evidence, grade).length;
 }
+
+export interface PhaseScore {
+  mode: SessionMode;
+  /** Words answered in this mode. */
+  total: number;
+  /** Of those, right on the first try — no miss, no give-up. */
+  correct: number;
+}
+
+/**
+ * How each drilled mode went, for the session summary (Practice §7.5 «By phase»): per mode in
+ * `modes` order, the words that got any answer there and those right first time. A mode with
+ * no answers is left out — the preview never records any, and a phase can end empty.
+ */
+export function phaseBreakdown(
+  evidence: SessionEvidence,
+  modes: readonly SessionMode[],
+): PhaseScore[] {
+  const scores: PhaseScore[] = [];
+  for (const mode of modes) {
+    let total = 0;
+    let correct = 0;
+    for (const outcomes of Object.values(evidence.byWordId)) {
+      const outcome = outcomes.find((o) => o.mode === mode);
+      if (!outcome) continue;
+      total += 1;
+      if (outcome.eventuallyCorrect && outcome.failedAttempts === 0 && !outcome.gaveUp) {
+        correct += 1;
+      }
+    }
+    if (total > 0 && !scores.some((s) => s.mode === mode)) {
+      scores.push({ mode, total, correct });
+    }
+  }
+  return scores;
+}

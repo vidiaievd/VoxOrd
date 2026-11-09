@@ -310,7 +310,7 @@ function DictationRunner({
   if (resuming) {
     return (
       <View style={styles.notice}>
-        <ActivityIndicator color={colors.accent} />
+        <ActivityIndicator color={colors.accentBase} />
       </View>
     );
   }
@@ -460,12 +460,12 @@ function DictationRunner({
                 {
                   backgroundColor:
                     rail[i] === 'done'
-                      ? colors.success
+                      ? colors.accentBase
                       : rail[i] === 'part'
-                      ? colors.warning
+                      ? colors.neutral600
                       : rail[i] === 'now'
-                      ? colors.accent
-                      : colors.backgroundPressed,
+                      ? colors.accent700
+                      : colors.neutral800,
                 },
               ]}
             />
@@ -496,10 +496,10 @@ function DictationRunner({
           {
             borderColor:
               corrected === null
-                ? colors.border
+                ? colors.neutral800
                 : corrected.passed
-                ? colors.success
-                : tint(colors.danger, 0.55),
+                ? colors.accent300
+                : tint(colors.neutral600, 0.55),
           },
         ]}
       >
@@ -552,7 +552,7 @@ function DictationRunner({
               ? t('exerciseRunner.dictation.placeholderGated')
               : t('exerciseRunner.dictation.placeholder')
           }
-          placeholderTextColor={colors.textMuted}
+          placeholderTextColor={colors.neutral500}
           // Load-bearing, not hygiene: a keyboard that fixes `sjøkken` to `kjøkken` destroys
           // the exercise (BEHAVIOR §6, AC-R11). On Android `autoCorrect={false}` sets
           // TYPE_TEXT_FLAG_NO_SUGGESTIONS, which is what Gboard reads.
@@ -591,7 +591,7 @@ function DictationRunner({
         )}
 
         {key !== null && (
-          <View style={[styles.block, { backgroundColor: colors.accentLight }]}>
+          <View style={[styles.block, { backgroundColor: colors.accent900 }]}>
             <Text style={styles.blockLabel}>
               {t('exerciseRunner.dictation.key')}
             </Text>
@@ -815,7 +815,7 @@ function DiffLine({
             piece = (
               <Text
                 style={[
-                  { backgroundColor: tint(colors.danger, 0.16) },
+                  { backgroundColor: tint(colors.neutral600, 0.16) },
                   styles.struck,
                 ]}
               >
@@ -829,7 +829,7 @@ function DiffLine({
             piece = (
               <Text
                 style={[
-                  { backgroundColor: colors.accentLight },
+                  { backgroundColor: colors.accent900 },
                   styles.underlined,
                 ]}
               >
@@ -845,8 +845,8 @@ function DiffLine({
               <Text
                 style={{
                   backgroundColor: op.near
-                    ? tint(colors.warning, 0.24)
-                    : tint(colors.danger, 0.16),
+                    ? tint(colors.accent700, 0.24)
+                    : tint(colors.neutral600, 0.16),
                 }}
               >
                 {pad}
@@ -879,22 +879,22 @@ const SWATCHES: readonly Swatch[] = ['eq', 'near', 'wrong', 'missing', 'extra'];
 function swatchStyle(s: Swatch, colors: ColorScheme) {
   switch (s) {
     case 'eq':
-      return { backgroundColor: colors.success };
+      return { backgroundColor: colors.accentBase };
     case 'near':
-      return { backgroundColor: colors.warning };
+      return { backgroundColor: colors.accent700 };
     case 'wrong':
-      return { backgroundColor: colors.danger };
+      return { backgroundColor: colors.neutral600 };
     case 'missing':
       return {
-        backgroundColor: colors.accentLight,
+        backgroundColor: colors.accent900,
         borderBottomWidth: 3,
-        borderBottomColor: colors.accent,
+        borderBottomColor: colors.accentBase,
       };
     case 'extra':
       return {
-        backgroundColor: tint(colors.danger, 0.16),
+        backgroundColor: tint(colors.neutral600, 0.16),
         borderWidth: 1.5,
-        borderColor: colors.danger,
+        borderColor: colors.neutral600,
       };
   }
 }
@@ -975,7 +975,7 @@ function DiffScore({
       ? styles.scoreSm
       : styles.score;
   return (
-    <Text style={[font, { color: ok ? colors.success : colors.danger }]}>
+    <Text style={[font, { color: ok ? colors.accent300 : colors.neutral400 }]}>
       {pct}%
     </Text>
   );
@@ -1094,7 +1094,7 @@ function Button({
       accessibilityState={{ disabled: disabled || busy, busy }}
     >
       {busy ? (
-        <ActivityIndicator size="small" color={colors.textInverted} />
+        <ActivityIndicator size="small" color={colors.accent300} />
       ) : (
         <Text style={styles.primaryBtnText}>{label}</Text>
       )}
@@ -1117,10 +1117,10 @@ function Note({
 }) {
   const accent =
     tone === 'ok'
-      ? colors.success
+      ? colors.accent300
       : tone === 'bad'
-      ? colors.danger
-      : colors.accent;
+      ? colors.neutral400
+      : colors.accentBase;
   return (
     <View
       style={[
@@ -1159,14 +1159,14 @@ const makeStyles = (colors: ColorScheme) =>
     },
     noticeTitle: {
       fontSize: 16,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
       textAlign: 'center',
       marginBottom: 6,
     },
     noticeDesc: {
       fontSize: 13,
-      color: colors.textMuted,
+      color: colors.neutral500,
       textAlign: 'center',
       lineHeight: 19,
     },
@@ -1184,13 +1184,13 @@ const makeStyles = (colors: ColorScheme) =>
     railCount: {
       fontSize: 11,
       fontVariant: ['tabular-nums'],
-      color: colors.textMuted,
+      color: colors.neutral500,
       marginLeft: 2,
     },
     instruction: {
       fontSize: 14,
       lineHeight: 20,
-      color: colors.textSecondary,
+      color: colors.neutral400,
       marginBottom: 12,
     },
     audio: {
@@ -1201,7 +1201,7 @@ const makeStyles = (colors: ColorScheme) =>
       borderRadius: 12,
       padding: 12,
       gap: 9,
-      backgroundColor: colors.backgroundCard,
+      backgroundColor: colors.surface,
       marginBottom: 12,
     },
     fieldHead: {
@@ -1215,10 +1215,10 @@ const makeStyles = (colors: ColorScheme) =>
     },
     caps: {
       fontSize: 11,
-      fontWeight: '700',
+      fontWeight: '500',
       letterSpacing: 0.8,
       textTransform: 'uppercase',
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     spacer: {
       flex: 1,
@@ -1226,7 +1226,7 @@ const makeStyles = (colors: ColorScheme) =>
     wordCount: {
       fontSize: 11,
       fontVariant: ['tabular-nums'],
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     input: {
       borderRadius: 8,
@@ -1234,8 +1234,8 @@ const makeStyles = (colors: ColorScheme) =>
       paddingVertical: 10,
       fontSize: 18,
       lineHeight: 27,
-      color: colors.textPrimary,
-      backgroundColor: colors.backgroundInput,
+      color: colors.text,
+      backgroundColor: colors.surface,
     },
     // Three lines for a sentence, eight for the whole text (§7.8).
     inputSentence: {
@@ -1245,27 +1245,27 @@ const makeStyles = (colors: ColorScheme) =>
       minHeight: 230,
     },
     inputLocked: {
-      color: colors.textSecondary,
-      backgroundColor: colors.background,
+      color: colors.neutral400,
+      backgroundColor: colors.bg,
     },
     block: {
       borderRadius: 8,
       paddingHorizontal: 12,
       paddingVertical: 10,
       gap: 8,
-      backgroundColor: colors.backgroundInput,
+      backgroundColor: colors.surface,
     },
     blockLabel: {
       fontSize: 10,
       letterSpacing: 0.8,
       textTransform: 'uppercase',
       fontVariant: ['tabular-nums'],
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     diffLine: {
       fontSize: 18,
       lineHeight: 34,
-      color: colors.textPrimary,
+      color: colors.text,
     },
     diffLineSm: {
       fontSize: 15,
@@ -1281,11 +1281,11 @@ const makeStyles = (colors: ColorScheme) =>
       textDecorationLine: 'underline',
     },
     wrote: {
-      color: colors.textSecondary,
+      color: colors.neutral400,
     },
     expected: {
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
     },
     tallyRow: {
       flexDirection: 'row',
@@ -1310,34 +1310,34 @@ const makeStyles = (colors: ColorScheme) =>
     },
     tallyText: {
       fontSize: 12,
-      color: colors.textSecondary,
+      color: colors.neutral400,
     },
     legendText: {
       fontSize: 11,
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     score: {
       fontSize: 18,
-      fontWeight: '700',
+      fontWeight: '500',
       fontVariant: ['tabular-nums'],
     },
     scoreSm: {
       fontSize: 14,
-      fontWeight: '700',
+      fontWeight: '500',
       fontVariant: ['tabular-nums'],
       minWidth: 46,
       textAlign: 'right',
     },
     scoreXl: {
       fontSize: 30,
-      fontWeight: '700',
+      fontWeight: '500',
       fontVariant: ['tabular-nums'],
     },
     keyText: {
       fontSize: 18,
       lineHeight: 27,
-      fontWeight: '600',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
     },
     keyTextSm: {
       fontSize: 15,
@@ -1363,27 +1363,28 @@ const makeStyles = (colors: ColorScheme) =>
     noteIcon: {
       fontSize: 14,
       lineHeight: 20,
-      fontWeight: '700',
+      fontWeight: '500',
     },
     noteText: {
       flex: 1,
       fontSize: 14,
       lineHeight: 20,
-      color: colors.textPrimary,
+      color: colors.text,
     },
     bold: {
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
     },
     bottom: {
       borderTopWidth: 1,
-      borderTopColor: colors.border,
+      borderTopColor: colors.neutral800,
       paddingTop: 12,
       marginTop: 4,
       gap: 10,
     },
     primaryBtn: {
-      backgroundColor: colors.accent,
+      borderWidth: 1,
+      borderColor: colors.accentBase,
       borderRadius: 14,
       minHeight: TAP_MIN,
       paddingVertical: 14,
@@ -1392,8 +1393,8 @@ const makeStyles = (colors: ColorScheme) =>
     },
     primaryBtnText: {
       fontSize: 15,
-      fontWeight: '700',
-      color: colors.textInverted,
+      fontWeight: '500',
+      color: colors.accent300,
     },
     ghostBtn: {
       borderRadius: 14,
@@ -1404,20 +1405,20 @@ const makeStyles = (colors: ColorScheme) =>
     },
     ghostBtnText: {
       fontSize: 14,
-      fontWeight: '600',
-      color: colors.textSecondary,
+      fontWeight: '500',
+      color: colors.neutral400,
     },
     btnDim: {
       opacity: 0.5,
     },
     attempt: {
       fontSize: 12.5,
-      color: colors.textMuted,
+      color: colors.neutral500,
       textAlign: 'center',
     },
     error: {
       fontSize: 13,
-      color: colors.danger,
+      color: colors.neutral400,
     },
     summary: {
       gap: 12,
@@ -1428,19 +1429,19 @@ const makeStyles = (colors: ColorScheme) =>
       gap: 16,
       borderRadius: 12,
       padding: 16,
-      backgroundColor: colors.backgroundInput,
+      backgroundColor: colors.surface,
     },
     summaryHeadText: {
       flex: 1,
     },
     summaryCount: {
       fontSize: 16,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
     },
     summarySub: {
       fontSize: 12,
-      color: colors.textMuted,
+      color: colors.neutral500,
       marginTop: 2,
     },
     summaryRow: {
@@ -1448,7 +1449,7 @@ const makeStyles = (colors: ColorScheme) =>
       alignItems: 'flex-start',
       gap: 10,
       borderTopWidth: 1,
-      borderTopColor: colors.border,
+      borderTopColor: colors.neutral800,
       paddingVertical: 10,
     },
     summaryBody: {
@@ -1458,7 +1459,7 @@ const makeStyles = (colors: ColorScheme) =>
     summaryReason: {
       fontSize: 12,
       lineHeight: 17,
-      color: colors.textMuted,
+      color: colors.neutral500,
       marginTop: 4,
     },
     num: {
@@ -1467,16 +1468,16 @@ const makeStyles = (colors: ColorScheme) =>
       borderRadius: 11,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.backgroundPressed,
+      backgroundColor: colors.neutral800,
       marginTop: 2,
     },
     numText: {
       fontSize: 11,
-      fontWeight: '700',
-      color: colors.textSecondary,
+      fontWeight: '500',
+      color: colors.neutral400,
     },
     muted: {
       fontSize: 14,
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
   });

@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { criterionNames } from '../../api/aiReview';
+import type { AssistContext } from '../../api/assistant';
 import { getAttempt, type AttemptRow } from '../../api/exercises';
 import type { SubmissionStatus } from '../../api/submissions';
 import { Card, NavHeader, Tag } from '../../components/ui';
+import { useAssistantAvailability } from '../../hooks/useAssistantAvailability';
 import { useMySubmissions } from '../../hooks/useMySubmissions';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
@@ -18,6 +20,8 @@ interface SubmissionScreenProps {
   /** What the arrow is labelled with: the screen Back returns to. */
   parentLabel: string;
   onBack: () => void;
+  /** «Go over the mistakes with the assistant», with the work's title for the context chip. */
+  onOpenAssistant?: (context: AssistContext, title: string | null) => void;
 }
 
 type Load = { kind: 'loading' } | { kind: 'failed' } | { kind: 'loaded'; attempt: AttemptRow };
@@ -38,7 +42,13 @@ function statusOf(attempt: AttemptRow): SubmissionStatus {
  * At a school with a model-first policy (plan 80) waiting work may already carry a model's
  * verdict: it is shown in the same panel, which says the teacher is still to answer.
  */
-export function SubmissionScreen({ submissionId, exerciseId, parentLabel, onBack }: SubmissionScreenProps) {
+export function SubmissionScreen({
+  submissionId,
+  exerciseId,
+  parentLabel,
+  onBack,
+  onOpenAssistant,
+}: SubmissionScreenProps) {
   const { t } = useTranslation();
   const { colors, typography } = useTheme();
   const { submissions } = useMySubmissions();
@@ -58,6 +68,16 @@ export function SubmissionScreen({ submissionId, exerciseId, parentLabel, onBack
 
   const entry = submissions?.items.find((s) => s.attemptId === submissionId) ?? null;
   const title = entry?.title ?? t('submission.fallbackTitle');
+
+  // Under a review only — a work still waiting has nothing to go over yet. The server is
+  // asked about this submission before the link is drawn.
+  const reviewed =
+    load.kind === 'loaded' && (statusOf(load.attempt) !== 'pending' || load.attempt.provisionalVerdict != null);
+  const assistContext: AssistContext | null = useMemo(
+    () => (reviewed && onOpenAssistant ? { kind: 'submission', attemptId: submissionId, exerciseId } : null),
+    [reviewed, onOpenAssistant, submissionId, exerciseId],
+  );
+  const assist = useAssistantAvailability(assistContext);
 
   const renderBody = () => {
     if (load.kind === 'loading') return <ActivityIndicator color={colors.accentBase} />;
@@ -103,6 +123,16 @@ export function SubmissionScreen({ submissionId, exerciseId, parentLabel, onBack
           <Text style={[typography.meta, { color: colors.neutral500 }]}>{entry.courseTitle}</Text>
         ) : null}
         {renderBody()}
+        {assistContext && assist.available && onOpenAssistant ? (
+          <Pressable
+            accessibilityRole="link"
+            hitSlop={{ top: 8, bottom: 8 }}
+            onPress={() => onOpenAssistant(assistContext, entry?.title ?? null)}
+            style={{ alignSelf: 'flex-start' }}
+          >
+            <Text style={[typography.secondary, { color: colors.accent300 }]}>{t('submission.discuss')}</Text>
+          </Pressable>
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );

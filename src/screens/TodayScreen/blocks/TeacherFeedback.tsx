@@ -1,7 +1,9 @@
-import React from 'react';
-import { Text, View } from 'react-native';
+import React, { useMemo } from 'react';
+import { Pressable, Text, View } from 'react-native';
+import type { AssistContext } from '../../../api/assistant';
 import { latestSchoolFeedback, type Submission } from '../../../api/submissions';
 import { Icon, PressableScale, Tag } from '../../../components/ui';
+import { useAssistantAvailability } from '../../../hooks/useAssistantAvailability';
 import { useMySubmissions } from '../../../hooks/useMySubmissions';
 import { useTranslation } from '../../../i18n';
 import type { Screen } from '../../../navigation/screens';
@@ -14,6 +16,11 @@ interface TeacherFeedbackProps {
   offline: boolean;
   /** Variant C (`ai.review_draft`): say when a model drafted the review the teacher sent. */
   showAiDrafted?: boolean;
+  /**
+   * Variant C: «Go over the mistakes with the assistant» under the latest review — drawn only
+   * when the server says the assistant answers about that submission.
+   */
+  offerAssist?: boolean;
   onNavigate: (screen: Screen) => void;
 }
 
@@ -24,14 +31,28 @@ interface TeacherFeedbackProps {
  * sampling — and the card says so under the quote, never passing it off as the teacher's. The waiting line names no deadline: the phone has no school's
  * response promise to quote (the web's BFF works it out), and «48 h» would be invented.
  */
-export function TeacherFeedback({ offline, showAiDrafted = false, onNavigate }: TeacherFeedbackProps) {
+export function TeacherFeedback({
+  offline,
+  showAiDrafted = false,
+  offerAssist = false,
+  onNavigate,
+}: TeacherFeedbackProps) {
   const { t } = useTranslation();
   const { colors, typography } = useTheme();
   const { submissions, refresh } = useMySubmissions();
   useRegisterRefresh(refresh);
 
+  const latest = submissions ? latestSchoolFeedback(submissions.items) : null;
+  const attemptId = latest?.attemptId ?? null;
+  const exerciseId = latest?.exerciseId ?? null;
+  const assistContext: AssistContext | null = useMemo(
+    () =>
+      offerAssist && attemptId && exerciseId ? { kind: 'submission', attemptId, exerciseId } : null,
+    [offerAssist, attemptId, exerciseId],
+  );
+  const assist = useAssistantAvailability(assistContext);
+
   if (!submissions) return null;
-  const latest = latestSchoolFeedback(submissions.items);
   const waiting = submissions.pendingCount;
   if (!latest && waiting === 0) return null;
 
@@ -95,6 +116,23 @@ export function TeacherFeedback({ offline, showAiDrafted = false, onNavigate }: 
           <Icon name="HourglassMedium" size={14} color={colors.neutral500} />
           <Text style={[typography.meta, { color: colors.neutral500 }]}>{waitingText}</Text>
         </View>
+      ) : null}
+      {latest && assistContext && assist.available ? (
+        <Pressable
+          accessibilityRole="link"
+          hitSlop={{ top: 8, bottom: 8 }}
+          onPress={() =>
+            onNavigate({
+              name: 'Assistant',
+              context: assistContext,
+              ...(latest.title ? { contextLabel: latest.title } : {}),
+              returnTo: { name: 'Today' },
+            })
+          }
+          style={{ alignSelf: 'flex-start' }}
+        >
+          <Text style={[typography.secondary, { color: colors.accent300 }]}>{t('today.teacher.discuss')}</Text>
+        </Pressable>
       ) : null}
     </>
   );

@@ -208,14 +208,14 @@ function TranslateCard({
   };
 
   return (
-    <View style={[styles.card, outcome === 'pass' && { borderColor: colors.success }]}>
+    <View style={[styles.card, outcome === 'pass' && { borderColor: colors.accentBase }]}>
       <View style={styles.cardHeader}>
         <Text style={styles.cardLabel}>{label}</Text>
         {outcome !== null ? (
           <Text
             style={[
               styles.outcome,
-              { color: outcome === 'pass' ? colors.success : colors.textSecondary },
+              { color: outcome === 'pass' ? colors.accent300 : colors.neutral400 },
             ]}
           >
             {outcome === 'pass'
@@ -329,8 +329,8 @@ function SelfCheckNote({ feedback }: { feedback: TranslateSelfCheckItem }) {
                 : t('exerciseRunner.translate.selfCheck.off');
   const good = feedback.verdict === 'exact' || feedback.verdict === 'typo';
   return (
-    <View style={[styles.selfCheck, { borderColor: good ? colors.success : colors.backgroundPressed }]}>
-      <Text style={[styles.selfCheckHead, good && { color: colors.success }]}>{headline}</Text>
+    <View style={[styles.selfCheck, { borderColor: good ? colors.accentBase : colors.neutral800 }]}>
+      <Text style={[styles.selfCheckHead, good && { color: colors.accent300 }]}>{headline}</Text>
       {feedback.tokens !== undefined && feedback.tokens.length > 0 && !good ? (
         <Text style={styles.diff}>
           {feedback.tokens.map((token, index) => (
@@ -430,7 +430,7 @@ function AnswerField({
       autoCorrect={false}
       spellCheck={false}
       placeholder={placeholder}
-      placeholderTextColor={colors.textMuted}
+      placeholderTextColor={colors.neutral500}
     />
   );
 }
@@ -439,15 +439,15 @@ const makeStyles = (colors: ColorScheme) =>
   StyleSheet.create({
     heading: {
       fontSize: 12,
-      fontWeight: '700',
-      color: colors.textMuted,
+      fontWeight: '500',
+      color: colors.neutral500,
       letterSpacing: 0.5,
       textTransform: 'uppercase',
       marginBottom: 10,
     },
     note: {
       fontSize: 13,
-      color: colors.textSecondary,
+      color: colors.neutral400,
       marginBottom: 12,
       lineHeight: 18,
     },
@@ -461,23 +461,23 @@ const makeStyles = (colors: ColorScheme) =>
       flex: 1,
       height: 6,
       borderRadius: 3,
-      backgroundColor: colors.backgroundPressed,
+      backgroundColor: colors.neutral800,
       overflow: 'hidden',
     },
     progressFill: {
       height: '100%',
       borderRadius: 3,
-      backgroundColor: colors.accent,
+      backgroundColor: colors.accentBase,
     },
     progressText: {
       fontSize: 12,
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     card: {
-      backgroundColor: colors.backgroundCard,
+      backgroundColor: colors.surface,
       borderRadius: 16,
       borderWidth: 1,
-      borderColor: colors.backgroundPressed,
+      borderColor: colors.neutral800,
       padding: 14,
       marginBottom: 14,
     },
@@ -490,18 +490,18 @@ const makeStyles = (colors: ColorScheme) =>
     },
     cardLabel: {
       fontSize: 12,
-      fontWeight: '700',
-      color: colors.textMuted,
+      fontWeight: '500',
+      color: colors.neutral500,
       flexShrink: 1,
     },
     outcome: {
       fontSize: 12,
-      fontWeight: '600',
+      fontWeight: '500',
     },
     source: {
       fontSize: 19,
-      fontWeight: '600',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
       lineHeight: 27,
       marginBottom: 8,
     },
@@ -514,26 +514,26 @@ const makeStyles = (colors: ColorScheme) =>
     },
     gloss: {
       fontSize: 13,
-      color: colors.textSecondary,
+      color: colors.neutral400,
     },
     glossWord: {
-      fontWeight: '700',
+      fontWeight: '500',
     },
     input: {
-      backgroundColor: colors.backgroundInput,
+      backgroundColor: colors.surface,
       borderRadius: 12,
       borderWidth: 2,
-      borderColor: colors.accent,
+      borderColor: colors.accentBase,
       paddingHorizontal: 14,
       paddingVertical: 12,
       fontSize: 17,
-      color: colors.textPrimary,
+      color: colors.text,
       minHeight: 76,
       textAlignVertical: 'top',
       marginTop: 4,
     },
     inputLocked: {
-      borderColor: colors.backgroundPressed,
+      borderColor: colors.neutral800,
     },
     tools: {
       flexDirection: 'row',
@@ -546,18 +546,18 @@ const makeStyles = (colors: ColorScheme) =>
       minWidth: 40,
       height: 36,
       borderRadius: 10,
-      backgroundColor: colors.backgroundPressed,
+      backgroundColor: colors.neutral800,
       alignItems: 'center',
       justifyContent: 'center',
       paddingHorizontal: 10,
     },
     charKeyPressed: {
-      backgroundColor: colors.accentLight,
+      backgroundColor: colors.accent900,
     },
     charKeyText: {
       fontSize: 18,
-      fontWeight: '600',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
     },
     hintToggle: {
       marginLeft: 'auto',
@@ -566,8 +566,8 @@ const makeStyles = (colors: ColorScheme) =>
     },
     hintToggleText: {
       fontSize: 13,
-      fontWeight: '600',
-      color: colors.accent,
+      fontWeight: '500',
+      color: colors.accentBase,
     },
     selfCheck: {
       marginTop: 10,
@@ -576,15 +576,15 @@ const makeStyles = (colors: ColorScheme) =>
       borderWidth: 1.5,
       gap: 4,
     },
-    selfCheckHead: { fontSize: 13, fontWeight: '700', color: colors.textSecondary },
-    diff: { fontSize: 15, lineHeight: 22, color: colors.textPrimary },
-    diffExtra: { color: colors.danger, textDecorationLine: 'line-through' },
-    diffMissing: { color: colors.accent, fontWeight: '700' },
-    diffTypo: { textDecorationLine: 'underline', textDecorationColor: colors.warning },
-    guard: { fontSize: 13, color: colors.textSecondary, lineHeight: 18 },
+    selfCheckHead: { fontSize: 13, fontWeight: '500', color: colors.neutral400 },
+    diff: { fontSize: 15, lineHeight: 22, color: colors.text },
+    diffExtra: { color: colors.neutral400, textDecorationLine: 'line-through' },
+    diffMissing: { color: colors.accentBase, fontWeight: '500' },
+    diffTypo: { textDecorationLine: 'underline', textDecorationColor: colors.accent700 },
+    guard: { fontSize: 13, color: colors.neutral400, lineHeight: 18 },
     hint: {
       fontSize: 13,
-      color: colors.textSecondary,
+      color: colors.neutral400,
       lineHeight: 18,
       marginTop: 8,
     },

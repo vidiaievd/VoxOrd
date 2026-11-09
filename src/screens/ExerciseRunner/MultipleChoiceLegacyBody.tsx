@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Icon } from '../../components/ui';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
 import type { ExerciseBodyProps } from './ExerciseBody';
@@ -66,8 +67,8 @@ export function MultipleChoiceLegacyBody({ display, disabled, verdict, onAnswerC
             activeOpacity={0.8}
           >
             <Text style={styles.optionText}>{option.text}</Text>
-            {isMarkedCorrect(option.id) && <Text style={styles.optionIcon}>✓</Text>}
-            {isMarkedWrong(option.id) && <Text style={styles.optionIcon}>✗</Text>}
+            {isMarkedCorrect(option.id) && <Icon name="Check" size={18} color={colors.accent300} />}
+            {isMarkedWrong(option.id) && <Icon name="X" size={18} color={colors.neutral400} />}
           </TouchableOpacity>
         ))}
       </View>
@@ -79,14 +80,14 @@ const makeStyles = (colors: ColorScheme) =>
   StyleSheet.create({
     context: {
       fontSize: 13,
-      color: colors.textMuted,
+      color: colors.neutral500,
       marginBottom: 10,
       lineHeight: 18,
     },
     question: {
       fontSize: 19,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
       marginBottom: 20,
     },
     options: {},
@@ -94,7 +95,7 @@ const makeStyles = (colors: ColorScheme) =>
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      backgroundColor: colors.backgroundCard,
+      backgroundColor: colors.surface,
       borderRadius: 16,
       paddingVertical: 15,
       paddingHorizontal: 18,
@@ -106,43 +107,43 @@ const makeStyles = (colors: ColorScheme) =>
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      backgroundColor: colors.accentLight,
+      backgroundColor: colors.accent900,
       borderRadius: 16,
       paddingVertical: 15,
       paddingHorizontal: 18,
       marginBottom: 10,
       borderWidth: 2,
-      borderColor: colors.accent,
+      borderColor: colors.accentBase,
     },
     optionCorrect: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      backgroundColor: 'rgba(52, 199, 89, 0.12)',
+      backgroundColor: colors.accent900,
       borderRadius: 16,
       paddingVertical: 15,
       paddingHorizontal: 18,
       marginBottom: 10,
       borderWidth: 2,
-      borderColor: colors.success,
+      borderColor: colors.accentBase,
     },
     optionWrong: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      backgroundColor: 'rgba(255, 59, 48, 0.10)',
+      backgroundColor: 'transparent',
       borderRadius: 16,
       paddingVertical: 15,
       paddingHorizontal: 18,
       marginBottom: 10,
       borderWidth: 2,
-      borderColor: colors.danger,
+      borderColor: colors.neutral600,
     },
     optionDimmed: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      backgroundColor: colors.backgroundCard,
+      backgroundColor: colors.surface,
       borderRadius: 16,
       paddingVertical: 15,
       paddingHorizontal: 18,
@@ -153,13 +154,13 @@ const makeStyles = (colors: ColorScheme) =>
     },
     optionText: {
       fontSize: 15,
-      fontWeight: '600',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
       flex: 1,
     },
     optionIcon: {
       fontSize: 17,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
     },
   });

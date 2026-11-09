@@ -36,6 +36,8 @@ export interface CourseReviewOverview {
   unresolvedCardIds: string[];
   /** The lists behind `unresolvedCardIds`, deduped — what the import CTA offers. */
   unresolvedListIds: string[];
+  /** Due cards per list in `unresolvedListIds`. */
+  unresolvedCountByList: Record<string, number>;
   /**
    * Today's review count and the cap it is measured against, straight from the
    * due envelope. Carried through so the screen can say "that's the day's quota"
@@ -102,7 +104,8 @@ async function composeReviewSets(
   linkedWords: Awaited<ReturnType<typeof courseReviewRepository.getLinkedWords>>,
   quota: { reviewedToday: number; dailyLimit: number; fromReplica: boolean },
 ): Promise<CourseReviewOverview> {
-  const { resolved, unresolvedCardIds, unresolvedListIds } = resolveDueWords(cards, linkedWords);
+  const { resolved, unresolvedCardIds, unresolvedListIds, unresolvedCountByList } =
+    resolveDueWords(cards, linkedWords);
   const byDeck = groupByDeck(resolved);
 
   const titles = await courseReviewRepository.getDeckTitles([...byDeck.keys()]);
@@ -132,6 +135,7 @@ async function composeReviewSets(
     totalDue: resolved.length,
     unresolvedCardIds,
     unresolvedListIds,
+    unresolvedCountByList,
     reviewedToday: quota.reviewedToday,
     dailyLimit: quota.dailyLimit,
     fromReplica: quota.fromReplica,

@@ -11,6 +11,12 @@ import {
 
 const deck = { id: 7 } as Deck;
 const unit = { unitId: 'u1', courseId: 'c1' };
+/** A thread opened from Today — where a citation's screen goes back to. */
+const thread: Screen = {
+  name: 'Assistant',
+  context: { kind: 'unit', ...unit },
+  returnTo: { name: 'Today' },
+};
 
 /**
  * Every screen once, with where Back leads and which tab it lights. Typed by name so a new
@@ -27,6 +33,21 @@ const CASES: {
   ],
   Profile: [[{ name: 'Profile' }, { name: 'Today' }, 'Profile']],
   Settings: [[{ name: 'Settings' }, { name: 'Profile' }, 'Profile']],
+  AppLanguage: [[{ name: 'AppLanguage' }, { name: 'Settings' }, 'Profile']],
+  Account: [[{ name: 'Account' }, { name: 'Profile' }, 'Profile']],
+  EditName: [[{ name: 'EditName' }, { name: 'Account' }, 'Profile']],
+  DeleteAccount: [
+    [{ name: 'DeleteAccount' }, { name: 'Account' }, 'Profile'],
+  ],
+  Subscription: [[{ name: 'Subscription' }, { name: 'Profile' }, 'Profile']],
+  School: [
+    [{ name: 'School', schoolId: 's1' }, { name: 'Profile' }, 'Profile'],
+    [
+      { name: 'School', schoolId: 's1', groupId: 'g1' },
+      { name: 'Profile' },
+      'Profile',
+    ],
+  ],
   Assistant: [
     [
       { name: 'Assistant', returnTo: { name: 'Today' } },
@@ -51,7 +72,12 @@ const CASES: {
       'Notifications',
     ],
     [
-      { name: 'Submission', submissionId: 's1', exerciseId: 'e1', returnTo: { name: 'Today' } },
+      {
+        name: 'Submission',
+        submissionId: 's1',
+        exerciseId: 'e1',
+        returnTo: { name: 'Today' },
+      },
       { name: 'Today' },
       'Today',
     ],
@@ -59,18 +85,54 @@ const CASES: {
   CourseHome: [
     [{ name: 'CourseHome', courseId: 'c1' }, { name: 'Courses' }, 'Courses'],
   ],
+  CatalogCourse: [
+    [
+      { name: 'CatalogCourse', containerId: 'c1' },
+      { name: 'Courses', segment: 'catalog' },
+      'Courses',
+    ],
+  ],
+  FindSchool: [
+    [
+      { name: 'FindSchool' },
+      { name: 'Courses', segment: 'catalog' },
+      'Courses',
+    ],
+    [
+      { name: 'FindSchool', returnTo: { name: 'Today' } },
+      { name: 'Today' },
+      'Today',
+    ],
+  ],
+  SchoolPublic: [
+    [
+      {
+        name: 'SchoolPublic',
+        slug: 'nordick',
+        returnTo: { name: 'FindSchool', returnTo: { name: 'Today' } },
+      },
+      { name: 'FindSchool', returnTo: { name: 'Today' } },
+      'Today',
+    ],
+  ],
   UnitContents: [
     [
       { name: 'UnitContents', ...unit },
       { name: 'CourseHome', courseId: 'c1' },
       'Courses',
     ],
+    [{ name: 'UnitContents', ...unit, returnTo: thread }, thread, 'Today'],
   ],
   LessonReader: [
     [
       { name: 'LessonReader', lessonId: 'l1', ...unit },
       { name: 'UnitContents', ...unit },
       'Courses',
+    ],
+    [
+      { name: 'LessonReader', lessonId: 'l1', ...unit, returnTo: thread },
+      thread,
+      'Today',
     ],
   ],
   VocabularyList: [
@@ -86,6 +148,11 @@ const CASES: {
       { name: 'UnitContents', ...unit },
       'Courses',
     ],
+    [
+      { name: 'GrammarRuleReader', ruleId: 'r1', ...unit, returnTo: thread },
+      thread,
+      'Today',
+    ],
   ],
   ExerciseRunner: [
     [
@@ -93,16 +160,43 @@ const CASES: {
       { name: 'UnitContents', ...unit },
       'Courses',
     ],
+    [
+      {
+        name: 'ExerciseRunner',
+        exerciseIds: ['e1'],
+        startIndex: 0,
+        ...unit,
+        origin: 'practice',
+      },
+      { name: 'Practice' },
+      'Practice',
+    ],
+  ],
+  GrammarReview: [
+    [
+      { name: 'GrammarReview', ruleId: 'r1', ...unit },
+      { name: 'Practice' },
+      'Practice',
+    ],
   ],
   ReviewSession: [
     [
-      { name: 'ReviewSession', courseId: 'c1' },
+      { name: 'ReviewSession', courseId: 'c1', from: 'CourseHome' },
       { name: 'CourseHome', courseId: 'c1' },
       'Courses',
     ],
+    [{ name: 'ReviewSession', from: 'Today' }, { name: 'Today' }, 'Today'],
+    [
+      { name: 'ReviewSession', from: 'Practice' },
+      { name: 'Practice' },
+      'Practice',
+    ],
     [{ name: 'ReviewSession' }, { name: 'Practice' }, 'Practice'],
   ],
-  MyWords: [[{ name: 'MyWords' }, { name: 'Practice' }, 'Practice']],
+  MyWords: [
+    [{ name: 'MyWords' }, { name: 'Practice' }, 'Practice'],
+    [{ name: 'MyWords', returnTo: thread }, thread, 'Today'],
+  ],
   ModeSelector: [
     [{ name: 'ModeSelector', deck }, { name: 'Practice' }, 'Practice'],
   ],
@@ -115,26 +209,32 @@ const CASES: {
     ],
   ],
   Matching: [
-    [{ name: 'Matching', deckId: 7 }, { name: 'Practice' }, 'Practice'],
+    [{ name: 'Matching', deck }, { name: 'ModeSelector', deck }, 'Practice'],
   ],
-  Quiz: [[{ name: 'Quiz', deckId: 7 }, { name: 'Practice' }, 'Practice']],
+  Quiz: [[{ name: 'Quiz', deck }, { name: 'ModeSelector', deck }, 'Practice']],
   Spelling: [
-    [{ name: 'Spelling', deckId: 7 }, { name: 'Practice' }, 'Practice'],
+    [{ name: 'Spelling', deck }, { name: 'ModeSelector', deck }, 'Practice'],
   ],
   Listening: [
-    [{ name: 'Listening', deckId: 7 }, { name: 'Practice' }, 'Practice'],
+    [{ name: 'Listening', deck }, { name: 'ModeSelector', deck }, 'Practice'],
   ],
   Pronunciation: [
-    [{ name: 'Pronunciation', deckId: 7 }, { name: 'Practice' }, 'Practice'],
+    [
+      { name: 'Pronunciation', deck },
+      { name: 'ModeSelector', deck },
+      'Practice',
+    ],
   ],
-  Context: [[{ name: 'Context', deckId: 7 }, { name: 'Practice' }, 'Practice']],
+  Context: [
+    [{ name: 'Context', deck }, { name: 'ModeSelector', deck }, 'Practice'],
+  ],
   DeepSession: [
-    [{ name: 'DeepSession', deck }, { name: 'Practice' }, 'Practice'],
+    [{ name: 'DeepSession', deck }, { name: 'ModeSelector', deck }, 'Practice'],
   ],
   SessionResults: [
     [
-      { name: 'SessionResults', sessionId: 1, deckId: 7 },
-      { name: 'Practice' },
+      { name: 'SessionResults', sessionId: 1, deck },
+      { name: 'ModeSelector', deck },
       'Practice',
     ],
   ],
@@ -189,9 +289,16 @@ describe('showsTabBar', () => {
     'Practice',
     'ModeSelector',
     'MyWords',
+    'GrammarReview',
     'Notifications',
     'Profile',
     'Settings',
+    'AppLanguage',
+    'Account',
+    'EditName',
+    'DeleteAccount',
+    'Subscription',
+    'School',
   ];
 
   it('shows the bar on tab roots and their lists, and nowhere else', () => {
@@ -214,6 +321,9 @@ describe('showsTabBar', () => {
       }),
     ).toBe(false);
     expect(showsTabBar({ name: 'ReviewSession' })).toBe(false);
+    expect(showsTabBar({ name: 'CatalogCourse', containerId: 'c1' })).toBe(
+      false,
+    );
     expect(
       showsTabBar({ name: 'Assistant', returnTo: { name: 'Today' } }),
     ).toBe(false);

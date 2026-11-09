@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { ApiError } from '../../api/client';
 import { findOpenAttempt, type CheckedRow } from '../../api/exercises';
+import { Icon } from '../../components/ui';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
@@ -425,7 +426,9 @@ function SentenceSchemaSetBody({
     };
     return (
       <View style={styles.done}>
-        <Text style={styles.doneEmoji}>✓</Text>
+        <View style={styles.doneEmoji}>
+          <Icon name="CheckCircle" size={34} color={colors.accent300} />
+        </View>
         <Text style={styles.doneTitle}>
           {t('exerciseRunner.sentenceSchema.setDone', { count: total })}
         </Text>
@@ -462,7 +465,7 @@ function SentenceSchemaSetBody({
     display.instructions?.[0]?.instructionText ??
     (set.instruction !== '' ? set.instruction : t('exerciseRunner.sentenceSchema.defaultInstruction'));
 
-  const bannerTone = solved ? colors.success : state.revealed ? colors.accent : colors.danger;
+  const bannerTone = solved ? colors.accent300 : state.revealed ? colors.accentBase : colors.neutral400;
 
   return (
     <View>
@@ -584,7 +587,7 @@ function SentenceSchemaSetBody({
             disabled={!canCheckRow(state.placement) || sending || disabled}
           >
             {sending ? (
-              <ActivityIndicator size="small" color={colors.textInverted} />
+              <ActivityIndicator size="small" color={colors.accent300} />
             ) : (
               <Text style={styles.primaryText}>
                 {t('exerciseRunner.sentenceSchema.check', {
@@ -688,21 +691,21 @@ const makeStyles = (colors: ColorScheme) =>
       flex: 1,
       height: 4,
       borderRadius: 2,
-      backgroundColor: colors.border,
+      backgroundColor: colors.neutral800,
       overflow: 'hidden',
     },
     progressFill: {
       height: '100%',
       borderRadius: 2,
-      backgroundColor: colors.accent,
+      backgroundColor: colors.accentBase,
     },
     position: {
       fontSize: 12,
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     attemptNo: {
       fontSize: 12,
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     audio: {
       marginBottom: 12,
@@ -710,45 +713,45 @@ const makeStyles = (colors: ColorScheme) =>
     instruction: {
       fontSize: 14,
       lineHeight: 20,
-      color: colors.textSecondary,
+      color: colors.neutral400,
       marginBottom: 8,
     },
     clause: {
       alignSelf: 'flex-start',
       fontSize: 11,
-      color: colors.textSecondary,
-      backgroundColor: colors.backgroundInput,
+      color: colors.neutral400,
+      backgroundColor: colors.surface,
       borderRadius: 999,
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: colors.neutral800,
       paddingHorizontal: 10,
       paddingVertical: 3,
       marginBottom: 10,
     },
     skipped: {
       fontSize: 12,
-      color: colors.textMuted,
+      color: colors.neutral500,
       marginBottom: 8,
     },
     source: {
-      backgroundColor: colors.backgroundInput,
+      backgroundColor: colors.surface,
       borderRadius: 10,
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: colors.neutral800,
       paddingHorizontal: 12,
       paddingVertical: 9,
       marginBottom: 12,
     },
     sourceLabel: {
       fontSize: 11.5,
-      fontWeight: '700',
-      color: colors.textMuted,
+      fontWeight: '500',
+      color: colors.neutral500,
       marginBottom: 2,
     },
     sourceText: {
       fontSize: 15,
       lineHeight: 21,
-      color: colors.textPrimary,
+      color: colors.text,
     },
     banner: {
       marginTop: 14,
@@ -761,22 +764,22 @@ const makeStyles = (colors: ColorScheme) =>
     bannerText: {
       fontSize: 13.5,
       lineHeight: 19,
-      fontWeight: '600',
+      fontWeight: '500',
     },
     bannerHint: {
       fontSize: 12.5,
       lineHeight: 18,
-      color: colors.textSecondary,
+      color: colors.neutral400,
     },
     bannerSentence: {
       fontSize: 14,
       lineHeight: 20,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
     },
     error: {
       fontSize: 12.5,
-      color: colors.danger,
+      color: colors.neutral400,
       marginTop: 10,
     },
     actions: {
@@ -784,15 +787,16 @@ const makeStyles = (colors: ColorScheme) =>
       gap: 10,
     },
     primary: {
-      backgroundColor: colors.accent,
+      borderWidth: 1,
+      borderColor: colors.accentBase,
       borderRadius: 14,
       paddingVertical: 13,
       alignItems: 'center',
     },
     primaryText: {
       fontSize: 15,
-      fontWeight: '700',
-      color: colors.textInverted,
+      fontWeight: '500',
+      color: colors.accent300,
     },
     buttonDisabled: {
       opacity: 0.5,
@@ -805,14 +809,14 @@ const makeStyles = (colors: ColorScheme) =>
       flex: 1,
       borderRadius: 12,
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: colors.neutral800,
       paddingVertical: 11,
       alignItems: 'center',
     },
     secondaryText: {
       fontSize: 13.5,
-      fontWeight: '600',
-      color: colors.textSecondary,
+      fontWeight: '500',
+      color: colors.neutral400,
     },
     notice: {
       alignItems: 'center',
@@ -821,14 +825,14 @@ const makeStyles = (colors: ColorScheme) =>
     },
     noticeTitle: {
       fontSize: 16,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
       textAlign: 'center',
       marginBottom: 6,
     },
     noticeDesc: {
       fontSize: 13,
-      color: colors.textMuted,
+      color: colors.neutral500,
       textAlign: 'center',
       lineHeight: 19,
     },
@@ -838,25 +842,24 @@ const makeStyles = (colors: ColorScheme) =>
       paddingHorizontal: 16,
     },
     doneEmoji: {
-      fontSize: 34,
       marginBottom: 10,
     },
     doneTitle: {
       fontSize: 17,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
       marginBottom: 6,
       textAlign: 'center',
     },
     doneTally: {
       fontSize: 13.5,
-      color: colors.textSecondary,
+      color: colors.neutral400,
       textAlign: 'center',
       lineHeight: 20,
     },
     doneHint: {
       fontSize: 12.5,
-      color: colors.textMuted,
+      color: colors.neutral500,
       textAlign: 'center',
       marginTop: 12,
     },

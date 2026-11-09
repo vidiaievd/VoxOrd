@@ -52,7 +52,7 @@ export function ShortAnswerLegacyBody({ display, disabled, verdict, onAnswerChan
         autoCapitalize="sentences"
         maxLength={content.max_length}
         placeholder={t('exerciseRunner.shortAnswerPlaceholder')}
-        placeholderTextColor={colors.textMuted}
+        placeholderTextColor={colors.neutral500}
       />
       {showFeedback && referenceAnswer && !verdict!.correct ? (
         <Text style={styles.reference}>
@@ -67,36 +67,36 @@ const makeStyles = (colors: ColorScheme) =>
   StyleSheet.create({
     context: {
       fontSize: 13,
-      color: colors.textMuted,
+      color: colors.neutral500,
       marginBottom: 10,
       lineHeight: 18,
     },
     question: {
       fontSize: 19,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
       marginBottom: 20,
       lineHeight: 26,
     },
     input: {
-      backgroundColor: colors.backgroundInput,
+      backgroundColor: colors.surface,
       borderRadius: 14,
       borderWidth: 2,
-      borderColor: colors.accent,
+      borderColor: colors.accentBase,
       paddingHorizontal: 16,
       paddingVertical: 14,
       fontSize: 16,
-      color: colors.textPrimary,
+      color: colors.text,
       minHeight: 90,
       textAlignVertical: 'top',
     },
     reference: {
       fontSize: 13,
-      color: colors.textSecondary,
+      color: colors.neutral400,
       marginTop: 12,
     },
     referenceValue: {
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
     },
   });

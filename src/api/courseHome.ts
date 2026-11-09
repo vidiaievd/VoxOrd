@@ -217,3 +217,19 @@ export async function getCourseHome(courseId: string): Promise<CourseHomePayload
     canDo: { items: [] },
   };
 }
+
+/**
+ * A course's unit ids in course order — what numbers a unit («Unit 3») without the whole
+ * course home. One request, given the container the caller already holds; a course with no
+ * published version has no units.
+ */
+export async function getCourseUnitIds(container: Container): Promise<string[]> {
+  if (!container.currentPublishedVersionId) return [];
+  const items = await apiClient.get<ContainerItem[]>(
+    CONTAINER_ITEMS_PATH(container.id, container.currentPublishedVersionId),
+  );
+  return items
+    .filter((item) => item.itemType === 'container')
+    .sort((a, b) => a.position - b.position)
+    .map((item) => item.itemId);
+}

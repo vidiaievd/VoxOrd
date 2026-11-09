@@ -63,9 +63,11 @@ function makeDeps(overrides: Partial<CourseDownloadDeps> = {}) {
   const downloaded: string[] = [];
   const retained: Set<string>[] = [];
   let now = 1_000_000;
+  let pinned: string[] = [];
   const deps: CourseDownloadDeps = {
     getUserId: () => 'user-1',
     getUiLanguage: () => 'ru',
+    getTranslationLanguage: () => 'ru',
     getUnitsAhead: () => 1,
     mediaAllowed: async () => true,
     freeBytes: async () => 10 * 1024 * 1024 * 1024,
@@ -77,7 +79,12 @@ function makeDeps(overrides: Partial<CourseDownloadDeps> = {}) {
     importList: async listId => {
       imported.push(listId);
     },
+    getPinned: async () => [...pinned],
+    setPinned: async (_user, ids) => {
+      pinned = ids;
+    },
     media: {
+      sizeOf: async ids => [...ids].length * 1000,
       download: async id => {
         downloaded.push(id);
         return true;
@@ -295,5 +302,91 @@ describe('CourseDownloader', () => {
     const { deps, stored } = makeDeps({ getUserId: () => null });
     await new CourseDownloader(deps).run();
     expect(stored.size).toBe(0);
+  });
+
+  describe('progress and whole-course download', () => {
+    it('accounts for each item of a unit and the size of its media', async () => {
+      const { deps } = makeDeps();
+      const downloader = new CourseDownloader(deps);
+      const seen: string[] = [];
+      downloader.subscribe(() => {
+        const p = downloader.getUnitProgress('unit-1');
+        if (p) seen.push(Object.values(p.items).join(','));
+      });
+
+      await downloader.run();
+
+      expect(downloader.getUnitProgress('unit-1')).toEqual({
+        complete: true,
+        items: { 'i-les-1': 'done', 'i-ex-1': 'done', 'i-gr-1': 'done', 'i-vl-1': 'done' },
+        sizeBytes: expect.any(Number),
+      });
+      expect(seen.some(line => line.includes('downloading'))).toBe(true);
+      expect(seen.some(line => line.includes('queued'))).toBe(true);
+    });
+
+    it('marks an item the server refuses as failed', async () => {
+      mockApi.grammar.mockRejectedValue(new ApiError({ message: 'no', status: 403, code: 'FORBIDDEN' }));
+      const { deps } = makeDeps();
+      const downloader = new CourseDownloader(deps);
+
+      await downloader.run();
+
+      expect(downloader.getUnitProgress('unit-1')?.items['i-gr-1']).toBe('failed');
+    });
+
+    it('closes the units of a walk the connection ended, leaving no spinner', async () => {
+      mockApi.unitContents.mockImplementation(async (unitId: string) => {
+        if (unitId === 'unit-2') throw offline();
+        return { sections: [], ungroupedItems: [item('exercise', 'ex-1')] };
+      });
+      const { deps } = makeDeps();
+      const downloader = new CourseDownloader(deps);
+
+      await downloader.run();
+
+      expect(downloader.getUnitProgress('unit-2')?.complete).toBe(true);
+      expect(downloader.getUnitProgress('unit-1')?.complete).toBe(true);
+    });
+
+    it('walks every unit of a course downloaded whole, and every later walk does too', async () => {
+      const { deps, stored, retained } = makeDeps();
+      const downloader = new CourseDownloader(deps);
+
+      await downloader.downloadCourse('course-1');
+
+      expect(downloader.isPinned('course-1')).toBe(true);
+      expect(stored.has('unit-contents:unit-3')).toBe(true);
+      expect(retained).toEqual([]);
+
+      const restarted = new CourseDownloader(deps);
+      await restarted.loadStatus();
+      expect(restarted.isPinned('course-1')).toBe(true);
+      await restarted.run(true);
+      expect([...retained[0]]).toContain(LATER);
+    });
+
+    it('walks only the named course and prunes nothing', async () => {
+      const { deps, stored, retained } = makeDeps({
+        getMyCourses: async () => [{ container: { id: 'course-1' } }, { container: { id: 'course-2' } }] as never[],
+      });
+
+      await new CourseDownloader(deps).run(true, 'course-2');
+
+      expect(stored.has('course-home:course-1')).toBe(false);
+      expect(stored.has('course-home:course-2')).toBe(true);
+      expect(retained).toEqual([]);
+    });
+
+    it('lets a released course go back to the window', async () => {
+      const { deps, retained } = makeDeps();
+      const downloader = new CourseDownloader(deps);
+      await downloader.downloadCourse('course-1');
+
+      await downloader.releaseCourse('course-1');
+
+      expect(downloader.isPinned('course-1')).toBe(false);
+      expect([...retained[0]]).not.toContain(LATER);
+    });
   });
 });

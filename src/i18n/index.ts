@@ -1,11 +1,20 @@
 import { useCallback } from 'react';
-import { useSettings } from '../hooks/useSettings';
-import { settingsStore } from '../store/settingsStore';
 import { Translations } from './types';
 import { ru } from './ru';
 import { uk } from './uk';
 import { en } from './en';
 import { isPluralForms, pickPlural } from './pluralize';
+import { currentUiLanguage, useUiLanguage } from './uiLanguage';
+
+export {
+  UI_LANGUAGES,
+  UI_LANGUAGE_ENDONYMS,
+  currentUiLanguage,
+  isUiLanguage,
+  resolveUiLanguage,
+  useUiLanguage,
+} from './uiLanguage';
+export type { UiLanguage, UiLanguagePref } from './uiLanguage';
 
 const TRANSLATIONS: Record<string, Translations> = { ru, uk, en };
 
@@ -22,7 +31,7 @@ function interpolate(
 }
 
 export function useTranslation() {
-  const { uiLanguage } = useSettings();
+  const uiLanguage = useUiLanguage();
   // Stable for a language: `t` sits in the dependencies of effects that hand state up to a
   // parent (a body's footer button), and a new `t` per render would re-run them on every
   // render the parent's update caused — a render loop nothing on screen would show.
@@ -38,7 +47,7 @@ export function useTranslation() {
  * as the fingerprint prompt, which is shown before any screen has rendered.
  */
 export function translate(path: string, vars?: Record<string, string | number>): string {
-  return translateIn(settingsStore.getAll().uiLanguage, path, vars);
+  return translateIn(currentUiLanguage(), path, vars);
 }
 
 /** A string in a named language — for pure functions handed `t`, and for their tests. */

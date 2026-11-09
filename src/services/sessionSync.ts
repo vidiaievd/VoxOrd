@@ -5,6 +5,8 @@ import { authStore, type AuthState } from '../store/authStore';
 import { reviewQueueStore } from '../store/reviewQueueStore';
 import { wordCaptureQueueStore } from '../store/wordCaptureQueueStore';
 import { exerciseOutboxStore } from '../store/exerciseOutboxStore';
+import { notificationsStore } from '../store/notificationsStore';
+import { accountPrefsStore } from '../store/accountPrefsStore';
 import { vocabularyReplica } from './vocabularyReplica';
 import { courseDownloader } from './courseDownload';
 
@@ -151,6 +153,9 @@ export const sessionSync = new SessionSync({
     // Exercises graded offline, then the progress of the sets they finished (B4).
     { name: 'exercise attempts', flush: () => exerciseOutboxStore.flush() },
     { name: 'captured words', flush: () => wordCaptureQueueStore.flush() },
+    { name: 'notification reads', flush: () => notificationsStore.flush() },
+    // Before the copies below: the translation language decides what they fetch.
+    { name: 'account preferences', flush: () => accountPrefsStore.sync() },
     { name: 'vocabulary replica', flush: () => vocabularyReplica.refresh() },
     // Last and longest: walks the courses, at most twice a day each (offline plan, B3).
     { name: 'course materials', flush: () => courseDownloader.run() },

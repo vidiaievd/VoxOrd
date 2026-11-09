@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image } from 'react-native';
+import { Icon } from '../../components/ui';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
@@ -180,7 +181,7 @@ function WritingTask({
   );
 
   const countColor =
-    length === 'ok' ? colors.success : length === 'long' ? colors.danger : colors.textMuted;
+    length === 'ok' ? colors.accent300 : length === 'long' ? colors.neutral400 : colors.neutral500;
   const meterMax = s.maxWords || s.minWords || 1;
   const meterWidth = Math.min(100, (wordCount / meterMax) * 100);
 
@@ -262,7 +263,7 @@ function WritingTask({
                     accessibilityState={{ checked: on }}
                   >
                     <View style={[styles.checkbox, on && styles.checkboxOn]}>
-                      {on ? <Text style={styles.checkboxMark}>✓</Text> : null}
+                      {on ? <Icon name="Check" size={12} color={colors.bg} /> : null}
                     </View>
                     <Text style={styles.planText}>{point.text}</Text>
                   </TouchableOpacity>
@@ -336,7 +337,7 @@ function WritingTask({
         // paste entry away with the rest of the edit menu instead of intercepting it.
         contextMenuHidden={s.blockPaste}
         placeholder={t('exerciseRunner.writingTaskPlaceholder')}
-        placeholderTextColor={colors.textMuted}
+        placeholderTextColor={colors.neutral500}
       />
 
       <View style={styles.readout}>
@@ -366,7 +367,7 @@ function WritingTask({
           <Text
             style={[
               styles.meta,
-              secondsLeft < TIMER_WARN_S ? { color: colors.warning } : null,
+              secondsLeft < TIMER_WARN_S ? { color: colors.neutral300 } : null,
             ]}
           >
             ⏱ {formatClock(secondsLeft)}
@@ -388,7 +389,7 @@ function WritingTask({
         </Text>
       ) : null}
       {gate.block === 'long' ? (
-        <Text style={[styles.gateNote, { color: colors.danger }]}>
+        <Text style={[styles.gateNote, { color: colors.neutral400 }]}>
           {t('exerciseRunner.writingTaskTooLong', { max: s.maxWords })}
         </Text>
       ) : null}
@@ -404,9 +405,9 @@ const makeStyles = (colors: ColorScheme) =>
     },
     badge: {
       fontSize: 11.5,
-      fontWeight: '700',
-      color: colors.textPrimary,
-      backgroundColor: colors.accentLight,
+      fontWeight: '500',
+      color: colors.text,
+      backgroundColor: colors.accent900,
       paddingHorizontal: 10,
       paddingVertical: 4,
       borderRadius: 999,
@@ -417,7 +418,7 @@ const makeStyles = (colors: ColorScheme) =>
     },
     instructions: {
       fontSize: 13,
-      color: colors.textMuted,
+      color: colors.neutral500,
       marginBottom: 14,
       lineHeight: 18,
     },
@@ -434,26 +435,26 @@ const makeStyles = (colors: ColorScheme) =>
       borderRadius: 12,
       borderWidth: 1.5,
       borderStyle: 'dashed',
-      borderColor: colors.border,
+      borderColor: colors.neutral800,
       alignItems: 'center',
       justifyContent: 'center',
     },
     imagePlaceholderText: {
       fontSize: 12.5,
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     caption: {
       fontSize: 12.5,
-      color: colors.textMuted,
+      color: colors.neutral500,
       marginTop: 6,
     },
     source: {
       fontSize: 15,
       lineHeight: 24,
-      color: colors.textPrimary,
-      backgroundColor: colors.backgroundInput,
+      color: colors.text,
+      backgroundColor: colors.surface,
       borderLeftWidth: 3,
-      borderLeftColor: colors.accent,
+      borderLeftColor: colors.accentBase,
       borderRadius: 10,
       paddingHorizontal: 14,
       paddingVertical: 12,
@@ -461,19 +462,19 @@ const makeStyles = (colors: ColorScheme) =>
     },
     prompt: {
       fontSize: 19,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
       marginBottom: 8,
       lineHeight: 26,
     },
     letterLine: {
       fontSize: 12.5,
-      color: colors.textMuted,
+      color: colors.neutral500,
       marginBottom: 14,
     },
     plan: {
       borderWidth: 1.5,
-      borderColor: colors.border,
+      borderColor: colors.neutral800,
       borderRadius: 12,
       marginBottom: 14,
       overflow: 'hidden',
@@ -484,21 +485,21 @@ const makeStyles = (colors: ColorScheme) =>
       gap: 8,
       paddingHorizontal: 14,
       paddingVertical: 10,
-      backgroundColor: colors.backgroundInput,
+      backgroundColor: colors.surface,
     },
     planTitle: {
       flex: 1,
       fontSize: 12.5,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
     },
     planCount: {
       fontSize: 12.5,
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     planChevron: {
       fontSize: 12,
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     planRow: {
       flexDirection: 'row',
@@ -507,41 +508,41 @@ const makeStyles = (colors: ColorScheme) =>
       paddingHorizontal: 14,
       paddingVertical: 10,
       borderTopWidth: 1,
-      borderTopColor: colors.border,
+      borderTopColor: colors.neutral800,
     },
     checkbox: {
       width: 18,
       height: 18,
       borderRadius: 5,
       borderWidth: 1.5,
-      borderColor: colors.border,
+      borderColor: colors.neutral800,
       alignItems: 'center',
       justifyContent: 'center',
       marginTop: 1,
     },
     checkboxOn: {
-      borderColor: colors.accent,
-      backgroundColor: colors.accent,
+      borderColor: colors.accentBase,
+      backgroundColor: colors.accentBase,
     },
     checkboxMark: {
       fontSize: 11,
-      fontWeight: '700',
-      color: colors.textInverted,
+      fontWeight: '500',
+      color: colors.accent300,
     },
     planText: {
       flex: 1,
       fontSize: 14,
       lineHeight: 20,
-      color: colors.textPrimary,
+      color: colors.text,
     },
     rubric: {
       borderWidth: 1.5,
-      borderColor: colors.border,
+      borderColor: colors.neutral800,
       borderRadius: 12,
       paddingHorizontal: 14,
       paddingVertical: 12,
       marginBottom: 14,
-      backgroundColor: colors.backgroundInput,
+      backgroundColor: colors.surface,
     },
     rubricHeader: {
       flexDirection: 'row',
@@ -551,29 +552,29 @@ const makeStyles = (colors: ColorScheme) =>
     rubricTitle: {
       flex: 1,
       fontSize: 12.5,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
     },
     rubricPass: {
       fontSize: 12.5,
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     criterion: {
       marginBottom: 8,
     },
     criterionName: {
       fontSize: 13,
-      fontWeight: '600',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
     },
     criterionDesc: {
       fontSize: 12.5,
-      color: colors.textMuted,
+      color: colors.neutral500,
       lineHeight: 17,
     },
     criterionTop: {
       fontSize: 12.5,
-      color: colors.textSecondary,
+      color: colors.neutral400,
       lineHeight: 17,
     },
     phrases: {
@@ -581,8 +582,8 @@ const makeStyles = (colors: ColorScheme) =>
     },
     sectionTitle: {
       fontSize: 12.5,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
       marginBottom: 8,
     },
     phraseRow: {
@@ -595,23 +596,23 @@ const makeStyles = (colors: ColorScheme) =>
       paddingVertical: 6,
       borderRadius: 999,
       borderWidth: 1.5,
-      borderColor: colors.border,
-      backgroundColor: colors.backgroundInput,
+      borderColor: colors.neutral800,
+      backgroundColor: colors.surface,
     },
     phraseChipText: {
       fontSize: 12.5,
-      color: colors.textPrimary,
+      color: colors.text,
     },
     input: {
-      backgroundColor: colors.backgroundInput,
+      backgroundColor: colors.surface,
       borderRadius: 14,
       borderWidth: 2,
-      borderColor: colors.accent,
+      borderColor: colors.accentBase,
       paddingHorizontal: 16,
       paddingVertical: 14,
       fontSize: 16,
       lineHeight: 24,
-      color: colors.textPrimary,
+      color: colors.text,
       minHeight: 220,
       textAlignVertical: 'top',
     },
@@ -631,7 +632,7 @@ const makeStyles = (colors: ColorScheme) =>
       width: 54,
       height: 4,
       borderRadius: 999,
-      backgroundColor: colors.border,
+      backgroundColor: colors.neutral800,
       overflow: 'hidden',
     },
     meterFill: {
@@ -643,11 +644,11 @@ const makeStyles = (colors: ColorScheme) =>
     },
     meta: {
       fontSize: 12,
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     gateNote: {
       fontSize: 12.5,
-      color: colors.textSecondary,
+      color: colors.neutral400,
       marginTop: 8,
     },
     unavailable: {
@@ -657,14 +658,14 @@ const makeStyles = (colors: ColorScheme) =>
     },
     unavailableTitle: {
       fontSize: 16,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
       textAlign: 'center',
       marginBottom: 6,
     },
     unavailableDesc: {
       fontSize: 13,
-      color: colors.textMuted,
+      color: colors.neutral500,
       textAlign: 'center',
       lineHeight: 19,
     },

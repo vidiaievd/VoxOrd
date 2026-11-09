@@ -8,6 +8,7 @@ import com.facebook.react.ReactNativeApplicationEntryPoint.loadReactNative
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.voxord.audio.AudioRecorderPackage
 import com.voxord.speech.SpeechRecognitionPackage
+import com.voxord.systembars.SystemBarsPackage
 
 class MainApplication : Application(), ReactApplication {
 
@@ -18,6 +19,7 @@ class MainApplication : Application(), ReactApplication {
         PackageList(this).packages.apply {
           add(SpeechRecognitionPackage())
           add(AudioRecorderPackage())
+          add(SystemBarsPackage())
         },
     )
   }

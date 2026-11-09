@@ -1,16 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { ColorScheme } from '../../theme/colors';
+import { Pressable, Text, View } from 'react-native';
 import { useTheme } from '../../providers/ThemeProvider';
 import { useTranslation } from '../../i18n';
+import { ProgressTrack } from '../../components/ui';
 import type { CourseMastery } from '../../api/types';
-
-interface CourseStatsSectionProps {
-  mastery: CourseMastery;
-  srsDueCount: number;
-  /** Opens the review session (Phase 8.1). */
-  onReviewPress: () => void;
-}
 
 const SKILL_LABEL_KEYS = {
   vocabulary: 'skillVocabulary',
@@ -21,123 +14,107 @@ const SKILL_LABEL_KEYS = {
   writing: 'skillWriting',
 } as const;
 
-/**
- * Mastery bars + reviews-due counter (display only, Phase 6). `srsDueCount`
- * is the count of due words actually resolved against the user's imported
- * local decks (see `useCourseReviewSets`/`courseReviewSet.ts`), not scoped to
- * this course — so this renders as a general reviews-due stat, not "due in
- * this course" — but it always matches what the "Повторить" screen can
- * actually run, unlike the raw `/srs/stats/me` total.
- */
-export function CourseStatsSection({ mastery, srsDueCount, onReviewPress }: CourseStatsSectionProps) {
-  const { colors } = useTheme();
-  const { t } = useTranslation();
-  const styles = makeStyles(colors);
+interface TilesProps {
+  /**
+   * Due words resolved against the learner's imported local decks (`useCourseReviewSets`), not
+   * the raw `/srs/stats/me` total: the tile never promises a session that turns out empty.
+   * Not scoped to this course (open question 14.2).
+   */
+  totalDue: number;
+  mastery: CourseMastery;
+  onReviewPress: () => void;
+  onSkillsPress: () => void;
+}
 
-  if (mastery.bySkill.length === 0 && srsDueCount === 0) return null;
+/** The two tiles under the course title (Courses spec §6.2, item 2). */
+export function CourseTiles({ totalDue, mastery, onReviewPress, onSkillsPress }: TilesProps) {
+  const { colors, typography } = useTheme();
+  const { t } = useTranslation();
+  const hasSkills = mastery.bySkill.length > 0;
+
+  const tile = {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    gap: 2,
+  } as const;
+  const number = { fontSize: 22, lineHeight: 28, fontFamily: typography.h1.fontFamily, color: colors.text };
 
   return (
-    <View style={styles.container}>
-      {mastery.bySkill.length > 0 && (
-        <>
-          <View style={styles.headerRow}>
-            <Text style={styles.sectionTitle}>{t('courseHome.mastery')}</Text>
-            <Text style={styles.overallPercent}>{mastery.overallMastery}%</Text>
-          </View>
-
-          {mastery.bySkill.map((skill) => {
-            const labelKey = SKILL_LABEL_KEYS[skill.skill as keyof typeof SKILL_LABEL_KEYS];
-            return (
-              <View key={skill.skill} style={styles.skillRow}>
-                <Text style={styles.skillLabel}>{labelKey ? t(`courseHome.${labelKey}`) : skill.skill}</Text>
-                <View style={styles.barBg}>
-                  <View style={[styles.barFill, { width: `${skill.masteryPercent}%` }]} />
-                </View>
-                <Text style={styles.skillPercent}>{skill.masteryPercent}%</Text>
-              </View>
-            );
-          })}
-        </>
-      )}
-
-      {srsDueCount > 0 && (
-        <TouchableOpacity style={styles.reviewsRow} onPress={onReviewPress} activeOpacity={0.7}>
-          <Text style={styles.reviewsDue}>{t('courseHome.reviewsDue', { count: srsDueCount })}</Text>
-          <Text style={styles.reviewsCta}>{t('courseHome.startReview')} ›</Text>
-        </TouchableOpacity>
+    <View style={{ flexDirection: 'row', gap: 10 }}>
+      <View style={tile}>
+        <Text style={number}>{totalDue}</Text>
+        <Text style={[typography.meta, { color: colors.neutral400 }]}>
+          {totalDue === 0 ? t('courseHome.allReviewed') : t('courseHome.dueLabel')}
+        </Text>
+        {totalDue > 0 && (
+          <Pressable
+            accessibilityRole="button"
+            onPress={onReviewPress}
+            hitSlop={8}
+            style={{ marginTop: 4 }}
+          >
+            <Text style={[typography.secondary, { color: colors.accent300 }]}>
+              {t('courseHome.startReview')}
+            </Text>
+          </Pressable>
+        )}
+      </View>
+      {hasSkills && (
+        <View style={tile}>
+          <Text style={number}>{mastery.overallMastery}%</Text>
+          <Text style={[typography.meta, { color: colors.neutral400 }]}>
+            {t('courseHome.masteryLabel')}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={onSkillsPress}
+            hitSlop={8}
+            style={{ marginTop: 4 }}
+          >
+            <Text style={[typography.secondary, { color: colors.accent300 }]}>
+              {t('courseHome.bySkill')}
+            </Text>
+          </Pressable>
+        </View>
       )}
     </View>
   );
 }
 
-const makeStyles = (colors: ColorScheme) =>
-  StyleSheet.create({
-    container: {
-      paddingHorizontal: 20,
-      paddingTop: 16,
-      paddingBottom: 8,
-    },
-    reviewsRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginTop: 4,
-    },
-    reviewsCta: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: colors.accent,
-    },
-    headerRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 10,
-    },
-    sectionTitle: {
-      fontSize: 15,
-      fontWeight: '700',
-      color: colors.textPrimary,
-    },
-    overallPercent: {
-      fontSize: 15,
-      fontWeight: '700',
-      color: colors.accent,
-    },
-    skillRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: 6,
-    },
-    skillLabel: {
-      width: 84,
-      fontSize: 12,
-      color: colors.textMuted,
-    },
-    barBg: {
-      flex: 1,
-      height: 6,
-      borderRadius: 3,
-      backgroundColor: colors.border,
-      overflow: 'hidden',
-      marginHorizontal: 8,
-    },
-    barFill: {
-      height: '100%',
-      borderRadius: 3,
-      backgroundColor: colors.accent,
-    },
-    skillPercent: {
-      width: 32,
-      fontSize: 12,
-      fontWeight: '700',
-      color: colors.textMuted,
-      textAlign: 'right',
-    },
-    reviewsDue: {
-      marginTop: 10,
-      fontSize: 13,
-      fontWeight: '600',
-      color: colors.textPrimary,
-    },
-  });
+/** Mastery bar per skill (Courses spec §6.2, item 3). */
+export function SkillsBlock({ mastery }: { mastery: CourseMastery }) {
+  const { colors, typography } = useTheme();
+  const { t } = useTranslation();
+
+  return (
+    <View
+      style={{
+        borderWidth: 1,
+        borderColor: colors.neutral800,
+        borderRadius: 14,
+        padding: 14,
+        gap: 8,
+      }}
+    >
+      {mastery.bySkill.map(skill => {
+        const labelKey = SKILL_LABEL_KEYS[skill.skill as keyof typeof SKILL_LABEL_KEYS];
+        return (
+          <View key={skill.skill} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Text style={[typography.meta, { color: colors.neutral400, width: 88 }]}>
+              {labelKey ? t(`courseHome.${labelKey}`) : skill.skill}
+            </Text>
+            <View style={{ flex: 1 }}>
+              <ProgressTrack value={skill.masteryPercent / 100} fill={colors.accent600} />
+            </View>
+            <Text style={[typography.meta, { color: colors.neutral400, width: 30, textAlign: 'right' }]}>
+              {skill.masteryPercent}%
+            </Text>
+          </View>
+        );
+      })}
+    </View>
+  );
+}

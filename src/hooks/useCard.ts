@@ -15,6 +15,10 @@ export interface UseCardResult {
   isEmpty: boolean;
   isFlipped: boolean;
   sessionId: number | null;
+  /** Cards decided so far this sitting. */
+  answered: number;
+  /** Cards in the sitting when it is a fixed queue (the deep session's phase); else null. */
+  total: number | null;
   onSwipe: (direction: SwipeDirection) => Promise<void>;
   onFlip: () => void;
 }
@@ -47,6 +51,7 @@ export function useCard(
   const [isEmpty, setIsEmpty] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
   const [sessionId, setSessionId] = useState<number | null>(null);
+  const [answered, setAnswered] = useState(0);
 
   const totalRef = useRef(0);
   const correctRef = useRef(0);
@@ -205,6 +210,7 @@ export function useCard(
       }
 
       seenRef.current.push(word.id);
+      setAnswered(n => n + 1);
       await loadNext();
     },
     [word, sessionId, mode, loadNext],
@@ -214,5 +220,15 @@ export function useCard(
     setIsFlipped(prev => !prev);
   }, []);
 
-  return { word, isLoading, isEmpty, isFlipped, sessionId, onSwipe, onFlip };
+  return {
+    word,
+    isLoading,
+    isEmpty,
+    isFlipped,
+    sessionId,
+    answered,
+    total: overrideWords ? overrideWords.length : null,
+    onSwipe,
+    onFlip,
+  };
 }

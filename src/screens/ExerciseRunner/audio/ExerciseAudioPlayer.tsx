@@ -8,6 +8,7 @@ import {
   type LayoutChangeEvent,
   type GestureResponderEvent,
 } from 'react-native';
+import { Icon } from '../../../components/ui';
 import { useTranslation } from '../../../i18n';
 import { useTheme } from '../../../providers/ThemeProvider';
 import { ColorScheme } from '../../../theme/colors';
@@ -76,11 +77,13 @@ export function ExerciseAudioPlayer({
           activeOpacity={0.8}
         >
           {eng.loading ? (
-            <ActivityIndicator size="small" color={colors.textInverted} />
+            <ActivityIndicator size="small" color={colors.accent300} />
           ) : (
-            <Text style={[styles.buttonIcon, big && styles.buttonIconBig]}>
-              {eng.playing ? '❚❚' : '▶'}
-            </Text>
+            <Icon
+              name={eng.playing ? 'Pause' : 'Play'}
+              size={big ? 26 : 16}
+              color={colors.accent300}
+            />
           )}
         </TouchableOpacity>
 
@@ -238,8 +241,8 @@ const makeStyles = (colors: ColorScheme) =>
     card: {
       borderRadius: 16,
       borderWidth: 1.5,
-      borderColor: colors.border,
-      backgroundColor: colors.backgroundCard,
+      borderColor: colors.neutral800,
+      backgroundColor: colors.surface,
       paddingVertical: 12,
       paddingHorizontal: 14,
       gap: 10,
@@ -256,13 +259,14 @@ const makeStyles = (colors: ColorScheme) =>
     button: {
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.accent,
+      borderWidth: 1,
+      borderColor: colors.accentBase,
     },
     buttonOff: {
       opacity: 0.45,
     },
     buttonIcon: {
-      color: colors.textInverted,
+      color: colors.accent300,
       fontSize: 16,
     },
     buttonIconBig: {
@@ -274,13 +278,13 @@ const makeStyles = (colors: ColorScheme) =>
     },
     title: {
       fontSize: 13,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
     },
     track: {
       height: 6,
       borderRadius: 3,
-      backgroundColor: colors.backgroundInput,
+      backgroundColor: colors.surface,
       overflow: 'hidden',
       justifyContent: 'center',
     },
@@ -292,14 +296,14 @@ const makeStyles = (colors: ColorScheme) =>
       position: 'absolute',
       top: 0,
       bottom: 0,
-      backgroundColor: colors.accentLight,
+      backgroundColor: colors.accent900,
     },
     fill: {
       position: 'absolute',
       left: 0,
       top: 0,
       bottom: 0,
-      backgroundColor: colors.accent,
+      backgroundColor: colors.accentBase,
     },
     metaRow: {
       flexDirection: 'row',
@@ -308,13 +312,13 @@ const makeStyles = (colors: ColorScheme) =>
     },
     time: {
       fontSize: 11.5,
-      color: colors.textMuted,
+      color: colors.neutral500,
       fontVariant: ['tabular-nums'],
     },
     status: {
       flex: 1,
       fontSize: 11.5,
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     controls: {
       flexDirection: 'row',
@@ -324,7 +328,7 @@ const makeStyles = (colors: ColorScheme) =>
     },
     chip: {
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: colors.neutral800,
       borderRadius: 10,
       paddingVertical: 6,
       paddingHorizontal: 10,
@@ -334,8 +338,8 @@ const makeStyles = (colors: ColorScheme) =>
     },
     chipText: {
       fontSize: 12,
-      fontWeight: '600',
-      color: colors.textSecondary,
+      fontWeight: '500',
+      color: colors.neutral400,
     },
     plays: {
       flexDirection: 'row',
@@ -351,14 +355,14 @@ const makeStyles = (colors: ColorScheme) =>
       width: 6,
       height: 6,
       borderRadius: 3,
-      backgroundColor: colors.accent,
+      backgroundColor: colors.accentBase,
     },
     pipSpent: {
-      backgroundColor: colors.border,
+      backgroundColor: colors.neutral800,
     },
     playsText: {
       fontSize: 11.5,
-      fontWeight: '600',
-      color: colors.textMuted,
+      fontWeight: '500',
+      color: colors.neutral500,
     },
   });

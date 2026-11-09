@@ -40,7 +40,7 @@ export function SelfCheckButton({
         accessibilityRole="button"
       >
         {busy ? (
-          <ActivityIndicator size="small" color={colors.accent} />
+          <ActivityIndicator size="small" color={colors.accentBase} />
         ) : (
           <Text style={styles.buttonText}>{left > 0 ? label : spentLabel}</Text>
         )}
@@ -53,17 +53,17 @@ export function SelfCheckButton({
 const makeStyles = (colors: ColorScheme) =>
   StyleSheet.create({
     wrap: { marginTop: 4, marginBottom: 8, gap: 8 },
-    summary: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
+    summary: { fontSize: 13, fontWeight: '500', color: colors.neutral400 },
     button: {
       borderRadius: 14,
       borderWidth: 2,
-      borderColor: colors.accent,
+      borderColor: colors.accentBase,
       minHeight: 44,
       paddingVertical: 10,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    buttonOff: { borderColor: colors.backgroundPressed, opacity: 0.6 },
-    buttonText: { fontSize: 15, fontWeight: '700', color: colors.accent },
-    error: { fontSize: 13, color: colors.danger },
+    buttonOff: { borderColor: colors.neutral800, opacity: 0.6 },
+    buttonText: { fontSize: 15, fontWeight: '500', color: colors.accentBase },
+    error: { fontSize: 13, color: colors.neutral400 },
   });

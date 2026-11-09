@@ -91,6 +91,26 @@ describe('resolveDueWords', () => {
     expect(unresolvedListIds.sort()).toEqual(['list-1', 'list-2']);
   });
 
+  it('counts the unresolved cards of each list', () => {
+    const otherList = {
+      word: 'stund',
+      partOfSpeech: null,
+      ipaTranscription: null,
+      audioMediaId: null,
+      listId: 'list-2',
+    };
+    const { unresolvedCountByList } = resolveDueWords(
+      [
+        card({ id: 'c1', contentId: 'nope-1' }),
+        card({ id: 'c2', contentId: 'nope-2' }),
+        card({ id: 'c3', contentId: 'nope-3', front: otherList }),
+      ],
+      [],
+    );
+
+    expect(unresolvedCountByList).toEqual({ 'list-1': 2, 'list-2': 1 });
+  });
+
   it('omits an unresolved card with no front from unresolvedListIds', () => {
     const { unresolvedCardIds, unresolvedListIds } = resolveDueWords(
       [card({ id: 'c1', contentId: 'item-1', front: null })],

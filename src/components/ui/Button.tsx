@@ -5,6 +5,7 @@ import { radii } from '../../theme/spacing';
 import { withAlpha } from './color';
 import { Icon, IconName } from './Icon';
 import { PressableScale } from './PressableScale';
+import { Spinner } from './Spinner';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost';
 export type ButtonSize = 36 | 40 | 44 | 48 | 52;
@@ -16,9 +17,13 @@ export interface ButtonProps {
   /** Full-width. */
   block?: boolean;
   icon?: IconName;
+  /** `fill` for a toggled state such as a saved bookmark. */
+  iconWeight?: 'regular' | 'fill';
   /** Icon-only button: square, needs `accessibilityLabel`. */
   iconOnly?: boolean;
   disabled?: boolean;
+  /** A wait in progress: a spinner in place of the content, not pressable. */
+  busy?: boolean;
   accessibilityLabel?: string;
   onPress?: () => void;
   style?: StyleProp<ViewStyle>;
@@ -35,8 +40,10 @@ export function Button({
   size = 48,
   block,
   icon,
+  iconWeight,
   iconOnly,
   disabled,
+  busy,
   accessibilityLabel,
   onPress,
   style,
@@ -65,8 +72,8 @@ export function Button({
     <PressableScale
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
-      accessibilityState={{ disabled: !!disabled }}
-      disabled={disabled}
+      accessibilityState={{ disabled: !!disabled, busy: !!busy }}
+      disabled={disabled || busy}
       onPress={onPress}
       onPressIn={() => setPressed(true)}
       onPressOut={() => setPressed(false)}
@@ -87,20 +94,29 @@ export function Button({
         style,
       ]}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        {icon ? <Icon name={icon} size={iconSize} color={fg} /> : null}
-        {!iconOnly && label ? (
-          <Text
-            numberOfLines={1}
-            style={[
-              typography.cardTitle,
-              { color: fg, fontFamily: typography.cardTitleMedium.fontFamily },
-            ]}
-          >
-            {label}
-          </Text>
-        ) : null}
-      </View>
+      {busy ? (
+        <Spinner size={iconSize} color={fg} />
+      ) : (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          {icon ? (
+            <Icon name={icon} size={iconSize} color={fg} weight={iconWeight} />
+          ) : null}
+          {!iconOnly && label ? (
+            <Text
+              numberOfLines={1}
+              style={[
+                typography.cardTitle,
+                {
+                  color: fg,
+                  fontFamily: typography.cardTitleMedium.fontFamily,
+                },
+              ]}
+            >
+              {label}
+            </Text>
+          ) : null}
+        </View>
+      )}
     </PressableScale>
   );
 }

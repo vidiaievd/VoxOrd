@@ -18,6 +18,7 @@ import {
   type Sitting,
   type SittingDriver,
 } from '../../hooks/useMinimalPairsSitting';
+import { Icon } from '../../components/ui';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
@@ -235,7 +236,7 @@ function Card({
         accessibilityRole="button"
       >
         {starting ? (
-          <ActivityIndicator size="small" color={colors.textInverted} />
+          <ActivityIndicator size="small" color={colors.accent300} />
         ) : (
           <Text style={styles.primaryText}>{t('exerciseRunner.minimalPairs.card.start')}</Text>
         )}
@@ -385,6 +386,7 @@ function PlayButton({
   styles: Styles;
 }) {
   const px = size === 'lg' ? 84 : 32;
+  const { colors } = useTheme();
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -400,7 +402,7 @@ function PlayButton({
         disabled === true && styles.playOff,
       ]}
     >
-      <Text style={[styles.playIcon, size === 'lg' && styles.playIconLg]}>{on ? '❚❚' : '▶'}</Text>
+      <Icon name={on ? 'Pause' : 'Play'} size={size === 'lg' ? 26 : 12} color={colors.accent300} />
     </TouchableOpacity>
   );
 }
@@ -486,11 +488,11 @@ function Run({
               style={[
                 styles.pip,
                 first === true
-                  ? { backgroundColor: colors.success }
+                  ? { backgroundColor: colors.accentBase }
                   : first === false
-                    ? { backgroundColor: colors.danger }
+                    ? { backgroundColor: colors.neutral600 }
                     : at === n
-                      ? { backgroundColor: colors.accent }
+                      ? { backgroundColor: colors.accentBase }
                       : null,
               ]}
             />
@@ -578,13 +580,12 @@ function Run({
               {ipa !== undefined ? <Text style={styles.optionIpa}>{ipa}</Text> : null}
               {gloss !== undefined ? <Text style={styles.optionGloss}>{gloss}</Text> : null}
               {st === 'right' || st === 'wrong' ? (
-                <View
-                  style={[
-                    styles.mark,
-                    { backgroundColor: st === 'right' ? colors.success : colors.danger },
-                  ]}
-                >
-                  <Text style={styles.markText}>{st === 'right' ? '✓' : '✕'}</Text>
+                <View style={styles.mark}>
+                  <Icon
+                    name={st === 'right' ? 'Check' : 'X'}
+                    size={14}
+                    color={st === 'right' ? colors.accent300 : colors.neutral400}
+                  />
                 </View>
               ) : null}
             </TouchableOpacity>
@@ -632,7 +633,7 @@ function Run({
                 const on = clips.playing(o.id);
                 return (
                   <View key={role} style={[styles.abCell, on && styles.abCellOn]}>
-                    <Text style={[styles.abLab, role === 'target' && { color: colors.success }]}>
+                    <Text style={[styles.abLab, role === 'target' && { color: colors.accent300 }]}>
                       {role === 'target'
                         ? t('exerciseRunner.minimalPairs.heard')
                         : t('exerciseRunner.minimalPairs.chosen')}
@@ -695,7 +696,7 @@ function Run({
         accessibilityRole="button"
       >
         {state.phase === 'finishing' ? (
-          <ActivityIndicator size="small" color={colors.textInverted} />
+          <ActivityIndicator size="small" color={colors.accent300} />
         ) : (
           <Text style={styles.primaryText}>
             {last
@@ -759,8 +760,8 @@ function Summary({
           {summary.right}
           <Text style={styles.scoreOf}>/{summary.total}</Text>
         </Text>
-        <View style={[styles.verdict, { backgroundColor: pass ? colors.success : colors.warning }]}>
-          <Text style={styles.verdictText}>
+        <View style={[styles.verdict, { borderColor: pass ? colors.accentBase : colors.neutral600 }]}>
+          <Text style={[styles.verdictText, { color: pass ? colors.accent300 : colors.neutral400 }]}>
             {pass
               ? t('exerciseRunner.minimalPairs.summary.passed')
               : t('exerciseRunner.minimalPairs.summary.again')}
@@ -790,7 +791,7 @@ function Summary({
                     styles.repFill,
                     {
                       width: `${ratio * 100}%`,
-                      backgroundColor: ratio < 0.6 ? colors.warning : colors.success,
+                      backgroundColor: ratio < 0.6 ? colors.neutral300 : colors.accent300,
                     },
                   ]}
                 />
@@ -839,91 +840,93 @@ const makeStyles = (colors: ColorScheme) =>
     },
     noticeTitle: {
       fontSize: 16,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
       textAlign: 'center',
       marginBottom: 6,
     },
     noticeDesc: {
       fontSize: 13,
-      color: colors.textMuted,
+      color: colors.neutral500,
       textAlign: 'center',
       lineHeight: 19,
     },
     card: {
-      backgroundColor: colors.backgroundCard,
+      backgroundColor: colors.surface,
       borderRadius: 16,
       padding: 18,
       gap: 8,
     },
-    cardTitle: { fontSize: 18, fontWeight: '700', color: colors.textPrimary },
-    cardFacts: { fontSize: 12, color: colors.textMuted },
-    cardLead: { fontSize: 15, lineHeight: 22, color: colors.textSecondary, marginTop: 4 },
-    cardHow: { fontSize: 12, lineHeight: 18, color: colors.textMuted },
-    cardNotice: { fontSize: 12, color: colors.textMuted },
+    cardTitle: { fontSize: 18, fontWeight: '500', color: colors.text },
+    cardFacts: { fontSize: 12, color: colors.neutral500 },
+    cardLead: { fontSize: 15, lineHeight: 22, color: colors.neutral400, marginTop: 4 },
+    cardHow: { fontSize: 12, lineHeight: 18, color: colors.neutral500 },
+    cardNotice: { fontSize: 12, color: colors.neutral500 },
     primary: {
       minHeight: TAP_MIN,
       borderRadius: 12,
-      backgroundColor: colors.accent,
+      borderWidth: 1,
+      borderColor: colors.accentBase,
       alignItems: 'center',
       justifyContent: 'center',
       paddingHorizontal: 16,
       marginTop: 10,
     },
     primaryOff: { opacity: 0.45 },
-    primaryText: { fontSize: 15, fontWeight: '700', color: colors.textInverted },
+    primaryText: { fontSize: 15, fontWeight: '500', color: colors.accent300 },
     secondary: {
       minHeight: TAP_MIN,
       borderRadius: 10,
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: colors.neutral800,
       alignItems: 'center',
       justifyContent: 'center',
       paddingHorizontal: 14,
     },
-    secondaryText: { fontSize: 13, fontWeight: '600', color: colors.textPrimary },
+    secondaryText: { fontSize: 13, fontWeight: '500', color: colors.text },
     top: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    topTitle: { flexShrink: 1, fontSize: 12, color: colors.textMuted },
-    topCount: { fontSize: 12, fontWeight: '700', color: colors.textMuted },
+    topTitle: { flexShrink: 1, fontSize: 12, color: colors.neutral500 },
+    topCount: { fontSize: 12, fontWeight: '500', color: colors.neutral500 },
     progressTrack: {
       flex: 1,
       height: 4,
       borderRadius: 2,
-      backgroundColor: colors.border,
+      backgroundColor: colors.neutral800,
       overflow: 'hidden',
     },
-    progressFill: { height: '100%', borderRadius: 2, backgroundColor: colors.accent },
+    progressFill: { height: '100%', borderRadius: 2, backgroundColor: colors.accentBase },
     pips: { flexDirection: 'row', justifyContent: 'center', gap: 4, marginVertical: 12 },
-    pip: { width: 16, height: 4, borderRadius: 2, backgroundColor: colors.border },
-    lead: { fontSize: 14, lineHeight: 20, color: colors.textSecondary, marginBottom: 12 },
+    pip: { width: 16, height: 4, borderRadius: 2, backgroundColor: colors.neutral800 },
+    lead: { fontSize: 14, lineHeight: 20, color: colors.neutral400, marginBottom: 12 },
     stage: {
       alignItems: 'center',
       gap: 12,
       paddingVertical: 26,
       paddingHorizontal: 16,
       borderRadius: 16,
-      backgroundColor: colors.backgroundCard,
+      backgroundColor: colors.surface,
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: colors.neutral800,
     },
-    stageOn: { backgroundColor: colors.accentLight, borderColor: colors.accent },
+    stageOn: { backgroundColor: colors.accent900, borderColor: colors.accentBase },
     stageMeta: { alignItems: 'center', gap: 3 },
-    stageText: { fontSize: 12, color: colors.textSecondary },
-    stageSub: { fontSize: 12, color: colors.textMuted },
+    stageText: { fontSize: 12, color: colors.neutral400 },
+    stageSub: { fontSize: 12, color: colors.neutral500 },
     leftRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     leftPips: { flexDirection: 'row', gap: 3 },
-    leftPip: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.accent },
-    leftPipSpent: { backgroundColor: colors.border },
+    leftPip: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.accentBase },
+    leftPipSpent: { backgroundColor: colors.neutral800 },
     play: {
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: colors.accent,
+      borderWidth: 1,
+      borderColor: colors.accentBase,
     },
-    playOn: { borderWidth: 3, borderColor: colors.accentLight },
-    playOff: { backgroundColor: colors.border },
-    playIcon: { fontSize: 12, color: colors.textInverted },
+    playOn: { borderWidth: 3, borderColor: colors.accent900 },
+    playOff: { backgroundColor: colors.neutral800 },
+    playIcon: { fontSize: 12, color: colors.accent300 },
     playIconLg: { fontSize: 26 },
-    retry: { fontSize: 12, color: colors.danger, marginTop: 10 },
+    retry: { fontSize: 12, color: colors.neutral400, marginTop: 10 },
     options: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 14 },
     option: {
       flexBasis: '47%',
@@ -936,22 +939,22 @@ const makeStyles = (colors: ColorScheme) =>
       paddingHorizontal: 12,
       borderRadius: 12,
       borderWidth: 1.5,
-      borderColor: colors.textMuted,
-      backgroundColor: colors.backgroundCard,
+      borderColor: colors.neutral500,
+      backgroundColor: colors.surface,
     },
     optionThird: { flexBasis: '30%' },
     optionRight: {
-      borderColor: colors.success,
-      backgroundColor: `${colors.success}22`,
+      borderColor: colors.accentBase,
+      backgroundColor: colors.accent900,
     },
     optionWrong: {
-      borderColor: colors.danger,
-      backgroundColor: `${colors.danger}22`,
+      borderColor: colors.neutral600,
+      backgroundColor: 'transparent',
     },
     optionDim: { opacity: 0.5 },
-    optionMain: { fontSize: 20, fontWeight: '500', color: colors.textPrimary },
-    optionIpa: { fontSize: 11, fontFamily: 'monospace', color: colors.textMuted },
-    optionGloss: { fontSize: 12, color: colors.textSecondary, textAlign: 'center' },
+    optionMain: { fontSize: 20, fontWeight: '500', color: colors.text },
+    optionIpa: { fontSize: 11, fontFamily: 'monospace', color: colors.neutral500 },
+    optionGloss: { fontSize: 12, color: colors.neutral400, textAlign: 'center' },
     mark: {
       position: 'absolute',
       top: 6,
@@ -962,23 +965,22 @@ const makeStyles = (colors: ColorScheme) =>
       alignItems: 'center',
       justifyContent: 'center',
     },
-    markText: { fontSize: 12, fontWeight: '700', color: '#ffffff' },
     fb: { gap: 10, marginTop: 14, padding: 12, borderRadius: 12, borderWidth: 1 },
-    fbOk: { borderColor: `${colors.success}80`, backgroundColor: `${colors.success}1a` },
-    fbBad: { borderColor: `${colors.warning}80`, backgroundColor: `${colors.warning}1a` },
+    fbOk: { borderColor: `${colors.accentBase}80`, backgroundColor: `${colors.accentBase}1a` },
+    fbBad: { borderColor: `${colors.accent700}80`, backgroundColor: `${colors.accent700}1a` },
     fbHead: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
-    fbTitle: { flexGrow: 1, fontSize: 14, fontWeight: '700', color: colors.textPrimary },
+    fbTitle: { flexGrow: 1, fontSize: 14, fontWeight: '500', color: colors.text },
     fbPlay: {
       minHeight: TAP_MIN,
       justifyContent: 'center',
       paddingHorizontal: 10,
       borderRadius: 8,
       borderWidth: 1,
-      borderColor: colors.border,
-      backgroundColor: colors.backgroundCard,
+      borderColor: colors.neutral800,
+      backgroundColor: colors.surface,
     },
-    fbPlayText: { fontSize: 12, fontWeight: '600', color: colors.textPrimary },
-    fbGloss: { fontSize: 12, color: colors.textMuted },
+    fbPlayText: { fontSize: 12, fontWeight: '500', color: colors.text },
+    fbGloss: { fontSize: 12, color: colors.neutral500 },
     ab: { flexDirection: 'row', gap: 8 },
     abCell: {
       flex: 1,
@@ -987,19 +989,19 @@ const makeStyles = (colors: ColorScheme) =>
       padding: 10,
       borderRadius: 8,
       borderWidth: 1,
-      borderColor: colors.border,
-      backgroundColor: colors.backgroundCard,
+      borderColor: colors.neutral800,
+      backgroundColor: colors.surface,
     },
-    abCellOn: { borderColor: colors.accent },
+    abCellOn: { borderColor: colors.accentBase },
     abLab: {
       fontSize: 10,
       letterSpacing: 0.5,
       textTransform: 'uppercase',
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
-    abWord: { fontSize: 18, fontWeight: '700', color: colors.textPrimary },
+    abWord: { fontSize: 18, fontWeight: '500', color: colors.text },
     failure: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginTop: 12 },
-    failureText: { fontSize: 12, color: colors.danger },
+    failureText: { fontSize: 12, color: colors.neutral400 },
     score: {
       alignItems: 'center',
       gap: 6,
@@ -1008,28 +1010,28 @@ const makeStyles = (colors: ColorScheme) =>
       borderRadius: 16,
       borderWidth: 1,
     },
-    scorePass: { borderColor: `${colors.success}80`, backgroundColor: `${colors.success}1a` },
-    scoreAgain: { borderColor: `${colors.warning}80`, backgroundColor: `${colors.warning}1a` },
-    scoreNum: { fontSize: 40, fontWeight: '700', color: colors.textPrimary },
-    scoreOf: { fontSize: 20, fontWeight: '400', color: colors.textMuted },
-    verdict: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
-    verdictText: { fontSize: 12, fontWeight: '700', color: '#ffffff' },
-    scoreSub: { fontSize: 12, color: colors.textMuted },
+    scorePass: { borderColor: `${colors.accentBase}80`, backgroundColor: `${colors.accentBase}1a` },
+    scoreAgain: { borderColor: `${colors.accent700}80`, backgroundColor: `${colors.accent700}1a` },
+    scoreNum: { fontSize: 40, fontWeight: '500', color: colors.text },
+    scoreOf: { fontSize: 20, fontWeight: '400', color: colors.neutral500 },
+    verdict: { borderRadius: 999, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 3 },
+    verdictText: { fontSize: 12, fontWeight: '500' },
+    scoreSub: { fontSize: 12, color: colors.neutral500 },
     sumList: { gap: 6, marginTop: 14 },
     sumRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    sumWords: { flex: 1, fontSize: 15, color: colors.textPrimary },
+    sumWords: { flex: 1, fontSize: 15, color: colors.text },
     repTrack: {
       width: 70,
       height: 7,
       borderRadius: 4,
       overflow: 'hidden',
-      backgroundColor: colors.border,
+      backgroundColor: colors.neutral800,
     },
     repFill: { height: '100%' },
-    sumCount: { width: 36, fontSize: 11, fontFamily: 'monospace', color: colors.textMuted },
+    sumCount: { width: 36, fontSize: 11, fontFamily: 'monospace', color: colors.neutral500 },
     callout: { marginTop: 14, padding: 12, borderRadius: 10, borderWidth: 1 },
-    calloutTip: { borderColor: colors.accent, backgroundColor: colors.accentLight },
-    calloutInfo: { borderColor: colors.border, backgroundColor: colors.backgroundInput },
-    calloutText: { fontSize: 13, lineHeight: 19, color: colors.textPrimary },
-    calloutBold: { fontWeight: '700' },
+    calloutTip: { borderColor: colors.accentBase, backgroundColor: colors.accent900 },
+    calloutInfo: { borderColor: colors.neutral800, backgroundColor: colors.surface },
+    calloutText: { fontSize: 13, lineHeight: 19, color: colors.text },
+    calloutBold: { fontWeight: '500' },
   });

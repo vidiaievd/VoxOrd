@@ -1,16 +1,11 @@
-import React, { useCallback, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ActivityIndicator,
-  ScrollView,
-  TouchableOpacity,
-} from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { View, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
-import { ColorScheme } from '../../theme/colors';
+import { useModal } from '../../providers/ModalProvider';
+import { useBackIntercept } from '../../navigation/backIntercept';
+import { radii } from '../../theme/spacing';
 import {
   primarySet,
   useCourseReviewSets,
@@ -19,20 +14,21 @@ import { useCourseReviewSession } from '../../hooks/useCourseReviewSession';
 import type { DeckReviewSet } from '../../lib/courseReviewLoader';
 import type { Deck } from '../../repositories/DeckRepository';
 import { OfflineBanner } from '../../components/OfflineBanner';
-import { CardScreen } from '../CardScreen';
-import { QuizExercise } from '../LearningScreen/exercises/QuizExercise';
-import { SpellingExercise } from '../LearningScreen/exercises/SpellingExercise';
-import { ListeningExercise } from '../LearningScreen/exercises/ListeningExercise';
-import { PhaseTracker } from './PhaseTracker';
+import { Button, Skeleton, Spinner } from '../../components/ui';
+import { PhaseTracker, SessionHeader } from '../../components/practice';
+import { PreviewPhase } from '../../components/practice/PreviewPhase';
+import { ListeningPhase, QuizPhase } from '../../components/practice/ChoicePhase';
+import { SpellingPhase } from '../../components/practice/SpellingPhase';
+import { QuotaGate } from './QuotaGate';
+import { NothingDue } from './NothingDue';
 import { SessionSummary } from './SessionSummary';
-import { ImportUnresolvedList } from './ImportUnresolvedList';
 
 interface ReviewSessionScreenProps {
   onBack: () => void;
 }
 
 /**
- * Course-word review session.
+ * Course-word review session (Practice §7, 6b–6f, 6j).
  *
  * The rating sent to the server is **derived from what the user did**, never
  * self-reported: the same due words are drilled through listening, quiz and
@@ -46,97 +42,67 @@ interface ReviewSessionScreenProps {
  */
 export function ReviewSessionScreen({ onBack }: ReviewSessionScreenProps) {
   const { t } = useTranslation();
-  const { colors } = useTheme();
-  const styles = makeStyles(colors);
+  const { colors, typography } = useTheme();
   const { loading, error, offline, overview, decks, reload } = useCourseReviewSets();
   const [carryOnPastLimit, setCarryOnPastLimit] = useState(false);
 
   const set = primarySet(overview);
   const deck = set ? decks.get(set.deckId) ?? null : null;
 
+  const frame = (children: React.ReactNode) => (
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
+      <SessionHeader
+        title={t('review.title')}
+        leading="back"
+        leadingLabel={t('common.back')}
+        onLeading={onBack}
+      />
+      {children}
+    </SafeAreaView>
+  );
+
   if (loading) {
-    return (
-      <Frame onBack={onBack} styles={styles} title={t('review.title')}>
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={colors.accent} />
-        </View>
-      </Frame>
-    );
+    return frame(<CardSkeleton />);
   }
 
   if (error) {
-    return (
-      <Frame onBack={onBack} styles={styles} title={t('review.title')}>
+    return frame(
+      <>
         {offline && <OfflineBanner />}
-        <View style={styles.centered}>
-          <Text style={styles.message}>
+        <View style={{ flex: 1, justifyContent: 'center', paddingHorizontal: 28, gap: 14 }}>
+          <Text style={[typography.body, { color: colors.neutral400 }]}>
             {offline ? t('review.offlineLoad') : t('review.loadError')}
           </Text>
-          <TouchableOpacity style={styles.primaryButton} onPress={reload} activeOpacity={0.8}>
-            <Text style={styles.primaryButtonText}>{t('courses.retry')}</Text>
-          </TouchableOpacity>
+          <Button variant="secondary" label={t('courses.retry')} onPress={reload} />
         </View>
-      </Frame>
+      </>,
     );
   }
 
   if (!set || !deck) {
-    // Three different situations land here and the copy has to tell them apart:
-    // nothing is due; something is due but its list was never imported; or the
-    // deck row vanished under us.
-    const unresolved = overview?.unresolvedCardIds.length ?? 0;
-    const unresolvedListIds = overview?.unresolvedListIds ?? [];
-    return (
-      <Frame onBack={onBack} styles={styles} title={t('review.title')}>
-        {/* «Nothing due» from the phone's copy is as of its last refresh. */}
+    // Nothing is due, or what is due sits in a list that was never imported, or
+    // the deck row vanished under us. «Nothing due» from the phone's copy is as
+    // of its last refresh, hence the banner.
+    return frame(
+      <>
         {overview?.fromReplica && <OfflineBanner />}
-        <View style={styles.centered}>
-          <Text style={styles.doneTitle}>{t('review.nothingDue')}</Text>
-          {unresolved > 0 && (
-            <Text style={styles.message}>
-              {t('review.notImported', { count: unresolved })}
-            </Text>
-          )}
-          {unresolvedListIds.map((listId) => (
-            <ImportUnresolvedList key={listId} listId={listId} onImported={reload} />
-          ))}
-          <TouchableOpacity style={styles.primaryButton} onPress={onBack} activeOpacity={0.8}>
-            <Text style={styles.primaryButtonText}>{t('common.back')}</Text>
-          </TouchableOpacity>
-        </View>
-      </Frame>
+        <NothingDue overview={overview} onImported={reload} onBack={onBack} />
+      </>,
     );
   }
 
-  // The day's quota is met. On mobile this used to be invisible: the learner
-  // drilled a whole multi-phase set and every rating it produced then sat in the
-  // queue until tomorrow, unsent and unmentioned. So the question is asked before
-  // the work, not after it — and it is a question, because the material is
-  // already due and only the person feeling tired can weigh that cost.
-  //
-  // Finishing is the primary action; carrying on is the quiet one. No streak, no
-  // over-quota tally: in spaced repetition the extra work is paid for later.
   const quotaMet =
     !!overview && overview.dailyLimit > 0 && overview.reviewedToday >= overview.dailyLimit;
 
   if (quotaMet && !carryOnPastLimit) {
-    return (
-      <Frame onBack={onBack} styles={styles} title={t('review.title')}>
-        <View style={styles.centered}>
-          <Text style={styles.doneTitle}>{t('review.quotaMetTitle')}</Text>
-          <Text style={styles.message}>{t('review.quotaMetBody')}</Text>
-          <TouchableOpacity style={styles.primaryButton} onPress={onBack} activeOpacity={0.8}>
-            <Text style={styles.primaryButtonText}>{t('review.quotaMetFinish')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.secondaryButton}
-            onPress={() => setCarryOnPastLimit(true)}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.secondaryButtonText}>{t('review.quotaMetCarryOn')}</Text>
-          </TouchableOpacity>
-        </View>
-      </Frame>
+    return frame(
+      <QuotaGate
+        reviewedToday={overview.reviewedToday}
+        dailyLimit={overview.dailyLimit}
+        totalDue={overview.totalDue}
+        onFinish={onBack}
+        onCarryOn={() => setCarryOnPastLimit(true)}
+      />,
     );
   }
 
@@ -145,8 +111,8 @@ export function ReviewSessionScreen({ onBack }: ReviewSessionScreenProps) {
       set={set}
       deck={deck}
       carryOnPastLimit={carryOnPastLimit}
+      fromReplica={!!overview?.fromReplica}
       onBack={onBack}
-      onDone={onBack}
     />
   );
 }
@@ -156,8 +122,8 @@ interface RunningSessionProps {
   deck: Deck;
   /** The learner chose to keep going past today's quota; rides on every rating. */
   carryOnPastLimit: boolean;
+  fromReplica: boolean;
   onBack: () => void;
-  onDone: () => void;
 }
 
 /**
@@ -169,222 +135,165 @@ function RunningSession({
   set,
   deck,
   carryOnPastLimit,
+  fromReplica,
   onBack,
-  onDone,
 }: RunningSessionProps) {
   const { t } = useTranslation();
-  const { colors } = useTheme();
-  const styles = makeStyles(colors);
-  const { state, tracking, wordIds, advance } = useCourseReviewSession(set, {
+  const { colors, typography } = useTheme();
+  const { show } = useModal();
+  const { state, tracking, wordIds, advance, finishEarly } = useCourseReviewSession(set, {
     carryOnPastLimit,
   });
+  const [progress, setProgress] = useState<{ index: number; total: number } | null>(null);
+  // Set when the learner leaves mid-session: once what was collected is posted, go back
+  // instead of showing the summary.
+  const leavingRef = useRef(false);
 
-  // Every exercise reports a correct count we do not use: the rating comes from
-  // the accumulated per-answer evidence, not from a phase score.
-  const handlePhaseDone = useCallback(() => advance(), [advance]);
-  const handlePreviewDone = useCallback(() => advance(), [advance]);
+  useEffect(() => setProgress(null), [state.phaseIndex]);
+  const handleProgress = useCallback(
+    (index: number, total: number) => setProgress({ index, total }),
+    [],
+  );
 
-  if (state.stage === 'loading' || state.stage === 'submitting') {
-    return (
-      <Frame onBack={onBack} styles={styles} title={t('review.title')}>
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={colors.accent} />
-          {state.stage === 'submitting' && (
-            <Text style={styles.message}>{t('review.submitting')}</Text>
-          )}
-        </View>
-      </Frame>
+  useEffect(() => {
+    if (state.stage === 'complete' && leavingRef.current) onBack();
+  }, [state.stage, onBack]);
+
+  /*
+    Leaving mid-session (the X and the phone's Back alike, Practice §12): before the first
+    answer there is nothing to lose, so it just leaves. After one, it asks — and on yes posts
+    what was collected exactly as finishing does, then goes back. Ratings that cannot reach the
+    server wait in the queue as usual.
+  */
+  const leave = useCallback(() => {
+    if (!state.hasAnswers) {
+      onBack();
+      return;
+    }
+    show({
+      type: 'confirm',
+      title: t('reviewSession.exitTitle'),
+      message: t('reviewSession.exitBody'),
+      confirmLabel: t('reviewSession.exitConfirm'),
+      cancelLabel: t('common.cancel'),
+      onConfirm: () => {
+        leavingRef.current = true;
+        finishEarly();
+      },
+    });
+  }, [state.hasAnswers, onBack, show, t, finishEarly]);
+
+  useBackIntercept(() => {
+    if (state.stage === 'running') {
+      leave();
+      return true;
+    }
+    // Posting: stay until it is done. Loading or the summary: Back goes back as usual.
+    return state.stage === 'submitting';
+  });
+
+  const frame = (children: React.ReactNode, opts: { close?: () => void; counter?: string } = {}) => (
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
+      <SessionHeader
+        title={set.deckTitle || t('review.title')}
+        leadingLabel={t('common.close')}
+        onLeading={opts.close ?? leave}
+        counter={opts.counter}
+      />
+      {children}
+    </SafeAreaView>
+  );
+
+  if (state.stage === 'loading') {
+    return frame(<CardSkeleton />);
+  }
+
+  if (state.stage === 'submitting') {
+    return frame(
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14 }}>
+        <Spinner size={28} color={colors.accentBase} />
+        <Text style={{ fontSize: 15, color: colors.neutral400 }}>{t('review.submitting')}</Text>
+      </View>,
+      { close: () => undefined },
     );
   }
 
   if (state.stage === 'complete') {
+    if (leavingRef.current) return null;
     return (
-      <Frame onBack={onBack} styles={styles} title={t('review.title')}>
-        <ScrollView contentContainerStyle={styles.centered}>
-          <SessionSummary
-            submitted={state.submitted}
-            ungradedCount={state.ungradedCount}
-            onDone={onDone}
-          />
-        </ScrollView>
-      </Frame>
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
+        <SessionHeader
+          title={t('review.title')}
+          leadingLabel={t('common.close')}
+          onLeading={onBack}
+        />
+        <SessionSummary
+          submitted={state.submitted}
+          ungradedCount={state.ungradedCount}
+          byPhase={state.byPhase}
+          elapsedMs={state.elapsedMs}
+          onDone={onBack}
+        />
+      </SafeAreaView>
     );
   }
 
-  const header = (
-    <View style={styles.header}>
-      <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.7}>
-        <Text style={styles.backText}>‹ {t('common.back')}</Text>
-      </TouchableOpacity>
-      <Text style={styles.headerTitle} numberOfLines={1}>
-        {set.deckTitle || t('review.title')}
-      </Text>
-      <PhaseTracker
-        phase={state.phase}
-        phaseIndex={state.phaseIndex}
-        totalPhases={state.totalPhases}
-      />
-    </View>
-  );
+  const phaseProps = {
+    deckId: set.deckId,
+    languageCode: deck.languageCode,
+    wordIds,
+    tracking,
+    onDone: advance,
+    onProgress: handleProgress,
+  };
 
   const body = () => {
     switch (state.phase) {
       case 'preview':
         return (
-          <CardScreen
-            deck={deck}
-            mode="review"
-            overrideWords={state.previewWords}
-            onBack={onBack}
-            onDeepDone={handlePreviewDone}
+          <PreviewPhase
+            deckId={set.deckId}
+            languageCode={deck.languageCode}
+            words={state.previewWords}
+            onDone={advance}
+            onProgress={handleProgress}
           />
         );
       case 'listening':
-        return (
-          <ListeningExercise
-            deckId={set.deckId}
-            overrideWordIds={wordIds}
-            onBack={onBack}
-            onSessionDone={handlePhaseDone}
-            onComplete={handlePhaseDone}
-            tracking={tracking}
-          />
-        );
+        return <ListeningPhase {...phaseProps} />;
       case 'quiz':
-        return (
-          <QuizExercise
-            deckId={set.deckId}
-            overrideWordIds={wordIds}
-            onBack={onBack}
-            onSessionDone={handlePhaseDone}
-            onComplete={handlePhaseDone}
-            tracking={tracking}
-          />
-        );
+        return <QuizPhase {...phaseProps} />;
       case 'spelling':
-        return (
-          <SpellingExercise
-            deckId={set.deckId}
-            overrideWordIds={wordIds}
-            onBack={onBack}
-            onSessionDone={handlePhaseDone}
-            onComplete={handlePhaseDone}
-            tracking={tracking}
-          />
-        );
+        return <SpellingPhase {...phaseProps} />;
       default:
         return (
-          <View style={styles.centered}>
-            <Text style={styles.message}>{t('review.nothingDue')}</Text>
+          <View style={{ flex: 1, justifyContent: 'center', paddingHorizontal: 28 }}>
+            <Text style={[typography.body, { color: colors.neutral400 }]}>
+              {t('review.nothingDue')}
+            </Text>
           </View>
         );
     }
   };
 
-  return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      {header}
-      <View style={styles.flex}>{body()}</View>
-    </SafeAreaView>
-  );
-}
-
-interface FrameProps {
-  title: string;
-  onBack: () => void;
-  styles: ReturnType<typeof makeStyles>;
-  children: React.ReactNode;
-}
-
-function Frame({ title, onBack, styles, children }: FrameProps) {
-  const { t } = useTranslation();
-  return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.7}>
-          <Text style={styles.backText}>‹ {t('common.back')}</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{title}</Text>
-        <View style={styles.backButton} />
+  return frame(
+    <>
+      {fromReplica && <OfflineBanner />}
+      <PhaseTracker phases={state.phases} index={state.phaseIndex} />
+      {/* Keyed per phase: each phase hook loads its own questions on mount. */}
+      <View key={state.phaseIndex} style={{ flex: 1 }}>
+        {body()}
       </View>
-      {children}
-    </SafeAreaView>
+    </>,
+    { counter: progress ? `${progress.index}/${progress.total}` : undefined },
   );
 }
 
-const makeStyles = (colors: ColorScheme) =>
-  StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    flex: {
-      flex: 1,
-    },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: 16,
-      paddingVertical: 12,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-      gap: 8,
-    },
-    backButton: {
-      minWidth: 70,
-    },
-    backText: {
-      fontSize: 16,
-      color: colors.accent,
-    },
-    headerTitle: {
-      flex: 1,
-      textAlign: 'center',
-      fontSize: 17,
-      fontWeight: '600',
-      color: colors.textPrimary,
-    },
-    centered: {
-      flexGrow: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: 32,
-      gap: 12,
-    },
-    message: {
-      fontSize: 15,
-      color: colors.textSecondary,
-      textAlign: 'center',
-    },
-    doneTitle: {
-      fontSize: 22,
-      fontWeight: '700',
-      color: colors.textPrimary,
-      textAlign: 'center',
-    },
-    primaryButton: {
-      marginTop: 8,
-      backgroundColor: colors.accent,
-      borderRadius: 12,
-      paddingVertical: 12,
-      paddingHorizontal: 28,
-    },
-    primaryButtonText: {
-      color: colors.textInverted,
-      fontSize: 16,
-      fontWeight: '600',
-    },
-    secondaryButton: {
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: colors.border,
-      paddingVertical: 12,
-      paddingHorizontal: 28,
-    },
-    secondaryButtonText: {
-      color: colors.textPrimary,
-      fontSize: 16,
-      fontWeight: '500',
-    },
-  });
+/** Loading: the session's frame with a pulsing 400 card where the word will be (§7.7). */
+function CardSkeleton() {
+  return (
+    <View style={{ flex: 1, justifyContent: 'center', paddingHorizontal: 20 }}>
+      <Skeleton height={400} radius={radii.card} />
+    </View>
+  );
+}

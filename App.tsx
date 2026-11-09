@@ -4,6 +4,7 @@ import { getDatabase } from './src/db/database';
 import { runMigrations } from './src/db/migrationRunner';
 import { seedAppRows } from './src/db/seed';
 import { settingsStore } from './src/store/settingsStore';
+import { watchDeviceLocales } from './src/i18n/deviceLocales';
 import { apiSettingsStore } from './src/store/apiSettingsStore';
 import { authService } from './src/api/auth';
 import { sessionSync } from './src/services/sessionSync';
@@ -25,6 +26,8 @@ export default function App() {
         await seedAppRows(db);
 
         await settingsStore.load();
+        // «As on the phone» follows a language changed in the phone's settings meanwhile.
+        watchDeviceLocales();
         await apiSettingsStore.load();
 
         // Platform session restore is deliberately NOT awaited: it performs a

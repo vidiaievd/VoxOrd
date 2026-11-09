@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal } from 'reac
 import { useTranslation } from '../../../i18n';
 import { useTheme } from '../../../providers/ThemeProvider';
 import { ColorScheme } from '../../../theme/colors';
-import { SettingsSection } from '../components/SettingsSection';
+import { SettingsGroup } from '../../../components/ui';
 import { apiSettingsStore } from '../../../store/apiSettingsStore';
 import { useApiSettings } from '../../../hooks/useApiSettings';
 import { UiKitScreen } from '../UiKitScreen';
@@ -49,7 +49,7 @@ export function DeveloperSection() {
   }
 
   return (
-    <SettingsSection title={t('settings.developer')}>
+    <SettingsGroup title={t('settings.developer')}>
       <View style={styles.row}>
         <Text style={styles.label}>{t('settings.apiBaseUrl')}</Text>
         <View style={styles.inputRow}>
@@ -93,7 +93,7 @@ export function DeveloperSection() {
           </Modal>
         </View>
       ) : null}
-    </SettingsSection>
+    </SettingsGroup>
   );
 }
 

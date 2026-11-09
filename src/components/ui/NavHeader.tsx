@@ -2,12 +2,19 @@ import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useTheme } from '../../providers/ThemeProvider';
 import { Icon, IconName } from './Icon';
+import { Spinner } from './Spinner';
 
 export interface NavHeaderProps {
   /** Label of the parent screen, shown beside the arrow. */
   parentLabel: string;
   onBack: () => void;
-  right?: { icon: IconName; accessibilityLabel: string; onPress: () => void };
+  right?: {
+    icon: IconName;
+    accessibilityLabel: string;
+    onPress: () => void;
+    /** Shows a turning spinner instead of the icon. */
+    spinning?: boolean;
+  };
 }
 
 /** 48 high, no bottom border; the screen's title lives in the body, not here. */
@@ -58,7 +65,11 @@ export function NavHeader({ parentLabel, onBack, right }: NavHeaderProps) {
             justifyContent: 'center',
           }}
         >
-          <Icon name={right.icon} size={20} color={colors.text} />
+          {right.spinning ? (
+            <Spinner size={20} color={colors.text} />
+          ) : (
+            <Icon name={right.icon} size={20} color={colors.text} />
+          )}
         </Pressable>
       ) : null}
     </View>

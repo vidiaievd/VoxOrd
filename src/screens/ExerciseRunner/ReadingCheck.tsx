@@ -57,7 +57,7 @@ export function ReadingCheck({
           <Text
             style={[
               styles.chipText,
-              { color: prompt.passed ? colors.success : colors.warning },
+              { color: prompt.passed ? colors.accent300 : colors.neutral300 },
             ]}
           >
             {prompt.passed ? '✓ ' : '✕ '}
@@ -357,57 +357,57 @@ const makeStyles = (colors: ColorScheme) =>
       paddingHorizontal: 8,
       paddingVertical: 2,
     },
-    chipOk: { backgroundColor: `${colors.success}1F` },
-    chipLow: { backgroundColor: `${colors.warning}1F` },
-    chipText: { fontSize: 12, fontWeight: '700' },
+    chipOk: { backgroundColor: `${colors.accentBase}1F` },
+    chipLow: { backgroundColor: `${colors.accent700}1F` },
+    chipText: { fontSize: 12, fontWeight: '500' },
     count: {
       fontSize: 13,
-      color: colors.textPrimary,
+      color: colors.text,
       fontVariant: ['tabular-nums'],
     },
     mark: {
       fontSize: 13,
-      color: colors.textMuted,
+      color: colors.neutral500,
       fontVariant: ['tabular-nums'],
     },
     passage: {
       fontSize: 16,
       lineHeight: 26,
-      color: colors.textPrimary,
+      color: colors.text,
     },
-    bold: { fontWeight: '700' },
+    bold: { fontWeight: '500' },
     missed: {
       textDecorationLine: 'line-through',
-      color: colors.warning,
-      backgroundColor: `${colors.warning}1F`,
+      color: colors.neutral300,
+      backgroundColor: `${colors.accent700}1F`,
     },
     misread: {
       textDecorationLine: 'underline',
-      textDecorationColor: colors.warning,
+      textDecorationColor: colors.accent700,
     },
     heard: {
       fontSize: 12,
-      color: colors.warning,
+      color: colors.neutral300,
     },
     extra: {
       fontSize: 13,
       fontStyle: 'italic',
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     legend: {
       fontSize: 12,
       lineHeight: 17,
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     note: {
       fontSize: 13,
       lineHeight: 18,
-      color: colors.textSecondary,
+      color: colors.neutral400,
     },
     pronunciation: {
       gap: 2,
       borderRadius: 10,
-      backgroundColor: colors.backgroundInput,
+      backgroundColor: colors.surface,
       paddingHorizontal: 12,
       paddingVertical: 8,
     },

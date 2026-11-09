@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { lessonReaderResource, type LessonReaderData } from '../lib/courseResources';
-import { useSettings } from './useSettings';
+import { useUiLanguage } from '../i18n';
 import { useSwrResource } from './useSwrResource';
 
 export type { LessonReaderData };
@@ -29,7 +29,7 @@ export interface LessonReaderState {
  * than trusting a TTL.
  */
 export function useLessonReader(lessonId: string, courseId: string): LessonReaderState {
-  const { uiLanguage } = useSettings();
+  const uiLanguage = useUiLanguage();
   const resource = useMemo(
     () => lessonReaderResource(lessonId, courseId, uiLanguage),
     [lessonId, courseId, uiLanguage],

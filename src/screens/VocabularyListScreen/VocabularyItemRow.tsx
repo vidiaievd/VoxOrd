@@ -1,8 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
+import Tts from 'react-native-tts';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
+import { useAudioPlayer } from '../../hooks/useAudioPlayer';
+import { Button } from '../../components/ui';
 import {
   parseGrammaticalForms,
   humanizeFormKey,
@@ -14,18 +17,31 @@ interface VocabularyItemRowProps {
   item: VocabularyItemDisplay;
   expanded: boolean;
   onToggle: () => void;
+  /** The word is in «My words»: the bookmark is filled. */
+  mine: boolean;
+  onToggleMine: () => void;
+  /** The course's TTS locale, when the phone can read it; the recording is used first. */
+  speechLocale: string | null;
 }
 
 /**
- * One word of a course vocabulary list. Word, part of speech and translation
- * are always visible — a vocabulary list is read alongside the lesson text, so
- * it has to work as a reference table, not a quiz. Everything the authors filled
- * in beyond that (inflections, examples, usage notes) is one tap away.
+ * One word of a course vocabulary list (Courses §8.4): the speaker, the word with its part
+ * of speech and translation, and the bookmark. A vocabulary list is read alongside the lesson
+ * text, so it has to work as a reference table, not a quiz. Everything the authors filled in
+ * beyond that (inflections, examples, usage notes) is one tap away.
  */
-export function VocabularyItemRow({ item, expanded, onToggle }: VocabularyItemRowProps) {
-  const { colors } = useTheme();
+export function VocabularyItemRow({
+  item,
+  expanded,
+  onToggle,
+  mine,
+  onToggleMine,
+  speechLocale,
+}: VocabularyItemRowProps) {
+  const { colors, typography } = useTheme();
   const { t } = useTranslation();
   const styles = makeStyles(colors);
+  const player = useAudioPlayer(item.pronunciationAudioMediaId);
 
   const translation = formatTranslation(item);
   const forms = parseGrammaticalForms(item.grammaticalProperties);
@@ -38,37 +54,86 @@ export function VocabularyItemRow({ item, expanded, onToggle }: VocabularyItemRo
     item.translation?.usageNotes != null ||
     item.translation?.falseFriendWarning != null;
 
+  const canSpeak = item.pronunciationAudioMediaId !== null || speechLocale !== null;
+  const speak = () => {
+    if (item.pronunciationAudioMediaId !== null) {
+      player.toggle();
+      return;
+    }
+    if (!speechLocale) return;
+    Tts.setDefaultLanguage(speechLocale)
+      .catch(() => undefined)
+      .finally(() => {
+        Tts.stop();
+        Tts.speak(item.word);
+      });
+  };
+
   return (
-    <View style={styles.card}>
-      <TouchableOpacity
-        style={styles.head}
-        onPress={onToggle}
-        activeOpacity={hasDetails ? 0.85 : 1}
-        disabled={!hasDetails}
-      >
-        <View style={styles.headMain}>
+    <View style={styles.row}>
+      <View style={styles.head}>
+        {canSpeak ? (
+          <Button
+            variant="ghost"
+            size={36}
+            iconOnly
+            icon="SpeakerHigh"
+            accessibilityLabel={t('lessonReader.listenToWord')}
+            onPress={speak}
+          />
+        ) : (
+          <View style={{ width: 36 }} />
+        )}
+
+        <Pressable
+          style={styles.main}
+          onPress={onToggle}
+          disabled={!hasDetails}
+          accessibilityRole={hasDetails ? 'button' : undefined}
+          accessibilityState={hasDetails ? { expanded } : undefined}
+        >
           <View style={styles.wordLine}>
-            <Text style={styles.word}>{item.word}</Text>
+            <Text style={[typography.cardTitle, { color: colors.text }]}>{item.word}</Text>
             {item.partOfSpeech !== null && (
-              <View style={styles.posBadge}>
-                <Text style={styles.posText}>{partOfSpeechLabel(item.partOfSpeech, t)}</Text>
-              </View>
+              <Text style={[typography.meta, { color: colors.neutral500 }]}>
+                {partOfSpeechLabel(item.partOfSpeech, t)}
+              </Text>
             )}
             {item.personal && (
-              <View style={styles.posBadge}>
-                <Text style={styles.posText}>{t('myWords.mineBadge')}</Text>
-              </View>
+              <Text style={[typography.meta, { color: colors.accent300 }]}>
+                {t('myWords.mineBadge')}
+              </Text>
             )}
           </View>
           {item.ipaTranscription !== null && (
-            <Text style={styles.ipa}>{item.ipaTranscription}</Text>
+            <Text style={[typography.meta, { color: colors.neutral500 }]}>
+              {item.ipaTranscription}
+            </Text>
           )}
-          <Text style={translation ? styles.translation : styles.translationMissing}>
+          <Text
+            style={[
+              typography.secondary,
+              { color: colors.neutral400 },
+              !translation && { fontStyle: 'italic' },
+            ]}
+          >
             {translation ?? t('vocabulary.noTranslation')}
           </Text>
-        </View>
-        {hasDetails && <Text style={styles.chevron}>{expanded ? '▾' : '▸'}</Text>}
-      </TouchableOpacity>
+        </Pressable>
+
+        <Button
+          variant="ghost"
+          size={44}
+          iconOnly
+          icon="BookmarkSimple"
+          iconWeight={mine ? 'fill' : 'regular'}
+          accessibilityLabel={
+            mine ? t('vocabulary.removeFromMyWords') : t('vocabulary.addToMyWords')
+          }
+          onPress={onToggleMine}
+          style={{ borderWidth: 0 }}
+        />
+      </View>
 
       {expanded && hasDetails && (
         <View style={styles.details}>
@@ -151,75 +216,35 @@ function partOfSpeechLabel(pos: string, t: (path: string) => string): string {
 
 const makeStyles = (colors: ColorScheme) =>
   StyleSheet.create({
-    card: {
-      backgroundColor: colors.backgroundCard,
-      borderRadius: 14,
-      marginHorizontal: 16,
-      marginBottom: 8,
-      overflow: 'hidden',
+    row: {
+      borderTopWidth: 1,
+      borderTopColor: colors.neutral800,
+      marginHorizontal: 18,
     },
     head: {
       flexDirection: 'row',
       alignItems: 'center',
-      padding: 12,
+      paddingVertical: 10,
+      gap: 10,
     },
-    headMain: {
+    main: {
       flex: 1,
+      gap: 2,
     },
     wordLine: {
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'baseline',
       flexWrap: 'wrap',
-    },
-    word: {
-      fontSize: 16,
-      fontWeight: '700',
-      color: colors.textPrimary,
-      marginRight: 8,
-    },
-    posBadge: {
-      borderRadius: 8,
-      paddingHorizontal: 6,
-      paddingVertical: 2,
-      backgroundColor: `${colors.accent}22`,
-    },
-    posText: {
-      fontSize: 10,
-      fontWeight: '700',
-      color: colors.accent,
-      textTransform: 'lowercase',
-    },
-    ipa: {
-      fontSize: 12,
-      color: colors.textMuted,
-      marginTop: 2,
-    },
-    translation: {
-      fontSize: 14,
-      color: colors.textSecondary,
-      marginTop: 4,
-    },
-    translationMissing: {
-      fontSize: 14,
-      color: colors.textMuted,
-      fontStyle: 'italic',
-      marginTop: 4,
-    },
-    chevron: {
-      fontSize: 14,
-      color: colors.textMuted,
-      paddingLeft: 10,
+      gap: 8,
     },
     details: {
-      paddingHorizontal: 12,
+      paddingLeft: 46,
       paddingBottom: 12,
-      borderTopWidth: 1,
-      borderTopColor: colors.border,
-      paddingTop: 10,
+      gap: 2,
     },
     definition: {
       fontSize: 13,
-      color: colors.textSecondary,
+      color: colors.neutral300,
       lineHeight: 19,
       marginBottom: 8,
     },
@@ -228,8 +253,7 @@ const makeStyles = (colors: ColorScheme) =>
     },
     blockTitle: {
       fontSize: 11,
-      fontWeight: '700',
-      color: colors.textMuted,
+      color: colors.neutral500,
       textTransform: 'uppercase',
       letterSpacing: 0.5,
       marginBottom: 4,
@@ -241,14 +265,13 @@ const makeStyles = (colors: ColorScheme) =>
     },
     formLabel: {
       fontSize: 13,
-      color: colors.textMuted,
+      color: colors.neutral500,
       flex: 1,
       marginRight: 8,
     },
     formValue: {
       fontSize: 13,
-      fontWeight: '600',
-      color: colors.textPrimary,
+      color: colors.text,
       textAlign: 'right',
       flexShrink: 1,
     },
@@ -257,24 +280,24 @@ const makeStyles = (colors: ColorScheme) =>
     },
     exampleText: {
       fontSize: 13,
-      color: colors.textPrimary,
+      color: colors.text,
       fontStyle: 'italic',
       lineHeight: 19,
     },
     exampleTranslation: {
       fontSize: 12,
-      color: colors.textMuted,
+      color: colors.neutral500,
       lineHeight: 18,
     },
     note: {
       fontSize: 12,
-      color: colors.textMuted,
+      color: colors.neutral500,
       lineHeight: 18,
       marginTop: 2,
     },
     warning: {
       fontSize: 12,
-      color: colors.warning,
+      color: colors.neutral300,
       lineHeight: 18,
       marginTop: 2,
     },

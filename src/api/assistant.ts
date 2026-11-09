@@ -17,6 +17,11 @@ import { isServerOutOfReach } from './isNetworkError';
  *
  * The conversation lives on the phone (83 Q1 = A): `history` is sent with every message and
  * the server keeps nothing between turns.
+ *
+ * Streaming (step 6, after plan 83 step 9): with `onDraft` a turn is asked with `?stream=1`
+ * and the blocks' text is shown as it is written. That text is unchecked — it stands only once
+ * the closing `answer` event arrives, which replaces it whole; a turn that ends any other way
+ * drops it, exactly as a silence.
  * ────────────────────────────────────────────────────────────────────── */
 
 const AVAILABILITY_PATH = '/api/v1/ai/assist/availability';
@@ -97,6 +102,23 @@ export type SendOutcome =
   | { kind: 'silent' }
   /** The server was not reached. */
   | { kind: 'unreachable' };
+
+/** A block of an answer still being written: its text so far, its type once known. */
+export interface DraftBlock {
+  type: 'text' | 'example' | null;
+  text: string;
+}
+
+export type AssistDraft = DraftBlock[];
+
+/** What a streamed turn sends before it ends (plan 83 step 9). */
+export type StreamEvent =
+  | { kind: 'delta'; block: number; type: 'text' | 'example' | null; text: string }
+  /** The model starts over: drop every block shown. */
+  | { kind: 'reset' }
+  | { kind: 'answer'; raw: unknown }
+  | { kind: 'refused'; reason: AssistReason | null }
+  | { kind: 'unavailable' };
 
 export interface AiUsage {
   feature: string;
@@ -231,6 +253,84 @@ export function parseUsage(raw: unknown): AiUsage | null {
   return { feature: raw.feature, used: raw.used, total: raw.total, periodEnd: raw.periodEnd };
 }
 
+/* ── streaming ───────────────────────────────────────────────────────── */
+
+/** A block index past this is not a block of an answer — the delta is dropped. */
+const DRAFT_MAX_BLOCKS = 50;
+
+/**
+ * Server-sent events out of text that arrives in pieces cut anywhere — mid-line, mid-frame.
+ * Only the events plan 83 names are passed on; comments, unknown events and frames whose data
+ * is not JSON are dropped.
+ */
+export class AssistEventReader {
+  private buffer = '';
+
+  feed(piece: string): StreamEvent[] {
+    this.buffer += piece.replace(/\r\n?/g, '\n');
+    const events: StreamEvent[] = [];
+    let end = this.buffer.indexOf('\n\n');
+    while (end !== -1) {
+      const event = parseFrame(this.buffer.slice(0, end));
+      if (event) events.push(event);
+      this.buffer = this.buffer.slice(end + 2);
+      end = this.buffer.indexOf('\n\n');
+    }
+    return events;
+  }
+}
+
+function parseFrame(frame: string): StreamEvent | null {
+  let name = 'message';
+  const data: string[] = [];
+  for (const line of frame.split('\n')) {
+    if (line === '' || line.startsWith(':')) continue;
+    const colon = line.indexOf(':');
+    const field = colon === -1 ? line : line.slice(0, colon);
+    const value = colon === -1 ? '' : line.slice(colon + 1).replace(/^ /, '');
+    if (field === 'event') name = value;
+    else if (field === 'data') data.push(value);
+  }
+  let payload: unknown;
+  try {
+    payload = JSON.parse(data.join('\n'));
+  } catch {
+    return null;
+  }
+  switch (name) {
+    case 'delta': {
+      if (!isRecord(payload) || !isString(payload.text)) return null;
+      const block = payload.block;
+      if (!Number.isInteger(block) || (block as number) < 0 || (block as number) >= DRAFT_MAX_BLOCKS) {
+        return null;
+      }
+      const type = payload.type === 'text' || payload.type === 'example' ? payload.type : null;
+      return { kind: 'delta', block: block as number, type, text: payload.text };
+    }
+    case 'reset':
+      return { kind: 'reset' };
+    case 'answer':
+      return { kind: 'answer', raw: payload };
+    case 'refused':
+      return { kind: 'refused', reason: parseReason(isRecord(payload) ? payload.reason : null) };
+    case 'unavailable':
+      return { kind: 'unavailable' };
+    default:
+      return null;
+  }
+}
+
+/** The draft after one delta or reset; the same draft for any other event. */
+export function applyToDraft(draft: AssistDraft, event: StreamEvent): AssistDraft {
+  if (event.kind === 'reset') return [];
+  if (event.kind !== 'delta') return draft;
+  const next = draft.slice();
+  while (next.length <= event.block) next.push({ type: null, text: '' });
+  const current = next[event.block];
+  next[event.block] = { type: event.type ?? current.type, text: current.text + event.text };
+  return next;
+}
+
 /**
  * The turns that go out with a message: the newest ones, no more than the server takes in
  * number and in length. A turn too long to fit whole ends the history there — the server is
@@ -265,32 +365,75 @@ export async function getAvailability(context: AssistContext): Promise<AssistAva
   }
 }
 
-/** One turn. Never throws: every way it can end is an outcome the screen draws. */
+/** How a failed message reads: the server's refusal, a rate limit, no answer, or no server. */
+function failureOutcome(e: unknown): SendOutcome {
+  if (!(e instanceof ApiError)) return { kind: 'silent' };
+  if (e.code === 'NETWORK_ERROR') return { kind: 'unreachable' };
+  if (e.status === 409 || e.status === 403) {
+    return { kind: 'refused', reason: parseReason(isRecord(e.body) ? e.body.reason : null) };
+  }
+  if (e.status === 429) return { kind: 'rate_limited' };
+  // A timeout, 503 «every model failed», anything else: the assistant did not answer.
+  return { kind: 'silent' };
+}
+
+/**
+ * One turn. Never throws: every way it can end is an outcome the screen draws.
+ *
+ * With `onDraft` the turn is streamed: `onDraft` gets the answer as written so far after each
+ * piece (an empty draft when the model starts over). The outcome is the same as without it —
+ * the closing `answer` read as a whole answer, or a refusal / silence that voids the draft.
+ * A server that answers without streaming (a refusal before any text, say) is read as JSON.
+ */
 export async function sendMessage(
   context: AssistContext,
   history: readonly AssistTurn[],
   message: string,
+  onDraft?: (draft: AssistDraft) => void,
 ): Promise<SendOutcome> {
+  const body = {
+    context: contextFields(context),
+    history: historyToSend(history),
+    message: message.trim().slice(0, MESSAGE_MAX),
+  };
   let raw: unknown;
+  let end: SendOutcome | null = null;
   try {
-    raw = await apiClient.post(
-      MESSAGES_PATH,
-      {
-        context: contextFields(context),
-        history: historyToSend(history),
-        message: message.trim().slice(0, MESSAGE_MAX),
-      },
-      { timeoutMs: MESSAGE_TIMEOUT_MS },
-    );
-  } catch (e) {
-    if (!(e instanceof ApiError)) return { kind: 'silent' };
-    if (e.code === 'NETWORK_ERROR') return { kind: 'unreachable' };
-    if (e.status === 409 || e.status === 403) {
-      return { kind: 'refused', reason: parseReason(isRecord(e.body) ? e.body.reason : null) };
+    if (!onDraft) {
+      raw = await apiClient.post(MESSAGES_PATH, body, { timeoutMs: MESSAGE_TIMEOUT_MS });
+    } else {
+      const reader = new AssistEventReader();
+      let draft: AssistDraft = [];
+      const result = await apiClient.stream(MESSAGES_PATH, {
+        method: 'POST',
+        body,
+        query: { stream: 1 },
+        // Between rounds of the server's tool loop nothing comes for a while.
+        idleTimeoutMs: MESSAGE_TIMEOUT_MS,
+        onText: (piece) => {
+          for (const event of reader.feed(piece)) {
+            if (end) return;
+            if (event.kind === 'answer') {
+              const answer = parseAnswer(event.raw);
+              end = answer ? { kind: 'answer', answer } : { kind: 'silent' };
+            } else if (event.kind === 'refused') {
+              end = { kind: 'refused', reason: event.reason };
+            } else if (event.kind === 'unavailable') {
+              end = { kind: 'silent' };
+            } else {
+              draft = applyToDraft(draft, event);
+              onDraft(draft);
+            }
+          }
+        },
+      });
+      // A stream that stops without its closing event answered nothing.
+      if (result.streamed) return end ?? { kind: 'silent' };
+      raw = result.body;
     }
-    if (e.status === 429) return { kind: 'rate_limited' };
-    // A timeout, 503 «every model failed», anything else: the assistant did not answer.
-    return { kind: 'silent' };
+  } catch (e) {
+    // Whatever the stream closed with stands even if the connection broke after it.
+    return end ?? failureOutcome(e);
   }
   const answer = parseAnswer(raw);
   return answer ? { kind: 'answer', answer } : { kind: 'silent' };

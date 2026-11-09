@@ -119,7 +119,7 @@ export function AiReviewPanel({
       </Text>
 
       {load.kind === 'loading' ? (
-        <ActivityIndicator style={styles.spinner} color={colors.accent} />
+        <ActivityIndicator style={styles.spinner} color={colors.accentBase} />
       ) : load.kind === 'failed' ? (
         <Text style={styles.failed}>
           {t('exerciseRunner.aiReview.failed')}{' '}
@@ -425,7 +425,7 @@ function Dispute({
             ? t('exerciseRunner.aiReview.reasonPlaceholderReading')
             : t('exerciseRunner.aiReview.reasonPlaceholder')
         }
-        placeholderTextColor={colors.textMuted}
+        placeholderTextColor={colors.neutral500}
         style={styles.reasonInput}
         accessibilityLabel={t('exerciseRunner.aiReview.reasonLabel')}
       />
@@ -487,23 +487,23 @@ const makeStyles = (colors: ColorScheme) =>
       borderRadius: 14,
       borderWidth: 1.5,
       borderStyle: 'dashed',
-      borderColor: colors.accent,
-      backgroundColor: colors.backgroundCard,
+      borderColor: colors.accentBase,
+      backgroundColor: colors.surface,
       paddingHorizontal: 14,
       paddingVertical: 12,
       gap: 10,
     },
     label: {
       fontSize: 12,
-      fontWeight: '800',
+      fontWeight: '500',
       letterSpacing: 0.8,
       textTransform: 'uppercase',
-      color: colors.accent,
+      color: colors.accentBase,
     },
     caveat: {
       fontSize: 12.5,
       lineHeight: 17,
-      color: colors.textSecondary,
+      color: colors.neutral400,
       marginTop: -6,
     },
     spinner: {
@@ -511,33 +511,33 @@ const makeStyles = (colors: ColorScheme) =>
     },
     standing: {
       borderRadius: 10,
-      backgroundColor: colors.backgroundInput,
+      backgroundColor: colors.surface,
       paddingHorizontal: 12,
       paddingVertical: 8,
       gap: 2,
     },
     standingTitle: {
       fontSize: 14,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
     },
     failed: {
       fontSize: 13,
-      color: colors.danger,
+      color: colors.neutral400,
     },
     link: {
-      fontWeight: '700',
+      fontWeight: '500',
       textDecorationLine: 'underline',
     },
     summary: {
       fontSize: 15,
       lineHeight: 22,
-      color: colors.textPrimary,
+      color: colors.text,
     },
     muted: {
       fontSize: 13,
       lineHeight: 18,
-      color: colors.textSecondary,
+      color: colors.neutral400,
     },
     groups: {
       gap: 10,
@@ -547,14 +547,14 @@ const makeStyles = (colors: ColorScheme) =>
     },
     groupTitle: {
       fontSize: 11,
-      fontWeight: '800',
+      fontWeight: '500',
       letterSpacing: 0.8,
       textTransform: 'uppercase',
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     remark: {
       borderRadius: 10,
-      backgroundColor: colors.backgroundInput,
+      backgroundColor: colors.surface,
       paddingHorizontal: 12,
       paddingVertical: 8,
       gap: 4,
@@ -563,31 +563,31 @@ const makeStyles = (colors: ColorScheme) =>
       fontSize: 11,
       letterSpacing: 0.5,
       textTransform: 'uppercase',
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     fragmentLine: {
       fontSize: 14,
       lineHeight: 20,
-      color: colors.textPrimary,
+      color: colors.text,
     },
     fragment: {
-      backgroundColor: `${colors.warning}33`,
+      backgroundColor: `${colors.accent700}33`,
     },
     suggestion: {
-      fontWeight: '700',
+      fontWeight: '500',
     },
     comment: {
       fontSize: 13.5,
       lineHeight: 19,
-      color: colors.textPrimary,
+      color: colors.text,
     },
     markRow: {
       gap: 2,
     },
     markName: {
       fontSize: 13.5,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
     },
     markValue: {
       fontWeight: '400',
@@ -599,24 +599,24 @@ const makeStyles = (colors: ColorScheme) =>
     },
     ghostBtnText: {
       fontSize: 14,
-      fontWeight: '600',
-      color: colors.accent,
+      fontWeight: '500',
+      color: colors.accentBase,
     },
     reasonLabel: {
       fontSize: 13,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
     },
     reasonInput: {
       minHeight: 72,
       borderRadius: 10,
       borderWidth: 1.5,
-      borderColor: colors.textMuted,
-      backgroundColor: colors.backgroundInput,
+      borderColor: colors.neutral500,
+      backgroundColor: colors.surface,
       paddingHorizontal: 12,
       paddingVertical: 8,
       fontSize: 14,
-      color: colors.textPrimary,
+      color: colors.text,
       textAlignVertical: 'top',
     },
     disputeActions: {
@@ -626,14 +626,15 @@ const makeStyles = (colors: ColorScheme) =>
     },
     sendBtn: {
       borderRadius: 12,
-      backgroundColor: colors.accent,
+      borderWidth: 1,
+      borderColor: colors.accentBase,
       paddingHorizontal: 18,
       paddingVertical: 9,
     },
     sendBtnText: {
       fontSize: 14,
-      fontWeight: '700',
-      color: colors.textInverted,
+      fontWeight: '500',
+      color: colors.accent300,
     },
     disabled: {
       opacity: 0.5,

@@ -4,7 +4,8 @@ import { isNetworkError } from '../api/isNetworkError';
 import { getContainer, getMyCourses, type CourseListItem } from '../api/courses';
 import type { Container, UnitContentsItem, UnitSummary } from '../api/types';
 import { getVocabularyList, type VocabularyListReaderContent } from '../api/vocabulary';
-import { translate } from '../i18n';
+import { currentUiLanguage, translate } from '../i18n';
+import { currentTranslationLanguage } from '../lib/translationLanguage';
 import {
   courseHomeResource,
   exerciseDisplayResource,
@@ -51,6 +52,18 @@ export interface CourseDownloadStatus {
   lowStorage?: boolean;
 }
 
+export type ItemDownloadState = 'queued' | 'downloading' | 'done' | 'failed';
+
+/** How the last walk treated one unit — in memory, so it is gone after a restart. */
+export interface UnitProgress {
+  /** The walk has finished with the unit (or ended early); until then it is being fetched. */
+  complete: boolean;
+  /** The unit's materials by `UnitContentsItem.id`; empty until its contents are fetched. */
+  items: Record<string, ItemDownloadState>;
+  /** Bytes of the unit's media on the phone, once known. */
+  sizeBytes: number | null;
+}
+
 /** What the last walk of one course left, kept so a skipped course still knows its media. */
 export interface CourseRun {
   at: number;
@@ -60,9 +73,17 @@ export interface CourseRun {
   mediaDone: boolean;
 }
 
+/** The two languages a walk fetches in: interface (texts, exercises) and word translations. */
+interface Languages {
+  ui: string;
+  translation: string;
+}
+
 export interface CourseDownloadDeps {
   getUserId(): string | null;
   getUiLanguage(): string;
+  /** Word translations in vocabulary lists: the learner's choice, else the interface language. */
+  getTranslationLanguage(): string;
   /** Units to keep beyond the current one; `ALL_UNITS` for the whole course. */
   getUnitsAhead(): number;
   /** Whether media may be downloaded now — Wi-Fi, or the learner allowed mobile data. */
@@ -73,12 +94,21 @@ export interface CourseDownloadDeps {
   getContainer(courseId: string): Promise<Container>;
   /** Writes a fetched value where the screen with this key will read it. */
   store(key: string, value: unknown): Promise<void>;
-  /** Puts a course vocabulary list into the phone's decks, unless it is there already. */
-  importList(listId: string, reader: VocabularyListReaderContent, uiLanguage: string): Promise<void>;
+  /** Puts a course vocabulary list into the phone's decks, unless it is there in this translation language. */
+  importList(
+    listId: string,
+    reader: VocabularyListReaderContent,
+    translationLanguage: string,
+  ): Promise<void>;
   media: {
     download(id: string): Promise<boolean>;
     retainOnly(ids: Set<string>): Promise<void>;
+    /** Bytes the given media take on the phone. */
+    sizeOf(ids: Iterable<string>): Promise<number>;
   };
+  /** Courses the learner keeps whole, whatever the «units ahead» setting says. */
+  getPinned(userId: string): Promise<string[]>;
+  setPinned(userId: string, courseIds: string[]): Promise<void>;
   getRun(key: string): Promise<CourseRun | null>;
   setRun(key: string, run: CourseRun): Promise<void>;
   now(): number;
@@ -121,6 +151,8 @@ export class CourseDownloader {
   private status: CourseDownloadStatus = { running: false, lastFinishedAt: null, lastFailed: 0 };
   private running: Promise<void> | null = null;
   private listeners = new Set<() => void>();
+  private unitProgress = new Map<string, UnitProgress>();
+  private pinned = new Set<string>();
 
   constructor(private readonly deps: CourseDownloadDeps) {}
 
@@ -131,7 +163,13 @@ export class CourseDownloader {
   /** Picks up when the signed-in learner's courses were last downloaded, in an earlier run. */
   async loadStatus(): Promise<void> {
     const userId = this.deps.getUserId();
-    if (!userId || this.status.lastFinishedAt !== null) return;
+    if (!userId) return;
+    const pinned = await this.deps.getPinned(userId);
+    if (pinned.length !== this.pinned.size || pinned.some(id => !this.pinned.has(id))) {
+      this.pinned = new Set(pinned);
+      this.listeners.forEach(l => l());
+    }
+    if (this.status.lastFinishedAt !== null) return;
     const last = await this.deps.getRun(finishedKey(userId));
     if (last !== null && this.status.lastFinishedAt === null) {
       this.setStatus({ lastFinishedAt: last.at });
@@ -143,22 +181,78 @@ export class CourseDownloader {
     return () => this.listeners.delete(listener);
   }
 
-  /** Single-flight; `force` walks every course whatever its last run. */
-  run(force = false): Promise<void> {
-    if (!this.running) {
-      this.running = this.walk(force).finally(() => {
-        this.running = null;
-      });
+  /** The last walk's account of one unit, or undefined when none walked it since the start. */
+  getUnitProgress(unitId: string): UnitProgress | undefined {
+    return this.unitProgress.get(unitId);
+  }
+
+  /** Whether the learner keeps this course whole. */
+  isPinned(courseId: string): boolean {
+    return this.pinned.has(courseId);
+  }
+
+  /**
+   * Single-flight; `force` walks every course whatever its last run. With `onlyCourse` the walk
+   * is that course alone (and prunes nothing, since it has not seen the others' media); it waits
+   * for a walk already running.
+   */
+  run(force = false, onlyCourse?: string): Promise<void> {
+    if (this.running) {
+      return onlyCourse === undefined
+        ? this.running
+        : this.running.then(() => this.run(force, onlyCourse));
     }
+    this.running = this.walk(force, onlyCourse).finally(() => {
+      this.running = null;
+    });
     return this.running;
   }
 
-  private async walk(force: boolean): Promise<void> {
+  /** Keeps the whole course on the phone, now and in every later walk. */
+  async downloadCourse(courseId: string): Promise<void> {
+    await this.setPinned(courseId, true);
+    await this.run(true, courseId);
+  }
+
+  /** Lets the course go back to the «units ahead» window; the next walk drops what is beyond. */
+  async releaseCourse(courseId: string): Promise<void> {
+    await this.setPinned(courseId, false);
+    await this.run(false);
+  }
+
+  private async setPinned(courseId: string, on: boolean): Promise<void> {
     const userId = this.deps.getUserId();
     if (!userId) return;
-    const uiLanguage = this.deps.getUiLanguage();
+    const next = new Set(this.pinned);
+    if (on) next.add(courseId);
+    else next.delete(courseId);
+    this.pinned = next;
+    await this.deps.setPinned(userId, [...next]);
+    this.listeners.forEach(l => l());
+  }
+
+  private patchUnit(unitId: string, patch: (p: UnitProgress) => UnitProgress): void {
+    const current = this.unitProgress.get(unitId);
+    if (!current) return;
+    this.unitProgress.set(unitId, patch(current));
+    this.listeners.forEach(l => l());
+  }
+
+  private setItemState(unitId: string, itemId: string, state: ItemDownloadState): void {
+    this.patchUnit(unitId, p => ({ ...p, items: { ...p.items, [itemId]: state } }));
+  }
+
+  private async walk(force: boolean, onlyCourse?: string): Promise<void> {
+    const userId = this.deps.getUserId();
+    if (!userId) return;
+    const langs: Languages = {
+      ui: this.deps.getUiLanguage(),
+      translation: this.deps.getTranslationLanguage(),
+    };
     const ahead = this.deps.getUnitsAhead();
     this.setStatus({ running: true });
+    // Units this walk took on; whatever it leaves unfinished is closed in `finally`.
+    const walkedUnits = new Set<string>();
 
     let failed = 0;
     let finished = false;
@@ -173,6 +267,7 @@ export class CourseDownloader {
       await this.deps.store(`courses:${userId}`, courses);
 
       for (const { container } of courses) {
+        if (onlyCourse !== undefined && container.id !== onlyCourse) continue;
         // Read every time: it is one request, and it says where the learner is now.
         const home = await this.fetch(courseHomeResource(container.id));
         if (home === null) {
@@ -180,16 +275,27 @@ export class CourseDownloader {
           keepComplete = false;
           continue;
         }
-        const window = unitWindow(home.units, ahead);
-        const runKey = `${userId}:${container.id}:${uiLanguage}:${window.map(u => u.id).join(',')}`;
+        // A course kept whole is walked whole; the setting only sizes the others.
+        const window = unitWindow(home.units, this.pinned.has(container.id) ? ALL_UNITS : ahead);
+        for (const unit of window) {
+          walkedUnits.add(unit.id);
+          this.unitProgress.set(unit.id, { complete: false, items: {}, sizeBytes: null });
+        }
+        this.listeners.forEach(l => l());
+        const runKey = `${userId}:${container.id}:${langs.ui}:${langs.translation}:${window.map(u => u.id).join(',')}`;
         const last = await this.deps.getRun(runKey);
         const fresh = last !== null && this.deps.now() - last.at < DOWNLOAD_INTERVAL_MS;
         if (!force && last !== null && fresh && (last.mediaDone || !mediaAllowed)) {
           last.mediaIds.forEach(id => keep.add(id));
+          // Nothing was walked, so there is no account of these units: the status speaks for them.
+          for (const unit of window) {
+            walkedUnits.delete(unit.id);
+            this.unitProgress.delete(unit.id);
+          }
           continue;
         }
 
-        const walked = await this.walkUnits(window, container.id, uiLanguage);
+        const walked = await this.walkUnits(window, container.id, langs);
         failed += walked.failed;
         walked.mediaIds.forEach(id => keep.add(id));
 
@@ -200,6 +306,10 @@ export class CourseDownloader {
           failed += await this.downloadMedia(walked.mediaIds);
           mediaDone = true;
         }
+        for (const [unitId, ids] of walked.mediaByUnit) {
+          const sizeBytes = await this.deps.media.sizeOf(ids).catch(() => null);
+          this.patchUnit(unitId, p => ({ ...p, complete: true, sizeBytes }));
+        }
         // A course whose session changed hands is not this learner's to mark.
         if (this.deps.getUserId() !== userId) return;
         await this.deps.setRun(runKey, {
@@ -209,16 +319,32 @@ export class CourseDownloader {
         });
       }
 
-      if (keepComplete) await this.deps.media.retainOnly(keep);
-      finished = true;
-      await this.deps.setRun(finishedKey(userId), {
-        at: this.deps.now(),
-        mediaIds: [],
-        mediaDone: true,
-      });
+      if (onlyCourse === undefined) {
+        if (keepComplete) await this.deps.media.retainOnly(keep);
+        finished = true;
+        await this.deps.setRun(finishedKey(userId), {
+          at: this.deps.now(),
+          mediaIds: [],
+          mediaDone: true,
+        });
+      }
     } catch (e) {
       if (!(e instanceof OfflineAbort) && !isNetworkError(e)) throw e;
     } finally {
+      // A walk that ended early (offline) leaves its units as they were reached, not spinning.
+      for (const unitId of walkedUnits) {
+        this.patchUnit(unitId, p =>
+          p.complete
+            ? p
+            : {
+                ...p,
+                complete: true,
+                items: Object.fromEntries(
+                  Object.entries(p.items).map(([id, st]) => [id, st === 'downloading' ? 'queued' : st]),
+                ),
+              },
+        );
+      }
       this.setStatus({
         running: false,
         ...(finished ? { lastFinishedAt: this.deps.now(), lastFailed: failed, lowStorage } : {}),
@@ -240,10 +366,11 @@ export class CourseDownloader {
   private async walkUnits(
     units: UnitSummary[],
     courseId: string,
-    uiLanguage: string,
-  ): Promise<{ failed: number; mediaIds: Set<string> }> {
+    langs: Languages,
+  ): Promise<{ failed: number; mediaIds: Set<string>; mediaByUnit: Map<string, Set<string>> }> {
     let failed = 0;
     const mediaIds = new Set<string>();
+    const mediaByUnit = new Map<string, Set<string>>();
     // One container request per course, not one per lesson.
     const containers = new Map<string, Promise<Container>>();
     const containerOf = (id: string) => {
@@ -259,24 +386,39 @@ export class CourseDownloader {
       const contents = await this.fetch(unitContentsResource(unit.id));
       if (contents === null) {
         failed += 1;
+        // Nothing of the unit is known: it is closed at once, with nothing on the phone.
+        this.patchUnit(unit.id, p => ({ ...p, complete: true }));
         continue;
       }
       const items = [
         ...contents.sections.flatMap(section => section.items),
         ...contents.ungroupedItems,
       ];
-      const results = await mapLimit(items, CONCURRENCY, item =>
-        this.fetchItem(item, courseId, uiLanguage, containerOf, mediaIds),
-      );
+      // A container is a heading with nothing to fetch.
+      const tracked = items.filter(i => i.contentType !== 'container');
+      this.patchUnit(unit.id, p => ({
+        ...p,
+        items: Object.fromEntries(tracked.map(i => [i.id, 'queued' as ItemDownloadState])),
+      }));
+      const unitMedia = new Set<string>();
+      mediaByUnit.set(unit.id, unitMedia);
+      const results = await mapLimit(items, CONCURRENCY, async item => {
+        if (item.contentType === 'container') return true;
+        this.setItemState(unit.id, item.id, 'downloading');
+        const ok = await this.fetchItem(item, courseId, langs, containerOf, unitMedia);
+        this.setItemState(unit.id, item.id, ok ? 'done' : 'failed');
+        return ok;
+      });
+      unitMedia.forEach(id => mediaIds.add(id));
       failed += results.filter(ok => !ok).length;
     }
-    return { failed, mediaIds };
+    return { failed, mediaIds, mediaByUnit };
   }
 
   private async fetchItem(
     item: UnitContentsItem,
     courseId: string,
-    uiLanguage: string,
+    { ui: uiLanguage, translation }: Languages,
     containerOf: (id: string) => Promise<Container>,
     mediaIds: Set<string>,
   ): Promise<boolean> {
@@ -308,10 +450,10 @@ export class CourseDownloader {
         return true;
       }
       case 'vocabulary_list': {
-        const reader = await this.fetch(vocabularyListResource(item.contentId, uiLanguage));
+        const reader = await this.fetch(vocabularyListResource(item.contentId, translation));
         if (!kept(reader)) return false;
         try {
-          await this.deps.importList(item.contentId, reader, uiLanguage);
+          await this.deps.importList(item.contentId, reader, translation);
         } catch (e) {
           if (isNetworkError(e)) throw new OfflineAbort();
           console.warn(`[CourseDownload] Importing list ${item.contentId} failed:`, e);
@@ -388,7 +530,8 @@ const runStorage = createAsyncStorage('voxord_course_download');
 
 export const courseDownloader = new CourseDownloader({
   getUserId: () => authStore.getState().user?.id ?? null,
-  getUiLanguage: () => settingsStore.getAll().uiLanguage,
+  getUiLanguage: currentUiLanguage,
+  getTranslationLanguage: currentTranslationLanguage,
   getUnitsAhead: () => settingsStore.getAll().offlineUnitsAhead,
   mediaAllowed: async () => {
     if (settingsStore.getAll().offlineMediaOnCellular) return true;
@@ -405,17 +548,50 @@ export const courseDownloader = new CourseDownloader({
     setMemoryCache(key, value);
     await writeCacheSnapshot(key, value);
   },
-  importList: async (listId, reader, uiLanguage) => {
-    if ((await vocabularyImportRepository.findDeckIdForList(listId)) !== null) return;
+  importList: async (listId, reader, translationLanguage) => {
+    // A deck imported in another translation language is imported again: the upsert keeps the
+    // learner's progress and replaces the translations.
+    const langKey = `list-lang:${listId}`;
+    if ((await vocabularyImportRepository.findDeckIdForList(listId)) !== null) {
+      let recorded: string | null = null;
+      try {
+        recorded = await runStorage.getItem(langKey);
+      } catch {
+        // Unreadable marker: import again rather than keep stale translations.
+      }
+      if (recorded === translationLanguage) return;
+    }
     const list = await getVocabularyList(listId);
-    const plan = buildImportPlan(list, reader, uiLanguage);
+    const plan = buildImportPlan(list, reader, translationLanguage);
     await vocabularyImportRepository.importList(plan, {
       coursesGroupTitle: translate('vocabulary.coursesGroup'),
     });
+    try {
+      await runStorage.setItem(langKey, translationLanguage);
+    } catch {
+      // Without the marker the next walk imports once more; harmless.
+    }
   },
   media: {
     download: id => mediaCache.download(id),
     retainOnly: ids => mediaCache.retainOnly(ids),
+    sizeOf: ids => mediaCache.bytesOf(ids),
+  },
+  getPinned: async userId => {
+    try {
+      const raw = await runStorage.getItem(`${userId}:pinned`);
+      const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+      return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : [];
+    } catch {
+      return [];
+    }
+  },
+  setPinned: async (userId, courseIds) => {
+    try {
+      await runStorage.setItem(`${userId}:pinned`, JSON.stringify(courseIds));
+    } catch {
+      // Losing it means the course falls back to the window at the next start.
+    }
   },
   getRun: async key => {
     try {

@@ -23,6 +23,11 @@ export type Screen =
   | {
       name: 'Assistant';
       context?: AssistantContext;
+      /**
+       * What the context chip reads — «{unit} · {title}», a work's title, a class's date. The
+       * opener knows it; the context carries only ids.
+       */
+      contextLabel?: string;
       /** Open straight into voice input — the microphone beside the inline prompt. */
       startVoice?: boolean;
       /** Sent once as the first message. */
@@ -43,17 +48,29 @@ export type Screen =
     }
   | { name: 'ModeSelector'; deck: Deck }
   | { name: 'Card'; deck: Deck; mode?: 'assessment' }
-  | { name: 'Matching'; deckId: number }
-  | { name: 'Quiz'; deckId: number }
-  | { name: 'Spelling'; deckId: number }
-  | { name: 'Listening'; deckId: number }
-  | { name: 'Pronunciation'; deckId: number }
-  | { name: 'Context'; deckId: number }
+  | { name: 'Matching'; deck: Deck }
+  | { name: 'Quiz'; deck: Deck }
+  | { name: 'Spelling'; deck: Deck }
+  | { name: 'Listening'; deck: Deck }
+  | { name: 'Pronunciation'; deck: Deck }
+  | { name: 'Context'; deck: Deck }
   | { name: 'DeepSession'; deck: Deck }
-  | { name: 'SessionResults'; sessionId: number; deckId: number }
-  | { name: 'Courses' }
+  | { name: 'SessionResults'; sessionId: number; deck: Deck }
+  | { name: 'Courses'; segment?: 'mine' | 'catalog' }
+  /** A course in the catalogue, before enrolment (Courses spec 5c). */
+  | { name: 'CatalogCourse'; containerId: string }
+  /** Schools with a public page (plan 04 step 9c); Back returns to where it was opened. */
+  | { name: 'FindSchool'; returnTo?: Screen }
+  /** A school's public page with the application; Back returns to the list it came from. */
+  | { name: 'SchoolPublic'; slug: string; returnTo: Screen }
   | { name: 'CourseHome'; courseId: string }
-  | { name: 'UnitContents'; unitId: string; courseId: string }
+  | {
+      name: 'UnitContents';
+      unitId: string;
+      courseId: string;
+      /** Opened from an assistant's citation: Back goes back to the thread. */
+      returnTo?: Screen;
+    }
   | {
       name: 'LessonReader';
       lessonId: string;
@@ -63,6 +80,8 @@ export type Screen =
       exerciseIds?: string[];
       /** Marked read before — the button to go on is then pinned rather than at the end. */
       alreadyRead?: boolean;
+      /** Opened from an assistant's citation: Back goes back to the thread. */
+      returnTo?: Screen;
     }
   | { name: 'VocabularyList'; listId: string; unitId: string; courseId: string }
   | {
@@ -70,9 +89,22 @@ export type Screen =
       ruleId: string;
       unitId: string;
       courseId: string;
+      /** Opened from an assistant's citation or a rule's review: Back goes back there. */
+      returnTo?: Screen;
     }
-  | { name: 'ReviewSession'; courseId?: string }
-  | { name: 'MyWords' }
+  | {
+      name: 'ReviewSession';
+      courseId?: string;
+      /** Where the review was started from — Back and Done return there (Practice §4.1). */
+      from?: 'Practice' | 'CourseHome' | 'Today';
+    }
+  /** A rule's review: its summary and the pinned «Repeat» (Practice 6l). */
+  | { name: 'GrammarReview'; ruleId: string; courseId: string; unitId: string }
+  | {
+      name: 'MyWords';
+      /** Opened from an assistant's citation of a personal word: Back goes back to the thread. */
+      returnTo?: Screen;
+    }
   | {
       name: 'ExerciseRunner';
       exerciseIds: string[];
@@ -85,8 +117,19 @@ export type Screen =
        * where it is known; the runner is handed a set of exercise ids and nothing else.
        */
       sourceLessonId?: string;
+      /**
+       * Opened from the Practice tab (a rule's review, a mistake): Back returns there rather
+       * than to the unit, and the tab stays Practice.
+       */
+      origin?: 'unit' | 'practice';
     }
-  | { name: 'Settings' };
+  | { name: 'Settings' }
+  | { name: 'AppLanguage' }
+  | { name: 'Account' }
+  | { name: 'EditName' }
+  | { name: 'DeleteAccount' }
+  | { name: 'Subscription' }
+  | { name: 'School'; schoolId: string; groupId?: string };
 
 /**
  * Where «Back» leads from each screen — the on-screen arrow and the phone's own Back button
@@ -96,7 +139,8 @@ export type Screen =
  * place in the app rather than the path that reached it: a lesson opened from the exercise
  * runner goes back to its unit, as the arrow there always did. The root of every tab goes
  * back to Today, and `null` is Today itself — the one place Back may leave the app. The
- * assistant is the exception: it sits over whatever opened it and goes back there.
+ * assistant is the exception: it sits over whatever opened it and goes back there — and so
+ * does the course screen one of its citations opened, back to the thread.
  */
 export function backTarget(screen: Screen): Screen | null {
   switch (screen.name) {
@@ -112,28 +156,62 @@ export function backTarget(screen: Screen): Screen | null {
     case 'Submission':
       return screen.returnTo ?? { name: 'Notifications' };
     case 'Settings':
+    case 'Account':
+    case 'Subscription':
+    case 'School':
       return { name: 'Profile' };
+    case 'AppLanguage':
+      return { name: 'Settings' };
+    case 'EditName':
+    case 'DeleteAccount':
+      return { name: 'Account' };
     case 'CourseHome':
       return { name: 'Courses' };
+    case 'CatalogCourse':
+      return { name: 'Courses', segment: 'catalog' };
+    case 'FindSchool':
+      return screen.returnTo ?? { name: 'Courses', segment: 'catalog' };
+    case 'SchoolPublic':
+      return screen.returnTo;
     case 'UnitContents':
-      return { name: 'CourseHome', courseId: screen.courseId };
+      return (
+        screen.returnTo ?? { name: 'CourseHome', courseId: screen.courseId }
+      );
     case 'LessonReader':
-    case 'VocabularyList':
     case 'GrammarRuleReader':
+      if (screen.returnTo) return screen.returnTo;
+      return {
+        name: 'UnitContents',
+        unitId: screen.unitId,
+        courseId: screen.courseId,
+      };
     case 'ExerciseRunner':
+      if (screen.origin === 'practice') return { name: 'Practice' };
+      return {
+        name: 'UnitContents',
+        unitId: screen.unitId,
+        courseId: screen.courseId,
+      };
+    case 'VocabularyList':
       return {
         name: 'UnitContents',
         unitId: screen.unitId,
         courseId: screen.courseId,
       };
     case 'ReviewSession':
-      return screen.courseId
-        ? { name: 'CourseHome', courseId: screen.courseId }
-        : { name: 'Practice' };
+      if (screen.from === 'Today') return { name: 'Today' };
+      if (screen.courseId && screen.from === 'CourseHome') {
+        return { name: 'CourseHome', courseId: screen.courseId };
+      }
+      return { name: 'Practice' };
     case 'Card':
       return { name: 'ModeSelector', deck: screen.deck };
     case 'MyWords':
+      return screen.returnTo ?? { name: 'Practice' };
+    case 'GrammarReview':
+      return { name: 'Practice' };
     case 'ModeSelector':
+      return { name: 'Practice' };
     case 'Matching':
     case 'Quiz':
     case 'Spelling':
@@ -142,9 +220,8 @@ export function backTarget(screen: Screen): Screen | null {
     case 'Context':
     case 'DeepSession':
     case 'SessionResults':
-      // The word decks. The modes carry only a deck id, so they cannot go back to their
-      // ModeSelector yet — plan 05 puts the deck on the route.
-      return { name: 'Practice' };
+      // The word decks: every mode carries its deck, so Back lands on the same ModeSelector.
+      return { name: 'ModeSelector', deck: screen.deck };
   }
 }
 
@@ -187,9 +264,16 @@ const WITH_TAB_BAR: ReadonlySet<Screen['name']> = new Set<Screen['name']>([
   'Practice',
   'ModeSelector',
   'MyWords',
+  'GrammarReview',
   'Notifications',
   'Profile',
   'Settings',
+  'AppLanguage',
+  'Account',
+  'EditName',
+  'DeleteAccount',
+  'Subscription',
+  'School',
 ]);
 
 export function showsTabBar(screen: Screen): boolean {

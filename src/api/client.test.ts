@@ -141,3 +141,140 @@ describe('apiClient', () => {
     expect(result).toBeUndefined();
   });
 });
+
+/**
+ * Just enough of React Native's XMLHttpRequest for `stream`: the test plays the response —
+ * headers, pieces of body, the end — on the request it was sent.
+ */
+class FakeXhr {
+  static last: FakeXhr[] = [];
+  readyState = 0;
+  status = 0;
+  responseText = '';
+  method = '';
+  url = '';
+  sent: string | null = null;
+  headers: Record<string, string> = {};
+  private responseHeaders: Record<string, string> = {};
+  onprogress: (() => void) | null = null;
+  onload: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  onabort: (() => void) | null = null;
+
+  constructor() {
+    FakeXhr.last.push(this);
+  }
+  open(method: string, url: string) {
+    this.method = method;
+    this.url = url;
+  }
+  setRequestHeader(name: string, value: string) {
+    this.headers[name] = value;
+  }
+  getResponseHeader(name: string) {
+    return this.responseHeaders[name.toLowerCase()] ?? null;
+  }
+  send(body: string | null) {
+    this.sent = body;
+  }
+  abort() {
+    this.onabort?.();
+  }
+  respond(status: number, contentType: string) {
+    this.status = status;
+    this.responseHeaders['content-type'] = contentType;
+    this.readyState = 2;
+  }
+  piece(text: string) {
+    this.readyState = 3;
+    this.responseText += text;
+    this.onprogress?.();
+  }
+  finish() {
+    this.readyState = 4;
+    this.onload?.();
+  }
+}
+
+describe('apiClient.stream', () => {
+  const realXhr = globalThis.XMLHttpRequest;
+  const flush = () => new Promise<void>((r) => setImmediate(r));
+
+  beforeEach(() => {
+    jest.spyOn(apiSettingsStore, 'get').mockReturnValue('http://gw');
+    apiClient.setAuthHeaderProvider(() => 'tok');
+    apiClient.setUnauthorizedHandler(null);
+    FakeXhr.last = [];
+    (globalThis as any).XMLHttpRequest = FakeXhr;
+  });
+
+  afterEach(() => {
+    (globalThis as any).XMLHttpRequest = realXhr;
+    jest.useRealTimers();
+    jest.restoreAllMocks();
+  });
+
+  it('passes an event stream on piece by piece, each piece once', async () => {
+    const pieces: string[] = [];
+    const done = apiClient.stream('/x', { method: 'POST', body: { a: 1 }, query: { stream: 1 }, onText: (t) => pieces.push(t) });
+    const xhr = FakeXhr.last[0];
+    expect(xhr.url).toBe('http://gw/x?stream=1');
+    expect(xhr.sent).toBe('{"a":1}');
+    expect(xhr.headers).toMatchObject({ Authorization: 'Bearer tok', 'Content-Type': 'application/json' });
+
+    xhr.respond(200, 'text/event-stream; charset=utf-8');
+    xhr.piece('event: delta\n');
+    xhr.piece('data: {}\n\n');
+    xhr.finish();
+    expect(await done).toEqual({ streamed: true, body: undefined });
+    expect(pieces).toEqual(['event: delta\n', 'data: {}\n\n']);
+  });
+
+  it('reads a response that is not a stream as request does, failures included', async () => {
+    const onText = jest.fn();
+    const ok = apiClient.stream('/x', { method: 'POST', onText });
+    FakeXhr.last[0].respond(200, 'application/json');
+    FakeXhr.last[0].piece('{"callId":"c"}');
+    FakeXhr.last[0].finish();
+    expect(await ok).toEqual({ streamed: false, body: { callId: 'c' } });
+
+    const refused = apiClient.stream('/x', { method: 'POST', onText });
+    FakeXhr.last[1].respond(409, 'application/json');
+    FakeXhr.last[1].piece('{"message":"no","reason":"quota"}');
+    FakeXhr.last[1].finish();
+    await expect(refused).rejects.toMatchObject({ status: 409, body: { reason: 'quota' } });
+    expect(onText).not.toHaveBeenCalled();
+  });
+
+  it('refreshes once on 401 and asks again', async () => {
+    const handler = jest.fn().mockResolvedValue(true);
+    apiClient.setUnauthorizedHandler(handler);
+    const done = apiClient.stream('/x', { method: 'POST', onText: () => undefined });
+    FakeXhr.last[0].respond(401, 'application/json');
+    FakeXhr.last[0].finish();
+    await flush();
+    FakeXhr.last[1].respond(200, 'text/event-stream');
+    FakeXhr.last[1].finish();
+    expect(await done).toEqual({ streamed: true, body: undefined });
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it('gives up when nothing arrives for the idle timeout, not before', async () => {
+    jest.useFakeTimers();
+    const done = apiClient.stream('/x', { method: 'POST', idleTimeoutMs: 1000, onText: () => undefined });
+    const xhr = FakeXhr.last[0];
+    xhr.respond(200, 'text/event-stream');
+    jest.advanceTimersByTime(900);
+    xhr.piece(': still here\n\n');
+    jest.advanceTimersByTime(900);
+    xhr.piece(': still here\n\n');
+    jest.advanceTimersByTime(1000);
+    await expect(done).rejects.toMatchObject({ code: 'TIMEOUT' });
+  });
+
+  it('a broken connection is a network error', async () => {
+    const done = apiClient.stream('/x', { method: 'POST', onText: () => undefined });
+    FakeXhr.last[0].onerror?.();
+    await expect(done).rejects.toMatchObject({ code: 'NETWORK_ERROR', status: null });
+  });
+});

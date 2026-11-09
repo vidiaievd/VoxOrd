@@ -8,7 +8,7 @@ import { dismissSoloWriting, isSoloWritingDismissed } from '../../../store/soloW
 interface SoloWritingProps {
   /** Until plan 07 adds the subscription screen: Profile. */
   onConnectAi: () => void;
-  /** Until plan 04 adds the catalogue: the Courses tab. */
+  /** The catalogue segment of Courses (it has no school filter — the web's school search is not ported). */
   onFindSchool: () => void;
 }
 

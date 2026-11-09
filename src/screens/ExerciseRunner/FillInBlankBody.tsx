@@ -56,10 +56,10 @@ export function FillInBlankBody({ display, disabled, verdict, onAnswerChange }: 
   const showFeedback = disabled && verdict !== null;
   const expected = showFeedback ? extractExpectedBlankAnswers(verdict!.feedback.correctAnswer) : null;
   const borderColor = !showFeedback
-    ? colors.accent
+    ? colors.accentBase
     : verdict!.correct
-      ? colors.success
-      : colors.danger;
+      ? colors.accentBase
+      : colors.neutral600;
 
   const setBlankValue = (id: number, value: string) => {
     setValues((prev) => ({ ...prev, [id]: value }));
@@ -100,7 +100,7 @@ export function FillInBlankBody({ display, disabled, verdict, onAnswerChange }: 
                 autoCapitalize="none"
                 autoCorrect={false}
                 placeholder="…"
-                placeholderTextColor={colors.textMuted}
+                placeholderTextColor={colors.neutral500}
               />
               {showFeedback && !verdict!.correct && expected?.[segment.id] ? (
                 <Text style={styles.expectedText}>{expected[segment.id]}</Text>
@@ -143,7 +143,7 @@ const makeStyles = (colors: ColorScheme) =>
     },
     context: {
       fontSize: 13,
-      color: colors.textMuted,
+      color: colors.neutral500,
       marginBottom: 14,
       lineHeight: 18,
     },
@@ -155,7 +155,7 @@ const makeStyles = (colors: ColorScheme) =>
     sentenceText: {
       fontSize: 18,
       lineHeight: 30,
-      color: colors.textPrimary,
+      color: colors.text,
     },
     blankGroup: {
       alignItems: 'center',
@@ -163,26 +163,26 @@ const makeStyles = (colors: ColorScheme) =>
     },
     blankInput: {
       minWidth: 84,
-      backgroundColor: colors.backgroundInput,
+      backgroundColor: colors.surface,
       borderRadius: 10,
       borderWidth: 2,
       paddingHorizontal: 10,
       paddingVertical: 4,
       fontSize: 17,
-      fontWeight: '600',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
       textAlign: 'center',
     },
     expectedText: {
       fontSize: 11,
-      color: colors.textMuted,
+      color: colors.neutral500,
       marginTop: 2,
     },
     wordBank: {
       marginTop: 20,
     },
     chip: {
-      backgroundColor: colors.backgroundCard,
+      backgroundColor: colors.surface,
       borderRadius: 20,
       paddingHorizontal: 16,
       paddingVertical: 8,
@@ -190,7 +190,7 @@ const makeStyles = (colors: ColorScheme) =>
     },
     chipText: {
       fontSize: 14,
-      fontWeight: '600',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
     },
   });

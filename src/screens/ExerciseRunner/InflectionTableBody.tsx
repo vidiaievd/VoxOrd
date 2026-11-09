@@ -18,6 +18,7 @@ import {
   findOpenBoardCheck,
   type AudioTranscript as AudioTranscriptWords,
 } from '../../api/exercises';
+import { Icon } from '../../components/ui';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
@@ -284,7 +285,7 @@ function InflectionTableRun({
   if (resuming) {
     return (
       <View style={styles.notice}>
-        <ActivityIndicator color={colors.accent} />
+        <ActivityIndicator color={colors.accentBase} />
       </View>
     );
   }
@@ -352,7 +353,7 @@ function InflectionTableRun({
             <Text
               style={[
                 styles.cellText,
-                { color: value === '' ? colors.textMuted : tone.fg },
+                { color: value === '' ? colors.neutral500 : tone.fg },
                 state === 'bad' && styles.struck,
               ]}
             >
@@ -365,7 +366,7 @@ function InflectionTableRun({
             onChangeText={next => change(key, next)}
             editable={free}
             placeholder={placeholder}
-            placeholderTextColor={colors.textMuted}
+            placeholderTextColor={colors.neutral500}
             accessibilityLabel={label}
             // Autocorrect would repair exactly what is being asked: the endings (IT-X7).
             autoCorrect={false}
@@ -397,10 +398,10 @@ function InflectionTableRun({
     if (chip === null) return null;
     const tone =
       chip.tone === 'all'
-        ? colors.success
+        ? colors.accent300
         : chip.tone === 'part'
-        ? colors.warning
-        : colors.danger;
+        ? colors.neutral300
+        : colors.neutral400;
     return (
       <View
         style={[
@@ -492,15 +493,15 @@ function InflectionTableRun({
                 styles.score,
                 {
                   borderLeftColor: verdict.passed
-                    ? colors.success
-                    : colors.warning,
+                    ? colors.accentBase
+                    : colors.neutral600,
                 },
               ]}
             >
               <Text
                 style={[
                   styles.scoreMain,
-                  { color: verdict.passed ? colors.success : colors.warning },
+                  { color: verdict.passed ? colors.accent300 : colors.neutral300 },
                 ]}
               >
                 {t('exerciseRunner.inflectionTable.score', {
@@ -519,7 +520,9 @@ function InflectionTableRun({
 
             {wrong.map(item => (
               <View key={item.itemId} style={[styles.fb, styles.fbBad]}>
-                <Text style={[styles.fbMark, { color: colors.danger }]}>✗</Text>
+                <View style={styles.fbMark}>
+                  <Icon name="X" size={14} color={colors.neutral400} />
+                </View>
                 <View style={styles.fbBody}>
                   <Text style={styles.fbText}>
                     <Text style={styles.bold}>
@@ -547,9 +550,9 @@ function InflectionTableRun({
 
             {wrong.length === 0 && (
               <View style={[styles.fb, styles.fbOk]}>
-                <Text style={[styles.fbMark, { color: colors.success }]}>
-                  ✓
-                </Text>
+                <View style={styles.fbMark}>
+                  <Icon name="Check" size={14} color={colors.accent300} />
+                </View>
                 <Text style={[styles.fbText, styles.fbBody]}>
                   {t('exerciseRunner.inflectionTable.allRight', {
                     count: rows.length,
@@ -650,7 +653,7 @@ function InflectionTableRun({
             accessibilityRole="button"
           >
             {sending ? (
-              <ActivityIndicator size="small" color={colors.textInverted} />
+              <ActivityIndicator size="small" color={colors.accent300} />
             ) : (
               <Text style={styles.primaryBtnText}>
                 {t('exerciseRunner.inflectionTable.check')}
@@ -697,27 +700,27 @@ function cellTone(
   switch (state) {
     case 'ok':
       return {
-        border: colors.success,
-        bg: tint(colors.success),
-        fg: colors.success,
+        border: colors.accent300,
+        bg: tint(colors.accentBase),
+        fg: colors.accent300,
       };
     case 'bad':
       return {
-        border: colors.danger,
-        bg: tint(colors.danger),
-        fg: colors.danger,
+        border: colors.neutral400,
+        bg: tint(colors.neutral600),
+        fg: colors.neutral400,
       };
     case 'filled':
       return {
-        border: colors.accent,
-        bg: colors.accentLight,
-        fg: colors.textPrimary,
+        border: colors.accentBase,
+        bg: colors.accent900,
+        fg: colors.text,
       };
     case 'empty':
       return {
-        border: colors.textMuted,
-        bg: colors.backgroundInput,
-        fg: colors.textPrimary,
+        border: colors.neutral500,
+        bg: colors.surface,
+        fg: colors.text,
       };
   }
 }
@@ -739,14 +742,14 @@ const makeStyles = (colors: ColorScheme) =>
     },
     noticeTitle: {
       fontSize: 16,
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
       textAlign: 'center',
       marginBottom: 6,
     },
     noticeDesc: {
       fontSize: 13,
-      color: colors.textMuted,
+      color: colors.neutral500,
       textAlign: 'center',
       lineHeight: 19,
     },
@@ -761,21 +764,21 @@ const makeStyles = (colors: ColorScheme) =>
       height: 6,
       borderRadius: 3,
       overflow: 'hidden',
-      backgroundColor: colors.backgroundInput,
+      backgroundColor: colors.surface,
     },
     progressFill: {
       height: '100%',
-      backgroundColor: colors.accent,
+      backgroundColor: colors.accentBase,
     },
     progressCount: {
       fontSize: 11,
-      color: colors.textMuted,
+      color: colors.neutral500,
       fontVariant: ['tabular-nums'],
     },
     instruction: {
       fontSize: 15,
-      fontWeight: '600',
-      color: colors.textSecondary,
+      fontWeight: '500',
+      color: colors.neutral400,
       lineHeight: 21,
       marginBottom: 14,
     },
@@ -783,17 +786,17 @@ const makeStyles = (colors: ColorScheme) =>
       marginBottom: 12,
     },
     bold: {
-      fontWeight: '700',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
     },
     cards: {
       gap: 6,
     },
     card: {
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: colors.neutral800,
       borderRadius: 12,
-      backgroundColor: colors.backgroundCard,
+      backgroundColor: colors.surface,
       paddingHorizontal: 12,
       paddingVertical: 10,
       gap: 6,
@@ -805,12 +808,12 @@ const makeStyles = (colors: ColorScheme) =>
     },
     lemma: {
       fontSize: 18,
-      fontWeight: '600',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
     },
     gloss: {
       fontSize: 11,
-      color: colors.textMuted,
+      color: colors.neutral500,
       flexShrink: 1,
     },
     spacer: {
@@ -825,7 +828,7 @@ const makeStyles = (colors: ColorScheme) =>
     },
     chipText: {
       fontSize: 11,
-      fontWeight: '600',
+      fontWeight: '500',
     },
     line: {
       flexDirection: 'row',
@@ -837,7 +840,7 @@ const makeStyles = (colors: ColorScheme) =>
       fontSize: 11,
       letterSpacing: 0.5,
       textTransform: 'uppercase',
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     lineCell: {
       flex: 1,
@@ -845,7 +848,7 @@ const makeStyles = (colors: ColorScheme) =>
     },
     given: {
       fontSize: 16,
-      color: colors.textMuted,
+      color: colors.neutral500,
       paddingVertical: 7,
       paddingHorizontal: 4,
     },
@@ -867,14 +870,14 @@ const makeStyles = (colors: ColorScheme) =>
     // Bank mode: an empty cell ready to take the form in hand.
     cellArmed: {
       borderWidth: 2,
-      borderColor: colors.accent,
+      borderColor: colors.accentBase,
     },
     struck: {
       textDecorationLine: 'line-through',
     },
     key: {
       fontSize: 14,
-      color: colors.success,
+      color: colors.accent300,
       paddingLeft: 2,
     },
     report: {
@@ -887,18 +890,18 @@ const makeStyles = (colors: ColorScheme) =>
       flexWrap: 'wrap',
       gap: 10,
       borderLeftWidth: 3,
-      backgroundColor: colors.backgroundInput,
+      backgroundColor: colors.surface,
       borderRadius: 10,
       paddingHorizontal: 14,
       paddingVertical: 10,
     },
     scoreMain: {
       fontSize: 18,
-      fontWeight: '800',
+      fontWeight: '500',
     },
     scoreSub: {
       fontSize: 12,
-      color: colors.textSecondary,
+      color: colors.neutral400,
     },
     fb: {
       flexDirection: 'row',
@@ -909,15 +912,13 @@ const makeStyles = (colors: ColorScheme) =>
       paddingVertical: 10,
     },
     fbBad: {
-      backgroundColor: tint(colors.danger),
+      backgroundColor: tint(colors.neutral600),
     },
     fbOk: {
-      backgroundColor: tint(colors.success),
+      backgroundColor: tint(colors.accentBase),
     },
     fbMark: {
-      fontSize: 14,
-      fontWeight: '700',
-      marginTop: 1,
+      marginTop: 2,
     },
     fbBody: {
       flex: 1,
@@ -925,38 +926,38 @@ const makeStyles = (colors: ColorScheme) =>
     fbText: {
       fontSize: 14,
       lineHeight: 20,
-      color: colors.textPrimary,
+      color: colors.text,
     },
     near: {
       fontSize: 12,
-      fontWeight: '600',
-      color: colors.textPrimary,
+      fontWeight: '500',
+      color: colors.text,
       marginTop: 3,
     },
     why: {
       fontSize: 14,
       lineHeight: 20,
-      color: colors.textSecondary,
+      color: colors.neutral400,
       marginTop: 3,
     },
     bank: {
       marginTop: 16,
       paddingTop: 12,
       borderTopWidth: 1,
-      borderTopColor: colors.border,
+      borderTopColor: colors.neutral800,
       borderStyle: 'dashed',
       gap: 8,
     },
     bankTitle: {
       fontSize: 11,
-      fontWeight: '700',
+      fontWeight: '500',
       letterSpacing: 1.2,
       textTransform: 'uppercase',
-      color: colors.textMuted,
+      color: colors.neutral500,
     },
     bankHint: {
       fontSize: 12.5,
-      color: colors.textSecondary,
+      color: colors.neutral400,
     },
     bankForms: {
       flexDirection: 'row',
@@ -966,28 +967,28 @@ const makeStyles = (colors: ColorScheme) =>
     form: {
       minHeight: TAP_MIN,
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: colors.neutral800,
       borderRadius: 8,
-      backgroundColor: colors.backgroundCard,
+      backgroundColor: colors.surface,
       paddingHorizontal: 12,
       paddingVertical: 8,
       justifyContent: 'center',
     },
     formArmed: {
       borderWidth: 2,
-      borderColor: colors.accent,
-      backgroundColor: colors.accentLight,
+      borderColor: colors.accentBase,
+      backgroundColor: colors.accent900,
     },
     formUsed: {
       opacity: 0.45,
     },
     formText: {
       fontSize: 16,
-      color: colors.textPrimary,
+      color: colors.text,
     },
     error: {
       fontSize: 13,
-      color: colors.danger,
+      color: colors.neutral400,
       marginTop: 10,
     },
     actions: {
@@ -995,7 +996,8 @@ const makeStyles = (colors: ColorScheme) =>
       gap: 10,
     },
     primaryBtn: {
-      backgroundColor: colors.accent,
+      borderWidth: 1,
+      borderColor: colors.accentBase,
       borderRadius: 14,
       minHeight: TAP_MIN,
       paddingVertical: 14,
@@ -1004,15 +1006,15 @@ const makeStyles = (colors: ColorScheme) =>
     },
     primaryBtnText: {
       fontSize: 15,
-      fontWeight: '700',
-      color: colors.textInverted,
+      fontWeight: '500',
+      color: colors.accent300,
     },
     btnDim: {
       opacity: 0.5,
     },
     closedHint: {
       fontSize: 12.5,
-      color: colors.textMuted,
+      color: colors.neutral500,
       textAlign: 'center',
     },
   });

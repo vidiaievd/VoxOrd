@@ -2,6 +2,7 @@ import {
   answeredCount,
   createEvidence,
   gradeSession,
+  phaseBreakdown,
   recordWordAttempt,
   type SessionEvidence,
 } from './sessionEvidence';
@@ -127,5 +128,37 @@ describe('gradeSession — personal decks', () => {
   it('counts answered words under the personal grader too', () => {
     expect(answeredCount(play([[1, 'flashcard', true]]), gradePersonalWord)).toBe(1);
     expect(answeredCount(play([[1, 'flashcard', true]]))).toBe(0);
+  });
+});
+
+describe('phaseBreakdown', () => {
+  it('counts first-try answers per mode, in plan order', () => {
+    const evidence = play([
+      [1, 'listening', true],
+      [2, 'listening', false],
+      [2, 'listening', true],
+      [1, 'quiz', true],
+      [2, 'quiz', true],
+      [1, 'spelling', false, { gaveUp: true }],
+      [2, 'spelling', true, { typo: true }],
+    ]);
+
+    expect(phaseBreakdown(evidence, ['listening', 'quiz', 'spelling'])).toEqual([
+      { mode: 'listening', total: 2, correct: 1 },
+      { mode: 'quiz', total: 2, correct: 2 },
+      { mode: 'spelling', total: 2, correct: 1 },
+    ]);
+  });
+
+  it('leaves out a mode nobody answered in', () => {
+    const evidence = play([[1, 'quiz', true]]);
+
+    expect(phaseBreakdown(evidence, ['listening', 'quiz'])).toEqual([
+      { mode: 'quiz', total: 1, correct: 1 },
+    ]);
+  });
+
+  it('is empty for an empty ledger', () => {
+    expect(phaseBreakdown(createEvidence(), ['quiz'])).toEqual([]);
   });
 });

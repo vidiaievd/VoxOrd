@@ -1,12 +1,19 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { View, StyleSheet, BackHandler, ToastAndroid } from 'react-native';
 import { useTranslation } from '../i18n';
 import { TodayScreen } from '../screens/TodayScreen';
+import { GrammarReviewScreen } from '../screens/GrammarReviewScreen';
 import { PracticeScreen } from '../screens/PracticeScreen';
 import { NotificationsScreen } from '../screens/NotificationsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { CardScreen } from '../screens/CardScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
+import { AccountScreen } from '../screens/AccountScreen';
+import { DeleteAccountScreen } from '../screens/DeleteAccountScreen';
+import { EditNameScreen } from '../screens/EditNameScreen';
+import { SchoolScreen } from '../screens/SchoolScreen';
+import { SubscriptionScreen } from '../screens/SubscriptionScreen';
+import { AppLanguageScreen } from '../screens/AppLanguageScreen';
 import { ModeSelector } from '../screens/LearningScreen/ModeSelector';
 import { MatchingExercise } from '../screens/LearningScreen/exercises/MatchingExercise';
 import { QuizExercise } from '../screens/LearningScreen/exercises/QuizExercise';
@@ -21,6 +28,9 @@ import { DeepSessionScreen } from '../screens/LearningScreen/DeepSessionScreen';
 import { PronunciationExercise } from '../screens/LearningScreen/exercises/pronunciation/PronunciationExercise';
 import { CoursesScreen } from '../screens/CoursesScreen';
 import { CourseHomeScreen } from '../screens/CourseHomeScreen';
+import { CatalogCourseScreen } from '../screens/CatalogCourseScreen';
+import { FindSchoolScreen } from '../screens/FindSchoolScreen';
+import { SchoolPublicScreen } from '../screens/SchoolPublicScreen';
 import { UnitContentsScreen } from '../screens/UnitContentsScreen';
 import { LessonReaderScreen } from '../screens/LessonReaderScreen';
 import { ExerciseRunnerScreen } from '../screens/ExerciseRunner';
@@ -29,6 +39,7 @@ import { GrammarRuleReaderScreen } from '../screens/GrammarRuleReaderScreen';
 import { ReviewSessionScreen } from '../screens/ReviewSessionScreen';
 import { MyWordsScreen } from '../screens/MyWordsScreen';
 import { SubmissionScreen } from '../screens/SubmissionScreen';
+import { AssistantScreen } from '../screens/AssistantScreen';
 import { TAB_ROOT, backTarget, showsTabBar, tabOf, type Screen, type Tab } from './screens';
 import { TabBar } from './TabBar';
 import { TabScrollProvider, useScrollTabToTop } from './tabScroll';
@@ -38,6 +49,7 @@ import { OfflineSessionBanner } from '../components/OfflineSessionBanner';
 import { useAuth } from '../hooks/useAuth';
 import { setLastCourseId } from '../store/lastCourseStore';
 import { useDueCount } from '../hooks/useDueCount';
+import { useKeepUnreadFresh, useUnreadCount } from '../hooks/useUnreadCount';
 
 /** How long a second Back on Today has to follow the first to leave the app. */
 const EXIT_WINDOW_MS = 2000;
@@ -61,6 +73,9 @@ function Navigator() {
 
   // The Practice badge, fetched again on arrival at a screen when over a minute old.
   const due = useDueCount(screen.name);
+  // The Notifications badge, kept fresh the same way.
+  useKeepUnreadFresh(screen.name);
+  const unread = useUnreadCount();
 
   // Signed out — by the Settings button or by a session the server dropped — the next
   // sign-in starts from Today, not from wherever the last one left off.
@@ -74,6 +89,18 @@ function Navigator() {
   const activeTab = tabOf(screen);
 
   const navigateTo = useCallback((s: Screen) => setScreen(s), []);
+
+  /*
+    A number per arrival, for a screen that must start afresh even when the screen before it
+    was the same kind — a runner opened from a runner's results («try again», «Next» to a set).
+    Every navigation sets a new screen object, so the number moves with each one.
+  */
+  const seq = useRef(0);
+  const screenSeq = useMemo(() => {
+    seq.current += 1;
+    return seq.current;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen]);
 
   /** Go to `target` — what Back does everywhere. */
   const goTo = navigateTo;
@@ -114,8 +141,8 @@ function Navigator() {
   }, [goTo, screen, t]);
 
   const navigateToResults = useCallback(
-    (sessionId: number, deckId: number) => {
-      navigateTo({ name: 'SessionResults', sessionId, deckId });
+    (sessionId: number, deck: Deck) => {
+      navigateTo({ name: 'SessionResults', sessionId, deck });
     },
     [navigateTo],
   );
@@ -159,22 +186,22 @@ function Navigator() {
           navigateTo({ name: 'Card', deck, mode: 'assessment' });
           break;
         case 'matching':
-          navigateTo({ name: 'Matching', deckId: deck.id });
+          navigateTo({ name: 'Matching', deck });
           break;
         case 'quiz':
-          navigateTo({ name: 'Quiz', deckId: deck.id });
+          navigateTo({ name: 'Quiz', deck });
           break;
         case 'spelling':
-          navigateTo({ name: 'Spelling', deckId: deck.id });
+          navigateTo({ name: 'Spelling', deck });
           break;
         case 'listening':
-          navigateTo({ name: 'Listening', deckId: deck.id });
+          navigateTo({ name: 'Listening', deck });
           break;
         case 'pronunciation':
-          navigateTo({ name: 'Pronunciation', deckId: deck.id });
+          navigateTo({ name: 'Pronunciation', deck });
           break;
         case 'context':
-          navigateTo({ name: 'Context', deckId: deck.id });
+          navigateTo({ name: 'Context', deck });
           break;
         case 'deep':
           navigateTo({ name: 'DeepSession', deck });
@@ -209,58 +236,59 @@ function Navigator() {
       case 'Matching':
         return (
           <MatchingExercise
-            deckId={screen.deckId}
+            deck={screen.deck}
             onBack={() =>
               setScreen(prev =>
                 prev.name === 'Matching' ? (backTarget(prev) ?? prev) : prev,
               )
             }
-            onSessionDone={sid => navigateToResults(sid, screen.deckId)}
+            onSessionDone={sid => navigateToResults(sid, screen.deck)}
           />
         );
 
       case 'Quiz':
         return (
           <QuizExercise
-            deckId={screen.deckId}
+            deck={screen.deck}
             onBack={goBack}
-            onSessionDone={sid => navigateToResults(sid, screen.deckId)}
+            onSessionDone={sid => navigateToResults(sid, screen.deck)}
           />
         );
 
       case 'Spelling':
         return (
           <SpellingExercise
-            deckId={screen.deckId}
+            deck={screen.deck}
             onBack={goBack}
-            onSessionDone={sid => navigateToResults(sid, screen.deckId)}
+            onSessionDone={sid => navigateToResults(sid, screen.deck)}
           />
         );
 
       case 'Listening':
         return (
           <ListeningExercise
-            deckId={screen.deckId}
+            deck={screen.deck}
             onBack={goBack}
-            onSessionDone={sid => navigateToResults(sid, screen.deckId)}
+            onSessionDone={sid => navigateToResults(sid, screen.deck)}
           />
         );
 
       case 'Pronunciation':
         return (
           <PronunciationExercise
-            deckId={screen.deckId}
+            deckId={screen.deck.id}
             onBack={goBack}
-            onSessionDone={sid => navigateToResults(sid, screen.deckId)}
+            // It shows its own result and has no stored session to open.
+            onSessionDone={goBack}
           />
         );
 
       case 'Context':
         return (
           <ContextExercise
-            deckId={screen.deckId}
+            deck={screen.deck}
             onBack={goBack}
-            onSessionDone={sid => navigateToResults(sid, screen.deckId)}
+            onSessionDone={sid => navigateToResults(sid, screen.deck)}
           />
         );
 
@@ -269,7 +297,7 @@ function Navigator() {
           <DeepSessionScreen
             deck={screen.deck}
             onBack={goBack}
-            onSessionDone={sid => navigateToResults(sid, screen.deck.id)}
+            onSessionDone={sid => navigateToResults(sid, screen.deck)}
           />
         );
 
@@ -279,19 +307,45 @@ function Navigator() {
             sessionId={screen.sessionId}
             onContinue={goBack}
             onRepeat={() => {
-              // Go back to ModeSelector for the same deck
-              // We need a minimal deck — ModeSelector will show full info
-              navigateTo({
-                name: 'ModeSelector',
-                deck: { id: screen.deckId } as Deck,
-              });
+              navigateTo({ name: 'ModeSelector', deck: screen.deck });
             }}
           />
         );
 
       case 'Courses':
         return (
-          <CoursesScreen onCoursePress={openCourse} />
+          <CoursesScreen
+            segment={screen.segment}
+            onCoursePress={openCourse}
+            onNavigate={navigateTo}
+          />
+        );
+
+      case 'CatalogCourse':
+        return (
+          <CatalogCourseScreen
+            containerId={screen.containerId}
+            onBack={goBack}
+            onOpenCourse={openCourse}
+          />
+        );
+
+      case 'FindSchool':
+        return (
+          <FindSchoolScreen
+            parentLabel={screen.returnTo?.name === 'Today' ? t('nav.today') : t('coursesTab.catalog')}
+            onBack={goBack}
+            onOpen={school => navigateTo({ name: 'SchoolPublic', slug: school.slug, returnTo: screen })}
+          />
+        );
+
+      case 'SchoolPublic':
+        return (
+          <SchoolPublicScreen
+            slug={screen.slug}
+            onBack={goBack}
+            onOpenCourses={() => navigateTo({ name: 'Courses', segment: 'mine' })}
+          />
         );
 
       case 'CourseHome':
@@ -303,7 +357,11 @@ function Navigator() {
               navigateTo({ name: 'UnitContents', unitId, courseId: screen.courseId })
             }
             onReviewPress={() =>
-              navigateTo({ name: 'ReviewSession', courseId: screen.courseId })
+              navigateTo({
+                name: 'ReviewSession',
+                courseId: screen.courseId,
+                from: 'CourseHome',
+              })
             }
           />
         );
@@ -312,43 +370,9 @@ function Navigator() {
         return (
           <UnitContentsScreen
             unitId={screen.unitId}
+            courseId={screen.courseId}
             onBack={goBack}
-            onLessonPress={(lessonId, exerciseIds, alreadyRead) =>
-              navigateTo({
-                name: 'LessonReader',
-                lessonId,
-                unitId: screen.unitId,
-                courseId: screen.courseId,
-                exerciseIds,
-                alreadyRead,
-              })
-            }
-            onExercisePress={(exerciseIds, startIndex, sourceLessonId) =>
-              navigateTo({
-                name: 'ExerciseRunner',
-                exerciseIds,
-                startIndex,
-                unitId: screen.unitId,
-                courseId: screen.courseId,
-                ...(sourceLessonId === null ? {} : { sourceLessonId }),
-              })
-            }
-            onVocabularyPress={listId =>
-              navigateTo({
-                name: 'VocabularyList',
-                listId,
-                unitId: screen.unitId,
-                courseId: screen.courseId,
-              })
-            }
-            onGrammarRulePress={ruleId =>
-              navigateTo({
-                name: 'GrammarRuleReader',
-                ruleId,
-                unitId: screen.unitId,
-                courseId: screen.courseId,
-              })
-            }
+            onOpen={navigateTo}
           />
         );
 
@@ -371,11 +395,16 @@ function Navigator() {
                 });
         return (
           <ExerciseRunnerScreen
+            key={screenSeq}
             exerciseIds={screen.exerciseIds}
             startIndex={screen.startIndex}
             onBack={backToUnit}
             onComplete={backToUnit}
             onOpenSourceLesson={openSourceLesson}
+            unitId={screen.unitId}
+            courseId={screen.courseId}
+            sourceLessonId={sourceLessonId}
+            onOpen={navigateTo}
           />
         );
       }
@@ -392,7 +421,10 @@ function Navigator() {
         return (
           <VocabularyListScreen
             listId={screen.listId}
+            unitId={screen.unitId}
+            courseId={screen.courseId}
             onBack={goBack}
+            onLearn={deck => navigateTo({ name: 'ModeSelector', deck })}
           />
         );
 
@@ -405,6 +437,7 @@ function Navigator() {
           <LessonReaderScreen
             lessonId={lessonId}
             courseId={screen.courseId}
+            unitId={screen.unitId}
             onBack={goBack}
             alreadyRead={screen.alreadyRead === true}
             onPractice={
@@ -429,6 +462,7 @@ function Navigator() {
           <GrammarRuleReaderScreen
             ruleId={screen.ruleId}
             courseId={screen.courseId}
+            unitId={screen.unitId}
             onBack={goBack}
             onPracticePress={exerciseIds =>
               navigateTo({
@@ -443,22 +477,122 @@ function Navigator() {
         );
 
       case 'Settings':
-        return <SettingsScreen onBack={goBack} />;
+        return (
+          <SettingsScreen
+            onBack={goBack}
+            onOpenLanguage={() => navigateTo({ name: 'AppLanguage' })}
+            onOpenAccount={() => navigateTo({ name: 'Account' })}
+          />
+        );
+
+      case 'AppLanguage':
+        return <AppLanguageScreen onBack={goBack} />;
+
+      case 'Account':
+        return (
+          <AccountScreen
+            onBack={goBack}
+            onEditName={() => navigateTo({ name: 'EditName' })}
+            onDeleteAccount={() => navigateTo({ name: 'DeleteAccount' })}
+          />
+        );
+
+      case 'EditName':
+        return <EditNameScreen onBack={goBack} />;
+
+      case 'DeleteAccount':
+        return <DeleteAccountScreen onBack={goBack} />;
+
+      case 'Subscription':
+        return (
+          <SubscriptionScreen
+            onBack={goBack}
+            onOpenCourse={courseId => navigateTo({ name: 'CourseHome', courseId })}
+          />
+        );
+
+      case 'School':
+        return (
+          <SchoolScreen
+            schoolId={screen.schoolId}
+            groupId={screen.groupId}
+            onBack={goBack}
+            onOpenCourse={courseId => navigateTo({ name: 'CourseHome', courseId })}
+            onLeft={() => navigateTo({ name: 'Profile' })}
+          />
+        );
 
       case 'Profile':
-        return <ProfileScreen onOpenSettings={() => navigateTo({ name: 'Settings' })} />;
+        return (
+          <ProfileScreen
+            onOpenSettings={() => navigateTo({ name: 'Settings' })}
+            onOpenAccount={() => navigateTo({ name: 'Account' })}
+            onOpenSubscription={() => navigateTo({ name: 'Subscription' })}
+            onOpenSchool={schoolId => navigateTo({ name: 'School', schoolId })}
+          />
+        );
 
       case 'Practice':
         return (
           <PracticeScreen
-            onStartReview={() => navigateTo({ name: 'ReviewSession' })}
+            due={due}
+            onStartReview={() =>
+              navigateTo({ name: 'ReviewSession', from: 'Practice' })
+            }
             onOpenMyWords={() => navigateTo({ name: 'MyWords' })}
             onOpenDeck={deck => navigateTo({ name: 'ModeSelector', deck })}
+            onOpenMistake={row =>
+              navigateTo({
+                name: 'ExerciseRunner',
+                exerciseIds: [row.exerciseId],
+                startIndex: 0,
+                unitId: row.unitId,
+                courseId: row.courseId,
+                origin: 'practice',
+              })
+            }
+            onOpenGrammar={row =>
+              navigateTo({
+                name: 'GrammarReview',
+                ruleId: row.ruleId,
+                courseId: row.courseId,
+                unitId: row.unitId,
+              })
+            }
+          />
+        );
+
+      case 'GrammarReview':
+        return (
+          <GrammarReviewScreen
+            ruleId={screen.ruleId}
+            courseId={screen.courseId}
+            unitId={screen.unitId}
+            onBack={goBack}
+            onOpenRule={() =>
+              navigateTo({
+                name: 'GrammarRuleReader',
+                ruleId: screen.ruleId,
+                unitId: screen.unitId,
+                courseId: screen.courseId,
+                returnTo: screen,
+              })
+            }
+            onStart={exerciseIds =>
+              navigateTo({
+                name: 'ExerciseRunner',
+                exerciseIds,
+                startIndex: 0,
+                unitId: screen.unitId,
+                courseId: screen.courseId,
+                origin: 'practice',
+              })
+            }
           />
         );
 
       case 'Notifications':
-        return <NotificationsScreen />;
+        return <NotificationsScreen onNavigate={navigateTo} />;
 
       case 'Submission':
         return (
@@ -469,12 +603,20 @@ function Navigator() {
               screen.returnTo?.name === 'Today' ? t('nav.today') : t('nav.notifications')
             }
             onBack={goBack}
+            onOpenAssistant={(context, title) =>
+              navigateTo({
+                name: 'Assistant',
+                context,
+                ...(title ? { contextLabel: title } : {}),
+                returnTo: screen,
+              })
+            }
           />
         );
 
-      // Nothing opens this yet — plan 03 builds it. Should it be reached, Today is a safe
-      // place to land.
       case 'Assistant':
+        return <AssistantScreen route={screen} onBack={goBack} onNavigate={navigateTo} />;
+
       case 'Today':
         return (
           <TodayScreen
@@ -503,7 +645,7 @@ function Navigator() {
         <TabBar
           activeTab={activeTab}
           onTabPress={handleTabPress}
-          badges={{ Practice: due.count, Notifications: 0 }}
+          badges={{ Practice: due.count, Notifications: unread }}
         />
       )}
     </View>

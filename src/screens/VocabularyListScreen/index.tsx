@@ -1,268 +1,217 @@
-import React, { useCallback, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ActivityIndicator,
-  FlatList,
-  RefreshControl,
-  TouchableOpacity,
-} from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { View, Text, FlatList, RefreshControl, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
-import { ColorScheme } from '../../theme/colors';
 import { useVocabularyList } from '../../hooks/useVocabularyList';
 import { useVocabularyImport } from '../../hooks/useVocabularyImport';
-import { useModal } from '../../providers/ModalProvider';
+import { useListMyWords } from '../../hooks/useListMyWords';
+import { useUnitNumber } from '../../hooks/useUnitNumber';
+import { vocabularyImportRepository } from '../../repositories/VocabularyImportRepository';
+import { deckRepository, type Deck } from '../../repositories/DeckRepository';
+import { speechLocale } from '../../lib/speechLocale';
+import { Button, NavHeader, Spinner, useToast } from '../../components/ui';
+import type { VocabularyItemDisplay } from '../../api/vocabulary';
 import { VocabularyItemRow } from './VocabularyItemRow';
-import type { VocabularyItemDisplay, VocabularyListReaderContent } from '../../api/vocabulary';
+import { filterItems } from './filterItems';
 
 interface VocabularyListScreenProps {
   listId: string;
+  /** The unit the list belongs to — its number is the header's parent label. */
+  unitId: string;
+  courseId: string;
   onBack: () => void;
+  /** Opens the list's deck, the way a deck is opened from the Practice tab. */
+  onLearn: (deck: Deck) => void;
 }
 
-/** Read-only view of a course vocabulary list (Phase 5.1). */
-export function VocabularyListScreen({ listId, onBack }: VocabularyListScreenProps) {
+/** A course vocabulary list (Courses §8.4): read it, bookmark words, study it with cards. */
+export function VocabularyListScreen({
+  listId,
+  unitId,
+  courseId,
+  onBack,
+  onLearn,
+}: VocabularyListScreenProps) {
   const { t } = useTranslation();
-  const { colors } = useTheme();
-  const styles = makeStyles(colors);
+  const { colors, typography } = useTheme();
+  const toast = useToast();
+  const unitNumber = useUnitNumber(courseId, unitId);
   const { status, data, error, refreshing, refresh } = useVocabularyList(listId);
   const importer = useVocabularyImport(listId);
-  const { show, hide } = useModal();
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [query, setQuery] = useState('');
+  const [preparing, setPreparing] = useState(false);
+
+  const items = useMemo(() => data?.items ?? [], [data]);
+  const myWords = useListMyWords(listId, items);
+  const shown = useMemo(() => filterItems(items, query), [items, query]);
+  const locale = speechLocale(myWords.targetLanguage);
+  const allMine = items.length > 0 && myWords.mineCount === items.length;
 
   // Accordion: at most one item open at a time, so a long list stays scannable.
   const toggle = useCallback((itemId: string) => {
     setExpandedId((current) => (current === itemId ? null : itemId));
   }, []);
 
-  const handleImport = useCallback(
-    (reader: VocabularyListReaderContent) => {
-      // A re-import re-syncs the deck to the list, which can also drop words the
-      // authors removed upstream — worth confirming, unlike a first import.
-      if (importer.alreadyImported) {
-        show({
-          type: 'confirm',
-          title: t('vocabulary.updateDeckTitle'),
-          message: t('vocabulary.updateDeckMessage'),
-          confirmLabel: t('vocabulary.updateDeckConfirm'),
-          cancelLabel: t('common.cancel'),
-          onConfirm: () => {
-            hide();
-            void importer.run(reader, t('vocabulary.coursesGroup'));
-          },
-        });
-        return;
-      }
-      void importer.run(reader, t('vocabulary.coursesGroup'));
-    },
-    [importer, show, hide, t],
-  );
+  /*
+    The list becomes a deck on the phone the first time it is studied; after that the deck
+    is just opened. Re-syncing an existing deck can drop words the authors removed upstream,
+    which is why it is no longer done silently on every visit.
+  */
+  const learn = useCallback(async () => {
+    if (!data || preparing) return;
+    setPreparing(true);
+    try {
+      if (!importer.alreadyImported) await importer.run(data, t('vocabulary.coursesGroup'));
+      const deckId = await vocabularyImportRepository.findDeckIdForList(listId);
+      const deck = deckId === null ? undefined : (await deckRepository.getAll()).find(d => d.id === deckId);
+      if (deck) onLearn(deck);
+      else toast.show(t('vocabulary.cardsEmpty'));
+    } catch {
+      toast.show(t('vocabulary.importError'));
+    } finally {
+      setPreparing(false);
+    }
+  }, [data, preparing, importer, listId, onLearn, t, toast]);
 
-  const items = data?.items ?? [];
+  const centered = { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, gap: 8 } as const;
 
-  return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-          <Text style={styles.backText}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>
+  const header = (
+    <View style={{ paddingHorizontal: 18, paddingBottom: 12, gap: 12 }}>
+      <View style={{ gap: 4 }}>
+        <Text style={{ ...typography.h1, fontSize: 24, lineHeight: 30, letterSpacing: -0.2, color: colors.text }}>
           {data?.title ?? t('vocabulary.title')}
         </Text>
+        <Text style={[typography.secondary, { color: colors.neutral400 }]}>
+          {t('vocabulary.meta', { count: items.length, mine: myWords.mineCount })}
+        </Text>
       </View>
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        <Button
+          variant="secondary"
+          size={44}
+          icon="Cards"
+          label={t('vocabulary.learnCards')}
+          disabled={preparing || items.length === 0}
+          onPress={learn}
+          style={{ flex: 1, alignSelf: 'stretch' }}
+        />
+        {!allMine && (
+          <Button
+            variant="ghost"
+            size={44}
+            label={t('vocabulary.addAll')}
+            disabled={!myWords.targetLanguage}
+            onPress={() => {
+              myWords.addAll().catch(() => undefined);
+            }}
+          />
+        )}
+      </View>
+    </View>
+  );
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top', 'bottom']}>
+      <NavHeader
+        parentLabel={unitNumber ? t('lessonReader.back', { n: unitNumber }) : t('vocabulary.title')}
+        onBack={onBack}
+        right={
+          status === 'loaded' && items.length > 0
+            ? {
+                icon: 'MagnifyingGlass',
+                accessibilityLabel: t('vocabulary.search'),
+                onPress: () => {
+                  setSearching(open => !open);
+                  setQuery('');
+                },
+              }
+            : undefined
+        }
+      />
+
+      {searching && (
+        <View style={{ paddingHorizontal: 18, paddingBottom: 8 }}>
+          <TextInput
+            autoFocus
+            value={query}
+            onChangeText={setQuery}
+            placeholder={t('vocabulary.searchPlaceholder')}
+            placeholderTextColor={colors.neutral500}
+            accessibilityLabel={t('vocabulary.search')}
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="search"
+            style={{
+              ...typography.cardTitle,
+              height: 44,
+              paddingHorizontal: 14,
+              borderRadius: 8,
+              borderWidth: 1,
+              borderColor: colors.neutral700,
+              color: colors.text,
+            }}
+          />
+        </View>
+      )}
 
       {status === 'loading' && (
-        <View style={styles.centerFill}>
-          <ActivityIndicator size="large" color={colors.accent} />
+        <View style={centered}>
+          <Spinner size={24} color={colors.neutral400} />
         </View>
       )}
 
       {status === 'error' && (
-        <View style={styles.centerFill}>
-          <Text style={styles.emptyTitle}>{t('vocabulary.loadError')}</Text>
-          <Text style={styles.emptyDesc}>{error?.message}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={refresh}>
-            <Text style={styles.retryButtonText}>{t('courses.retry')}</Text>
-          </TouchableOpacity>
+        <View style={centered}>
+          <Text style={[typography.cardTitleMedium, { color: colors.text, textAlign: 'center' }]}>
+            {t('vocabulary.loadError')}
+          </Text>
+          <Text style={[typography.body, { color: colors.neutral400, textAlign: 'center' }]}>
+            {error?.message}
+          </Text>
+          <Button variant="secondary" size={44} label={t('courses.retry')} onPress={refresh} />
         </View>
       )}
 
       {status === 'loaded' && items.length === 0 && (
-        <View style={styles.centerFill}>
-          <Text style={styles.emptyTitle}>{t('vocabulary.noItems')}</Text>
+        <View style={centered}>
+          <Text style={[typography.cardTitleMedium, { color: colors.text, textAlign: 'center' }]}>
+            {t('vocabulary.noItems')}
+          </Text>
         </View>
       )}
 
       {status === 'loaded' && items.length > 0 && (
         <FlatList
-          data={items}
+          data={shown}
           keyExtractor={(item: VocabularyItemDisplay) => item.itemId}
+          keyboardShouldPersistTaps="handled"
           renderItem={({ item }) => (
             <VocabularyItemRow
               item={item}
               expanded={expandedId === item.itemId}
               onToggle={() => toggle(item.itemId)}
+              mine={myWords.isMine(item)}
+              onToggleMine={() => myWords.toggle(item)}
+              speechLocale={locale}
             />
           )}
-          ListHeaderComponent={
-            <Text style={styles.count}>{t('vocabulary.wordCount', { count: items.length })}</Text>
+          ListHeaderComponent={header}
+          ListEmptyComponent={
+            <Text
+              style={[typography.body, { color: colors.neutral400, textAlign: 'center', paddingTop: 24 }]}
+            >
+              {t('vocabulary.noMatches')}
+            </Text>
           }
-          contentContainerStyle={styles.list}
+          contentContainerStyle={{ paddingBottom: 24 }}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} />
+            <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accentBase} />
           }
         />
-      )}
-
-      {status === 'loaded' && items.length > 0 && data !== null && (
-        <View style={styles.footer}>
-          {importer.status === 'done' && importer.result !== null && (
-            <Text style={styles.footerNote}>
-              {t('vocabulary.importDone', {
-                imported: importer.result.imported,
-                updated: importer.result.updated,
-              })}
-              {importer.result.removed > 0 &&
-                ` · ${t('vocabulary.importRemoved', { removed: importer.result.removed })}`}
-              {importer.result.skippedNoTranslation > 0 &&
-                ` · ${t('vocabulary.importSkipped', {
-                  skipped: importer.result.skippedNoTranslation,
-                })}`}
-            </Text>
-          )}
-          {importer.status === 'error' && (
-            <Text style={styles.footerError}>
-              {t('vocabulary.importError')}
-              {importer.error ? ` ${importer.error.message}` : ''}
-            </Text>
-          )}
-          <TouchableOpacity
-            style={[styles.saveButton, importer.status === 'running' && styles.saveButtonBusy]}
-            onPress={() => handleImport(data)}
-            disabled={importer.status === 'running'}
-            activeOpacity={0.85}
-          >
-            {importer.status === 'running' ? (
-              <ActivityIndicator color={colors.textInverted} />
-            ) : (
-              <Text style={styles.saveButtonText}>
-                {importer.alreadyImported ? t('vocabulary.updateDeck') : t('vocabulary.saveToDeck')}
-              </Text>
-            )}
-          </TouchableOpacity>
-        </View>
       )}
     </SafeAreaView>
   );
 }
-
-const makeStyles = (colors: ColorScheme) =>
-  StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: 20,
-      paddingVertical: 12,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    backBtn: {
-      padding: 8,
-      marginRight: 8,
-    },
-    backText: {
-      fontSize: 22,
-      color: colors.textPrimary,
-    },
-    headerTitle: {
-      flex: 1,
-      fontSize: 17,
-      fontWeight: '700',
-      color: colors.textPrimary,
-    },
-    centerFill: {
-      flex: 1,
-      flexGrow: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: 32,
-    },
-    emptyTitle: {
-      fontSize: 17,
-      fontWeight: '700',
-      color: colors.textPrimary,
-      marginBottom: 6,
-      textAlign: 'center',
-    },
-    emptyDesc: {
-      fontSize: 14,
-      color: colors.textMuted,
-      textAlign: 'center',
-      lineHeight: 20,
-    },
-    retryButton: {
-      marginTop: 16,
-      paddingHorizontal: 20,
-      paddingVertical: 10,
-      borderRadius: 12,
-      backgroundColor: colors.accent,
-    },
-    retryButtonText: {
-      fontSize: 14,
-      fontWeight: '700',
-      color: colors.textInverted,
-    },
-    count: {
-      fontSize: 13,
-      color: colors.textMuted,
-      marginHorizontal: 16,
-      marginBottom: 8,
-    },
-    list: {
-      paddingTop: 12,
-      paddingBottom: 24,
-    },
-    footer: {
-      paddingHorizontal: 16,
-      paddingTop: 10,
-      paddingBottom: 12,
-      borderTopWidth: 1,
-      borderTopColor: colors.border,
-      backgroundColor: colors.background,
-    },
-    footerNote: {
-      fontSize: 12,
-      color: colors.textMuted,
-      marginBottom: 8,
-      textAlign: 'center',
-    },
-    footerError: {
-      fontSize: 12,
-      color: colors.danger,
-      marginBottom: 8,
-      textAlign: 'center',
-    },
-    saveButton: {
-      minHeight: 46,
-      borderRadius: 14,
-      backgroundColor: colors.accent,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: 16,
-    },
-    saveButtonBusy: {
-      opacity: 0.7,
-    },
-    saveButtonText: {
-      fontSize: 15,
-      fontWeight: '700',
-      color: colors.textInverted,
-    },
-  });

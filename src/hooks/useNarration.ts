@@ -4,8 +4,8 @@ import { getMediaAsset } from '../api/media';
 
 export type NarrationStatus = 'idle' | 'loading' | 'playing' | 'paused' | 'error';
 
-/** The speeds a learner cycles through — slower for a text read at the edge of their level. */
-export const NARRATION_SPEEDS = [1, 0.75] as const;
+/** The speeds a learner cycles through — slower for a text read at the edge of their level, faster for one they know. */
+export const NARRATION_SPEEDS = [1, 1.25, 0.75] as const;
 
 /** How often the position is read while playing — `react-native-sound` has no time events. */
 const POLL_MS = 500;

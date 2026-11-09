@@ -1,13 +1,13 @@
 import { ApiError } from '../../api/client';
 import { setLocalAttempts, type LocalAttempts } from '../../api/exercises';
 import type { ExerciseDisplay } from '../../api/types';
+import { currentUiLanguage } from '../../i18n/uiLanguage';
 import { exerciseDisplayResource, probeHistoryResource } from '../../lib/courseResources';
 import { mediaCache } from '../../services/mediaCache';
 import { randomNonce } from '../../lib/reviewQueue';
 import { getMemoryCache, readCacheSnapshot } from '../../lib/swrCache';
 import { authStore } from '../../store/authStore';
 import { exerciseOutboxStore } from '../../store/exerciseOutboxStore';
-import { settingsStore } from '../../store/settingsStore';
 import { isLocalAttemptId, LocalRefusal } from './attempt';
 import { LocalEngine, type ProbeHistorySnapshot } from './engine';
 import { exerciseKeyCacheKey, type ExerciseKey } from './grading';
@@ -23,7 +23,7 @@ export const localEngine = new LocalEngine({
   userId: () => authStore.getState().user?.id ?? null,
   display: exerciseId =>
     cached<ExerciseDisplay>(
-      exerciseDisplayResource(exerciseId, settingsStore.getAll().uiLanguage).key,
+      exerciseDisplayResource(exerciseId, currentUiLanguage()).key,
     ),
   key: exerciseId => cached<ExerciseKey>(exerciseKeyCacheKey(exerciseId)),
   clipUrl: async assetId => (assetId ? ((await mediaCache.lookup(assetId))?.url ?? null) : null),
