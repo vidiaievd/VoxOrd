@@ -1,6 +1,11 @@
 import { apiClient } from './client';
 import { getCourseMastery } from './mastery';
 import { getSrsStats } from './srs';
+import {
+  toMaintenanceStatus,
+  toSchoolStatus,
+  type SchoolLifecycleStatus,
+} from '../lib/schoolLifecycle';
 import type {
   Container,
   ContainerItem,
@@ -122,6 +127,27 @@ function toModuleProgressStatus(
 }
 
 /**
+ * The school behind a course, so the screen can say it is read only (plan 90, phase 5).
+ * Best effort: a failed read must not hide the course, and an older service sends no status.
+ */
+async function readOwnerSchool(
+  schoolId: string | null | undefined,
+): Promise<{ status?: SchoolLifecycleStatus; closesAt?: string; purgeAt?: string } | null> {
+  if (!schoolId) return null;
+  try {
+    const raw = await apiClient.get<Record<string, unknown>>(`/api/v1/schools/${schoolId}`);
+    return {
+      status: toSchoolStatus(raw?.status),
+      closesAt: typeof raw?.closesAt === 'string' ? raw.closesAt : undefined,
+      purgeAt: typeof raw?.purgeAt === 'string' ? raw.purgeAt : undefined,
+    };
+  } catch (e) {
+    console.warn(`[CourseHome] Failed to read school ${schoolId}:`, e);
+    return null;
+  }
+}
+
+/**
  * Client-side recomposition of the web BFF's course-home route (no single
  * gateway endpoint covers this). Mastery and SRS-due are real (Phase 6).
  * `canDo` is deliberately left as a stub: the platform has no content-relation
@@ -186,11 +212,17 @@ export async function getCourseHome(courseId: string): Promise<CourseHomePayload
     totalLessons: unit.totalLessons,
   }));
 
+  const school = await readOwnerSchool(container.ownerSchoolId);
+
   const courseInfo: CourseInfo = {
     id: container.id,
     title: container.title,
     cefrLevel: container.difficultyLevel,
     targetLanguage: container.targetLanguage,
+    maintenanceStatus: toMaintenanceStatus(container.maintenanceStatus),
+    schoolStatus: school?.status,
+    schoolClosesAt: school?.closesAt ?? null,
+    schoolPurgeAt: school?.purgeAt ?? null,
   };
 
   const progress: CourseProgress = {

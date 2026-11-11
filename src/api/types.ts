@@ -42,6 +42,8 @@ export interface Container {
   /** Catalogue tags (content-service, plan 04 step 9b); empty on most courses. */
   tags?: ContainerTag[];
   ownerSchoolId?: string | null;
+  /** Whether the author still looks after the course (plan 90, phase 5, Q5). */
+  maintenanceStatus?: 'maintained' | 'unmaintained' | 'obsolete';
   createdAt: string;
   updatedAt: string;
 }
@@ -409,6 +411,14 @@ export interface CourseInfo {
   targetLanguage: string;
   schoolName?: string;
   groupName?: string;
+  /** Whether the author still looks after the course (plan 90, phase 5, Q5). */
+  maintenanceStatus?: 'maintained' | 'unmaintained' | 'obsolete';
+  /** Lifecycle of the school that owns the course; absent for a course without one. */
+  schoolStatus?: 'active' | 'suspended' | 'closed' | 'purged';
+  /** When a suspended school closes by itself (ISO). */
+  schoolClosesAt?: string | null;
+  /** When a closed school is purged (ISO). */
+  schoolPurgeAt?: string | null;
 }
 
 /**

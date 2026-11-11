@@ -5,6 +5,7 @@ import { upsertProgress } from '../api/progress';
 import type { UpsertProgressRequest } from '../api/types';
 import { NEARLY_FULL_SHARE, isOwnedBy, randomNonce, shouldRetry } from '../lib/reviewQueue';
 import type { JournalOp } from '../offline/engine/engine';
+import { schoolNotActiveStatus } from '../lib/schoolLifecycle';
 import { authStore } from './authStore';
 
 const storage = createAsyncStorage('voxord_exercise_outbox');
@@ -65,7 +66,15 @@ export interface QueuedProgress {
   queuedAt: string;
 }
 
-export type OutboxEntry = QueuedAttempt | QueuedSession | QueuedProgress;
+export type OutboxEntry = (QueuedAttempt | QueuedSession | QueuedProgress) & HeldMark;
+
+/**
+ * Set when the learner's school refused the entry as read only (plan 90, phase 5): kept, not
+ * dropped, because a suspended school comes back; tried again on every flush.
+ */
+interface HeldMark {
+  heldBySchool?: 'suspended' | 'closed';
+}
 
 /**
  * Bounded like the review queue, and for the same reason sized generously (offline plan,
@@ -85,6 +94,9 @@ export const MAX_OUTBOX_ENTRIES = 1000;
  * nothing. Every call is dated when the phone made it (offline plan, B4); the engine bounds
  * what it believes of the phone's clock.
  */
+/** A delivery the learner's school refused as read only: the entry stays, marked. */
+type Held = { held: 'suspended' | 'closed' };
+
 class ExerciseOutboxStore {
   private queue: OutboxEntry[] = [];
   /** Local attempt id → the attempt its replay made on the server. */
@@ -105,6 +117,12 @@ class ExerciseOutboxStore {
     }
     this.loaded = true;
     this.notify();
+  }
+
+  /** Entries of the signed-in learner that their school refused for now (plan 90, phase 5). */
+  get heldBySchoolCount(): number {
+    const userId = currentUserId();
+    return this.queue.filter(e => e.heldBySchool && isOwnedBy(e.userId, userId)).length;
   }
 
   /** Entries of the signed-in learner still waiting for the server. */
@@ -205,6 +223,14 @@ class ExerciseOutboxStore {
       const result = await this.deliver(entry);
       // Order matters: a set's progress follows its attempts, so nothing passes one that waits.
       if (result === 'kept') break;
+      // Refused by a read-only school: it waits for the school, and what is behind it goes on.
+      if (typeof result === 'object') {
+        if (entry.heldBySchool !== result.held) {
+          entry.heldBySchool = result.held;
+          await this.persist();
+        }
+        continue;
+      }
       settled.push(entry.id);
     }
 
@@ -215,7 +241,7 @@ class ExerciseOutboxStore {
     }
   }
 
-  private async deliver(entry: OutboxEntry): Promise<'sent' | 'kept' | 'dropped'> {
+  private async deliver(entry: OutboxEntry): Promise<'sent' | 'kept' | 'dropped' | Held> {
     if (entry.kind === 'session') return this.deliverSession(entry);
     try {
       if (entry.kind === 'progress') {
@@ -246,6 +272,8 @@ class ExerciseOutboxStore {
       );
       return 'sent';
     } catch (e) {
+      const held = schoolNotActiveStatus(e);
+      if (held) return { held };
       const status = e instanceof ApiError ? e.status : null;
       if (shouldRetry(status)) return 'kept';
       console.warn(
@@ -258,12 +286,14 @@ class ExerciseOutboxStore {
   }
 
   /** The calls of one local attempt, from where the last flush stopped. */
-  private async deliverSession(entry: QueuedSession): Promise<'sent' | 'kept'> {
+  private async deliverSession(entry: QueuedSession): Promise<'sent' | 'kept' | Held> {
     let serverId = this.attemptIds[entry.localAttemptId];
     if (!serverId && entry.probeDraw) {
       try {
         serverId = await startDealtSitting(entry, entry.probeDraw);
       } catch (e) {
+        const held = schoolNotActiveStatus(e);
+        if (held) return { held };
         const status = e instanceof ApiError ? e.status : null;
         if (shouldRetry(status)) return 'kept';
         // Over the author's limit, or a document edited since the download: the sitting the
@@ -282,6 +312,8 @@ class ExerciseOutboxStore {
       try {
         serverId = await startForReplay(entry);
       } catch (e) {
+        const held = schoolNotActiveStatus(e);
+        if (held) return { held };
         if (shouldRetry(e instanceof ApiError ? e.status : null)) return 'kept';
         console.warn(`[ExerciseOutbox] Dropping attempt at ${entry.exerciseId} — start refused.`);
         return 'sent';
@@ -295,6 +327,8 @@ class ExerciseOutboxStore {
       try {
         await replay(entry.exerciseId, serverId, op);
       } catch (e) {
+        const held = schoolNotActiveStatus(e);
+        if (held) return { held };
         const status = e instanceof ApiError ? e.status : null;
         if (shouldRetry(status)) return 'kept';
         // Refused on the server as it would have been online; the rest of the attempt goes on.
