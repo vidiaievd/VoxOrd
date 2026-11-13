@@ -8,6 +8,9 @@ import type { ExerciseBodyProps } from './ExerciseBody';
 import { AudioLockNote, ExerciseAudioPlayer } from './audio';
 import { selfCheck } from '../../api/exercises';
 import { SelfCheckButton } from './SelfCheckButton';
+import { PrecheckPanel } from './PrecheckPanel';
+import { usePrecheckRun } from './usePrecheckRun';
+import { mayAskAgain } from './templates/precheck';
 import {
   readTranslateSelfCheck,
   selfCheckBudget,
@@ -41,6 +44,7 @@ export function TranslateBody({
   verdict,
   onAnswerChange,
   openAttempt,
+  precheckAvailable,
 }: ExerciseBodyProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -57,7 +61,20 @@ export function TranslateBody({
   const [checksLeft, setChecksLeft] = useState(() => selfCheckBudget(display.content));
   const [checking, setChecking] = useState(false);
   const [checkError, setCheckError] = useState<string | null>(null);
+  // Where the school lets its learners rehearse, the one button asks the engine's `check` — the
+  // same free reading against the key, and a model where the key is not enough (plan 84).
+  const precheck = usePrecheckRun(display.id, openAttempt);
+  const viaCheck = precheckAvailable === true && !precheck.closed;
   const runSelfCheck = async () => {
+    if (viaCheck) {
+      const answer = await precheck.run(buildTranslateAnswer(task.items, values));
+      if (answer !== null && answer.selfCheck !== null) {
+        const read = readTranslateSelfCheck(answer.selfCheck);
+        setChecked(read);
+        setChecksLeft(read.checksLeft);
+      }
+      return;
+    }
     setChecking(true);
     setCheckError(null);
     try {
@@ -126,12 +143,16 @@ export function TranslateBody({
         />
       ))}
 
-      {!disabled && selfCheckBudget(display.content) > 0 ? (
+      {!disabled && (viaCheck || selfCheckBudget(display.content) > 0) ? (
         <SelfCheckButton
-          label={t('exerciseRunner.translate.selfCheck.button', { left: checksLeft })}
-          spentLabel={t('exerciseRunner.translate.selfCheck.spent')}
-          left={checksLeft}
-          busy={checking}
+          label={
+            viaCheck
+              ? t('exerciseRunner.precheck.button')
+              : t('exerciseRunner.translate.selfCheck.button', { left: checksLeft })
+          }
+          spentLabel={viaCheck ? t('exerciseRunner.precheck.button') : t('exerciseRunner.translate.selfCheck.spent')}
+          left={viaCheck ? (mayAskAgain(precheck.result?.remaining ?? null) ? 1 : 0) : checksLeft}
+          busy={viaCheck ? precheck.busy : checking}
           disabled={written === 0}
           summary={
             checked === null
@@ -141,10 +162,11 @@ export function TranslateBody({
                   total: task.items.length,
                 })
           }
-          error={checkError}
+          error={viaCheck ? precheck.error : checkError}
           onPress={() => void runSelfCheck()}
         />
       ) : null}
+      {!disabled && viaCheck && precheck.result !== null ? <PrecheckPanel result={precheck.result} /> : null}
     </View>
   );
 }

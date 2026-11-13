@@ -40,6 +40,8 @@ import { ReviewSessionScreen } from '../screens/ReviewSessionScreen';
 import { MyWordsScreen } from '../screens/MyWordsScreen';
 import { SubmissionScreen } from '../screens/SubmissionScreen';
 import { AssistantScreen } from '../screens/AssistantScreen';
+import { SoundSessionScreen } from '../screens/SoundSessionScreen';
+import { SoundCardScreen } from '../screens/SoundSessionScreen/SoundCardScreen';
 import { TAB_ROOT, backTarget, showsTabBar, tabOf, type Screen, type Tab } from './screens';
 import { TabBar } from './TabBar';
 import { TabScrollProvider, useScrollTabToTop } from './tabScroll';
@@ -540,6 +542,7 @@ function Navigator() {
               navigateTo({ name: 'ReviewSession', from: 'Practice' })
             }
             onOpenMyWords={() => navigateTo({ name: 'MyWords' })}
+            onOpenSoundSession={() => navigateTo({ name: 'SoundSession' })}
             onOpenDeck={deck => navigateTo({ name: 'ModeSelector', deck })}
             onOpenMistake={row =>
               navigateTo({
@@ -611,6 +614,24 @@ function Navigator() {
                 returnTo: screen,
               })
             }
+          />
+        );
+
+      case 'SoundSession':
+        return (
+          <SoundSessionScreen
+            atomId={screen.atomId}
+            onBack={goBack}
+            onOpenCard={atomId => navigateTo({ name: 'SoundCard', atomId })}
+          />
+        );
+
+      case 'SoundCard':
+        return (
+          <SoundCardScreen
+            atomId={screen.atomId}
+            onBack={goBack}
+            onTrain={atomId => navigateTo({ name: 'SoundSession', atomId })}
           />
         );
 

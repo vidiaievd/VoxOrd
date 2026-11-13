@@ -8,6 +8,9 @@ import type { ExerciseBodyProps } from './ExerciseBody';
 import { AudioLockNote, AudioTranscript, ExerciseAudioPlayer } from './audio';
 import { selfCheck } from '../../api/exercises';
 import { SelfCheckButton } from './SelfCheckButton';
+import { PrecheckPanel } from './PrecheckPanel';
+import { usePrecheckRun } from './usePrecheckRun';
+import { mayAskAgain } from './templates/precheck';
 import {
   readCorrectionSelfCheck,
   selfCheckBudget,
@@ -53,6 +56,7 @@ export function ErrorCorrectionBody({
   onAnswerChange,
   openAttempt,
   openedContent,
+  precheckAvailable,
 }: ExerciseBodyProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -102,7 +106,20 @@ export function ErrorCorrectionBody({
   const [checksLeft, setChecksLeft] = useState(budget);
   const [checking, setChecking] = useState(false);
   const [checkError, setCheckError] = useState<string | null>(null);
+  // Where the school lets its learners rehearse, the one button asks the engine's `check` — the
+  // same free reading against the key, and a model where the key is not enough (plan 84).
+  const precheck = usePrecheckRun(display.id, openAttempt);
+  const viaCheck = precheckAvailable === true && !precheck.closed;
   const runSelfCheck = async () => {
+    if (viaCheck) {
+      const answer = await precheck.run(buildEcAnswer(task.items, value));
+      if (answer !== null && answer.selfCheck !== null) {
+        const read = readCorrectionSelfCheck(answer.selfCheck);
+        setChecked(read);
+        setChecksLeft(read.checksLeft);
+      }
+      return;
+    }
     setChecking(true);
     setCheckError(null);
     try {
@@ -391,12 +408,18 @@ export function ErrorCorrectionBody({
         );
       })}
 
-      {!disabled && budget > 0 ? (
+      {!disabled && (viaCheck || budget > 0) ? (
         <SelfCheckButton
-          label={t('exerciseRunner.errorCorrection.selfCheck.button', { left: checksLeft })}
-          spentLabel={t('exerciseRunner.errorCorrection.selfCheck.spent')}
-          left={checksLeft}
-          busy={checking}
+          label={
+            viaCheck
+              ? t('exerciseRunner.precheck.button')
+              : t('exerciseRunner.errorCorrection.selfCheck.button', { left: checksLeft })
+          }
+          spentLabel={
+            viaCheck ? t('exerciseRunner.precheck.button') : t('exerciseRunner.errorCorrection.selfCheck.spent')
+          }
+          left={viaCheck ? (mayAskAgain(precheck.result?.remaining ?? null) ? 1 : 0) : checksLeft}
+          busy={viaCheck ? precheck.busy : checking}
           disabled={touched === 0}
           summary={
             checked === null
@@ -406,10 +429,11 @@ export function ErrorCorrectionBody({
                   total: checked.spanCount,
                 })
           }
-          error={checkError}
+          error={viaCheck ? precheck.error : checkError}
           onPress={() => void runSelfCheck()}
         />
       ) : null}
+      {!disabled && viaCheck && precheck.result !== null ? <PrecheckPanel result={precheck.result} /> : null}
 
       {audioOn ? (
         <AudioTranscript

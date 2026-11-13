@@ -9,6 +9,15 @@ export type SpellingHintMode = 'always' | 'after_mistake' | 'never';
 export const READER_FONT_SIZES = [15, 17, 20] as const;
 export type ReaderFontSize = (typeof READER_FONT_SIZES)[number];
 
+/**
+ * How the learner reads pronunciation under a text (platform plan 86, §4i.2): «meaning» draws
+ * nothing and fetches nothing, `sentences` takes one sentence at a time, `text` draws one lens
+ * over the whole text.
+ */
+export type ProsodyMode = 'meaning' | 'sentences' | 'text';
+/** The one layer drawn at a time: stress, sounds, how it is heard, melody. */
+export type ProsodyLens = 'stress' | 'sounds' | 'respell' | 'melody';
+
 /** `offlineUnitsAhead` meaning the whole course rather than a number of units. */
 export const ALL_UNITS = -1;
 
@@ -35,6 +44,10 @@ export interface AppSettings {
   offlineMediaOnCellular: boolean;
   /** The size of a text in the reader. */
   readerFontSize: ReaderFontSize;
+  prosodyMode: ProsodyMode;
+  prosodyLens: ProsodyLens;
+  /** «Show the legend» — the signs of the lens in use, under the text or the sentence card. */
+  showProsodyLegend: boolean;
   /** Words are spoken when a card or a word list shows them. */
   autoplayAudio: boolean;
   // Notification choices: on the phone only, and their rows are hidden — the platform has no
@@ -58,6 +71,9 @@ const DEFAULT_SETTINGS: AppSettings = {
   offlineUnitsAhead: 2,
   offlineMediaOnCellular: false,
   readerFontSize: 17,
+  prosodyMode: 'meaning',
+  prosodyLens: 'stress',
+  showProsodyLegend: true,
   autoplayAudio: true,
   notifReviewReminder: false,
   notifReviewReminderTime: '19:00',

@@ -19,6 +19,11 @@ import { syncMyWords } from '../../lib/myWordsSync';
 import { paragraphTones } from '../../lib/text/narrationProgress';
 import { useSettings } from '../../hooks/useSettings';
 import { Button, NavHeader, Spinner } from '../../components/ui';
+import { LessonSentenceDrill } from '../../components/prosody/LessonSentenceDrill';
+import { ProsodyControls } from '../../components/prosody/ProsodyControls';
+import { ProsodyLegend } from '../../components/prosody/ProsodyLegend';
+import { useLessonProsody, useProsodySettings, wantsProsody } from '../../hooks/useProsody';
+import { hasPhraseMarks } from '../../lib/prosody/phraseMarks';
 import { ReaderCaptureContext, type ReaderCapture } from './captureContext';
 
 interface LessonReaderScreenProps {
@@ -60,6 +65,17 @@ export function LessonReaderScreen({
   // a text: an audio lesson's whole screen is its recording already.
   const narrationId = useNarrationId(data?.kind === 'text' ? data.mediaIds : []);
   const narration = useNarration(narrationId);
+  // Pronunciation under the text — Norwegian only, fetched once the learner leaves «Meaning».
+  const prosodySettings = useProsodySettings();
+  const prosodyAvailable =
+    data?.kind === 'text' && (data.targetLanguage === 'nb' || data.targetLanguage === 'no');
+  const prosodyLayers = useLessonProsody(
+    lessonId,
+    data?.variantId ?? undefined,
+    prosodyAvailable && wantsProsody(prosodySettings.mode),
+  );
+  // «By sentence» replaces the paragraphs with the sentence card (7f); the other modes draw in place.
+  const drawnLens = prosodySettings.mode === 'text' ? prosodySettings.lens : null;
   const glossaryIndex = useMemo(
     () => buildGlossaryIndex(data?.glossary ?? []),
     [data?.glossary],
@@ -212,6 +228,29 @@ export function LessonReaderScreen({
               <Text style={{ ...typography.h1, fontSize: 24, lineHeight: 30, letterSpacing: -0.2, color: colors.text }}>
                 {title}
               </Text>
+              {prosodyAvailable && (
+                <ProsodyControls
+                  mode={prosodySettings.mode}
+                  lens={prosodySettings.lens}
+                  legend={prosodySettings.legend}
+                  melody={hasPhraseMarks(Object.values(prosodyLayers ?? {}).map(p => p.layer))}
+                  sentences
+                  onChange={next => {
+                    prosodySettings.setMode(next.mode).catch(() => undefined);
+                    prosodySettings.setLens(next.lens).catch(() => undefined);
+                    prosodySettings.setLegend(next.legend).catch(() => undefined);
+                  }}
+                />
+              )}
+              {prosodyAvailable && drawnLens !== null && prosodySettings.legend && (
+                <ProsodyLegend lens={drawnLens} />
+              )}
+              {prosodyAvailable && prosodySettings.mode === 'sentences' && prosodyLayers && (
+                <>
+                  {prosodySettings.legend && <ProsodyLegend lens={prosodySettings.lens} />}
+                  <LessonSentenceDrill layers={prosodyLayers} lens={prosodySettings.lens} />
+                </>
+              )}
               {paragraphs.map((paragraph, i) => (
                 <ParagraphView
                   key={i}
@@ -219,6 +258,11 @@ export function LessonReaderScreen({
                   paragraphIndex={i}
                   glossaryIndex={glossaryIndex}
                   textStyle={{ fontSize: readerFontSize, tone: tones[i] ?? 'plain' }}
+                  prosody={
+                    drawnLens !== null && prosodyLayers?.[i]?.text === paragraph.target
+                      ? { lens: drawnLens, data: prosodyLayers[i]! }
+                      : null
+                  }
                 />
               ))}
               {paragraphs.length === 0 && (

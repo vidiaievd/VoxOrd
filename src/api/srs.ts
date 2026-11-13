@@ -250,3 +250,12 @@ export async function suspendCard(cardId: string): Promise<void> {
 export async function unsuspendCard(cardId: string): Promise<void> {
   await apiClient.post(`/api/v1/srs/cards/${cardId}/unsuspend`);
 }
+
+/**
+ * `POST /srs/atoms/:atomId/add { courseId }` — the learner puts a grammar rule they have
+ * reached into their review (platform plan 85, step 6). Idempotent: an existing card comes
+ * back as it is. 422 — the rule is not one this learner has reached; 503 — try again later.
+ */
+export async function addReachedAtom(atomId: string, courseId: string): Promise<SrsCard> {
+  return apiClient.post<SrsCard>(`/api/v1/srs/atoms/${atomId}/add`, { courseId });
+}

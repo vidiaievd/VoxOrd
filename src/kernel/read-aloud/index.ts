@@ -18,6 +18,8 @@ export type {
   PlanPoint,
   Prompt,
   PromptImage,
+  PronunciationGuide,
+  PronunciationLens,
   ReadAloudContent,
   Recording,
   RevisionPolicy,
@@ -29,18 +31,21 @@ export type {
 } from './model';
 export {
   AI_VISIBILITIES,
+  DEFAULT_PRONUNCIATION_GUIDE,
   DEFAULT_RECORDING,
   DEFAULT_REVIEW,
   DEFAULT_SETTINGS,
   defaultRubric,
   emptyContent,
   isMode,
+  isPronunciationLens,
   LEN,
   modeConfig,
   MODES,
   newCriterion,
   newId,
   newPrompt,
+  PRONUNCIATION_LENSES,
   RA_LONG_PLAN_POINTS,
   RA_LONG_TEXT_WORDS,
   RA_MANY_PROMPTS,
@@ -157,7 +162,10 @@ export {
 export * from './edits';
 
 export type { Issue, IssueCode, IssueContext, IssueLevel, IssueStep, MaterialNeed, StepState, StepStatus } from './issues';
-export { blockers, isReady, issues, stepState } from './issues';
+export { blockers, isReady, issues, railSteps, stepState } from './issues';
+
+export type { GuideIssue, GuidePrompt } from './guide';
+export { guideIssues, guideShown } from './guide';
 
 export type {
   PersistedAnswers,

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   StyleSheet,
@@ -45,6 +45,7 @@ import {
   takesOf,
   toDraft,
   toSubmission,
+  toRehearsalDraft,
   unsentAssets,
   type Draft,
   type RecorderConfig,
@@ -58,9 +59,21 @@ import {
   type RecorderHandle,
   type RecorderPort,
 } from '../../services/recorder';
+import { ProsodyControls } from '../../components/prosody/ProsodyControls';
+import { ProsodyLegend } from '../../components/prosody/ProsodyLegend';
+import {
+  useExerciseProsody,
+  useProsodySettings,
+  wantsProsody,
+} from '../../hooks/useProsody';
+import { hasPhraseMarks } from '../../lib/prosody/phraseMarks';
 import { ExerciseAudioPlayer } from './audio';
 import { AiReviewPanel } from './AiReviewPanel';
+import { ReadAloudSentenceDrill } from './ReadAloudSentenceDrill';
 import { ReadAloudGraded } from './ReadAloudGraded';
+import { PrecheckButton, PrecheckPanel } from './PrecheckPanel';
+import { usePrecheckRun } from './usePrecheckRun';
+import { mayAskAgain, precheckCapable } from './templates/precheck';
 import type { ExerciseBodyProps } from './ExerciseBody';
 import {
   Clock,
@@ -123,6 +136,7 @@ export function ReadAloudBody({
   finishTable,
   openAttempt,
   openedContent,
+  precheckAvailable,
   createPort = createNativeRecorder,
 }: ReadAloudBodyProps) {
   const { t } = useTranslation();
@@ -336,6 +350,7 @@ export function ReadAloudBody({
           initialDraft={stage.draft}
           audio={audio}
           checkTable={checkTable}
+          precheckAvailable={precheckAvailable === true && precheckCapable('read_aloud', stage.content.mode)}
           onDelivered={(verdict, recordings, sources) => {
             // A teacher's work closes the item at once; the machine's and nobody's stay open
             // (the wait, and «record again»).
@@ -443,6 +458,8 @@ interface SessionProps {
   initialDraft: Draft | null;
   audio: ExerciseAudioEngine;
   checkTable: ExerciseBodyProps['checkTable'];
+  /** «Check» with a model is offered before the hand-in (platform plan 84). */
+  precheckAvailable: boolean;
   /** Handed in: what the engine said, what went, and how each take plays from the phone. */
   onDelivered: (
     verdict: SubmitAttemptResponse,
@@ -470,6 +487,7 @@ function ReadAloudSession({
   initialDraft,
   audio,
   checkTable,
+  precheckAvailable,
   onDelivered,
   createPort,
   t,
@@ -520,6 +538,19 @@ function ReadAloudSession({
   /** The takes recorded here, kept for a retried upload. */
   const captures = useRef(new Map<string, CapturedTake>());
   const playback = useTakePlayback();
+  // Pronunciation over the passage — a reading in Norwegian, drawn once the learner leaves «Meaning».
+  const prosodySettings = useProsodySettings();
+  const prosodyAvailable =
+    whole.mode === 'read' && (whole.language === 'nb' || whole.language === 'no');
+  const prosodyLayers = useExerciseProsody(
+    exerciseId,
+    prosodyAvailable && wantsProsody(prosodySettings.mode),
+  );
+  // «By sentence»: one sentence at a time, said and heard on its own; only while the work is open.
+  const sentenceDrill =
+    prosodyAvailable && stage === 'draft' && prosodySettings.mode === 'sentences';
+  const drawnLens =
+    prosodySettings.mode === 'text' || sentenceDrill ? prosodySettings.lens : null;
 
   const labelOf = (itemId: string) => {
     const i = whole.prompts.findIndex(p => p.id === itemId);
@@ -553,6 +584,16 @@ function ReadAloudSession({
     },
   });
   const { state } = recorder;
+
+  // «Check» before the hand-in (platform plan 84): the takes uploaded so far, a passage at a time.
+  const openForCheck = useCallback(() => Promise.resolve(attemptId), [attemptId]);
+  const check = usePrecheckRun(exerciseId, openForCheck);
+  const rehearsal = toRehearsalDraft(state, config);
+  const heardIds = useMemo(
+    () => new Set((rehearsal?.recordings ?? []).map(r => r.itemId)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [JSON.stringify(rehearsal?.recordings.map(r => r.itemId))],
+  );
 
   // Every uploaded take and the choice between them, onto the attempt. Keyed by the draft's
   // own content, so a level or a tick does not send it again.
@@ -714,6 +755,7 @@ function ReadAloudSession({
   if (stage === 'sent') return null;
 
   const prompt = content.prompts[state.index];
+  const promptProsody = prompt ? prosodyLayers?.[prompt.id] : undefined;
   const total = content.prompts.length;
   const busy = ['prep', 'count', 'rec', 'stopping'].includes(state.phase);
 
@@ -789,7 +831,48 @@ function ReadAloudSession({
           {total > 1 ? (
             <Text style={styles.promptLabel}>{labelOf(prompt.id)}</Text>
           ) : null}
-          <Material mode={content.mode} prompt={prompt} />
+          {prosodyAvailable ? (
+            <ProsodyControls
+              mode={prosodySettings.mode}
+              lens={prosodySettings.lens}
+              legend={prosodySettings.legend}
+              melody={hasPhraseMarks(
+                Object.values(prosodyLayers ?? {}).map(p => p.layer),
+              )}
+              sentences={stage === 'draft'}
+              onChange={next => {
+                prosodySettings.setMode(next.mode).catch(() => undefined);
+                prosodySettings.setLens(next.lens).catch(() => undefined);
+                prosodySettings.setLegend(next.legend).catch(() => undefined);
+              }}
+            />
+          ) : null}
+          {prosodyAvailable && drawnLens !== null && prosodySettings.legend ? (
+            <ProsodyLegend lens={drawnLens} />
+          ) : null}
+          {sentenceDrill && prompt.text ? (
+            <ReadAloudSentenceDrill
+              exerciseId={exerciseId}
+              attemptId={attemptId}
+              prompt={{ id: prompt.id, text: prompt.text }}
+              prosody={promptProsody}
+              lens={drawnLens}
+              createPort={createPort}
+              micBusy={busy}
+            />
+          ) : (
+            <Material
+              mode={content.mode}
+              prompt={prompt}
+              prosody={
+                drawnLens !== null &&
+                promptProsody !== undefined &&
+                promptProsody.text === prompt.text
+                  ? { lens: drawnLens, data: promptProsody }
+                  : null
+              }
+            />
+          )}
           <RecorderCard
             recorder={recorder}
             config={config}
@@ -833,6 +916,28 @@ function ReadAloudSession({
             </Text>
           </TouchableOpacity>
         </View>
+      ) : null}
+
+      {precheckAvailable && !check.closed ? (
+        <>
+          <PrecheckButton
+            label={t('exerciseRunner.precheck.button')}
+            busy={check.busy}
+            disabled={
+              busy || submitting || rehearsal === null || !mayAskAgain(check.result?.remaining ?? null)
+            }
+            error={check.error}
+            onPress={() => void check.run(rehearsal)}
+          />
+          {check.result !== null ? (
+            <PrecheckPanel
+              result={check.result}
+              passageLabel={i => (whole.prompts[i] ? labelOf(whole.prompts[i].id) : String(i + 1))}
+              itemLabel={labelOf}
+              heardItemIds={heardIds}
+            />
+          ) : null}
+        </>
       ) : null}
 
       <SubmitActions

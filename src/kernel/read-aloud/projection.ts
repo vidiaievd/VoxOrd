@@ -16,11 +16,15 @@
 // this projection reads `expected_answers` too (the caveat of plan 50 §5: a projection written
 // from `content` alone silently loses this).
 //
+// The pronunciation guide travels as its switches only, and only when it is on for `read`
+// (plan 86, step 6h): the marks are fetched separately (`…/prosody`).
+//
 // The audio block is not here: the content service adds the layer's own projection beside it.
 
 import type { CarriedPrompt } from './carry';
 import { planOf } from './derive';
-import type { Mode, Recording, RevisionPolicy, ShowModelPolicy, ShowRubricPolicy } from './model';
+import { guideShown } from './guide';
+import type { Mode, PronunciationLens, Recording, RevisionPolicy, ShowModelPolicy, ShowRubricPolicy } from './model';
 import { fromPersisted } from './persistence';
 
 export interface ProjectedPrompt {
@@ -63,6 +67,8 @@ export interface StudentProjection {
    * not. Absent on a first try.
    */
   carried?: CarriedPrompt[];
+  /** Only when the author switched the guide on for a `read` exercise. */
+  pronunciationGuide?: { sentenceDrill: boolean; lenses: PronunciationLens[] };
 }
 
 export function toStudentProjection(content: unknown, expectedAnswers: unknown): StudentProjection {
@@ -98,6 +104,13 @@ export function toStudentProjection(content: unknown, expectedAnswers: unknown):
       revision: ex.settings.revision,
     },
   };
+
+  if (guideShown(ex)) {
+    projection.pronunciationGuide = {
+      sentenceDrill: ex.pronunciationGuide.sentenceDrill,
+      lenses: [...ex.pronunciationGuide.lenses],
+    };
+  }
 
   if (ex.settings.showRubric === 'always') {
     projection.rubric = ex.rubric

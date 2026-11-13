@@ -737,6 +737,179 @@ export interface Translations {
     queued: string;
     refused: string;
   };
+  /** Pronunciation under a text: what to show and the legend of each sign (platform plan 86). */
+  /** The pronunciation session (platform plan 86, VoxOrd step 15). */
+  soundSession: {
+    title: string;
+    back: string;
+    start: {
+      begin: string;
+      resume: string;
+      starting: string;
+      hint: string;
+      lowBudget: string;
+      schoolPays: string;
+      trainSound: string;
+      chosen: string;
+    };
+    refused: {
+      SESSION_LIMIT: string;
+      POOL_EMPTY: string;
+      NOT_AVAILABLE: string;
+      generic: string;
+      retry: string;
+    };
+    progress: {
+      diagnostic: string;
+      takes: string;
+      sounds: string;
+    };
+    status: {
+      pending: string;
+      open: string;
+      passed: string;
+      failed: string;
+    };
+    step: {
+      sayWord: string;
+      sayPair: string;
+      sayPhrase: string;
+      sayPairNow: string;
+      frame: string;
+      playing: string;
+      noClip: string;
+      howTo: string;
+      drill: string;
+      commonError: string;
+      listen: string;
+    };
+    record: {
+      record: string;
+      stop: string;
+      recording: string;
+      hearing: string;
+      micDenied: string;
+      micMissing: string;
+    };
+    notice: {
+      uploadFailed: string;
+      notReady: string;
+      inaudible: string;
+      tryAgain: string;
+      stale: string;
+    };
+    verdict: {
+      passed: string;
+      missed: string;
+      unmeasured: string;
+      tone: {
+        like_reference: string;
+        other_tone: string;
+        unsure: string;
+      };
+      next: string;
+      toEnd: string;
+    };
+    events: {
+      sound_passed: string;
+      sound_failed: string;
+      element_passed: string;
+      side_passed: string;
+      diagnostic_done: string;
+    };
+    ending: {
+      title: string;
+      body: string;
+      stopped: string;
+      take_limit: string;
+      finish: string;
+      submitting: string;
+      retry: string;
+    };
+    result: {
+      title: string;
+      score: string;
+      GOOD: string;
+      HARD: string;
+      AGAIN: string;
+      none: string;
+      passes: string;
+      fails: string;
+      weak: string;
+      flagged: string;
+      again: string;
+      empty: string;
+      cardsNote: string;
+    };
+    broken: {
+      title: string;
+      body: string;
+      reload: string;
+      restart: string;
+    };
+    melody: {
+      yours: string;
+      model: string;
+      label: string;
+      none: string;
+    };
+    card: {
+      train: string;
+      ipa: string;
+      description: string;
+      howTo: string;
+      drill: string;
+      commonError: string;
+      carriers: string;
+      loading: string;
+      failed: string;
+      notFound: string;
+      open: string;
+    };
+    practiceTitle: string;
+    practiceSub: string;
+  };
+  prosody: {
+    lensGroup: string;
+    modeMeaning: string;
+    modeSentences: string;
+    modeText: string;
+    lensStress: string;
+    lensSounds: string;
+    lensRespell: string;
+    lensMelody: string;
+    legendShow: string;
+    legendTitle: string;
+    legendStressed: string;
+    legendLong: string;
+    legendSilent: string;
+    legendTie: string;
+    legendWeak: string;
+    legendRespell: string;
+    legendRespellSigns: string;
+    legendTone1: string;
+    legendTone2: string;
+    legendDot: string;
+    legendAccent: string;
+    legendFall: string;
+    legendRise: string;
+    /** The sentence card: one sentence of a reading, said and heard on its own (plan 86, step 7e.2). */
+    drill: {
+      group: string;
+      position: string;
+      previous: string;
+      next: string;
+      say: string;
+      stop: string;
+      sending: string;
+      checking: string;
+      micDenied: string;
+      micMissing: string;
+      failed: string;
+      closed: string;
+      busy: string;
+    };
+  };
   lessonReader: {
     title: string;
     loadError: string;
@@ -884,6 +1057,46 @@ export interface Translations {
     check: string;
     /** Footer label for work handed in rather than checked — `writing_task` (Courses §8.5). */
     send: string;
+    /** Footer label of the hand-in when a check with a model is offered beside it. */
+    sendToTeacher: string;
+    /** «Check» before hand-in — a rehearsal with a model (platform plan 84). */
+    precheck: {
+      button: string;
+      offline: string;
+      failed: string;
+      title: string;
+      subtitle: string;
+      noScores: string;
+      noRemarks: string;
+      /** Rules the remarks point at (platform plan 85, step 7). */
+      revisit: {
+        title: string;
+        marked: string;
+        add: string;
+        added: string;
+        failed: string;
+      };
+      left: string; // '{count}'
+      line: {
+        keySettles: string;
+        exerciseLimit: string;
+        learnerLimit: string;
+        poolEmpty: string;
+        emptyAnswer: string;
+        notReady: string;
+        sentenceLimit: string;
+        inaudible: string;
+        failed: string;
+      };
+      kind: {
+        grammar: string;
+        lexis: string;
+        spelling: string;
+        pronunciation: string;
+        fluency: string;
+        content: string;
+      };
+    };
     /** Accessibility label of the header's X. */
     close: string;
     continue: string;

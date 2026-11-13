@@ -20,6 +20,48 @@ import {
 import { Icon } from '../../components/ui';
 import { useTranslation } from '../../i18n';
 import { readerBlocks, type Inline, type ReaderBlock } from '../../lib/text/readerBlocks';
+import { inlineOffsets, inlinesText } from '../../lib/prosody/blockOffsets';
+import { ProsodyText } from '../../components/prosody/ProsodyText';
+import type { TextProsody } from '../../api/prosody';
+import type { ProsodyLens } from '../../store/settingsStore';
+
+/** The pronunciation drawn on a paragraph: one lens of the layer made for exactly its text. */
+export interface ParagraphProsody {
+  lens: ProsodyLens;
+  data: TextProsody;
+}
+
+interface ProsodyRun {
+  prosody: ParagraphProsody;
+  /** Index among the paragraph's words of the first word of each run of text. */
+  offsets: Map<Inline[], number>;
+}
+
+const ProsodyRunContext = React.createContext<ProsodyRun | null>(null);
+
+/** A run of text drawn with the pronunciation, or `null` when it cannot be placed in the layer. */
+function ProsodyInlines({
+  inlines,
+  style,
+}: {
+  inlines: Inline[];
+  style: { fontSize?: number; color?: string };
+}) {
+  const run = React.useContext(ProsodyRunContext);
+  const offset = run?.offsets.get(inlines);
+  if (!run || offset === undefined) return null;
+  return (
+    <ProsodyText
+      text={inlinesText(inlines)}
+      layer={run.prosody.data.layer}
+      sounds={run.prosody.data.sounds}
+      lens={run.prosody.lens}
+      tokenOffset={offset}
+      fontSize={style.fontSize ?? 17}
+      color={style.color ?? '#ffffff'}
+    />
+  );
+}
 
 interface ParagraphViewProps {
   paragraph: LessonParagraph;
@@ -28,6 +70,8 @@ interface ParagraphViewProps {
   glossaryIndex: Map<string, ReaderGlossaryEntry>;
   /** Size in points and colour by narration progress. */
   textStyle: ReaderTextStyle;
+  /** Set when the learner reads with the pronunciation on and this paragraph has a layer. */
+  prosody?: ParagraphProsody | null;
 }
 
 /**
@@ -40,6 +84,7 @@ export function ParagraphView({
   paragraphIndex,
   glossaryIndex,
   textStyle,
+  prosody = null,
 }: ParagraphViewProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -52,12 +97,18 @@ export function ParagraphView({
     [textCapture, paragraphIndex],
   );
 
+  const run = useMemo<ProsodyRun | null>(
+    () => (prosody ? { prosody, offsets: inlineOffsets(paragraph.target, blocks) } : null),
+    [prosody, paragraph.target, blocks],
+  );
+
   // A paragraph that held only media the reader plays elsewhere — the narration's token.
   if (blocks.length === 0) return null;
 
   return (
     <ReaderCaptureContext.Provider value={capture}>
       <ReaderTextStyleContext.Provider value={textStyle}>
+      <ProsodyRunContext.Provider value={run}>
       <View style={styles.paragraph}>
         {blocks.map((block, i) => (
           <BlockView key={i} block={block} glossaryIndex={glossaryIndex} />
@@ -85,6 +136,7 @@ export function ParagraphView({
           </>
         )}
       </View>
+      </ProsodyRunContext.Provider>
       </ReaderTextStyleContext.Provider>
     </ReaderCaptureContext.Provider>
   );
@@ -103,16 +155,20 @@ function BlockView({
   switch (block.kind) {
     case 'text':
       return (
-        <Text style={[styles.target, styles.gap]}>
-          <Inlines inlines={block.inlines} glossaryIndex={glossaryIndex} />
-        </Text>
+        <DrawnRun inlines={block.inlines} textStyle={styles.target} wrapStyle={styles.gap}>
+          <Text style={[styles.target, styles.gap]}>
+            <Inlines inlines={block.inlines} glossaryIndex={glossaryIndex} />
+          </Text>
+        </DrawnRun>
       );
 
     case 'heading':
       return (
-        <Text style={[styles.heading, styles.gap]}>
-          <Inlines inlines={block.inlines} glossaryIndex={glossaryIndex} />
-        </Text>
+        <DrawnRun inlines={block.inlines} textStyle={styles.heading} wrapStyle={styles.gap}>
+          <Text style={[styles.heading, styles.gap]}>
+            <Inlines inlines={block.inlines} glossaryIndex={glossaryIndex} />
+          </Text>
+        </DrawnRun>
       );
 
     case 'turn': {
@@ -120,9 +176,11 @@ function BlockView({
       return (
         <View style={[styles.turn, styles.gap, { borderLeftColor: tone }]}>
           <Text style={[styles.speaker, { color: tone }]}>{block.speaker}</Text>
-          <Text style={styles.target}>
-            <Inlines inlines={block.inlines} glossaryIndex={glossaryIndex} />
-          </Text>
+          <DrawnRun inlines={block.inlines} textStyle={styles.target}>
+            <Text style={styles.target}>
+              <Inlines inlines={block.inlines} glossaryIndex={glossaryIndex} />
+            </Text>
+          </DrawnRun>
         </View>
       );
     }
@@ -133,9 +191,11 @@ function BlockView({
           {block.items.map((item, i) => (
             <View key={i} style={styles.listItem}>
               <Text style={styles.bullet}>•</Text>
-              <Text style={[styles.target, styles.listText]}>
-                <Inlines inlines={item} glossaryIndex={glossaryIndex} />
-              </Text>
+              <DrawnRun inlines={item} textStyle={styles.target} wrapStyle={styles.listText}>
+                <Text style={[styles.target, styles.listText]}>
+                  <Inlines inlines={item} glossaryIndex={glossaryIndex} />
+                </Text>
+              </DrawnRun>
             </View>
           ))}
         </View>
@@ -156,6 +216,30 @@ function BlockView({
         </View>
       );
   }
+}
+
+/**
+ * A run of text: drawn with its pronunciation when the learner has it on and the run can be
+ * placed in the layer, otherwise as it always is (`children`, with the glossary tappable).
+ */
+function DrawnRun({
+  inlines,
+  textStyle,
+  wrapStyle,
+  children,
+}: {
+  inlines: Inline[];
+  textStyle: object;
+  wrapStyle?: object;
+  children: React.ReactNode;
+}) {
+  const run = React.useContext(ProsodyRunContext);
+  if (!run || run.offsets.get(inlines) === undefined) return <>{children}</>;
+  return (
+    <View style={wrapStyle}>
+      <ProsodyInlines inlines={inlines} style={StyleSheet.flatten(textStyle)} />
+    </View>
+  );
 }
 
 /**

@@ -19,8 +19,10 @@ import { ColorScheme } from '../../theme/colors';
 import { useExerciseRunner } from '../../hooks/useExerciseRunner';
 import { useKeyboardShown } from '../../hooks/useKeyboardShown';
 import { useRecordMistakes } from '../../hooks/useRecordMistakes';
+import { usePrecheckAvailability } from '../../hooks/usePrecheckAvailability';
 import { bodyOwnsCheck, ExerciseBody, type FooterAction } from './ExerciseBody';
 import { AiVerdict } from './AiVerdict';
+import { RunnerPrecheck } from './RunnerPrecheck';
 import { FeedbackBar } from './FeedbackBar';
 import { SetResultsScreen } from './SetResultsScreen';
 import type { Screen } from '../../navigation/screens';
@@ -81,6 +83,9 @@ export function ExerciseRunnerScreen({
     retryAttempt,
   } = useExerciseRunner(exerciseIds, startIndex);
   useRecordMistakes(state, courseId, unitId);
+  // Whether this course's school lets its learners rehearse with a model (plan 84): hides
+  // buttons only, the engine checks the same.
+  const precheckAvailable = usePrecheckAvailability(courseId);
 
   /**
    * A body's own button in place of Check — `ExerciseBodyProps.setFooterAction`. A body that
@@ -242,7 +247,21 @@ export function ExerciseRunnerScreen({
               openedContent={openedContent}
               onOpenSourceLesson={onOpenSourceLesson}
               setFooterAction={setFooterAction}
+              precheckAvailable={precheckAvailable}
             />
+            {/* The rehearsal of a text the body has nothing of its own to show for (plan 84):
+                remounted with the body, so a panel never outlives the text it was about. */}
+            {state.phase === 'answering' &&
+            precheckAvailable &&
+            state.display.templateCode === 'writing_task' ? (
+              <RunnerPrecheck
+                key={`precheck:${state.display.id}:${state.attemptSeq}`}
+                exerciseId={state.display.id}
+                answer={state.answer}
+                disabled={false}
+                openAttempt={openAttempt}
+              />
+            ) : null}
             {/* A model reads the work of a learner nobody reviews (plan 79, 2.3d): its
                 verdict and review land under the work, while the footer says it went in. */}
             {state.phase === 'feedback' &&
@@ -334,7 +353,9 @@ export function ExerciseRunnerScreen({
                     block
                     label={
                       handsIn(state.display.templateCode)
-                        ? t('exerciseRunner.send')
+                        ? precheckAvailable
+                          ? t('exerciseRunner.sendToTeacher')
+                          : t('exerciseRunner.send')
                         : t('exerciseRunner.check')
                     }
                     disabled={!state.canSubmit}
