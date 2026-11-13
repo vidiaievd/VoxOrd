@@ -24,11 +24,15 @@ import {
   runnerReducer,
   type RunnerState,
 } from '../screens/ExerciseRunner/runnerMachine';
-import { useUiLanguage } from '../i18n';
+import { translate, useUiLanguage } from '../i18n';
+import { lifecycleErrorKey } from '../lib/schoolLifecycle';
 import { exerciseDisplayResource } from '../lib/courseResources';
 
 
 function errorMessage(e: unknown): string {
+  // The learner's school is read only (plan 90, phase 5): say why, in words.
+  const lifecycle = lifecycleErrorKey(e);
+  if (lifecycle) return translate(`schoolLifecycle.${lifecycle}`);
   return e instanceof Error ? e.message : String(e);
 }
 

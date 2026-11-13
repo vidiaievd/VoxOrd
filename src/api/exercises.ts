@@ -1,5 +1,6 @@
 import { ApiError, apiClient } from './client';
 import { isServerOutOfReach } from './isNetworkError';
+import { announceSchoolRefusal } from '../lib/schoolLifecycle';
 import type {
   DifficultyLevel,
   ExerciseDisplay,
@@ -827,7 +828,14 @@ const isLocal = (attemptId: string) => local !== null && local.isLocal(attemptId
 export const isLocalAttempt = isLocal;
 
 /** `POST /exercises/:exerciseId/attempts` — on the server, or on the phone when it must be. */
-export async function startAttempt(
+export function startAttempt(
+  exerciseId: string,
+  body: StartAttemptRequest,
+): Promise<StartAttemptResponse> {
+  return announceSchoolRefusal(startAttemptOnce(exerciseId, body));
+}
+
+async function startAttemptOnce(
   exerciseId: string,
   body: StartAttemptRequest,
 ): Promise<StartAttemptResponse> {
@@ -863,9 +871,11 @@ export function submitAttempt(
   attemptId: string,
   body: SubmitAttemptRequest,
 ): Promise<SubmitAttemptResponse> {
-  return isLocal(attemptId)
-    ? local!.submit(attemptId, body)
-    : remoteSubmitAttempt(exerciseId, attemptId, body);
+  return announceSchoolRefusal(
+    isLocal(attemptId)
+      ? local!.submit(attemptId, body)
+      : remoteSubmitAttempt(exerciseId, attemptId, body),
+  );
 }
 
 export function answerQuestion(
