@@ -1,5 +1,6 @@
 import { createAsyncStorage } from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
+import { ApiError } from '../api/client';
 import { isNetworkError } from '../api/isNetworkError';
 import { getContainer, getMyCourses, type CourseListItem } from '../api/courses';
 import type { Container, UnitContentsItem, UnitSummary } from '../api/types';
@@ -41,6 +42,36 @@ const MEDIA_CONCURRENCY = 2;
  * phone fails worse than a missing clip — the app's own database stops taking answers.
  */
 export const MIN_FREE_BYTES = 500 * 1024 * 1024;
+
+/**
+ * The gateway answers 503 (and a service may answer 429) when the walk outruns its rate limit.
+ * That is a request to slow down, not a refusal: the item is asked again after a pause. Without
+ * this a fast walk marked whole units `failed` and kept no key, so they could not be played
+ * offline.
+ */
+const THROTTLE_RETRIES = 5;
+const THROTTLE_BASE_DELAY_MS = 500;
+
+function isThrottled(error: unknown): boolean {
+  return error instanceof ApiError && (error.status === 429 || error.status === 503);
+}
+
+const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
+
+/** Runs `fn`, asking again with a growing pause while the server says to slow down. */
+export async function retryThrottled<T>(
+  fn: () => Promise<T>,
+  wait: (ms: number) => Promise<void> = sleep,
+): Promise<T> {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await fn();
+    } catch (e) {
+      if (!isThrottled(e) || attempt >= THROTTLE_RETRIES) throw e;
+      await wait(THROTTLE_BASE_DELAY_MS * 2 ** attempt);
+    }
+  }
+}
 
 export interface CourseDownloadStatus {
   running: boolean;
@@ -471,7 +502,7 @@ export class CourseDownloader {
   private async downloadMedia(ids: Set<string>): Promise<number> {
     const results = await mapLimit([...ids], MEDIA_CONCURRENCY, async id => {
       try {
-        return await this.deps.media.download(id);
+        return await retryThrottled(() => this.deps.media.download(id));
       } catch (e) {
         if (isNetworkError(e)) throw new OfflineAbort();
         console.warn(`[CourseDownload] Media ${id} not kept:`, e);
@@ -484,7 +515,7 @@ export class CourseDownloader {
   /** The value, stored where its screen reads it; null when refused. Offline ends the walk. */
   private async fetch<T>(resource: CourseResource<T>): Promise<T | null> {
     try {
-      const value = await resource.load();
+      const value = await retryThrottled(() => resource.load());
       await this.deps.store(resource.key, value);
       return value;
     } catch (e) {
@@ -561,7 +592,7 @@ export const courseDownloader = new CourseDownloader({
       }
       if (recorded === translationLanguage) return;
     }
-    const list = await getVocabularyList(listId);
+    const list = await retryThrottled(() => getVocabularyList(listId));
     const plan = buildImportPlan(list, reader, translationLanguage);
     await vocabularyImportRepository.importList(plan, {
       coursesGroupTitle: translate('vocabulary.coursesGroup'),
