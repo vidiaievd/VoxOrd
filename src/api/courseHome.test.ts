@@ -216,4 +216,34 @@ describe('getCourseHome', () => {
     expect(result.srsDueCount).toBe(0);
     expect(result.srsReviewedToday).toBe(0);
   });
+
+  it('carries the school status and the maintenance status of the course (plan 90, phase 5)', async () => {
+    routeGet({
+      '/progress/course/': overlay(),
+      '/schools/school-1': { id: 'school-1', status: 'suspended', closesAt: '2026-12-01T00:00:00Z' },
+      '/containers/course-1/versions/version-1/items': [unitItem()],
+      '/containers/course-1': container({ ownerSchoolId: 'school-1', maintenanceStatus: 'obsolete' }),
+    });
+
+    const { courseInfo } = await getCourseHome('course-1');
+
+    expect(courseInfo).toMatchObject({
+      schoolStatus: 'suspended',
+      schoolClosesAt: '2026-12-01T00:00:00Z',
+      maintenanceStatus: 'obsolete',
+    });
+  });
+
+  it('still opens the course when the school cannot be read', async () => {
+    routeGet({
+      '/progress/course/': overlay(),
+      '/containers/course-1/versions/version-1/items': [unitItem()],
+      '/containers/course-1': container({ ownerSchoolId: 'school-1' }),
+    });
+
+    const { courseInfo } = await getCourseHome('course-1');
+
+    expect(courseInfo.title).toBe('Ny i Norge');
+    expect(courseInfo.schoolStatus).toBeUndefined();
+  });
 });

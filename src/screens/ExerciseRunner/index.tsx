@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,8 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
-import { Button, ProgressTrack, Spinner } from '../../components/ui';
+import { Button, ProgressTrack, Spinner, useToast } from '../../components/ui';
+import { onSchoolNotActive } from '../../lib/schoolLifecycle';
 import { useTranslation } from '../../i18n';
 import { useModal } from '../../providers/ModalProvider';
 import { useBackIntercept } from '../../navigation/backIntercept';
@@ -64,8 +65,17 @@ export function ExerciseRunnerScreen({
   const keyboardShown = useKeyboardShown();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  const toast = useToast();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
+
+  // The learner's school is read only (plan 90, phase 5): a start or hand-in it refused is
+  // worded here once, whichever body made the call.
+  useEffect(
+    () => onSchoolNotActive(key => toast.show(t(`schoolLifecycle.${key}`))),
+    [toast, t],
+  );
+
   const {
     state,
     progress,

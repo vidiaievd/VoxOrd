@@ -59,3 +59,21 @@ export function useSyncQueueNearlyFull(): boolean {
 
   return full;
 }
+
+/**
+ * Answers given offline that the learner's school refused as read only on sync (plan 90,
+ * phase 5). Kept on the phone and tried again; they go out once the school reopens.
+ */
+export function useHeldBySchool(): number {
+  const [held, setHeld] = useState(() => exerciseOutboxStore.heldBySchoolCount);
+
+  useEffect(() => {
+    const update = () => setHeld(exerciseOutboxStore.heldBySchoolCount);
+    const unsubscribes = [exerciseOutboxStore.subscribe(update), authStore.subscribe(update)];
+    void exerciseOutboxStore.load();
+    update();
+    return () => unsubscribes.forEach(u => u());
+  }, []);
+
+  return held;
+}

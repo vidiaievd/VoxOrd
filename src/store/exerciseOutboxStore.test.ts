@@ -335,3 +335,59 @@ describe('exerciseOutboxStore', () => {
     });
   });
 });
+
+describe('a school that is read only (plan 90, phase 5)', () => {
+  const notActive = (status: 'suspended' | 'closed') =>
+    new ApiError({
+      message: 'SCHOOL_NOT_ACTIVE',
+      status: 409,
+      code: 'SCHOOL_NOT_ACTIVE',
+      body: { code: 'SCHOOL_NOT_ACTIVE', schoolStatus: status },
+    });
+
+  it('keeps an attempt whose start the school refused, marked, instead of dropping it', async () => {
+    authStore.setSignedIn(LEARNER);
+    await exerciseOutboxStore.recordLocalOp(attempt('s'), submitOp(1));
+    mockRemote.startOrJoinAttempt.mockRejectedValueOnce(notActive('suspended'));
+
+    await exerciseOutboxStore.flush();
+
+    expect(exerciseOutboxStore.pendingCount).toBe(1);
+    expect(exerciseOutboxStore.heldBySchoolCount).toBe(1);
+    expect(mockRemote.submitAttempt).not.toHaveBeenCalled();
+  });
+
+  it('lets what is behind a held entry go out, and sends the held one once the school reopens', async () => {
+    authStore.setSignedIn(LEARNER);
+    await exerciseOutboxStore.recordLocalOp(attempt('h1'), submitOp(1));
+    await exerciseOutboxStore.recordLocalOp(attempt('h2'), submitOp(2));
+    mockRemote.startOrJoinAttempt.mockRejectedValueOnce(notActive('closed'));
+
+    await exerciseOutboxStore.flush();
+
+    // The first is held; the second went through.
+    expect(exerciseOutboxStore.pendingCount).toBe(1);
+    expect(exerciseOutboxStore.heldBySchoolCount).toBe(1);
+    expect(mockRemote.submitAttempt).toHaveBeenCalledTimes(1);
+
+    await exerciseOutboxStore.flush();
+
+    expect(exerciseOutboxStore.pendingCount).toBe(0);
+    expect(exerciseOutboxStore.heldBySchoolCount).toBe(0);
+    expect(mockRemote.submitAttempt).toHaveBeenCalledTimes(2);
+  });
+
+  it('holds a call refused mid-replay without skipping it', async () => {
+    authStore.setSignedIn(LEARNER);
+    await exerciseOutboxStore.recordLocalOp(attempt('m'), submitOp(1));
+    mockRemote.submitAttempt.mockRejectedValueOnce(notActive('suspended')).mockResolvedValue({});
+
+    await exerciseOutboxStore.flush();
+    expect(exerciseOutboxStore.heldBySchoolCount).toBe(1);
+
+    await exerciseOutboxStore.flush();
+    expect(exerciseOutboxStore.pendingCount).toBe(0);
+    // Tried again, not counted as sent the first time.
+    expect(mockRemote.submitAttempt).toHaveBeenCalledTimes(2);
+  });
+});

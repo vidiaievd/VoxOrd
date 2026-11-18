@@ -26,6 +26,7 @@ import { GroupAccess } from './blocks/GroupAccess';
 import { Header } from './blocks/Header';
 import { NextClass } from './blocks/NextClass';
 import { OfflineCard } from './blocks/OfflineCard';
+import { HeldBySchool } from './blocks/HeldBySchool';
 import { SoloWriting } from './blocks/SoloWriting';
 import { Review } from './blocks/Review';
 import { Resume } from './blocks/Resume';
@@ -243,6 +244,7 @@ export function TodayScreen({ due, onNavigate, onOpenTab }: TodayScreenProps) {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['top']}>
       {ids.includes('offline') ? <OfflineCard /> : null}
+      <HeldBySchool />
       <RefreshRegistry.Provider value={registry}>
         <ScrollView
           ref={scrollRef}

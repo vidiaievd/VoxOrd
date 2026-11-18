@@ -624,6 +624,22 @@ export interface Translations {
     tagAccepted: string;
   };
 
+  /** A school that is blocked or closed by the platform (plan 90, phase 5). */
+  schoolLifecycle: {
+    suspendedTitle: string;
+    suspended: string;
+    suspendedDays: string; // '{days}'
+    closedTitle: string;
+    closed: string;
+    unmaintained: string;
+    unmaintainedNote: string;
+    obsolete: string;
+    obsoleteNote: string;
+    schoolSuspended: string;
+    schoolClosed: string;
+    /** Answers given offline that the school refused on sync; kept until it reopens. */
+    held: string; // '{count}'
+  };
   courseHome: {
     loadError: string;
     noUnits: string;

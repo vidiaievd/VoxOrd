@@ -19,6 +19,8 @@ import { OfflineBanner } from '../../components/OfflineBanner';
 import { Button, NavHeader, ProgressTrack, Skeleton, useToast } from '../../components/ui';
 import { isNetworkError } from '../../api/isNetworkError';
 import type { UnitSummary } from '../../api/types';
+import { SchoolStatusBanner, MaintenanceNote } from '../../components/SchoolStatusBanner';
+import { lifecycleErrorKey } from '../../lib/schoolLifecycle';
 import { UnitRow } from './UnitRow';
 import { CourseTiles, SkillsBlock } from './CourseStatsSection';
 
@@ -148,6 +150,8 @@ export function CourseHomeScreen({
         .join(' · ')
     : '';
   const pct = data ? Math.round(data.progress.percentComplete) : 0;
+  // A closed school's course is refused outright: say why, not the bare status code.
+  const lifecycleKey = status === 'error' ? lifecycleErrorKey(error) : null;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
@@ -188,7 +192,7 @@ export function CourseHomeScreen({
             {t('courseHome.loadError')}
           </Text>
           <Text style={[typography.secondary, { color: colors.neutral500, textAlign: 'center' }]}>
-            {error?.message}
+            {lifecycleKey ? t(`schoolLifecycle.${lifecycleKey}`) : error?.message}
           </Text>
           <Button variant="secondary" size={44} label={t('courses.retry')} onPress={refresh} />
         </View>
@@ -206,6 +210,11 @@ export function CourseHomeScreen({
             <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accentBase} />
           }
         >
+          <SchoolStatusBanner
+            status={data.courseInfo.schoolStatus}
+            closesAt={data.courseInfo.schoolClosesAt}
+          />
+          <MaintenanceNote status={data.courseInfo.maintenanceStatus} />
           <View style={{ gap: 4 }}>
             <Text style={[typography.meta, { color: colors.neutral500 }]}>{meta}</Text>
             <Text style={[typography.h1, { color: colors.text }]}>{data.courseInfo.title}</Text>

@@ -618,6 +618,20 @@ export const en: Translations = {
     tagAccepted: 'Accepted',
   },
 
+  schoolLifecycle: {
+    suspendedTitle: 'The school is temporarily unavailable',
+    suspended: 'You can still read your courses and see your history, but starting and handing in work is paused.',
+    suspendedDays: 'You can still read your courses and see your history, but starting and handing in work is paused. Days left before the school closes: {days}.',
+    closedTitle: 'This school is closed',
+    closed: "The school's courses are no longer available. Your own history stays with you.",
+    unmaintained: 'No longer maintained',
+    unmaintainedNote: 'The author no longer updates this course: it may be out of date.',
+    obsolete: 'Outdated',
+    obsoleteNote: 'This course is outdated and takes no new learners. You can carry on with it.',
+    schoolSuspended: 'The school is temporarily blocked: new work cannot be started or handed in for now.',
+    schoolClosed: 'The school is closed. Its materials are no longer available.',
+    held: 'Answers kept on the phone, refused by the school for now: {count}',
+  },
   courseHome: {
     loadError: "Couldn't load this course",
     noUnits: 'This course has no units yet',
