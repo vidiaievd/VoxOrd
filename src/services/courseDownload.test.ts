@@ -35,6 +35,7 @@ import { ALL_UNITS } from '../store/settingsStore';
 import {
   CourseDownloader,
   DOWNLOAD_INTERVAL_MS,
+  retryThrottled,
   unitWindow,
   type CourseDownloadDeps,
   type CourseRun,
@@ -388,5 +389,29 @@ describe('CourseDownloader', () => {
       expect(downloader.isPinned('course-1')).toBe(false);
       expect([...retained[0]]).not.toContain(LATER);
     });
+  });
+});
+
+describe('retryThrottled', () => {
+  const status = (s: number) => new ApiError({ message: 'x', status: s });
+
+  it('asks again after a 503 and returns the answer', async () => {
+    const fn = jest.fn().mockRejectedValueOnce(status(503)).mockResolvedValueOnce('ok');
+    const waits: number[] = [];
+    await expect(retryThrottled(fn, async ms => void waits.push(ms))).resolves.toBe('ok');
+    expect(fn).toHaveBeenCalledTimes(2);
+    expect(waits).toEqual([500]);
+  });
+
+  it('does not retry a refusal', async () => {
+    const fn = jest.fn().mockRejectedValue(status(403));
+    await expect(retryThrottled(fn, async () => undefined)).rejects.toBeInstanceOf(ApiError);
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it('gives up after the retries are spent', async () => {
+    const fn = jest.fn().mockRejectedValue(status(429));
+    await expect(retryThrottled(fn, async () => undefined)).rejects.toBeInstanceOf(ApiError);
+    expect(fn).toHaveBeenCalledTimes(6);
   });
 });

@@ -48,7 +48,16 @@ export interface ImportOptions {
 }
 
 class VocabularyImportRepository {
-  async importList(plan: ImportPlan, options: ImportOptions): Promise<ImportResult> {
+  /** Imports share one connection and read `last_insert_rowid()`, so they must not interleave. */
+  private queue: Promise<unknown> = Promise.resolve();
+
+  importList(plan: ImportPlan, options: ImportOptions): Promise<ImportResult> {
+    const run = this.queue.then(() => this.runImport(plan, options));
+    this.queue = run.catch(() => undefined);
+    return run;
+  }
+
+  private async runImport(plan: ImportPlan, options: ImportOptions): Promise<ImportResult> {
     const db = getDatabase();
 
     const groupId = await this.ensureCoursesGroup(db, options.coursesGroupTitle);
@@ -156,6 +165,12 @@ class VocabularyImportRepository {
       await db.execute(
         'UPDATE decks SET title = ?, languageCode = ?, level = ? WHERE id = ?;',
         [plan.deckTitle, plan.deckLanguageCode, plan.deckLevel, existingId],
+      );
+      // A deck left by an import that failed midway may lack its settings row.
+      await db.execute(
+        `INSERT OR IGNORE INTO deck_user_settings (deckId, isFavorite, status)
+         VALUES (?, 0, 'new');`,
+        [existingId],
       );
       return existingId;
     }
