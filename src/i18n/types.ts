@@ -635,6 +635,7 @@ export interface Translations {
     unmaintainedNote: string;
     obsolete: string;
     obsoleteNote: string;
+    obsoleteHistoryNote: string;
     schoolSuspended: string;
     schoolClosed: string;
     /** Answers given offline that the school refused on sync; kept until it reopens. */

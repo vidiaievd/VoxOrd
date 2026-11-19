@@ -628,6 +628,8 @@ export const en: Translations = {
     unmaintainedNote: 'The author no longer updates this course: it may be out of date.',
     obsolete: 'Outdated',
     obsoleteNote: 'This course is outdated and takes no new learners. You can carry on with it.',
+    obsoleteHistoryNote:
+      'The school that ran this course is gone: it stays only as your history, and new exercises cannot be started.',
     schoolSuspended: 'The school is temporarily blocked: new work cannot be started or handed in for now.',
     schoolClosed: 'The school is closed. Its materials are no longer available.',
     held: 'Answers kept on the phone, refused by the school for now: {count}',

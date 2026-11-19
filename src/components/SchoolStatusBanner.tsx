@@ -43,8 +43,18 @@ export function SchoolStatusBanner({ status, closesAt }: Props) {
   );
 }
 
-/** A course the author no longer looks after, or that takes no new learners (plan 90, Q5). */
-export function MaintenanceNote({ status }: { status: MaintenanceStatus | undefined }) {
+/**
+ * A course the author no longer looks after, or that takes no new learners (plan 90, Q5). An
+ * obsolete course of a closed or purged school is history only (Q11): `historyOnly` says so
+ * instead of "you can carry on".
+ */
+export function MaintenanceNote({
+  status,
+  historyOnly = false,
+}: {
+  status: MaintenanceStatus | undefined;
+  historyOnly?: boolean;
+}) {
   const { colors, typography } = useTheme();
   const { t } = useTranslation();
 
@@ -56,7 +66,13 @@ export function MaintenanceNote({ status }: { status: MaintenanceStatus | undefi
         {t(status === 'obsolete' ? 'schoolLifecycle.obsolete' : 'schoolLifecycle.unmaintained')}
       </Text>
       <Text style={[typography.secondary, { color: colors.neutral400 }]}>
-        {t(status === 'obsolete' ? 'schoolLifecycle.obsoleteNote' : 'schoolLifecycle.unmaintainedNote')}
+        {t(
+          status === 'obsolete'
+            ? historyOnly
+              ? 'schoolLifecycle.obsoleteHistoryNote'
+              : 'schoolLifecycle.obsoleteNote'
+            : 'schoolLifecycle.unmaintainedNote',
+        )}
       </Text>
     </View>
   );

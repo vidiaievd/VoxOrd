@@ -65,6 +65,30 @@ export function toMaintenanceStatus(value: unknown): MaintenanceStatus | undefin
   return value === 'maintained' || value === 'unmaintained' || value === 'obsolete' ? value : undefined;
 }
 
+/** Who set a course's maintenance status: its author or its school's lifecycle. */
+export type MaintenanceSource = 'author' | 'school';
+
+export function toMaintenanceSource(value: unknown): MaintenanceSource | null {
+  return value === 'author' || value === 'school' ? value : null;
+}
+
+/**
+ * An obsolete course a learner can only look back on (plan 90, Q11; mirrors the web's
+ * `isObsoleteHistoryOnly`): the school's purge kept it (`maintenanceSource: school`), or its
+ * school is closed or gone — the engine refuses a start. A course its author retired is still
+ * studied by those already on it.
+ */
+export function isObsoleteHistoryOnly(course: {
+  maintenanceSource?: MaintenanceSource | null;
+  schoolStatus?: SchoolLifecycleStatus;
+}): boolean {
+  return (
+    course.maintenanceSource === 'school' ||
+    course.schoolStatus === 'closed' ||
+    course.schoolStatus === 'purged'
+  );
+}
+
 type RefusalListener = (key: 'schoolSuspended' | 'schoolClosed') => void;
 const listeners = new Set<RefusalListener>();
 

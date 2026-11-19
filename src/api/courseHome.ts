@@ -2,6 +2,7 @@ import { apiClient } from './client';
 import { getCourseMastery } from './mastery';
 import { getSrsStats } from './srs';
 import {
+  toMaintenanceSource,
   toMaintenanceStatus,
   toSchoolStatus,
   type SchoolLifecycleStatus,
@@ -220,6 +221,7 @@ export async function getCourseHome(courseId: string): Promise<CourseHomePayload
     cefrLevel: container.difficultyLevel,
     targetLanguage: container.targetLanguage,
     maintenanceStatus: toMaintenanceStatus(container.maintenanceStatus),
+    maintenanceSource: toMaintenanceSource(container.maintenanceSource),
     schoolStatus: school?.status,
     schoolClosesAt: school?.closesAt ?? null,
     schoolPurgeAt: school?.purgeAt ?? null,

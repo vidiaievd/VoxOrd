@@ -58,4 +58,14 @@ describe('MaintenanceNote', () => {
     expect(texts(render(<MaintenanceNote status="unmaintained" />))[0]).toBe('schoolLifecycle.unmaintained');
     expect(texts(render(<MaintenanceNote status="obsolete" />))[0]).toBe('schoolLifecycle.obsolete');
   });
+
+  it('says "carry on" for a course its author retired and "history only" for a gone school\'s (Q11)', () => {
+    expect(texts(render(<MaintenanceNote status="obsolete" />))[1]).toBe('schoolLifecycle.obsoleteNote');
+    expect(texts(render(<MaintenanceNote status="obsolete" historyOnly />))[1]).toBe(
+      'schoolLifecycle.obsoleteHistoryNote',
+    );
+    expect(texts(render(<MaintenanceNote status="unmaintained" historyOnly />))[1]).toBe(
+      'schoolLifecycle.unmaintainedNote',
+    );
+  });
 });
