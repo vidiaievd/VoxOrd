@@ -632,6 +632,8 @@ export const en: Translations = {
       'The school that ran this course is gone: it stays only as your history, and new exercises cannot be started.',
     schoolSuspended: 'The school is temporarily blocked: new work cannot be started or handed in for now.',
     schoolClosed: 'The school is closed. Its materials are no longer available.',
+    blockedStart: 'Exercises of this course cannot be started now, and an answer would not be saved. You can read the course and your history.',
+    blockedBack: 'Back to the course',
     held: 'Answers kept on the phone, refused by the school for now: {count}',
   },
   courseHome: {

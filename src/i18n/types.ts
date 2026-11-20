@@ -640,6 +640,8 @@ export interface Translations {
     schoolClosed: string;
     /** Answers given offline that the school refused on sync; kept until it reopens. */
     held: string; // '{count}'
+    blockedStart: string;
+    blockedBack: string;
   };
   courseHome: {
     loadError: string;

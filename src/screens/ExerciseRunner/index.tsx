@@ -12,6 +12,8 @@ import {
 } from 'react-native-safe-area-context';
 import { Button, ProgressTrack, Spinner, useToast } from '../../components/ui';
 import { onSchoolNotActive } from '../../lib/schoolLifecycle';
+import { SchoolStatusBanner } from '../../components/SchoolStatusBanner';
+import { SchoolGateChecking, SchoolPausedScreen, useSchoolGate } from './SchoolGate';
 import { useTranslation } from '../../i18n';
 import { useModal } from '../../providers/ModalProvider';
 import { useBackIntercept } from '../../navigation/backIntercept';
@@ -51,7 +53,21 @@ interface ExerciseRunnerScreenProps {
   onOpen: (screen: Screen) => void;
 }
 
-export function ExerciseRunnerScreen({
+/**
+ * The runner, behind a school gate (plan 90, live check, Q15): a course of a suspended or closed
+ * school is not started at all — the learner is told why before an answer is typed that no one
+ * would take. Everything else opens the runner as before.
+ */
+export function ExerciseRunnerScreen(props: ExerciseRunnerScreenProps) {
+  const gate = useSchoolGate(props.courseId);
+  if (gate.checking) return <SchoolGateChecking />;
+  if (gate.status) {
+    return <SchoolPausedScreen status={gate.status} closesAt={gate.closesAt} onBack={props.onBack} />;
+  }
+  return <ExerciseRunnerBody {...props} />;
+}
+
+function ExerciseRunnerBody({
   exerciseIds,
   startIndex,
   onBack,
@@ -70,9 +86,15 @@ export function ExerciseRunnerScreen({
   const styles = makeStyles(colors);
 
   // The learner's school is read only (plan 90, phase 5): a start or hand-in it refused is
-  // worded here once, whichever body made the call.
+  // worded here once, whichever body made the call. The toast passes; the banner under the
+  // header stays, so the reason is still there when the body's own «try again» appears (Q15).
+  const [refusal, setRefusal] = useState<'suspended' | 'closed' | null>(null);
   useEffect(
-    () => onSchoolNotActive(key => toast.show(t(`schoolLifecycle.${key}`))),
+    () =>
+      onSchoolNotActive(key => {
+        toast.show(t(`schoolLifecycle.${key}`));
+        setRefusal(key === 'schoolClosed' ? 'closed' : 'suspended');
+      }),
     [toast, t],
   );
 
@@ -185,6 +207,8 @@ export function ExerciseRunnerScreen({
           })}
         </Text>
       </View>
+
+      {refusal ? <SchoolStatusBanner status={refusal} /> : null}
 
       {state.phase === 'loading' && (
         <View style={styles.centerFill}>
