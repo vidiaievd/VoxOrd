@@ -29,14 +29,25 @@ function readCode(body: unknown): { code: string; status: unknown } | null {
 }
 
 /**
- * `suspended` / `closed` when `error` is the "school is read only" refusal, else `null`. A
- * refusal that does not say why still means "not open"; `suspended` is the milder wording.
+ * The school's status behind a "school is read only" refusal, `purged` kept apart (the offline
+ * queue gives up on a purged school, plan 90 Q16), else `null`. A refusal that does not say why
+ * still means "not open"; `suspended` is the milder reading.
  */
-export function schoolNotActiveStatus(error: unknown): 'suspended' | 'closed' | null {
+export function schoolRefusalStatus(error: unknown): 'suspended' | 'closed' | 'purged' | null {
   if (!(error instanceof ApiError)) return null;
   const parsed = readCode(error.body) ?? (error.code ? { code: error.code, status: undefined } : null);
   if (!parsed || parsed.code !== SCHOOL_NOT_ACTIVE) return null;
-  return parsed.status === 'closed' || parsed.status === 'purged' ? 'closed' : 'suspended';
+  if (parsed.status === 'purged') return 'purged';
+  return parsed.status === 'closed' ? 'closed' : 'suspended';
+}
+
+/**
+ * `suspended` / `closed` when `error` is the "school is read only" refusal, else `null`; a
+ * purged school words as a closed one.
+ */
+export function schoolNotActiveStatus(error: unknown): 'suspended' | 'closed' | null {
+  const status = schoolRefusalStatus(error);
+  return status === 'purged' ? 'closed' : status;
 }
 
 /** Translation key under `schoolLifecycle.errors` for a refusal, or `null` if it is not one. */

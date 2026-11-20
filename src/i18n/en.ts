@@ -639,6 +639,8 @@ export const en: Translations = {
     blockedStart: 'Exercises of this course cannot be started now, and an answer would not be saved. You can read the course and your history.',
     blockedBack: 'Back to the course',
     held: 'Answers kept on the phone, refused by the school for now: {count}',
+    discarded: 'Answers given offline were not saved: the school was deleted. Answers lost: {count}',
+    discardedDismiss: 'OK',
   },
   courseHome: {
     loadError: "Couldn't load this course",

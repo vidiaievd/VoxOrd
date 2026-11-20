@@ -337,7 +337,7 @@ describe('exerciseOutboxStore', () => {
 });
 
 describe('a school that is read only (plan 90, phase 5)', () => {
-  const notActive = (status: 'suspended' | 'closed') =>
+  const notActive = (status: 'suspended' | 'closed' | 'purged') =>
     new ApiError({
       message: 'SCHOOL_NOT_ACTIVE',
       status: 409,
@@ -375,6 +375,60 @@ describe('a school that is read only (plan 90, phase 5)', () => {
     expect(exerciseOutboxStore.pendingCount).toBe(0);
     expect(exerciseOutboxStore.heldBySchoolCount).toBe(0);
     expect(mockRemote.submitAttempt).toHaveBeenCalledTimes(2);
+  });
+
+  it('counts only a suspended school as worth a timer (plan 90, Q16)', async () => {
+    authStore.setSignedIn(LEARNER);
+    await exerciseOutboxStore.recordLocalOp(attempt('q16-s'), submitOp(1));
+    await exerciseOutboxStore.recordLocalOp(attempt('q16-c'), submitOp(2));
+    mockRemote.startOrJoinAttempt
+      .mockRejectedValueOnce(notActive('suspended'))
+      .mockRejectedValueOnce(notActive('closed'));
+
+    await exerciseOutboxStore.flush();
+
+    expect(exerciseOutboxStore.heldBySchoolCount).toBe(2);
+    expect(exerciseOutboxStore.waitingForSchoolCount).toBe(1);
+  });
+
+  it('drops an entry its purged school refused, and counts it until dismissed (plan 90, Q16)', async () => {
+    authStore.setSignedIn(LEARNER);
+    await exerciseOutboxStore.recordLocalOp(attempt('q16-p1'), submitOp(1));
+    await exerciseOutboxStore.recordLocalOp(attempt('q16-p2'), submitOp(2));
+    mockRemote.startOrJoinAttempt.mockRejectedValueOnce(notActive('purged'));
+
+    await exerciseOutboxStore.flush();
+
+    // The purged one is gone, the one behind it went out.
+    expect(exerciseOutboxStore.pendingCount).toBe(0);
+    expect(exerciseOutboxStore.heldBySchoolCount).toBe(0);
+    expect(exerciseOutboxStore.waitingForSchoolCount).toBe(0);
+    expect(mockRemote.submitAttempt).toHaveBeenCalledTimes(1);
+    expect(exerciseOutboxStore.discardedBySchoolCount).toBe(1);
+
+    // Another learner on the phone does not see it.
+    authStore.setSignedIn(OTHER);
+    expect(exerciseOutboxStore.discardedBySchoolCount).toBe(0);
+    authStore.setSignedIn(LEARNER);
+
+    await exerciseOutboxStore.dismissDiscarded();
+    expect(exerciseOutboxStore.discardedBySchoolCount).toBe(0);
+  });
+
+  it('drops a held entry once its school, closed before, is purged', async () => {
+    authStore.setSignedIn(LEARNER);
+    await exerciseOutboxStore.recordLocalOp(attempt('q16-cp'), submitOp(1));
+    mockRemote.submitAttempt
+      .mockRejectedValueOnce(notActive('closed'))
+      .mockRejectedValueOnce(notActive('purged'));
+
+    await exerciseOutboxStore.flush();
+    expect(exerciseOutboxStore.heldBySchoolCount).toBe(1);
+
+    await exerciseOutboxStore.flush();
+    expect(exerciseOutboxStore.pendingCount).toBe(0);
+    expect(exerciseOutboxStore.discardedBySchoolCount).toBe(1);
+    await exerciseOutboxStore.dismissDiscarded();
   });
 
   it('holds a call refused mid-replay without skipping it', async () => {

@@ -5,12 +5,13 @@ import { upsertProgress } from '../api/progress';
 import type { UpsertProgressRequest } from '../api/types';
 import { NEARLY_FULL_SHARE, isOwnedBy, randomNonce, shouldRetry } from '../lib/reviewQueue';
 import type { JournalOp } from '../offline/engine/engine';
-import { schoolNotActiveStatus } from '../lib/schoolLifecycle';
+import { schoolRefusalStatus } from '../lib/schoolLifecycle';
 import { authStore } from './authStore';
 
 const storage = createAsyncStorage('voxord_exercise_outbox');
 const STORAGE_KEY = 'queue';
 const ATTEMPT_IDS_KEY = 'attemptIds';
+const DISCARDED_KEY = 'discardedBySchool';
 
 /**
  * An exercise answered offline and graded on the phone, handed in once. Written by builds
@@ -70,7 +71,8 @@ export type OutboxEntry = (QueuedAttempt | QueuedSession | QueuedProgress) & Hel
 
 /**
  * Set when the learner's school refused the entry as read only (plan 90, phase 5): kept, not
- * dropped, because a suspended school comes back; tried again on every flush.
+ * dropped, because a suspended or closed school can come back; tried again on every flush. A
+ * purged school cannot, so its entries are dropped and counted instead (Q16).
  */
 interface HeldMark {
   heldBySchool?: 'suspended' | 'closed';
@@ -94,13 +96,26 @@ export const MAX_OUTBOX_ENTRIES = 1000;
  * nothing. Every call is dated when the phone made it (offline plan, B4); the engine bounds
  * what it believes of the phone's clock.
  */
-/** A delivery the learner's school refused as read only: the entry stays, marked. */
+/**
+ * A delivery the learner's school refused as read only: the entry stays, marked — or, for a
+ * purged school, it is dropped and counted for the learner's one notice.
+ */
 type Held = { held: 'suspended' | 'closed' };
+type Refused = Held | 'purged';
+
+/** What the queue does with a "school is read only" refusal, or `null` for any other error. */
+function schoolRefusal(error: unknown): Refused | null {
+  const status = schoolRefusalStatus(error);
+  if (status === null) return null;
+  return status === 'purged' ? 'purged' : { held: status };
+}
 
 class ExerciseOutboxStore {
   private queue: OutboxEntry[] = [];
   /** Local attempt id → the attempt its replay made on the server. */
   private attemptIds: Record<string, string> = {};
+  /** Entries dropped because their school was purged, by learner, until the learner has seen it. */
+  private discarded: Record<string, number> = {};
   private loaded = false;
   private flushing: Promise<void> | null = null;
   private listeners = new Set<() => void>();
@@ -112,6 +127,8 @@ class ExerciseOutboxStore {
       if (raw) this.queue = JSON.parse(raw) as OutboxEntry[];
       const ids = await storage.getItem(ATTEMPT_IDS_KEY);
       if (ids) this.attemptIds = JSON.parse(ids) as Record<string, string>;
+      const discarded = await storage.getItem(DISCARDED_KEY);
+      if (discarded) this.discarded = JSON.parse(discarded) as Record<string, number>;
     } catch (e) {
       console.warn('[ExerciseOutbox] Failed to load:', e);
     }
@@ -123,6 +140,37 @@ class ExerciseOutboxStore {
   get heldBySchoolCount(): number {
     const userId = currentUserId();
     return this.queue.filter(e => e.heldBySchool && isOwnedBy(e.userId, userId)).length;
+  }
+
+  /**
+   * Held entries whose school is only suspended: the ones worth trying again on a timer. A
+   * closed school waits for an admin's restore, so its entries go out on the next network or
+   * foreground event instead of keeping the phone polling (plan 90, Q16).
+   */
+  get waitingForSchoolCount(): number {
+    const userId = currentUserId();
+    return this.queue.filter(e => e.heldBySchool === 'suspended' && isOwnedBy(e.userId, userId))
+      .length;
+  }
+
+  /** Answers of the signed-in learner dropped because their school was purged, not yet seen. */
+  get discardedBySchoolCount(): number {
+    const userId = currentUserId();
+    return Object.entries(this.discarded)
+      .filter(([owner]) => isOwnedBy(owner || undefined, userId))
+      .reduce((sum, [, n]) => sum + n, 0);
+  }
+
+  /** The learner has read the notice about answers a purged school will never take. */
+  async dismissDiscarded(): Promise<void> {
+    const userId = currentUserId();
+    const kept = Object.fromEntries(
+      Object.entries(this.discarded).filter(([owner]) => !isOwnedBy(owner || undefined, userId)),
+    );
+    if (Object.keys(kept).length === Object.keys(this.discarded).length) return;
+    this.discarded = kept;
+    await this.persistDiscarded();
+    this.notify();
   }
 
   /** Entries of the signed-in learner still waiting for the server. */
@@ -223,6 +271,15 @@ class ExerciseOutboxStore {
       const result = await this.deliver(entry);
       // Order matters: a set's progress follows its attempts, so nothing passes one that waits.
       if (result === 'kept') break;
+      // Its school is gone and will never take it: dropped, and the learner is told once.
+      if (result === 'purged') {
+        const owner = entry.userId ?? '';
+        this.discarded = { ...this.discarded, [owner]: (this.discarded[owner] ?? 0) + 1 };
+        await this.persistDiscarded();
+        console.warn(`[ExerciseOutbox] Dropping ${entry.kind} entry ${entry.id} — its school was purged.`);
+        settled.push(entry.id);
+        continue;
+      }
       // Refused by a read-only school: it waits for the school, and what is behind it goes on.
       if (typeof result === 'object') {
         if (entry.heldBySchool !== result.held) {
@@ -241,7 +298,7 @@ class ExerciseOutboxStore {
     }
   }
 
-  private async deliver(entry: OutboxEntry): Promise<'sent' | 'kept' | 'dropped' | Held> {
+  private async deliver(entry: OutboxEntry): Promise<'sent' | 'kept' | 'dropped' | Refused> {
     if (entry.kind === 'session') return this.deliverSession(entry);
     try {
       if (entry.kind === 'progress') {
@@ -272,8 +329,8 @@ class ExerciseOutboxStore {
       );
       return 'sent';
     } catch (e) {
-      const held = schoolNotActiveStatus(e);
-      if (held) return { held };
+      const refused = schoolRefusal(e);
+      if (refused) return refused;
       const status = e instanceof ApiError ? e.status : null;
       if (shouldRetry(status)) return 'kept';
       console.warn(
@@ -286,14 +343,14 @@ class ExerciseOutboxStore {
   }
 
   /** The calls of one local attempt, from where the last flush stopped. */
-  private async deliverSession(entry: QueuedSession): Promise<'sent' | 'kept' | Held> {
+  private async deliverSession(entry: QueuedSession): Promise<'sent' | 'kept' | Refused> {
     let serverId = this.attemptIds[entry.localAttemptId];
     if (!serverId && entry.probeDraw) {
       try {
         serverId = await startDealtSitting(entry, entry.probeDraw);
       } catch (e) {
-        const held = schoolNotActiveStatus(e);
-        if (held) return { held };
+        const refused = schoolRefusal(e);
+        if (refused) return refused;
         const status = e instanceof ApiError ? e.status : null;
         if (shouldRetry(status)) return 'kept';
         // Over the author's limit, or a document edited since the download: the sitting the
@@ -312,8 +369,8 @@ class ExerciseOutboxStore {
       try {
         serverId = await startForReplay(entry);
       } catch (e) {
-        const held = schoolNotActiveStatus(e);
-        if (held) return { held };
+        const refused = schoolRefusal(e);
+        if (refused) return refused;
         if (shouldRetry(e instanceof ApiError ? e.status : null)) return 'kept';
         console.warn(`[ExerciseOutbox] Dropping attempt at ${entry.exerciseId} — start refused.`);
         return 'sent';
@@ -327,8 +384,8 @@ class ExerciseOutboxStore {
       try {
         await replay(entry.exerciseId, serverId, op);
       } catch (e) {
-        const held = schoolNotActiveStatus(e);
-        if (held) return { held };
+        const refused = schoolRefusal(e);
+        if (refused) return refused;
         const status = e instanceof ApiError ? e.status : null;
         if (shouldRetry(status)) return 'kept';
         // Refused on the server as it would have been online; the rest of the attempt goes on.
@@ -347,6 +404,14 @@ class ExerciseOutboxStore {
       console.warn('[ExerciseOutbox] Failed to persist:', e);
     }
     this.notify();
+  }
+
+  private async persistDiscarded(): Promise<void> {
+    try {
+      await storage.setItem(DISCARDED_KEY, JSON.stringify(this.discarded));
+    } catch (e) {
+      console.warn('[ExerciseOutbox] Failed to persist discarded count:', e);
+    }
   }
 
   private async persistIds(): Promise<void> {

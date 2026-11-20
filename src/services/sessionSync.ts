@@ -183,7 +183,9 @@ export const sessionSync = new SessionSync({
   getAuth: () => authStore.getState(),
   onAuthChange: listener => authStore.subscribe(listener),
   reconnect: () => authService.reconnect(),
-  hasWaiting: () => exerciseOutboxStore.heldBySchoolCount > 0,
+  // Only a suspended school is worth a timer; a closed one waits for the next network or
+  // foreground event, a purged one's entries are dropped (plan 90, Q16).
+  hasWaiting: () => exerciseOutboxStore.waitingForSchoolCount > 0,
   queues: [
     { name: 'reviews', flush: () => reviewQueueStore.flush() },
     // Exercises graded offline, then the progress of the sets they finished (B4).

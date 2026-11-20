@@ -644,6 +644,8 @@ export interface Translations {
     schoolClosed: string;
     /** Answers given offline that the school refused on sync; kept until it reopens. */
     held: string; // '{count}'
+    discarded: string; // '{count}'
+    discardedDismiss: string;
     blockedStart: string;
     blockedBack: string;
   };
