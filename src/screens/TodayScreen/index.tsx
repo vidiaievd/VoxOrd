@@ -244,7 +244,6 @@ export function TodayScreen({ due, onNavigate, onOpenTab }: TodayScreenProps) {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]} edges={['top']}>
       {ids.includes('offline') ? <OfflineCard /> : null}
-      <HeldBySchool />
       <RefreshRegistry.Provider value={registry}>
         <ScrollView
           ref={scrollRef}
@@ -257,6 +256,7 @@ export function TodayScreen({ due, onNavigate, onOpenTab }: TodayScreenProps) {
             />
           }
         >
+          <HeldBySchool />
           {ids.filter((id) => id !== 'offline').map(renderBlock)}
         </ScrollView>
       </RefreshRegistry.Provider>

@@ -27,7 +27,17 @@ export interface SessionSyncDeps {
    * offline goes out, then the copies kept for offline are taken afresh.
    */
   queues: ReadonlyArray<{ name: string; flush(): Promise<unknown> }>;
+  /**
+   * True while something sits in a queue that only time can release — an answer a suspended
+   * school refused. No network or foreground event announces that the school came back, so
+   * the sync tries again by itself.
+   */
+  hasWaiting?(): boolean;
+  /** Pause before such a retry, in ms (default 30 s). */
+  retryDelayMs?: number;
 }
+
+const DEFAULT_RETRY_DELAY_MS = 30_000;
 
 /**
  * Brings a session that worked offline back to the server (offline plan, B0.5.2).
@@ -50,6 +60,7 @@ export class SessionSync {
   private draining: Promise<void> | null = null;
   /** A drain asked for while one ran — new entries may have missed its snapshot. */
   private drainAgain = false;
+  private retryTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private readonly deps: SessionSyncDeps) {}
 
@@ -69,6 +80,27 @@ export class SessionSync {
   stop(): void {
     this.unsubscribes.forEach(u => u());
     this.unsubscribes = [];
+    this.clearRetry();
+  }
+
+  /**
+   * One more attempt later. NetInfo can report a network before the server is reachable on
+   * it, and a refused entry waits for the school; neither raises another event.
+   */
+  private scheduleRetry(): void {
+    if (this.retryTimer || this.unsubscribes.length === 0) return;
+    const timer = setTimeout(() => {
+      this.retryTimer = null;
+      void this.reconnect();
+    }, this.deps.retryDelayMs ?? DEFAULT_RETRY_DELAY_MS);
+    // A pending retry must not keep a Node process (the tests) alive; React Native has no unref.
+    (timer as { unref?: () => void }).unref?.();
+    this.retryTimer = timer;
+  }
+
+  private clearRetry(): void {
+    if (this.retryTimer) clearTimeout(this.retryTimer);
+    this.retryTimer = null;
   }
 
   /** Single-flight: a burst of network and foreground events makes one attempt. */
@@ -98,6 +130,7 @@ export class SessionSync {
       // Online already: anything left in the queues goes out now, the network may be what
       // held it back.
       await this.drain();
+      if (this.deps.hasWaiting?.()) this.scheduleRetry();
       return;
     }
     try {
@@ -105,7 +138,9 @@ export class SessionSync {
     } catch (e) {
       console.warn('[SessionSync] Reconnect failed:', e);
     }
-    // A reconnect that got through has drained through onAuthChange.
+    // A reconnect that got through has drained through onAuthChange; one that did not is
+    // tried again, the network may not have been ready yet.
+    if (!this.isOnline() && this.deps.getAuth().status === 'signedIn') this.scheduleRetry();
   }
 
   private async runDrain(): Promise<void> {
@@ -148,6 +183,7 @@ export const sessionSync = new SessionSync({
   getAuth: () => authStore.getState(),
   onAuthChange: listener => authStore.subscribe(listener),
   reconnect: () => authService.reconnect(),
+  hasWaiting: () => exerciseOutboxStore.heldBySchoolCount > 0,
   queues: [
     { name: 'reviews', flush: () => reviewQueueStore.flush() },
     // Exercises graded offline, then the progress of the sets they finished (B4).

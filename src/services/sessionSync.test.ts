@@ -199,6 +199,48 @@ describe('SessionSync', () => {
     expect(world.sent).toEqual(['captured words', 'reviews', 'captured words']);
   });
 
+  it('tries a failed reconnect again after a pause', async () => {
+    jest.useFakeTimers();
+    try {
+      const world = makeWorld(OFFLINE);
+      world.deps.retryDelayMs = 1000;
+      world.deps.reconnect = jest.fn(async () => {
+        throw new Error('network not ready');
+      });
+      const sync = new SessionSync(world.deps);
+      sync.start();
+      world.networkUp();
+      await jest.advanceTimersByTimeAsync(0);
+      expect(world.deps.reconnect).toHaveBeenCalledTimes(1);
+
+      await jest.advanceTimersByTimeAsync(1000);
+      expect(world.deps.reconnect).toHaveBeenCalledTimes(2);
+      sync.stop();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('sends again later while an entry waits for its school', async () => {
+    jest.useFakeTimers();
+    try {
+      const world = makeWorld(ONLINE);
+      world.deps.retryDelayMs = 1000;
+      world.deps.hasWaiting = () => true;
+      const sync = new SessionSync(world.deps);
+      sync.start();
+      world.foreground();
+      await jest.advanceTimersByTimeAsync(0);
+      const first = world.sent.length;
+
+      await jest.advanceTimersByTimeAsync(1000);
+      expect(world.sent.length).toBeGreaterThan(first);
+      sync.stop();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it('lets go of every listener on stop', () => {
     const world = makeWorld(OFFLINE);
     const sync = new SessionSync(world.deps);
