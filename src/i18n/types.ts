@@ -533,6 +533,10 @@ export interface Translations {
     courseDone: string;
     repeatMaterial: string;
     moreCourses: string;
+    history: string;
+    historyFinished: string; // '{date}'
+    historyUnavailable: string;
+    historyUnavailableNote: string;
     selfStudy: string;
     school: string;
     notStarted: string;
