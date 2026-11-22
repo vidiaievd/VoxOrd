@@ -36,7 +36,8 @@ export interface UnitDownload {
  * (`courseWalked` false: enrolled on the web or by the school since): that unit is «none».
  * `itemIds` — the unit's materials as its screen lists them now (containers left out, as the
  * walk leaves them out); a material the closed account does not name makes the unit «none»
- * and `outdated` — a teacher added it after the walk.
+ * and `outdated` — a teacher added it after the walk. After a restart the account is gone;
+ * `walkedItems` (what the unit held at its last walk, kept on the phone) answers the same.
  */
 export function unitDownload(
   unitId: string,
@@ -47,6 +48,7 @@ export function unitDownload(
   pinned = false,
   courseWalked: boolean | null = null,
   itemIds: readonly string[] | null = null,
+  walkedItems?: readonly string[],
 ): UnitDownload {
   const inWindow = pinned || unitWindow(units, unitsAhead).some(u => u.id === unitId) || progress !== undefined;
 
@@ -89,6 +91,9 @@ export function unitDownload(
   const none = { progress: null, sizeBytes: null, items: {}, outdated: false };
   if (!inWindow) return { state: 'none', inWindow, ...none };
   if (status.running) return { state: 'downloading', inWindow, ...none };
+  if (itemIds && walkedItems && itemIds.some(id => !walkedItems.includes(id))) {
+    return { state: 'none', inWindow, ...none, outdated: true };
+  }
   const done = courseWalked !== false && status.lastFinishedAt !== null && status.lastFailed === 0;
   return { state: done ? 'done' : 'none', inWindow, ...none };
 }

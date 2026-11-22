@@ -145,6 +145,9 @@ export interface CourseDownloadDeps {
   /** Courses the learner keeps whole, whatever the «units ahead» setting says. */
   getPinned(userId: string): Promise<string[]>;
   setPinned(userId: string, courseIds: string[]): Promise<void>;
+  /** The materials each walked unit had when walked (`UnitContentsItem.id`), by unit id. */
+  getUnitItems(userId: string): Promise<Record<string, string[]>>;
+  setUnitItems(userId: string, units: Record<string, string[]>): Promise<void>;
   getRun(key: string): Promise<CourseRun | null>;
   setRun(key: string, run: CourseRun): Promise<void>;
   now(): number;
@@ -191,6 +194,14 @@ export class CourseDownloader {
   private pinned = new Set<string>();
   /** Courses the walks have reached; null while not known (no record of it yet). */
   private walkedCourses: Set<string> | null = null;
+  /**
+   * The materials each unit had when a walk last fetched it — kept on the phone, unlike
+   * `unitProgress`, so a unit that gained an exercise since still reads «not downloaded» after
+   * a restart. Null until read from storage.
+   */
+  private unitItems: Map<string, readonly string[]> | null = null;
+  /** The learner `unitItems` belongs to: another one signing in reads their own. */
+  private unitItemsUser: string | null = null;
 
   constructor(private readonly deps: CourseDownloadDeps) {}
 
@@ -206,10 +217,27 @@ export class CourseDownloader {
     return this.walkedCourses === null ? null : this.walkedCourses.has(courseId);
   }
 
+  /**
+   * The materials the unit had when a walk last fetched it; undefined when no walk this phone
+   * remembers has (or it was recorded before the phone kept them).
+   */
+  walkedItems(unitId: string): readonly string[] | undefined {
+    if (this.unitItemsUser !== this.deps.getUserId()) return undefined;
+    return this.unitItems?.get(unitId);
+  }
+
   /** Picks up when the signed-in learner's courses were last downloaded, in an earlier run. */
   async loadStatus(): Promise<void> {
     const userId = this.deps.getUserId();
     if (!userId) return;
+    if (this.unitItemsUser !== userId) {
+      const stored = await this.deps.getUnitItems(userId);
+      if (this.unitItemsUser !== userId) {
+        this.unitItems = new Map(Object.entries(stored));
+        this.unitItemsUser = userId;
+        this.listeners.forEach(l => l());
+      }
+    }
     const pinned = await this.deps.getPinned(userId);
     if (pinned.length !== this.pinned.size || pinned.some(id => !this.pinned.has(id))) {
       this.pinned = new Set(pinned);
@@ -362,6 +390,7 @@ export class CourseDownloader {
         }
         // A course whose session changed hands is not this learner's to mark.
         if (this.deps.getUserId() !== userId) return;
+        await this.saveUnitItems(userId, walked.itemsByUnit);
         await this.deps.setRun(runKey, {
           at: this.deps.now(),
           mediaIds: [...walked.mediaIds],
@@ -413,6 +442,19 @@ export class CourseDownloader {
     }
   }
 
+  /** Records what the walked units held, over what the phone remembered of the others. */
+  private async saveUnitItems(userId: string, walked: Map<string, string[]>): Promise<void> {
+    if (walked.size === 0) return;
+    const known =
+      this.unitItemsUser === userId && this.unitItems !== null
+        ? this.unitItems
+        : new Map<string, readonly string[]>(Object.entries(await this.deps.getUnitItems(userId)));
+    for (const [unitId, ids] of walked) known.set(unitId, ids);
+    this.unitItems = known;
+    this.unitItemsUser = userId;
+    await this.deps.setUnitItems(userId, Object.fromEntries(known) as Record<string, string[]>);
+  }
+
   /** Room for media, or nothing known against it — an unreadable reading does not block them. */
   private async hasRoom(): Promise<boolean> {
     try {
@@ -428,8 +470,14 @@ export class CourseDownloader {
     units: UnitSummary[],
     courseId: string,
     langs: Languages,
-  ): Promise<{ failed: number; mediaIds: Set<string>; mediaByUnit: Map<string, Set<string>> }> {
+  ): Promise<{
+    failed: number;
+    mediaIds: Set<string>;
+    mediaByUnit: Map<string, Set<string>>;
+    itemsByUnit: Map<string, string[]>;
+  }> {
     let failed = 0;
+    const itemsByUnit = new Map<string, string[]>();
     const mediaIds = new Set<string>();
     const mediaByUnit = new Map<string, Set<string>>();
     // One container request per course, not one per lesson.
@@ -457,6 +505,7 @@ export class CourseDownloader {
       ];
       // A container is a heading with nothing to fetch.
       const tracked = items.filter(i => i.contentType !== 'container');
+      itemsByUnit.set(unit.id, tracked.map(i => i.id));
       this.patchUnit(unit.id, p => ({
         ...p,
         items: Object.fromEntries(tracked.map(i => [i.id, 'queued' as ItemDownloadState])),
@@ -473,7 +522,7 @@ export class CourseDownloader {
       unitMedia.forEach(id => mediaIds.add(id));
       failed += results.filter(ok => !ok).length;
     }
-    return { failed, mediaIds, mediaByUnit };
+    return { failed, mediaIds, mediaByUnit, itemsByUnit };
   }
 
   private async fetchItem(
@@ -652,6 +701,27 @@ export const courseDownloader = new CourseDownloader({
       await runStorage.setItem(`${userId}:pinned`, JSON.stringify(courseIds));
     } catch {
       // Losing it means the course falls back to the window at the next start.
+    }
+  },
+  getUnitItems: async userId => {
+    try {
+      const raw = await runStorage.getItem(`${userId}:unit-items`);
+      const parsed = raw ? (JSON.parse(raw) as unknown) : {};
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+      return Object.fromEntries(
+        Object.entries(parsed as Record<string, unknown>)
+          .filter((e): e is [string, unknown[]] => Array.isArray(e[1]))
+          .map(([unitId, ids]) => [unitId, ids.filter((id): id is string => typeof id === 'string')]),
+      );
+    } catch {
+      return {};
+    }
+  },
+  setUnitItems: async (userId, units) => {
+    try {
+      await runStorage.setItem(`${userId}:unit-items`, JSON.stringify(units));
+    } catch {
+      // Losing it means a unit that gained materials reads «saved» until the next walk.
     }
   },
   getRun: async key => {

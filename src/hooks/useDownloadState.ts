@@ -32,6 +32,7 @@ export function useDownloadState(
         courseDownloader.isPinned(courseId),
         courseDownloader.courseWalked(courseId),
         itemIds,
+        courseDownloader.walkedItems(unitId),
       ),
     [unitId, courseId, units, itemIds],
   );
@@ -68,11 +69,13 @@ export function useDownloadState(
 
   // A unit that gained materials after its walk (a teacher added an exercise) is walked once
   // more when it opens, so it does not stay half on the phone until the next online session.
+  // Forced: the course's last walk is fresh and its window unchanged, so an ordinary run would
+  // skip it and fetch nothing.
   const refetched = useRef<string | null>(null);
   useEffect(() => {
     if (!value.outdated || !value.inWindow || refetched.current === unitId) return;
     refetched.current = unitId;
-    courseDownloader.run(false, courseId).catch(() => {});
+    courseDownloader.run(true, courseId).catch(() => {});
   }, [value.outdated, value.inWindow, unitId, courseId]);
 
   return { ...value, start };

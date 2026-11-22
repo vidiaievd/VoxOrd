@@ -94,6 +94,23 @@ describe('unitDownload with the walk\'s account', () => {
 // Live check s23, finding 10: a teacher added an exercise after the walk; the unit said
 // «saved on the phone» while the new exercise was not.
 describe('unitDownload when the unit gained materials after its walk', () => {
+  // Live check s24: after a restart there is no account, only what the unit held at the walk.
+  it('is none and outdated after a restart when the unit lists a material the walk did not see', () => {
+    expect(unitDownload('u2', units, 1, finished, undefined, false, true, ['a', 'b', 'c'], ['a', 'b'])).toMatchObject({
+      state: 'none',
+      inWindow: true,
+      outdated: true,
+    });
+    expect(unitDownload('u2', units, 1, finished, undefined, false, true, ['a', 'b'], ['a', 'b', 'x'])).toMatchObject({
+      state: 'done',
+      outdated: false,
+    });
+    // Nothing recorded for the unit (walked before the phone kept it): as before.
+    expect(unitDownload('u2', units, 1, finished, undefined, false, true, ['a', 'b', 'c']).state).toBe('done');
+    // Outside the window nothing is to be fetched.
+    expect(unitDownload('u4', units, 1, finished, undefined, false, true, ['a', 'c'], ['a']).outdated).toBe(false);
+  });
+
   const walked = progress(true, { a: 'done', b: 'done' });
 
   it('is none and outdated when the unit lists a material the account does not name', () => {
