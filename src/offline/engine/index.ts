@@ -5,7 +5,7 @@ import { currentUiLanguage } from '../../i18n/uiLanguage';
 import { exerciseDisplayResource, probeHistoryResource } from '../../lib/courseResources';
 import { mediaCache } from '../../services/mediaCache';
 import { randomNonce } from '../../lib/reviewQueue';
-import { getMemoryCache, readCacheSnapshot } from '../../lib/swrCache';
+import { getMemoryCache, readCacheSnapshot, readCachedAny } from '../../lib/swrCache';
 import { authStore } from '../../store/authStore';
 import { exerciseOutboxStore } from '../../store/exerciseOutboxStore';
 import { isLocalAttemptId, LocalRefusal } from './attempt';
@@ -21,10 +21,11 @@ export const localEngine = new LocalEngine({
   now: () => new Date(),
   newId: () => `${Date.now().toString(36)}${randomNonce()}`,
   userId: () => authStore.getState().user?.id ?? null,
-  display: exerciseId =>
-    cached<ExerciseDisplay>(
-      exerciseDisplayResource(exerciseId, currentUiLanguage()).key,
-    ),
+  display: exerciseId => {
+    // A unit downloaded under another interface language still grades on the phone.
+    const resource = exerciseDisplayResource(exerciseId, currentUiLanguage());
+    return readCachedAny<ExerciseDisplay>([resource.key, ...(resource.fallbackKeys ?? [])]);
+  },
   key: exerciseId => cached<ExerciseKey>(exerciseKeyCacheKey(exerciseId)),
   clipUrl: async assetId => (assetId ? ((await mediaCache.lookup(assetId))?.url ?? null) : null),
   probeHistory: exerciseId =>

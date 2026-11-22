@@ -12,8 +12,7 @@ import {
 } from '../api/exercises';
 import type { ExerciseDisplay } from '../api/types';
 import {
-  getMemoryCache,
-  readCacheSnapshot,
+  readCachedAny,
   setMemoryCache,
   writeCacheSnapshot,
 } from '../lib/swrCache';
@@ -190,8 +189,9 @@ export function useExerciseRunner(
         dispatch({ type: 'LOAD_SUCCESS', display });
       } catch (e) {
         if (cancelled || !mounted.current) return;
-        const cached =
-          getMemoryCache<ExerciseDisplay>(cacheKey) ?? (await readCacheSnapshot<ExerciseDisplay>(cacheKey));
+        // Under this language first, then a copy downloaded under another one (the learner
+        // may have switched the app's language since the unit was downloaded).
+        const cached = await readCachedAny<ExerciseDisplay>([cacheKey, ...(resource.fallbackKeys ?? [])]);
         if (cancelled || !mounted.current) return;
         if (cached) {
           answeringStartedAtRef.current = Date.now();

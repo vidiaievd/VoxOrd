@@ -44,3 +44,15 @@ export async function writeCacheSnapshot<T>(key: string, data: T): Promise<void>
     console.warn(`[SwrCache] Failed to write snapshot for "${key}":`, e);
   }
 }
+
+/**
+ * The first cached value (memory, then snapshot) under any of `keys`, in order — for a
+ * resource kept under another key than the one asked for (`CourseResource.fallbackKeys`).
+ */
+export async function readCachedAny<T>(keys: readonly string[]): Promise<T | null> {
+  for (const key of keys) {
+    const value = getMemoryCache<T>(key) ?? (await readCacheSnapshot<T>(key));
+    if (value !== null && value !== undefined) return value;
+  }
+  return null;
+}

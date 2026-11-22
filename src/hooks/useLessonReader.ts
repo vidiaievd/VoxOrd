@@ -37,6 +37,7 @@ export function useLessonReader(lessonId: string, courseId: string): LessonReade
   const { status, data, error, stale, refresh } = useSwrResource<LessonReaderData>(
     resource.key,
     resource.load,
+    resource.fallbackKeys,
   );
 
   return { status, data, error, stale, refresh };

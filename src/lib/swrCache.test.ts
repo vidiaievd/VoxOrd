@@ -13,6 +13,7 @@ import {
   getMemoryCache,
   setMemoryCache,
   readCacheSnapshot,
+  readCachedAny,
   writeCacheSnapshot,
 } from './swrCache';
 
@@ -73,5 +74,28 @@ describe('writeCacheSnapshot', () => {
   it('does not throw when storage write rejects', async () => {
     mockSetItem.mockRejectedValue(new Error('storage full'));
     await expect(writeCacheSnapshot('course-1', {})).resolves.toBeUndefined();
+  });
+});
+
+describe('readCachedAny', () => {
+  beforeEach(() => {
+    mockGetItem.mockReset();
+  });
+
+  it('takes the first key that has a value, memory before snapshot', async () => {
+    mockGetItem.mockImplementation(async (key: string) =>
+      key === 'display:ex-1:uk' ? JSON.stringify({ lang: 'uk' }) : null,
+    );
+    expect(await readCachedAny(['display:ex-1:ru', 'display:ex-1:uk', 'display:ex-1:en'])).toEqual({
+      lang: 'uk',
+    });
+
+    setMemoryCache('display:ex-2:en', { lang: 'en' });
+    expect(await readCachedAny(['display:ex-2:ru', 'display:ex-2:en'])).toEqual({ lang: 'en' });
+  });
+
+  it('is null when no key has a value', async () => {
+    mockGetItem.mockResolvedValue(null);
+    expect(await readCachedAny(['a:ru', 'a:uk'])).toBeNull();
   });
 });
