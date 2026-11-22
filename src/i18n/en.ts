@@ -521,6 +521,12 @@ export const en: Translations = {
     historyFinished: 'Finished {date}',
     historyUnavailable: 'Course unavailable',
     historyUnavailableNote: 'The school that ran it is gone, and the course is no longer available to read.',
+    historyUnavailableCount: {
+      one: '{count} course unavailable',
+      few: '{count} courses unavailable',
+      many: '{count} courses unavailable',
+    },
+    historyUnavailableCountNote: 'The schools that ran them are gone, and these courses are no longer available to read.',
     selfStudy: 'self-study',
     school: 'school',
     notStarted: 'Not started',

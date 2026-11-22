@@ -529,6 +529,12 @@ export const ru: Translations = {
     historyFinished: 'Завершён {date}',
     historyUnavailable: 'Курс недоступен',
     historyUnavailableNote: 'Школы, которая вела курс, больше нет, и читать курс уже нельзя.',
+    historyUnavailableCount: {
+      one: '{count} курс недоступен',
+      few: '{count} курса недоступны',
+      many: '{count} курсов недоступны',
+    },
+    historyUnavailableCountNote: 'Школ, которые вели эти курсы, больше нет, и читать их уже нельзя.',
     selfStudy: 'самостоятельно',
     school: 'школа',
     notStarted: 'Не начат',

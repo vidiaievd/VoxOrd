@@ -52,4 +52,19 @@ describe('HistorySection', () => {
     });
     expect(onOpen).toHaveBeenCalledWith('course-a');
   });
+
+  it('folds several gone courses into one row with their count', () => {
+    const { r } = render([
+      row('a', { id: 'course-a', title: 'Norsk B1', difficultyLevel: 'B1' }),
+      row('b', null),
+      row('c', null),
+      row('d', null),
+    ]);
+    const rows = r.root.findAllByProps({ testID: 'history-unavailable' }).filter(n => typeof n.type === 'string');
+    expect(rows).toHaveLength(1);
+    const text = JSON.stringify(r.toJSON());
+    expect(text).toContain('coursesTab.historyUnavailableCount {\\"count\\":3}');
+    expect(text).toContain('coursesTab.historyUnavailableCountNote');
+    expect(text).not.toContain('"coursesTab.historyUnavailable"');
+  });
 });

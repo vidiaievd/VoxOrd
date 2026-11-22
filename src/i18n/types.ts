@@ -537,6 +537,8 @@ export interface Translations {
     historyFinished: string; // '{date}'
     historyUnavailable: string;
     historyUnavailableNote: string;
+    historyUnavailableCount: PluralForms; // '{count}'
+    historyUnavailableCountNote: string;
     selfStudy: string;
     school: string;
     notStarted: string;
