@@ -94,20 +94,52 @@ describe('SessionSync', () => {
     expect(world.deps.reconnect).toHaveBeenCalledTimes(1);
   });
 
-  it('makes one attempt for a burst of events', async () => {
+  it('makes one more attempt, not one per event, for a burst during an attempt', async () => {
     const world = makeWorld(OFFLINE);
-    let finish: (() => void) | null = null;
-    world.deps.reconnect = jest.fn(() => new Promise<void>(resolve => (finish = resolve)));
-    new SessionSync(world.deps).start();
+    const finishers: Array<() => void> = [];
+    world.deps.reconnect = jest.fn(() => new Promise<void>(resolve => finishers.push(resolve)));
+    const sync = new SessionSync(world.deps);
+    sync.start();
 
     world.networkUp();
     world.foreground();
+    await settle();
+    // While the attempt runs:
+    world.foreground();
     world.networkUp();
     await settle();
+    expect(world.deps.reconnect).toHaveBeenCalledTimes(1);
+
+    finishers[0]();
+    await settle();
+    expect(world.deps.reconnect).toHaveBeenCalledTimes(2);
+    finishers[1]();
+    await settle();
+    expect(world.deps.reconnect).toHaveBeenCalledTimes(2);
+    sync.stop();
+  });
+
+  it('does not lose a network event that comes while a reconnect runs (plan 90, s20)', async () => {
+    const world = makeWorld(OFFLINE);
+    let finish: (() => void) | null = null;
+    world.deps.reconnect = jest.fn(() => new Promise<void>(resolve => (finish = resolve)));
+    const sync = new SessionSync(world.deps);
+    sync.start();
+
+    // Mobile data first: the refresh goes out on it.
+    world.networkUp();
+    await settle();
+    // Wi-Fi comes while it runs; the refresh gets through on it.
+    world.networkUp();
+    world.setAuth(ONLINE);
     finish!();
     await settle();
+    await settle();
 
+    // The follow-up finds the session online and sends what is queued once more.
     expect(world.deps.reconnect).toHaveBeenCalledTimes(1);
+    expect(world.sent).toEqual(['reviews', 'captured words', 'reviews', 'captured words']);
+    sync.stop();
   });
 
   it('sends the queues in order once the session is back online', async () => {
@@ -235,6 +267,54 @@ describe('SessionSync', () => {
 
       await jest.advanceTimersByTimeAsync(1000);
       expect(world.sent.length).toBeGreaterThan(first);
+      sync.stop();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('sends again later when a send failed although the session is online (plan 90, s20)', async () => {
+    jest.useFakeTimers();
+    try {
+      const world = makeWorld(OFFLINE);
+      world.deps.retryDelayMs = 1000;
+      let undelivered = true;
+      world.deps.hasUndelivered = () => undelivered;
+      const sync = new SessionSync(world.deps);
+      sync.start();
+
+      // The refresh got through, the queue's own request did not: nothing else will come.
+      world.setAuth(ONLINE);
+      await jest.advanceTimersByTimeAsync(0);
+      expect(world.sent).toEqual(['reviews', 'captured words']);
+
+      undelivered = false;
+      await jest.advanceTimersByTimeAsync(1000);
+      expect(world.sent).toEqual(['reviews', 'captured words', 'reviews', 'captured words']);
+      // Delivered: no more tries.
+      await jest.advanceTimersByTimeAsync(5000);
+      expect(world.sent).toHaveLength(4);
+      expect(world.deps.reconnect).not.toHaveBeenCalled();
+      sync.stop();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('does not retry a drain when nothing is left', async () => {
+    jest.useFakeTimers();
+    try {
+      const world = makeWorld(ONLINE);
+      world.deps.retryDelayMs = 1000;
+      world.deps.hasUndelivered = () => false;
+      world.deps.hasWaiting = () => false;
+      const sync = new SessionSync(world.deps);
+      sync.start();
+      await jest.advanceTimersByTimeAsync(0);
+      const first = world.sent.length;
+
+      await jest.advanceTimersByTimeAsync(5000);
+      expect(world.sent).toHaveLength(first);
       sync.stop();
     } finally {
       jest.useRealTimers();
