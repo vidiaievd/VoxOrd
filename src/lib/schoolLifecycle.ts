@@ -50,7 +50,7 @@ export function schoolNotActiveStatus(error: unknown): 'suspended' | 'closed' | 
   return status === 'purged' ? 'closed' : status;
 }
 
-/** Translation key under `schoolLifecycle.errors` for a refusal, or `null` if it is not one. */
+/** Translation key under `schoolLifecycle` for a refusal, or `null` if it is not one. */
 export function lifecycleErrorKey(error: unknown): 'schoolSuspended' | 'schoolClosed' | null {
   const status = schoolNotActiveStatus(error);
   if (status === null) return null;

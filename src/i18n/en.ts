@@ -1025,6 +1025,7 @@ export const en: Translations = {
     coursesGroup: 'Courses',
   },
   exerciseRunner: {
+    notOnPhone: "You're offline, and this exercise isn't saved on the phone — it can be checked once you're back online.",
     leave: {
       title: 'Leave the set?',
       message: 'Answers you handed in are saved. An answer you have not sent will be lost.',

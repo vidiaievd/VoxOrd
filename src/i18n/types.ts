@@ -1026,6 +1026,11 @@ export interface Translations {
   };
 
   exerciseRunner: {
+    /**
+     * Offline, the exercise cannot be checked on the phone: its key was never downloaded (it lies
+     * outside the units kept ahead). Shown instead of the network error's own words.
+     */
+    notOnPhone: string;
     /** Leaving a set mid-way, by the arrow or the phone's Back. */
     leave: {
       title: string;
