@@ -1,4 +1,4 @@
-import { apiClient } from './client';
+import { ApiError, apiClient } from './client';
 import type { Container, Enrollment } from './types';
 
 const ENROLLMENTS_PATH = '/api/v1/enrollments';
@@ -46,6 +46,41 @@ export async function getMyCourses(): Promise<CourseListItem[]> {
         `[Courses] Failed to load container ${active[i].containerId}:`,
         result.reason,
       );
+    }
+  });
+  return items;
+}
+
+/** A finished course the learner can look back on: its container, or `null` once it is gone for them. */
+export interface HistoryItem {
+  enrollment: Enrollment;
+  container: Container | null;
+}
+
+/**
+ * Finished enrolments for the «History» section (plan 90, live check, Q15). A purged school's
+ * enrolments end `COMPLETED` and its course stays readable as history (Q11) — unless it is a
+ * `shared` course of someone else, which answers 403 / 404: such a row is kept with
+ * `container: null` so the learner is told it is gone instead of it vanishing. Any other
+ * failure (network, server) drops the row, as `getMyCourses` does.
+ */
+export async function getMyHistory(): Promise<HistoryItem[]> {
+  const enrollments = await getMyEnrollments();
+  const done = enrollments
+    .filter((e) => e.status === 'COMPLETED')
+    .sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? ''));
+
+  const results = await Promise.allSettled(done.map((e) => getContainer(e.containerId)));
+
+  const items: HistoryItem[] = [];
+  results.forEach((result, i) => {
+    if (result.status === 'fulfilled') {
+      items.push({ enrollment: done[i], container: result.value });
+    } else if (
+      result.reason instanceof ApiError &&
+      (result.reason.status === 403 || result.reason.status === 404)
+    ) {
+      items.push({ enrollment: done[i], container: null });
     }
   });
   return items;

@@ -102,6 +102,11 @@ export interface CourseRun {
   mediaIds: string[];
   /** Whether those media were downloaded, or skipped (no Wi-Fi, media off). */
   mediaDone: boolean;
+  /**
+   * On the learner's «finished» record only: the courses walks have reached (walked, or found
+   * fresh) — a course enrolled since is not among them. Absent in records written before it.
+   */
+  courseIds?: string[];
 }
 
 /** The two languages a walk fetches in: interface (texts, exercises) and word translations. */
@@ -140,6 +145,9 @@ export interface CourseDownloadDeps {
   /** Courses the learner keeps whole, whatever the «units ahead» setting says. */
   getPinned(userId: string): Promise<string[]>;
   setPinned(userId: string, courseIds: string[]): Promise<void>;
+  /** The materials each walked unit had when walked (`UnitContentsItem.id`), by unit id. */
+  getUnitItems(userId: string): Promise<Record<string, string[]>>;
+  setUnitItems(userId: string, units: Record<string, string[]>): Promise<void>;
   getRun(key: string): Promise<CourseRun | null>;
   setRun(key: string, run: CourseRun): Promise<void>;
   now(): number;
@@ -184,6 +192,16 @@ export class CourseDownloader {
   private listeners = new Set<() => void>();
   private unitProgress = new Map<string, UnitProgress>();
   private pinned = new Set<string>();
+  /** Courses the walks have reached; null while not known (no record of it yet). */
+  private walkedCourses: Set<string> | null = null;
+  /**
+   * The materials each unit had when a walk last fetched it — kept on the phone, unlike
+   * `unitProgress`, so a unit that gained an exercise since still reads «not downloaded» after
+   * a restart. Null until read from storage.
+   */
+  private unitItems: Map<string, readonly string[]> | null = null;
+  /** The learner `unitItems` belongs to: another one signing in reads their own. */
+  private unitItemsUser: string | null = null;
 
   constructor(private readonly deps: CourseDownloadDeps) {}
 
@@ -191,10 +209,35 @@ export class CourseDownloader {
     return { ...this.status };
   }
 
+  /**
+   * Whether a walk has reached this course: false for a course enrolled since (on the web, by
+   * the school) that no walk has seen yet, null when the phone has no record to say.
+   */
+  courseWalked(courseId: string): boolean | null {
+    return this.walkedCourses === null ? null : this.walkedCourses.has(courseId);
+  }
+
+  /**
+   * The materials the unit had when a walk last fetched it; undefined when no walk this phone
+   * remembers has (or it was recorded before the phone kept them).
+   */
+  walkedItems(unitId: string): readonly string[] | undefined {
+    if (this.unitItemsUser !== this.deps.getUserId()) return undefined;
+    return this.unitItems?.get(unitId);
+  }
+
   /** Picks up when the signed-in learner's courses were last downloaded, in an earlier run. */
   async loadStatus(): Promise<void> {
     const userId = this.deps.getUserId();
     if (!userId) return;
+    if (this.unitItemsUser !== userId) {
+      const stored = await this.deps.getUnitItems(userId);
+      if (this.unitItemsUser !== userId) {
+        this.unitItems = new Map(Object.entries(stored));
+        this.unitItemsUser = userId;
+        this.listeners.forEach(l => l());
+      }
+    }
     const pinned = await this.deps.getPinned(userId);
     if (pinned.length !== this.pinned.size || pinned.some(id => !this.pinned.has(id))) {
       this.pinned = new Set(pinned);
@@ -203,6 +246,7 @@ export class CourseDownloader {
     if (this.status.lastFinishedAt !== null) return;
     const last = await this.deps.getRun(finishedKey(userId));
     if (last !== null && this.status.lastFinishedAt === null) {
+      if (last.courseIds && this.walkedCourses === null) this.walkedCourses = new Set(last.courseIds);
       this.setStatus({ lastFinishedAt: last.at });
     }
   }
@@ -291,6 +335,8 @@ export class CourseDownloader {
     // Every course's media, walked now or remembered from its last walk: what the cache keeps.
     const keep = new Set<string>();
     let keepComplete = true;
+    // Courses this walk reached, so the unit screen can tell a new course from a walked one.
+    const reached = new Set<string>();
     try {
       const mediaAllowed = await this.deps.mediaAllowed();
       const courses = await this.deps.getMyCourses();
@@ -323,6 +369,7 @@ export class CourseDownloader {
             walkedUnits.delete(unit.id);
             this.unitProgress.delete(unit.id);
           }
+          reached.add(container.id);
           continue;
         }
 
@@ -343,21 +390,33 @@ export class CourseDownloader {
         }
         // A course whose session changed hands is not this learner's to mark.
         if (this.deps.getUserId() !== userId) return;
+        await this.saveUnitItems(userId, walked.itemsByUnit);
         await this.deps.setRun(runKey, {
           at: this.deps.now(),
           mediaIds: [...walked.mediaIds],
           mediaDone,
         });
+        reached.add(container.id);
       }
 
       if (onlyCourse === undefined) {
         if (keepComplete) await this.deps.media.retainOnly(keep);
         finished = true;
+        // A whole walk names every course the learner has now; courses gone drop out.
+        this.walkedCourses = reached;
         await this.deps.setRun(finishedKey(userId), {
           at: this.deps.now(),
           mediaIds: [],
           mediaDone: true,
+          courseIds: [...reached],
         });
+      } else if (reached.size > 0 && this.walkedCourses !== null) {
+        // One course walked on its own joins the record; the time of the last whole walk stays.
+        this.walkedCourses = new Set([...this.walkedCourses, ...reached]);
+        const last = await this.deps.getRun(finishedKey(userId));
+        if (last !== null) {
+          await this.deps.setRun(finishedKey(userId), { ...last, courseIds: [...this.walkedCourses] });
+        }
       }
     } catch (e) {
       if (!(e instanceof OfflineAbort) && !isNetworkError(e)) throw e;
@@ -383,6 +442,19 @@ export class CourseDownloader {
     }
   }
 
+  /** Records what the walked units held, over what the phone remembered of the others. */
+  private async saveUnitItems(userId: string, walked: Map<string, string[]>): Promise<void> {
+    if (walked.size === 0) return;
+    const known =
+      this.unitItemsUser === userId && this.unitItems !== null
+        ? this.unitItems
+        : new Map<string, readonly string[]>(Object.entries(await this.deps.getUnitItems(userId)));
+    for (const [unitId, ids] of walked) known.set(unitId, ids);
+    this.unitItems = known;
+    this.unitItemsUser = userId;
+    await this.deps.setUnitItems(userId, Object.fromEntries(known) as Record<string, string[]>);
+  }
+
   /** Room for media, or nothing known against it — an unreadable reading does not block them. */
   private async hasRoom(): Promise<boolean> {
     try {
@@ -398,8 +470,14 @@ export class CourseDownloader {
     units: UnitSummary[],
     courseId: string,
     langs: Languages,
-  ): Promise<{ failed: number; mediaIds: Set<string>; mediaByUnit: Map<string, Set<string>> }> {
+  ): Promise<{
+    failed: number;
+    mediaIds: Set<string>;
+    mediaByUnit: Map<string, Set<string>>;
+    itemsByUnit: Map<string, string[]>;
+  }> {
     let failed = 0;
+    const itemsByUnit = new Map<string, string[]>();
     const mediaIds = new Set<string>();
     const mediaByUnit = new Map<string, Set<string>>();
     // One container request per course, not one per lesson.
@@ -427,6 +505,7 @@ export class CourseDownloader {
       ];
       // A container is a heading with nothing to fetch.
       const tracked = items.filter(i => i.contentType !== 'container');
+      itemsByUnit.set(unit.id, tracked.map(i => i.id));
       this.patchUnit(unit.id, p => ({
         ...p,
         items: Object.fromEntries(tracked.map(i => [i.id, 'queued' as ItemDownloadState])),
@@ -443,7 +522,7 @@ export class CourseDownloader {
       unitMedia.forEach(id => mediaIds.add(id));
       failed += results.filter(ok => !ok).length;
     }
-    return { failed, mediaIds, mediaByUnit };
+    return { failed, mediaIds, mediaByUnit, itemsByUnit };
   }
 
   private async fetchItem(
@@ -622,6 +701,27 @@ export const courseDownloader = new CourseDownloader({
       await runStorage.setItem(`${userId}:pinned`, JSON.stringify(courseIds));
     } catch {
       // Losing it means the course falls back to the window at the next start.
+    }
+  },
+  getUnitItems: async userId => {
+    try {
+      const raw = await runStorage.getItem(`${userId}:unit-items`);
+      const parsed = raw ? (JSON.parse(raw) as unknown) : {};
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+      return Object.fromEntries(
+        Object.entries(parsed as Record<string, unknown>)
+          .filter((e): e is [string, unknown[]] => Array.isArray(e[1]))
+          .map(([unitId, ids]) => [unitId, ids.filter((id): id is string => typeof id === 'string')]),
+      );
+    } catch {
+      return {};
+    }
+  },
+  setUnitItems: async (userId, units) => {
+    try {
+      await runStorage.setItem(`${userId}:unit-items`, JSON.stringify(units));
+    } catch {
+      // Losing it means a unit that gained materials reads «saved» until the next walk.
     }
   },
   getRun: async key => {

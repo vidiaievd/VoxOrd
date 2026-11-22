@@ -3,6 +3,7 @@ import {
   getMemoryCache,
   setMemoryCache,
   readCacheSnapshot,
+  readCachedAny,
   writeCacheSnapshot,
 } from '../lib/swrCache';
 
@@ -23,10 +24,14 @@ export interface SwrResourceState<T> {
  * spinner. Passing `key: null` skips loading entirely (e.g. before auth is
  * ready) — mirrors the existing `useMyCourses`/`useCourseHome` shape rather
  * than introducing a new one.
+ *
+ * `fallbackKeys` are read only when the fetch fails and nothing is cached under `key` — the
+ * same material kept under another interface language (`CourseResource.fallbackKeys`).
  */
 export function useSwrResource<T>(
   key: string | null,
   loader: () => Promise<T>,
+  fallbackKeys?: readonly string[],
 ): SwrResourceState<T> {
   const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
   const [data, setData] = useState<T | null>(null);
@@ -37,6 +42,8 @@ export function useSwrResource<T>(
   const mounted = useRef(true);
   const loaderRef = useRef(loader);
   loaderRef.current = loader;
+  const fallbackKeysRef = useRef(fallbackKeys);
+  fallbackKeysRef.current = fallbackKeys;
 
   useEffect(() => {
     mounted.current = true;
@@ -90,11 +97,24 @@ export function useSwrResource<T>(
         setError(err);
         // A cached value (memory or snapshot, possibly still arriving) stays
         // on screen — only show the error state when there's nothing to fall
-        // back on.
+        // back on: not under `key` (re-read, as its snapshot may still be on
+        // its way) nor under a fallback key.
         if (hasShownCached) {
           setStale(true);
         } else {
-          setStatus('error');
+          const fallbacks = fallbackKeysRef.current ?? [];
+          const kept = fallbacks.length > 0 ? await readCachedAny<T>([key, ...fallbacks]) : null;
+          if (!mounted.current) return;
+          if (hasShownCached) {
+            setStale(true);
+          } else if (kept !== null) {
+            hasShownCached = true;
+            setData(kept);
+            setStatus('loaded');
+            setStale(true);
+          } else {
+            setStatus('error');
+          }
         }
       } finally {
         if (mounted.current) setRefreshing(false);

@@ -51,6 +51,13 @@ const SOURCES = [
   'infrastructure/feedback/rule-based-feedback-generator.ts',
 ];
 
+/**
+ * Files inside a copied directory that stay on the server. A pronunciation session (plan 86)
+ * is online only — every take is judged by ai-service — and its validator leans on the
+ * engine's `modules/sound-sessions`, which the phone does not have.
+ */
+const EXCLUDED = new Set(['infrastructure/validation/validators/sound-session.validator.ts']);
+
 function header(relativePath) {
   return [
     '// ---------------------------------------------------------------------------',
@@ -99,7 +106,7 @@ async function sourceFiles() {
     if (source.endsWith('.ts')) files.push(source);
     else files.push(...(await collect(path.join(sourceRoot, source), source)));
   }
-  return files.sort();
+  return files.filter(file => !EXCLUDED.has(file)).sort();
 }
 
 async function targetFiles(dir = targetRoot, prefix = '') {

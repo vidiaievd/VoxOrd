@@ -29,17 +29,28 @@ function readCode(body: unknown): { code: string; status: unknown } | null {
 }
 
 /**
- * `suspended` / `closed` when `error` is the "school is read only" refusal, else `null`. A
- * refusal that does not say why still means "not open"; `suspended` is the milder wording.
+ * The school's status behind a "school is read only" refusal, `purged` kept apart (the offline
+ * queue gives up on a purged school, plan 90 Q16), else `null`. A refusal that does not say why
+ * still means "not open"; `suspended` is the milder reading.
  */
-export function schoolNotActiveStatus(error: unknown): 'suspended' | 'closed' | null {
+export function schoolRefusalStatus(error: unknown): 'suspended' | 'closed' | 'purged' | null {
   if (!(error instanceof ApiError)) return null;
   const parsed = readCode(error.body) ?? (error.code ? { code: error.code, status: undefined } : null);
   if (!parsed || parsed.code !== SCHOOL_NOT_ACTIVE) return null;
-  return parsed.status === 'closed' || parsed.status === 'purged' ? 'closed' : 'suspended';
+  if (parsed.status === 'purged') return 'purged';
+  return parsed.status === 'closed' ? 'closed' : 'suspended';
 }
 
-/** Translation key under `schoolLifecycle.errors` for a refusal, or `null` if it is not one. */
+/**
+ * `suspended` / `closed` when `error` is the "school is read only" refusal, else `null`; a
+ * purged school words as a closed one.
+ */
+export function schoolNotActiveStatus(error: unknown): 'suspended' | 'closed' | null {
+  const status = schoolRefusalStatus(error);
+  return status === 'purged' ? 'closed' : status;
+}
+
+/** Translation key under `schoolLifecycle` for a refusal, or `null` if it is not one. */
 export function lifecycleErrorKey(error: unknown): 'schoolSuspended' | 'schoolClosed' | null {
   const status = schoolNotActiveStatus(error);
   if (status === null) return null;
@@ -63,6 +74,30 @@ export function toSchoolStatus(value: unknown): SchoolLifecycleStatus | undefine
 
 export function toMaintenanceStatus(value: unknown): MaintenanceStatus | undefined {
   return value === 'maintained' || value === 'unmaintained' || value === 'obsolete' ? value : undefined;
+}
+
+/** Who set a course's maintenance status: its author or its school's lifecycle. */
+export type MaintenanceSource = 'author' | 'school';
+
+export function toMaintenanceSource(value: unknown): MaintenanceSource | null {
+  return value === 'author' || value === 'school' ? value : null;
+}
+
+/**
+ * An obsolete course a learner can only look back on (plan 90, Q11; mirrors the web's
+ * `isObsoleteHistoryOnly`): the school's purge kept it (`maintenanceSource: school`), or its
+ * school is closed or gone — the engine refuses a start. A course its author retired is still
+ * studied by those already on it.
+ */
+export function isObsoleteHistoryOnly(course: {
+  maintenanceSource?: MaintenanceSource | null;
+  schoolStatus?: SchoolLifecycleStatus;
+}): boolean {
+  return (
+    course.maintenanceSource === 'school' ||
+    course.schoolStatus === 'closed' ||
+    course.schoolStatus === 'purged'
+  );
 }
 
 type RefusalListener = (key: 'schoolSuspended' | 'schoolClosed') => void;

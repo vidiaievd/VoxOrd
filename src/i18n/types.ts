@@ -533,6 +533,12 @@ export interface Translations {
     courseDone: string;
     repeatMaterial: string;
     moreCourses: string;
+    history: string;
+    historyFinished: string; // '{date}'
+    historyUnavailable: string;
+    historyUnavailableNote: string;
+    historyUnavailableCount: PluralForms; // '{count}'
+    historyUnavailableCountNote: string;
     selfStudy: string;
     school: string;
     notStarted: string;
@@ -635,10 +641,15 @@ export interface Translations {
     unmaintainedNote: string;
     obsolete: string;
     obsoleteNote: string;
+    obsoleteHistoryNote: string;
     schoolSuspended: string;
     schoolClosed: string;
     /** Answers given offline that the school refused on sync; kept until it reopens. */
     held: string; // '{count}'
+    discarded: string; // '{count}'
+    discardedDismiss: string;
+    blockedStart: string;
+    blockedBack: string;
   };
   courseHome: {
     loadError: string;
@@ -1015,6 +1026,11 @@ export interface Translations {
   };
 
   exerciseRunner: {
+    /**
+     * Offline, the exercise cannot be checked on the phone: its key was never downloaded (it lies
+     * outside the units kept ahead). Shown instead of the network error's own words.
+     */
+    notOnPhone: string;
     /** Leaving a set mid-way, by the arrow or the phone's Back. */
     leave: {
       title: string;
@@ -1123,6 +1139,8 @@ export interface Translations {
     submittedForReview: string;
     /** Feedback title once work goes to a teacher (Courses §8.5). */
     sentForReview: string;
+    /** An answer for review graded on the phone: kept, handed in once online (no review promised yet). */
+    keptForReview: string;
     expectedAnswer: string; // '{answer}'
     reviewNote: string;
     /** Free-form work with nobody to read it — `reviewer: none` (plan 79, step 2.1c). */

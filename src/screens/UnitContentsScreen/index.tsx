@@ -50,7 +50,6 @@ export function UnitContentsScreen({
   // The course home gives the unit its number, the next unit and the parent label; it is
   // cached from the screen the learner came through.
   const home = useCourseHome(courseId).data;
-  const download = useDownloadState(unitId, courseId, home?.units ?? null);
   const net = useNetInfo();
   useRefreshOnForeground(refresh);
   const listRef = useRef<SectionList<UnitContentsItem, UnitSection>>(null);
@@ -61,6 +60,8 @@ export function UnitContentsScreen({
     [data],
   );
   const isEmpty = sections.length === 0;
+  const itemIds = useMemo(() => (data ? items.map(i => i.id) : null), [data, items]);
+  const download = useDownloadState(unitId, courseId, home?.units ?? null, itemIds);
 
   const units = useMemo(
     () => [...(home?.units ?? [])].sort((a, b) => a.position - b.position),

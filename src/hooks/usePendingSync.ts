@@ -77,3 +77,21 @@ export function useHeldBySchool(): number {
 
   return held;
 }
+
+/**
+ * Answers given offline that a purged school will never take (plan 90, Q16): dropped from the
+ * queue and counted until the learner has read the notice.
+ */
+export function useDiscardedBySchool(): number {
+  const [discarded, setDiscarded] = useState(() => exerciseOutboxStore.discardedBySchoolCount);
+
+  useEffect(() => {
+    const update = () => setDiscarded(exerciseOutboxStore.discardedBySchoolCount);
+    const unsubscribes = [exerciseOutboxStore.subscribe(update), authStore.subscribe(update)];
+    void exerciseOutboxStore.load();
+    update();
+    return () => unsubscribes.forEach(u => u());
+  }, []);
+
+  return discarded;
+}

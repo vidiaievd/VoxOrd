@@ -517,6 +517,16 @@ export const en: Translations = {
     courseDone: 'Course finished',
     repeatMaterial: 'Review the material',
     moreCourses: 'More courses',
+    history: 'History',
+    historyFinished: 'Finished {date}',
+    historyUnavailable: 'Course unavailable',
+    historyUnavailableNote: 'The school that ran it is gone, and the course is no longer available to read.',
+    historyUnavailableCount: {
+      one: '{count} course unavailable',
+      few: '{count} courses unavailable',
+      many: '{count} courses unavailable',
+    },
+    historyUnavailableCountNote: 'The schools that ran them are gone, and these courses are no longer available to read.',
     selfStudy: 'self-study',
     school: 'school',
     notStarted: 'Not started',
@@ -628,9 +638,15 @@ export const en: Translations = {
     unmaintainedNote: 'The author no longer updates this course: it may be out of date.',
     obsolete: 'Outdated',
     obsoleteNote: 'This course is outdated and takes no new learners. You can carry on with it.',
+    obsoleteHistoryNote:
+      'The school that ran this course is gone: it stays only as your history, and new exercises cannot be started.',
     schoolSuspended: 'The school is temporarily blocked: new work cannot be started or handed in for now.',
     schoolClosed: 'The school is closed. Its materials are no longer available.',
+    blockedStart: 'Exercises of this course cannot be started now, and an answer would not be saved. You can read the course and your history.',
+    blockedBack: 'Back to the course',
     held: 'Answers kept on the phone, refused by the school for now: {count}',
+    discarded: 'Answers given offline were not saved: the school was deleted. Answers lost: {count}',
+    discardedDismiss: 'OK',
   },
   courseHome: {
     loadError: "Couldn't load this course",
@@ -1009,6 +1025,7 @@ export const en: Translations = {
     coursesGroup: 'Courses',
   },
   exerciseRunner: {
+    notOnPhone: "You're offline, and this exercise isn't saved on the phone — it can be checked once you're back online.",
     leave: {
       title: 'Leave the set?',
       message: 'Answers you handed in are saved. An answer you have not sent will be lost.',
@@ -1106,6 +1123,7 @@ export const en: Translations = {
     incorrect: 'Incorrect',
     submittedForReview: 'Submitted for review',
     sentForReview: 'Sent for review · the answer will arrive in Notifications',
+    keptForReview: "Saved on the phone · it goes for review once you're back online",
     expectedAnswer: 'Correct answer: {answer}',
     reviewNote: 'Your teacher will look at it.',
     noReviewer: 'Saved — nobody will check it',

@@ -2,9 +2,11 @@ import { ApiError } from '../api/client';
 import {
   announceSchoolRefusal,
   daysLeft,
+  isObsoleteHistoryOnly,
   lifecycleErrorKey,
   onSchoolNotActive,
   schoolNotActiveStatus,
+  toMaintenanceSource,
 } from './schoolLifecycle';
 
 const refusal = (body: unknown, code: string | null = null) =>
@@ -69,5 +71,28 @@ describe('announceSchoolRefusal', () => {
     await expect(announceSchoolRefusal(Promise.resolve(1))).resolves.toBe(1);
     expect(heard).toEqual([]);
     off();
+  });
+});
+
+describe('isObsoleteHistoryOnly', () => {
+  it('is history only when the school kept the course or the school is closed or gone', () => {
+    expect(isObsoleteHistoryOnly({ maintenanceSource: 'school' })).toBe(true);
+    expect(isObsoleteHistoryOnly({ maintenanceSource: 'author', schoolStatus: 'closed' })).toBe(true);
+    expect(isObsoleteHistoryOnly({ schoolStatus: 'purged' })).toBe(true);
+  });
+
+  it('lets learners carry on with a course its author retired', () => {
+    expect(isObsoleteHistoryOnly({ maintenanceSource: 'author', schoolStatus: 'active' })).toBe(false);
+    expect(isObsoleteHistoryOnly({ maintenanceSource: null, schoolStatus: 'suspended' })).toBe(false);
+    expect(isObsoleteHistoryOnly({})).toBe(false);
+  });
+});
+
+describe('toMaintenanceSource', () => {
+  it('keeps the two known sources and drops anything else', () => {
+    expect(toMaintenanceSource('author')).toBe('author');
+    expect(toMaintenanceSource('school')).toBe('school');
+    expect(toMaintenanceSource('teacher')).toBeNull();
+    expect(toMaintenanceSource(undefined)).toBeNull();
   });
 });

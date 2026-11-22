@@ -8,6 +8,7 @@ import { getLessonReaderContent, type LessonReaderContent } from '../api/lessons
 import type { Container, CourseHomePayload, ExerciseDisplay, UnitContentsResult } from '../api/types';
 import { getUnitContents } from '../api/unitContents';
 import { getVocabularyListReader, type VocabularyListReaderContent } from '../api/vocabulary';
+import { UI_LANGUAGES } from '../i18n/uiLanguage';
 
 /**
  * What each course screen reads, as a cache key and the request behind it — shared by the
@@ -21,6 +22,18 @@ import { getVocabularyListReader, type VocabularyListReaderContent } from '../ap
 export interface CourseResource<T> {
   key: string;
   load: () => Promise<T>;
+  /**
+   * Keys of the same material kept under another interface language, read in this order
+   * only when there is neither a network nor a copy under `key`. A unit downloaded in
+   * Ukrainian must still open offline after the learner switches the app to Russian —
+   * instructions in the other language beat «not on the phone».
+   */
+  fallbackKeys?: readonly string[];
+}
+
+/** The same key for every other interface language, in `UI_LANGUAGES` order. */
+function otherLanguageKeys(uiLanguage: string, keyFor: (language: string) => string): string[] {
+  return UI_LANGUAGES.filter(language => language !== uiLanguage).map(keyFor);
 }
 
 /** Resolves a course container — the download passes one that asks once per course. */
@@ -50,8 +63,10 @@ export function lessonReaderResource(
   uiLanguage: string,
   containerOf: ContainerSource = getContainer,
 ): CourseResource<LessonReaderData> {
+  const keyFor = (language: string) => `lesson-reader:${lessonId}:${courseId}:${language}`;
   return {
-    key: `lesson-reader:${lessonId}:${courseId}:${uiLanguage}`,
+    key: keyFor(uiLanguage),
+    fallbackKeys: otherLanguageKeys(uiLanguage, keyFor),
     load: async () => {
       const container = await containerOf(courseId);
       const content = await getLessonReaderContent(lessonId, {
@@ -69,8 +84,10 @@ export function grammarRuleResource(
   uiLanguage: string,
   containerOf: ContainerSource = getContainer,
 ): CourseResource<GrammarRuleExplanation> {
+  const keyFor = (language: string) => `grammar-rule-reader:${ruleId}:${courseId}:${language}`;
   return {
-    key: `grammar-rule-reader:${ruleId}:${courseId}:${uiLanguage}`,
+    key: keyFor(uiLanguage),
+    fallbackKeys: otherLanguageKeys(uiLanguage, keyFor),
     load: async () => {
       const container = await containerOf(courseId);
       return getGrammarRuleExplanation(ruleId, {
@@ -100,8 +117,10 @@ export function exerciseDisplayResource(
   exerciseId: string,
   uiLanguage: string,
 ): CourseResource<ExerciseDisplay> {
+  const keyFor = (language: string) => `exercise-display:${exerciseId}:${language}`;
   return {
-    key: `exercise-display:${exerciseId}:${uiLanguage}`,
+    key: keyFor(uiLanguage),
+    fallbackKeys: otherLanguageKeys(uiLanguage, keyFor),
     load: () => getExerciseDisplay(exerciseId, uiLanguage),
   };
 }

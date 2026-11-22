@@ -199,6 +199,7 @@ export class LocalEngine {
       templateCode: display.templateCode,
       targetLanguage: body.language,
       now: this.deps.now(),
+      ownerSchoolId: display.ownerSchoolId ?? null,
     });
     if (display.templateCode === mp.TEMPLATE_CODE) {
       attempt.probeDraw = await this.dealSitting(userId, display, key);
@@ -342,6 +343,7 @@ export class LocalEngine {
         correct: false,
         score: null,
         requiresReview: true,
+        onPhone: true,
         feedback: { summary: REVIEW_SUMMARY },
         audioTranscript: audioTranscriptFor(key.content, true),
         details: learnerFacingDetails(a.templateCode, outcome.details),

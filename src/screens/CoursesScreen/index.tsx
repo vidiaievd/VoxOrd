@@ -5,6 +5,7 @@ import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { spacing } from '../../theme/spacing';
 import { useMyCourses } from '../../hooks/useMyCourses';
+import { useMyHistory } from '../../hooks/useMyHistory';
 import { useCatalog } from '../../hooks/useCatalog';
 import { useRefreshOnForeground } from '../../hooks/useRefreshOnForeground';
 import { OfflineBanner } from '../../components/OfflineBanner';
@@ -20,6 +21,7 @@ import { pickCurrent } from './courseMeta';
 import { NowStudyingCard } from './NowStudyingCard';
 import { MoreCourseRow, type CourseDownloadIcon } from './MoreCourseRow';
 import { DownloadsRow } from './DownloadsRow';
+import { HistorySection } from './HistorySection';
 import { CatalogList } from './CatalogList';
 
 type Segment = 'mine' | 'catalog';
@@ -33,7 +35,11 @@ interface CoursesScreenProps {
 export function CoursesScreen({ segment: initialSegment, onCoursePress, onNavigate }: CoursesScreenProps) {
   const { t } = useTranslation();
   const { colors, typography } = useTheme();
-  const { status, courses, error, refreshing, stale, refresh } = useMyCourses();
+  const { status, courses, error, refreshing, stale, refresh: refreshCourses } = useMyCourses();
+  const history = useMyHistory();
+  const refresh = async () => {
+    await Promise.all([refreshCourses(), history.refresh()]);
+  };
   const scrollRef = useRef<ScrollView>(null);
   useTabScrollToTop('Courses', scrollRef);
 
@@ -181,6 +187,8 @@ export function CoursesScreen({ segment: initialSegment, onCoursePress, onNaviga
             <DownloadsRow courseCount={courses.length} onPress={() => onNavigate({ name: 'Settings' })} />
           </>
         )}
+
+        {shown === 'mine' && loaded && <HistorySection items={history.items} onOpen={open} />}
       </ScrollView>
     </SafeAreaView>
   );

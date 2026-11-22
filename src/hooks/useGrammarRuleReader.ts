@@ -28,6 +28,7 @@ export function useGrammarRuleReader(ruleId: string, courseId: string): GrammarR
   const { status, data, error, stale, refresh } = useSwrResource<GrammarRuleExplanation>(
     resource.key,
     resource.load,
+    resource.fallbackKeys,
   );
 
   return { status, data, error, stale, refresh };

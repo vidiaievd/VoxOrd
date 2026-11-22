@@ -65,6 +65,7 @@ function makeDeps(overrides: Partial<CourseDownloadDeps> = {}) {
   const retained: Set<string>[] = [];
   let now = 1_000_000;
   let pinned: string[] = [];
+  let unitItems: Record<string, string[]> = {};
   const deps: CourseDownloadDeps = {
     getUserId: () => 'user-1',
     getUiLanguage: () => 'ru',
@@ -83,6 +84,10 @@ function makeDeps(overrides: Partial<CourseDownloadDeps> = {}) {
     getPinned: async () => [...pinned],
     setPinned: async (_user, ids) => {
       pinned = ids;
+    },
+    getUnitItems: async () => ({ ...unitItems }),
+    setUnitItems: async (_user, units) => {
+      unitItems = units;
     },
     media: {
       sizeOf: async ids => [...ids].length * 1000,
@@ -289,6 +294,35 @@ describe('CourseDownloader', () => {
     expect(downloader.getStatus()).toMatchObject({ running: false, lastFinishedAt: null });
   });
 
+  it('knows which courses a walk reached, and a course enrolled since as not reached', async () => {
+    let courses = [{ container: { id: 'course-1' } }];
+    const { deps } = makeDeps({ getMyCourses: async () => courses as never });
+    const downloader = new CourseDownloader(deps);
+    expect(downloader.courseWalked('course-1')).toBeNull();
+
+    await downloader.run();
+    expect(downloader.courseWalked('course-1')).toBe(true);
+    // Enrolled on the web or by the school while the app stayed open.
+    courses = [...courses, { container: { id: 'course-2' } }];
+    expect(downloader.courseWalked('course-2')).toBe(false);
+
+    await downloader.run(false, 'course-2');
+    expect(downloader.courseWalked('course-2')).toBe(true);
+
+    const later = new CourseDownloader(deps);
+    await later.loadStatus();
+    expect(later.courseWalked('course-1')).toBe(true);
+    expect(later.courseWalked('course-2')).toBe(true);
+  });
+
+  it('does not count a course whose home could not be read as reached', async () => {
+    const { deps } = makeDeps();
+    mockApi.courseHome.mockRejectedValue(Object.assign(new Error('gone'), { status: 404 }));
+    const downloader = new CourseDownloader(deps);
+    await downloader.run();
+    expect(downloader.courseWalked('course-1')).toBe(false);
+  });
+
   it('remembers when it last finished, for the next start of the app', async () => {
     const { deps, runs } = makeDeps();
     await new CourseDownloader(deps).run();
@@ -297,6 +331,49 @@ describe('CourseDownloader', () => {
     await later.loadStatus();
 
     expect(later.getStatus().lastFinishedAt).toBe(runs.get('user-1:finished')?.at);
+  });
+
+  // Live check s24: an exercise added to a unit after its walk, and the app restarted since —
+  // the unit's account is gone from memory; what the unit held at the walk stays on the phone.
+  it('remembers the materials of each walked unit across a restart', async () => {
+    const { deps } = makeDeps();
+    await new CourseDownloader(deps).run();
+
+    const later = new CourseDownloader(deps);
+    expect(later.walkedItems('unit-1')).toBeUndefined();
+    await later.loadStatus();
+
+    expect(later.walkedItems('unit-1')).toEqual(['i-les-1', 'i-ex-1', 'i-gr-1', 'i-vl-1']);
+    expect(later.walkedItems('unit-2')).toEqual(['i-ex-2']);
+    expect(later.walkedItems('unit-3')).toBeUndefined();
+  });
+
+  it('fetches an exercise added after a fresh walk only when forced', async () => {
+    const { deps, stored } = makeDeps();
+    const downloader = new CourseDownloader(deps);
+    await downloader.run();
+    mockApi.unitContents.mockImplementation(async () => ({
+      sections: [],
+      ungroupedItems: [item('exercise', 'ex-2'), item('exercise', 'ex-new')],
+    }));
+
+    // The walk is fresh and the window the same: an ordinary run skips the course.
+    await downloader.run(false, 'course-1');
+    expect(stored.has('exercise-display:ex-new:ru')).toBe(false);
+
+    await downloader.run(true, 'course-1');
+    expect(stored.has('exercise-display:ex-new:ru')).toBe(true);
+    expect(downloader.walkedItems('unit-2')).toEqual(['i-ex-2', 'i-ex-new']);
+  });
+
+  it('does not hand one learner the units another walked', async () => {
+    let user = 'user-1';
+    const { deps } = makeDeps({ getUserId: () => user });
+    const downloader = new CourseDownloader(deps);
+    await downloader.run();
+    expect(downloader.walkedItems('unit-1')).toBeDefined();
+    user = 'user-2';
+    expect(downloader.walkedItems('unit-1')).toBeUndefined();
   });
 
   it('does nothing without a session', async () => {

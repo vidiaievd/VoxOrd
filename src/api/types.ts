@@ -44,6 +44,8 @@ export interface Container {
   ownerSchoolId?: string | null;
   /** Whether the author still looks after the course (plan 90, phase 5, Q5). */
   maintenanceStatus?: 'maintained' | 'unmaintained' | 'obsolete';
+  /** Who set `maintenanceStatus`: the author, or the school's lifecycle (closed / purged). */
+  maintenanceSource?: 'author' | 'school' | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -233,6 +235,8 @@ export interface ExerciseDisplay {
   difficultyLevel?: DifficultyLevel;
   content: Record<string, unknown>;
   instructions?: ExerciseInstruction[] | null;
+  /** The school that owns the exercise (its course's school); null for platform material. */
+  ownerSchoolId?: string | null;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -413,6 +417,8 @@ export interface CourseInfo {
   groupName?: string;
   /** Whether the author still looks after the course (plan 90, phase 5, Q5). */
   maintenanceStatus?: 'maintained' | 'unmaintained' | 'obsolete';
+  /** Who set `maintenanceStatus`: the author, or the school's lifecycle (plan 90, Q11). */
+  maintenanceSource?: 'author' | 'school' | null;
   /** Lifecycle of the school that owns the course; absent for a course without one. */
   schoolStatus?: 'active' | 'suspended' | 'closed' | 'purged';
   /** When a suspended school closes by itself (ISO). */

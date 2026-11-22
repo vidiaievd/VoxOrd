@@ -113,6 +113,13 @@ describe('TeacherFeedback (block 6)', () => {
   const items = () => parseSubmissionsPage(recordedSubmissions.mine)!;
   const discuss = 'Разобрать ошибки с помощником';
 
+  // The recorded reviews are dated; "latest feedback" only looks back FEEDBACK_HORIZON_DAYS.
+  beforeAll(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-10-28T12:00:00.000Z'));
+  });
+  afterAll(() => jest.useRealTimers());
+
   it('offers to go over the latest review, in C, when the server says yes', () => {
     mockSubmissions = { items: items(), pendingCount: 0, pendingCapped: false };
     const latest = latestSchoolFeedback(mockSubmissions.items)!;

@@ -25,6 +25,11 @@ jest.mock('../api/exercises', () => ({
     return mockRemote;
   },
 }));
+const mockSchoolGet = jest.fn();
+jest.mock('../api/client', () => {
+  const actual = jest.requireActual('../api/client');
+  return { ...actual, apiClient: { get: (...args: unknown[]) => mockSchoolGet(...args) } };
+});
 const mockUpsert = jest.fn();
 jest.mock('../api/progress', () => ({ upsertProgress: (...args: unknown[]) => mockUpsert(...args) }));
 
@@ -337,7 +342,7 @@ describe('exerciseOutboxStore', () => {
 });
 
 describe('a school that is read only (plan 90, phase 5)', () => {
-  const notActive = (status: 'suspended' | 'closed') =>
+  const notActive = (status: 'suspended' | 'closed' | 'purged') =>
     new ApiError({
       message: 'SCHOOL_NOT_ACTIVE',
       status: 409,
@@ -375,6 +380,148 @@ describe('a school that is read only (plan 90, phase 5)', () => {
     expect(exerciseOutboxStore.pendingCount).toBe(0);
     expect(exerciseOutboxStore.heldBySchoolCount).toBe(0);
     expect(mockRemote.submitAttempt).toHaveBeenCalledTimes(2);
+  });
+
+  it('counts only a suspended school as worth a timer (plan 90, Q16)', async () => {
+    authStore.setSignedIn(LEARNER);
+    await exerciseOutboxStore.recordLocalOp(attempt('q16-s'), submitOp(1));
+    await exerciseOutboxStore.recordLocalOp(attempt('q16-c'), submitOp(2));
+    mockRemote.startOrJoinAttempt
+      .mockRejectedValueOnce(notActive('suspended'))
+      .mockRejectedValueOnce(notActive('closed'));
+
+    await exerciseOutboxStore.flush();
+
+    expect(exerciseOutboxStore.heldBySchoolCount).toBe(2);
+    expect(exerciseOutboxStore.waitingForSchoolCount).toBe(1);
+  });
+
+  it('drops an entry its purged school refused, and counts it until dismissed (plan 90, Q16)', async () => {
+    authStore.setSignedIn(LEARNER);
+    await exerciseOutboxStore.recordLocalOp(attempt('q16-p1'), submitOp(1));
+    await exerciseOutboxStore.recordLocalOp(attempt('q16-p2'), submitOp(2));
+    mockRemote.startOrJoinAttempt.mockRejectedValueOnce(notActive('purged'));
+
+    await exerciseOutboxStore.flush();
+
+    // The purged one is gone, the one behind it went out.
+    expect(exerciseOutboxStore.pendingCount).toBe(0);
+    expect(exerciseOutboxStore.heldBySchoolCount).toBe(0);
+    expect(exerciseOutboxStore.waitingForSchoolCount).toBe(0);
+    expect(mockRemote.submitAttempt).toHaveBeenCalledTimes(1);
+    expect(exerciseOutboxStore.discardedBySchoolCount).toBe(1);
+
+    // Another learner on the phone does not see it.
+    authStore.setSignedIn(OTHER);
+    expect(exerciseOutboxStore.discardedBySchoolCount).toBe(0);
+    authStore.setSignedIn(LEARNER);
+
+    await exerciseOutboxStore.dismissDiscarded();
+    expect(exerciseOutboxStore.discardedBySchoolCount).toBe(0);
+  });
+
+  it('drops a held entry once its school, closed before, is purged', async () => {
+    authStore.setSignedIn(LEARNER);
+    await exerciseOutboxStore.recordLocalOp(attempt('q16-cp'), submitOp(1));
+    mockRemote.submitAttempt
+      .mockRejectedValueOnce(notActive('closed'))
+      .mockRejectedValueOnce(notActive('purged'));
+
+    await exerciseOutboxStore.flush();
+    expect(exerciseOutboxStore.heldBySchoolCount).toBe(1);
+
+    await exerciseOutboxStore.flush();
+    expect(exerciseOutboxStore.pendingCount).toBe(0);
+    expect(exerciseOutboxStore.discardedBySchoolCount).toBe(1);
+    await exerciseOutboxStore.dismissDiscarded();
+  });
+
+  describe('a 404 after the school held the entry (plan 90, live check s20, finding 4)', () => {
+    // The purge deleted the course no one else held: the engine no longer knows the exercise.
+    const gone = () => new ApiError({ message: 'Exercise not found', status: 404, code: 'NOT_FOUND' });
+
+    it('counts it as purged when the start is refused with 404', async () => {
+      authStore.setSignedIn(LEARNER);
+      await exerciseOutboxStore.recordLocalOp(attempt('s20-start'), submitOp(1));
+      mockRemote.startOrJoinAttempt
+        .mockRejectedValueOnce(notActive('closed'))
+        .mockRejectedValueOnce(gone());
+
+      await exerciseOutboxStore.flush();
+      expect(exerciseOutboxStore.heldBySchoolCount).toBe(1);
+
+      await exerciseOutboxStore.flush();
+      expect(exerciseOutboxStore.pendingCount).toBe(0);
+      expect(exerciseOutboxStore.discardedBySchoolCount).toBe(1);
+      await exerciseOutboxStore.dismissDiscarded();
+    });
+
+    it('counts it as purged when a replayed call is refused with 404', async () => {
+      authStore.setSignedIn(LEARNER);
+      await exerciseOutboxStore.recordLocalOp(attempt('s20-replay'), submitOp(1));
+      mockRemote.submitAttempt.mockRejectedValueOnce(notActive('closed')).mockRejectedValueOnce(gone());
+
+      await exerciseOutboxStore.flush();
+      expect(exerciseOutboxStore.heldBySchoolCount).toBe(1);
+
+      await exerciseOutboxStore.flush();
+      expect(exerciseOutboxStore.pendingCount).toBe(0);
+      expect(exerciseOutboxStore.discardedBySchoolCount).toBe(1);
+      await exerciseOutboxStore.dismissDiscarded();
+    });
+
+    it('counts a 404 as purged when the phone was offline through close and purge (s22, finding 6)', async () => {
+      authStore.setSignedIn(LEARNER);
+      await exerciseOutboxStore.recordLocalOp({ ...attempt('s22-gone'), ownerSchoolId: 'school-1' }, submitOp(1));
+      mockRemote.startOrJoinAttempt.mockRejectedValueOnce(gone());
+      mockSchoolGet.mockRejectedValueOnce(new ApiError({ message: 'School not found', status: 404, code: 'SCHOOL_NOT_FOUND' }));
+
+      await exerciseOutboxStore.flush();
+
+      expect(mockSchoolGet).toHaveBeenCalledWith('/api/v1/schools/school-1');
+      expect(exerciseOutboxStore.pendingCount).toBe(0);
+      expect(exerciseOutboxStore.discardedBySchoolCount).toBe(1);
+      await exerciseOutboxStore.dismissDiscarded();
+    });
+
+    it('drops a 404 silently when the school still answers (the author removed the exercise)', async () => {
+      jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+      authStore.setSignedIn(LEARNER);
+      await exerciseOutboxStore.recordLocalOp({ ...attempt('s22-author'), ownerSchoolId: 'school-1' }, submitOp(1));
+      mockRemote.startOrJoinAttempt.mockRejectedValueOnce(gone());
+      mockSchoolGet.mockResolvedValueOnce({ id: 'school-1', status: 'active' });
+
+      await exerciseOutboxStore.flush();
+
+      expect(exerciseOutboxStore.pendingCount).toBe(0);
+      expect(exerciseOutboxStore.discardedBySchoolCount).toBe(0);
+    });
+
+    it('keeps the entry when the school cannot be read for the network', async () => {
+      authStore.setSignedIn(LEARNER);
+      await exerciseOutboxStore.recordLocalOp({ ...attempt('s22-net'), ownerSchoolId: 'school-1' }, submitOp(1));
+      mockRemote.startOrJoinAttempt.mockRejectedValueOnce(gone()).mockResolvedValueOnce({ attemptId: 'srv-net' });
+      mockSchoolGet.mockRejectedValueOnce(offline());
+
+      await exerciseOutboxStore.flush();
+      expect(exerciseOutboxStore.pendingCount).toBe(1);
+      expect(exerciseOutboxStore.discardedBySchoolCount).toBe(0);
+
+      await exerciseOutboxStore.flush();
+      expect(exerciseOutboxStore.pendingCount).toBe(0);
+    });
+
+    it('still drops a 404 on an entry no school held, without a notice', async () => {
+      jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+      authStore.setSignedIn(LEARNER);
+      await exerciseOutboxStore.recordLocalOp(attempt('s20-free'), submitOp(1));
+      mockRemote.startOrJoinAttempt.mockRejectedValueOnce(gone());
+
+      await exerciseOutboxStore.flush();
+
+      expect(exerciseOutboxStore.pendingCount).toBe(0);
+      expect(exerciseOutboxStore.discardedBySchoolCount).toBe(0);
+    });
   });
 
   it('holds a call refused mid-replay without skipping it', async () => {

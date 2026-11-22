@@ -154,7 +154,12 @@ export async function feedbackFor(
     score: outcome.score,
     validationDetails: outcome.details,
     exerciseDefinition: {
-      exercise: { answerCheckSettings: key.answerCheckSettings, expectedAnswers: key.expectedAnswers },
+      // `content` as the server hands it: a `multiple_choice` answer is named by its options' text.
+      exercise: {
+        content: key.content,
+        answerCheckSettings: key.answerCheckSettings,
+        expectedAnswers: key.expectedAnswers,
+      },
       template: { defaultCheckSettings: TEMPLATE_DEFAULTS[key.templateCode] ?? {} },
       instruction: instructionFor(key, targetLanguage),
     },

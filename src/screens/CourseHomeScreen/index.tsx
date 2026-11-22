@@ -20,7 +20,7 @@ import { Button, NavHeader, ProgressTrack, Skeleton, useToast } from '../../comp
 import { isNetworkError } from '../../api/isNetworkError';
 import type { UnitSummary } from '../../api/types';
 import { SchoolStatusBanner, MaintenanceNote } from '../../components/SchoolStatusBanner';
-import { lifecycleErrorKey } from '../../lib/schoolLifecycle';
+import { isObsoleteHistoryOnly, lifecycleErrorKey } from '../../lib/schoolLifecycle';
 import { UnitRow } from './UnitRow';
 import { CourseTiles, SkillsBlock } from './CourseStatsSection';
 
@@ -214,7 +214,10 @@ export function CourseHomeScreen({
             status={data.courseInfo.schoolStatus}
             closesAt={data.courseInfo.schoolClosesAt}
           />
-          <MaintenanceNote status={data.courseInfo.maintenanceStatus} />
+          <MaintenanceNote
+            status={data.courseInfo.maintenanceStatus}
+            historyOnly={isObsoleteHistoryOnly(data.courseInfo)}
+          />
           <View style={{ gap: 4 }}>
             <Text style={[typography.meta, { color: colors.neutral500 }]}>{meta}</Text>
             <Text style={[typography.h1, { color: colors.text }]}>{data.courseInfo.title}</Text>

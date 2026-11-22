@@ -18,6 +18,11 @@ export interface UnitDownload {
   sizeBytes: number | null;
   /** Download state of each material by its id, while the downloader has an account of them. */
   items: Record<string, ItemDownloadState>;
+  /**
+   * The downloader's account of the unit misses materials the unit has now (added after the
+   * walk): the unit is not on the phone whole, and a walk would fetch the rest.
+   */
+  outdated: boolean;
 }
 
 /**
@@ -27,7 +32,12 @@ export interface UnitDownload {
  * for each material of the units it walks. With that account the state is exact: «downloading»
  * until the walk closes the unit, then «done» if every material is on the phone. Without it
  * (the app restarted since) a unit in the window counts as «done» once a walk ended without
- * a failure — progress and size are then unknown.
+ * a failure — progress and size are then unknown — unless no walk has reached its course yet
+ * (`courseWalked` false: enrolled on the web or by the school since): that unit is «none».
+ * `itemIds` — the unit's materials as its screen lists them now (containers left out, as the
+ * walk leaves them out); a material the closed account does not name makes the unit «none»
+ * and `outdated` — a teacher added it after the walk. After a restart the account is gone;
+ * `walkedItems` (what the unit held at its last walk, kept on the phone) answers the same.
  */
 export function unitDownload(
   unitId: string,
@@ -36,6 +46,9 @@ export function unitDownload(
   status: Pick<CourseDownloadStatus, 'running' | 'lastFinishedAt' | 'lastFailed'>,
   progress?: UnitProgress,
   pinned = false,
+  courseWalked: boolean | null = null,
+  itemIds: readonly string[] | null = null,
+  walkedItems?: readonly string[],
 ): UnitDownload {
   const inWindow = pinned || unitWindow(units, unitsAhead).some(u => u.id === unitId) || progress !== undefined;
 
@@ -44,7 +57,25 @@ export function unitDownload(
     const done = states.filter(s => s === 'done').length;
     const fraction = states.length === 0 ? null : done / states.length;
     if (!progress.complete) {
-      return { state: 'downloading', inWindow, progress: fraction, sizeBytes: progress.sizeBytes, items: progress.items };
+      return {
+        state: 'downloading',
+        inWindow,
+        progress: fraction,
+        sizeBytes: progress.sizeBytes,
+        items: progress.items,
+        outdated: false,
+      };
+    }
+    const missing = itemIds ? itemIds.filter(id => !(id in progress.items)).length : 0;
+    if (missing > 0) {
+      return {
+        state: 'none',
+        inWindow,
+        progress: done / (states.length + missing),
+        sizeBytes: progress.sizeBytes,
+        items: progress.items,
+        outdated: true,
+      };
     }
     const allIn = states.length > 0 && done === states.length;
     return {
@@ -53,13 +84,17 @@ export function unitDownload(
       progress: fraction,
       sizeBytes: progress.sizeBytes,
       items: progress.items,
+      outdated: false,
     };
   }
 
-  const none = { progress: null, sizeBytes: null, items: {} };
+  const none = { progress: null, sizeBytes: null, items: {}, outdated: false };
   if (!inWindow) return { state: 'none', inWindow, ...none };
   if (status.running) return { state: 'downloading', inWindow, ...none };
-  const done = status.lastFinishedAt !== null && status.lastFailed === 0;
+  if (itemIds && walkedItems && itemIds.some(id => !walkedItems.includes(id))) {
+    return { state: 'none', inWindow, ...none, outdated: true };
+  }
+  const done = courseWalked !== false && status.lastFinishedAt !== null && status.lastFailed === 0;
   return { state: done ? 'done' : 'none', inWindow, ...none };
 }
 

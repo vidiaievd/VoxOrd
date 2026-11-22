@@ -28,3 +28,16 @@ describe('the local engine keeps graded work online', () => {
     });
   });
 });
+
+/**
+ * The attempt keeps the exercise's school, so the outbox can tell a 404 after a purge from an
+ * exercise its author removed (plan 90, live check s22, finding 6).
+ */
+describe('the local engine keeps the exercise school on the attempt', () => {
+  it('copies ownerSchoolId from the kept display', async () => {
+    const ex = exerciseFrom('ex', cases[0].key as ExerciseKey);
+    const { engine, attempts } = memoryEngine({ ex: { ...ex, display: { ...ex.display, ownerSchoolId: 'school-1' } } });
+    const { attemptId } = (await engine.start('ex', { language: 'nb', mode: 'PRACTICE' })) as { attemptId: string };
+    expect(attempts.get(attemptId)?.ownerSchoolId).toBe('school-1');
+  });
+});

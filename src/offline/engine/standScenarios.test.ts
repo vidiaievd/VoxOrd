@@ -23,7 +23,9 @@ function masked(value: unknown): unknown {
       .replace(/"lastCheckAt":\d+/g, '"lastCheckAt":0')
       .replace(/"(?:https?|file):\/\/[^"]*"/g, '"U"')
       .replace(/"expiresAt":"[^"]*"/g, '"expiresAt":"T"')
-      .replace(/"durationMs":\d+/g, '"durationMs":0'),
+      .replace(/"durationMs":\d+/g, '"durationMs":0')
+      // The phone's own mark on an answer kept for review; the server never says it.
+      .replace(/,?"onPhone":true/g, ''),
   );
 }
 

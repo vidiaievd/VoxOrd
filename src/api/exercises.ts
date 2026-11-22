@@ -167,6 +167,12 @@ export interface SubmitAttemptResponse {
    * phone's own engine (offline work is decided when it reaches the server).
    */
   reviewer?: 'teacher' | 'ai' | 'none';
+  /**
+   * Set by the phone's own engine on an answer that goes to review: it is kept on the phone
+   * and handed in once online, and only the server will know who reads it (plan 90, live
+   * check s22, finding 8) — so no review is promised yet.
+   */
+  onPhone?: boolean;
   feedback: AttemptFeedback;
   /**
    * Per-item verdicts, for the templates graded item by item and only where the
