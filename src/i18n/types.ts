@@ -1139,6 +1139,8 @@ export interface Translations {
     submittedForReview: string;
     /** Feedback title once work goes to a teacher (Courses §8.5). */
     sentForReview: string;
+    /** An answer for review graded on the phone: kept, handed in once online (no review promised yet). */
+    keptForReview: string;
     expectedAnswer: string; // '{answer}'
     reviewNote: string;
     /** Free-form work with nobody to read it — `reviewer: none` (plan 79, step 2.1c). */

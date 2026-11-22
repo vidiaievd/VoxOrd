@@ -1123,6 +1123,7 @@ export const en: Translations = {
     incorrect: 'Incorrect',
     submittedForReview: 'Submitted for review',
     sentForReview: 'Sent for review · the answer will arrive in Notifications',
+    keptForReview: "Saved on the phone · it goes for review once you're back online",
     expectedAnswer: 'Correct answer: {answer}',
     reviewNote: 'Your teacher will look at it.',
     noReviewer: 'Saved — nobody will check it',

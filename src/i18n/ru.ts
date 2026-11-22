@@ -1131,6 +1131,7 @@ export const ru: Translations = {
     incorrect: 'Неверно',
     submittedForReview: 'Отправлено на проверку',
     sentForReview: 'Отправлено на проверку · ответ придёт в Уведомления',
+    keptForReview: 'Сохранено на телефоне · уйдёт на проверку, когда появится связь',
     expectedAnswer: 'Правильно: {answer}',
     reviewNote: 'Преподаватель посмотрит работу.',
     noReviewer: 'Сохранено — проверить некому',

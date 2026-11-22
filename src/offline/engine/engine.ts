@@ -343,6 +343,7 @@ export class LocalEngine {
         correct: false,
         score: null,
         requiresReview: true,
+        onPhone: true,
         feedback: { summary: REVIEW_SUMMARY },
         audioTranscript: audioTranscriptFor(key.content, true),
         details: learnerFacingDetails(a.templateCode, outcome.details),

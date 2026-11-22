@@ -8,7 +8,7 @@ interface FeedbackBarProps {
   verdict: SubmitAttemptResponse;
 }
 
-type FeedbackTone = 'correct' | 'incorrect' | 'review' | 'unread' | 'ai';
+type FeedbackTone = 'correct' | 'incorrect' | 'review' | 'unread' | 'ai' | 'onPhone';
 
 function toneFor(verdict: SubmitAttemptResponse): FeedbackTone {
   // Free-form templates (translate_*, writing_task) route to human review:
@@ -16,6 +16,8 @@ function toneFor(verdict: SubmitAttemptResponse): FeedbackTone {
   // «submitted for review» would be a promise no one keeps; with a model to read them
   // (plan 79, step 2.3d) the verdict follows in seconds, above the bar, not from a teacher.
   if (verdict.requiresReview) {
+    // Kept on the phone: who reads it is known only once the server takes it.
+    if (verdict.onPhone) return 'onPhone';
     if (verdict.reviewer === 'none') return 'unread';
     return verdict.reviewer === 'ai' ? 'ai' : 'review';
   }
@@ -28,6 +30,7 @@ const ICON: Record<FeedbackTone, IconName> = {
   review: 'PaperPlaneRight',
   unread: 'Info',
   ai: 'Sparkle',
+  onPhone: 'DeviceMobile',
 };
 
 /**
@@ -53,6 +56,8 @@ export function FeedbackBar({ verdict }: FeedbackBarProps) {
       ? t('exerciseRunner.noReviewer')
       : tone === 'ai'
       ? t('exerciseRunner.aiHandedIn')
+      : tone === 'onPhone'
+      ? t('exerciseRunner.keptForReview')
       : t('exerciseRunner.sentForReview');
   const body =
     tone === 'unread'

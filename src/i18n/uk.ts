@@ -1131,6 +1131,7 @@ export const uk: Translations = {
     incorrect: 'Неправильно',
     submittedForReview: 'Надіслано на перевірку',
     sentForReview: 'Надіслано на перевірку · відповідь прийде в Сповіщення',
+    keptForReview: 'Збережено на телефоні · піде на перевірку, коли з’явиться зв’язок',
     expectedAnswer: 'Правильно: {answer}',
     reviewNote: 'Викладач перегляне роботу.',
     noReviewer: 'Збережено — перевірити нікому',
