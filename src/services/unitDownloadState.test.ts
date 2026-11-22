@@ -90,3 +90,35 @@ describe('unitDownload with the walk\'s account', () => {
     expect(unitDownload('u2', units, 1, finished, p).items).toEqual({ a: 'done', b: 'queued' });
   });
 });
+
+// Live check s23, finding 10: a teacher added an exercise after the walk; the unit said
+// «saved on the phone» while the new exercise was not.
+describe('unitDownload when the unit gained materials after its walk', () => {
+  const walked = progress(true, { a: 'done', b: 'done' });
+
+  it('is none and outdated when the unit lists a material the account does not name', () => {
+    expect(unitDownload('u2', units, 1, finished, walked, false, true, ['a', 'b', 'c'])).toMatchObject({
+      state: 'none',
+      outdated: true,
+      progress: 2 / 3,
+    });
+  });
+
+  it('is done when every listed material is in the account, or the list is not known yet', () => {
+    expect(unitDownload('u2', units, 1, finished, walked, false, true, ['a', 'b'])).toMatchObject({
+      state: 'done',
+      outdated: false,
+    });
+    // A material taken out of the unit since is no reason to fetch anything.
+    expect(unitDownload('u2', units, 1, finished, walked, false, true, ['a']).state).toBe('done');
+    expect(unitDownload('u2', units, 1, finished, walked, false, true, null).outdated).toBe(false);
+  });
+
+  it('is never outdated while the walk still runs', () => {
+    const running = progress(false, { a: 'done' });
+    expect(unitDownload('u2', units, 1, finished, running, false, true, ['a', 'b'])).toMatchObject({
+      state: 'downloading',
+      outdated: false,
+    });
+  });
+});

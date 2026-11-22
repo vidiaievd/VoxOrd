@@ -12,12 +12,14 @@ export interface DownloadStateHandle extends UnitDownload {
 /**
  * A unit's place in the offline download (Courses spec §11), over the existing course
  * downloader and the «units ahead» setting. `units` is the course's unit list; without it
- * (the course home has not loaded) the state is `none`.
+ * (the course home has not loaded) the state is `none`. `itemIds` are the unit's materials as
+ * the screen lists them now (null until its contents load).
  */
 export function useDownloadState(
   unitId: string,
   courseId: string,
   units: UnitSummary[] | null,
+  itemIds: readonly string[] | null = null,
 ): DownloadStateHandle {
   const read = useCallback(
     () =>
@@ -29,8 +31,9 @@ export function useDownloadState(
         courseDownloader.getUnitProgress(unitId),
         courseDownloader.isPinned(courseId),
         courseDownloader.courseWalked(courseId),
+        itemIds,
       ),
-    [unitId, courseId, units],
+    [unitId, courseId, units, itemIds],
   );
   const [value, setValue] = useState<UnitDownload>(read);
 
@@ -62,6 +65,15 @@ export function useDownloadState(
     autoStarted.current = courseId;
     courseDownloader.run(false, courseId).catch(() => {});
   }, [value.inWindow, courseId]);
+
+  // A unit that gained materials after its walk (a teacher added an exercise) is walked once
+  // more when it opens, so it does not stay half on the phone until the next online session.
+  const refetched = useRef<string | null>(null);
+  useEffect(() => {
+    if (!value.outdated || !value.inWindow || refetched.current === unitId) return;
+    refetched.current = unitId;
+    courseDownloader.run(false, courseId).catch(() => {});
+  }, [value.outdated, value.inWindow, unitId, courseId]);
 
   return { ...value, start };
 }
