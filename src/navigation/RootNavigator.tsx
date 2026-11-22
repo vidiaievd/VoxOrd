@@ -52,6 +52,7 @@ import { useAuth } from '../hooks/useAuth';
 import { setLastCourseId } from '../store/lastCourseStore';
 import { useDueCount } from '../hooks/useDueCount';
 import { useKeepUnreadFresh, useUnreadCount } from '../hooks/useUnreadCount';
+import { setCurrentScreen } from '../lib/crashReport';
 
 /** How long a second Back on Today has to follow the first to leave the app. */
 const EXIT_WINDOW_MS = 2000;
@@ -70,6 +71,9 @@ function Navigator() {
   const styles = makeStyles(colors);
 
   const [screen, setScreen] = useState<Screen>({ name: 'Today' });
+  // Written while rendering, not in an effect: a screen that throws on its first render
+  // never reaches an effect, and the crash report must still name it.
+  setCurrentScreen(screen.name);
   const { status: authStatus } = useAuth();
   const scrollTabToTop = useScrollTabToTop();
 

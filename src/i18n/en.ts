@@ -21,6 +21,12 @@ export const en: Translations = {
     offlineSessionPending: 'Waiting to sync: {count}',
     offlineQueueNearlyFull: 'The queue is nearly full — connect soon, or the oldest answers will be lost',
   },
+  crash: {
+    title: 'Something went wrong',
+    body: 'The app hit an error on this screen. Send the report to the team — it says what happened and on which build. Nothing you answered before is lost.',
+    share: 'Send report',
+    retry: 'Back to the app',
+  },
   nav: {
     pressAgainToExit: 'Press Back again to exit',
     today: 'Today',

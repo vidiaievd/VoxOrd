@@ -25,6 +25,13 @@ export interface Translations {
     /** A sync queue near its cap: the oldest answers are about to be dropped. */
     offlineQueueNearlyFull: string;
   };
+  /** The screen shown instead of the app when a screen crashes (`ErrorBoundary`). */
+  crash: {
+    title: string;
+    body: string;
+    share: string;
+    retry: string;
+  };
   nav: {
     pressAgainToExit: string;
     today: string;

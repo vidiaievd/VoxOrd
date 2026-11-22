@@ -2,9 +2,10 @@ import React from 'react';
 import { SettingsGroup, SettingsRow } from '../../../components/ui';
 import { useTranslation } from '../../../i18n';
 
-// Same number the package carries; the native build name is not read at runtime.
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const APP_VERSION: string = require('../../../../package.json').version;
+import { formatBuildLabel, readBuildInfo } from '../../../lib/buildInfo';
+
+// Version, build number and commit: what a tester quotes, and what a crash report carries.
+const APP_VERSION = formatBuildLabel(readBuildInfo());
 
 /** No help or privacy rows yet: neither has a destination in the app (plan 07 step 2). */
 export function AboutGroup() {
