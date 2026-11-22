@@ -103,8 +103,16 @@ export const MAX_OUTBOX_ENTRIES = 1000;
 type Held = { held: 'suspended' | 'closed' };
 type Refused = Held | 'purged';
 
-/** What the queue does with a "school is read only" refusal, or `null` for any other error. */
-function schoolRefusal(error: unknown): Refused | null {
+/**
+ * What the queue does with a "school is read only" refusal, or `null` for any other error.
+ *
+ * A 404 on an entry a school already held counts as `purged`: a purge deletes the courses no
+ * one else holds, so the engine no longer knows the exercise and says 404, not 409 `purged`.
+ * Dropped silently, the learner would see «kept on the phone» vanish with no word of why
+ * (plan 90, live check s20, finding 4).
+ */
+function schoolRefusal(error: unknown, entry: HeldMark): Refused | null {
+  if (entry.heldBySchool && error instanceof ApiError && error.status === 404) return 'purged';
   const status = schoolRefusalStatus(error);
   if (status === null) return null;
   return status === 'purged' ? 'purged' : { held: status };
@@ -329,7 +337,7 @@ class ExerciseOutboxStore {
       );
       return 'sent';
     } catch (e) {
-      const refused = schoolRefusal(e);
+      const refused = schoolRefusal(e, entry);
       if (refused) return refused;
       const status = e instanceof ApiError ? e.status : null;
       if (shouldRetry(status)) return 'kept';
@@ -343,13 +351,13 @@ class ExerciseOutboxStore {
   }
 
   /** The calls of one local attempt, from where the last flush stopped. */
-  private async deliverSession(entry: QueuedSession): Promise<'sent' | 'kept' | Refused> {
+  private async deliverSession(entry: QueuedSession & HeldMark): Promise<'sent' | 'kept' | Refused> {
     let serverId = this.attemptIds[entry.localAttemptId];
     if (!serverId && entry.probeDraw) {
       try {
         serverId = await startDealtSitting(entry, entry.probeDraw);
       } catch (e) {
-        const refused = schoolRefusal(e);
+        const refused = schoolRefusal(e, entry);
         if (refused) return refused;
         const status = e instanceof ApiError ? e.status : null;
         if (shouldRetry(status)) return 'kept';
@@ -369,7 +377,7 @@ class ExerciseOutboxStore {
       try {
         serverId = await startForReplay(entry);
       } catch (e) {
-        const refused = schoolRefusal(e);
+        const refused = schoolRefusal(e, entry);
         if (refused) return refused;
         if (shouldRetry(e instanceof ApiError ? e.status : null)) return 'kept';
         console.warn(`[ExerciseOutbox] Dropping attempt at ${entry.exerciseId} — start refused.`);
@@ -384,7 +392,7 @@ class ExerciseOutboxStore {
       try {
         await replay(entry.exerciseId, serverId, op);
       } catch (e) {
-        const refused = schoolRefusal(e);
+        const refused = schoolRefusal(e, entry);
         if (refused) return refused;
         const status = e instanceof ApiError ? e.status : null;
         if (shouldRetry(status)) return 'kept';
