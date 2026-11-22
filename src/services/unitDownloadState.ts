@@ -27,7 +27,8 @@ export interface UnitDownload {
  * for each material of the units it walks. With that account the state is exact: «downloading»
  * until the walk closes the unit, then «done» if every material is on the phone. Without it
  * (the app restarted since) a unit in the window counts as «done» once a walk ended without
- * a failure — progress and size are then unknown.
+ * a failure — progress and size are then unknown — unless no walk has reached its course yet
+ * (`courseWalked` false: enrolled on the web or by the school since): that unit is «none».
  */
 export function unitDownload(
   unitId: string,
@@ -36,6 +37,7 @@ export function unitDownload(
   status: Pick<CourseDownloadStatus, 'running' | 'lastFinishedAt' | 'lastFailed'>,
   progress?: UnitProgress,
   pinned = false,
+  courseWalked: boolean | null = null,
 ): UnitDownload {
   const inWindow = pinned || unitWindow(units, unitsAhead).some(u => u.id === unitId) || progress !== undefined;
 
@@ -59,7 +61,7 @@ export function unitDownload(
   const none = { progress: null, sizeBytes: null, items: {} };
   if (!inWindow) return { state: 'none', inWindow, ...none };
   if (status.running) return { state: 'downloading', inWindow, ...none };
-  const done = status.lastFinishedAt !== null && status.lastFailed === 0;
+  const done = courseWalked !== false && status.lastFinishedAt !== null && status.lastFailed === 0;
   return { state: done ? 'done' : 'none', inWindow, ...none };
 }
 

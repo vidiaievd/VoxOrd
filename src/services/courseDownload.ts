@@ -102,6 +102,11 @@ export interface CourseRun {
   mediaIds: string[];
   /** Whether those media were downloaded, or skipped (no Wi-Fi, media off). */
   mediaDone: boolean;
+  /**
+   * On the learner's «finished» record only: the courses walks have reached (walked, or found
+   * fresh) — a course enrolled since is not among them. Absent in records written before it.
+   */
+  courseIds?: string[];
 }
 
 /** The two languages a walk fetches in: interface (texts, exercises) and word translations. */
@@ -184,11 +189,21 @@ export class CourseDownloader {
   private listeners = new Set<() => void>();
   private unitProgress = new Map<string, UnitProgress>();
   private pinned = new Set<string>();
+  /** Courses the walks have reached; null while not known (no record of it yet). */
+  private walkedCourses: Set<string> | null = null;
 
   constructor(private readonly deps: CourseDownloadDeps) {}
 
   getStatus(): CourseDownloadStatus {
     return { ...this.status };
+  }
+
+  /**
+   * Whether a walk has reached this course: false for a course enrolled since (on the web, by
+   * the school) that no walk has seen yet, null when the phone has no record to say.
+   */
+  courseWalked(courseId: string): boolean | null {
+    return this.walkedCourses === null ? null : this.walkedCourses.has(courseId);
   }
 
   /** Picks up when the signed-in learner's courses were last downloaded, in an earlier run. */
@@ -203,6 +218,7 @@ export class CourseDownloader {
     if (this.status.lastFinishedAt !== null) return;
     const last = await this.deps.getRun(finishedKey(userId));
     if (last !== null && this.status.lastFinishedAt === null) {
+      if (last.courseIds && this.walkedCourses === null) this.walkedCourses = new Set(last.courseIds);
       this.setStatus({ lastFinishedAt: last.at });
     }
   }
@@ -291,6 +307,8 @@ export class CourseDownloader {
     // Every course's media, walked now or remembered from its last walk: what the cache keeps.
     const keep = new Set<string>();
     let keepComplete = true;
+    // Courses this walk reached, so the unit screen can tell a new course from a walked one.
+    const reached = new Set<string>();
     try {
       const mediaAllowed = await this.deps.mediaAllowed();
       const courses = await this.deps.getMyCourses();
@@ -323,6 +341,7 @@ export class CourseDownloader {
             walkedUnits.delete(unit.id);
             this.unitProgress.delete(unit.id);
           }
+          reached.add(container.id);
           continue;
         }
 
@@ -348,16 +367,27 @@ export class CourseDownloader {
           mediaIds: [...walked.mediaIds],
           mediaDone,
         });
+        reached.add(container.id);
       }
 
       if (onlyCourse === undefined) {
         if (keepComplete) await this.deps.media.retainOnly(keep);
         finished = true;
+        // A whole walk names every course the learner has now; courses gone drop out.
+        this.walkedCourses = reached;
         await this.deps.setRun(finishedKey(userId), {
           at: this.deps.now(),
           mediaIds: [],
           mediaDone: true,
+          courseIds: [...reached],
         });
+      } else if (reached.size > 0 && this.walkedCourses !== null) {
+        // One course walked on its own joins the record; the time of the last whole walk stays.
+        this.walkedCourses = new Set([...this.walkedCourses, ...reached]);
+        const last = await this.deps.getRun(finishedKey(userId));
+        if (last !== null) {
+          await this.deps.setRun(finishedKey(userId), { ...last, courseIds: [...this.walkedCourses] });
+        }
       }
     } catch (e) {
       if (!(e instanceof OfflineAbort) && !isNetworkError(e)) throw e;

@@ -289,6 +289,35 @@ describe('CourseDownloader', () => {
     expect(downloader.getStatus()).toMatchObject({ running: false, lastFinishedAt: null });
   });
 
+  it('knows which courses a walk reached, and a course enrolled since as not reached', async () => {
+    let courses = [{ container: { id: 'course-1' } }];
+    const { deps } = makeDeps({ getMyCourses: async () => courses as never });
+    const downloader = new CourseDownloader(deps);
+    expect(downloader.courseWalked('course-1')).toBeNull();
+
+    await downloader.run();
+    expect(downloader.courseWalked('course-1')).toBe(true);
+    // Enrolled on the web or by the school while the app stayed open.
+    courses = [...courses, { container: { id: 'course-2' } }];
+    expect(downloader.courseWalked('course-2')).toBe(false);
+
+    await downloader.run(false, 'course-2');
+    expect(downloader.courseWalked('course-2')).toBe(true);
+
+    const later = new CourseDownloader(deps);
+    await later.loadStatus();
+    expect(later.courseWalked('course-1')).toBe(true);
+    expect(later.courseWalked('course-2')).toBe(true);
+  });
+
+  it('does not count a course whose home could not be read as reached', async () => {
+    const { deps } = makeDeps();
+    mockApi.courseHome.mockRejectedValue(Object.assign(new Error('gone'), { status: 404 }));
+    const downloader = new CourseDownloader(deps);
+    await downloader.run();
+    expect(downloader.courseWalked('course-1')).toBe(false);
+  });
+
   it('remembers when it last finished, for the next start of the app', async () => {
     const { deps, runs } = makeDeps();
     await new CourseDownloader(deps).run();

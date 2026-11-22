@@ -53,6 +53,13 @@ describe('unitDownload without an account of the walk', () => {
     expect(unitDownload('u2', units, 1, { running: false, lastFinishedAt: 1, lastFailed: 2 }).state).toBe('none');
   });
 
+  it('is none for a course no walk has reached yet, done once one has', () => {
+    expect(unitDownload('u2', units, 1, finished, undefined, false, false).state).toBe('none');
+    expect(unitDownload('u2', units, 1, finished, undefined, false, true).state).toBe('done');
+    // No record (written before the walks named their courses): as before.
+    expect(unitDownload('u2', units, 1, finished, undefined, false, null).state).toBe('done');
+  });
+
   it('puts every unit of a course kept whole in the window', () => {
     expect(unitDownload('u4', units, 1, finished, undefined, true)).toMatchObject({ state: 'done', inWindow: true });
   });

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { UnitSummary } from '../api/types';
 import { courseDownloader } from '../services/courseDownload';
 import { unitDownload, type UnitDownload } from '../services/unitDownloadState';
@@ -28,6 +28,7 @@ export function useDownloadState(
         courseDownloader.getStatus(),
         courseDownloader.getUnitProgress(unitId),
         courseDownloader.isPinned(courseId),
+        courseDownloader.courseWalked(courseId),
       ),
     [unitId, courseId, units],
   );
@@ -50,6 +51,17 @@ export function useDownloadState(
       // A failed walk shows as «none» again; nothing more to tell here.
     });
   }, [courseId]);
+
+  // A course no walk has reached (enrolled on the web or by the school while the app stayed
+  // open) is walked once when its unit opens, as a course enrolled on the phone is. Offline the
+  // walk ends at once and the unit reads «none»; the next online session walks it anyway.
+  const autoStarted = useRef<string | null>(null);
+  useEffect(() => {
+    if (!value.inWindow || autoStarted.current === courseId) return;
+    if (courseDownloader.courseWalked(courseId) !== false) return;
+    autoStarted.current = courseId;
+    courseDownloader.run(false, courseId).catch(() => {});
+  }, [value.inWindow, courseId]);
 
   return { ...value, start };
 }
