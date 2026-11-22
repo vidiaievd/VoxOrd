@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import {
   answerQuestion as answerQuestionRequest,
   checkRow as checkRowRequest,
-  startAttempt,
   startOrJoinAttempt,
   submitAttempt,
   type AnswerQuestionAnswer,
@@ -220,21 +219,23 @@ export function useExerciseRunner(
    * without answering must create nothing, or the next start would 409 against
    * a dangling IN_PROGRESS attempt. What changed is who may trigger it — Check,
    * as before, and a body handing in its first question.
+   *
+   * Every first move joins an attempt already in progress instead of failing on its 409.
+   * One left empty elsewhere — the web opens an attempt when an exercise is shown — used to
+   * stop a question-at-a-time set or a row check here with nothing the learner could do
+   * (OQ-48). Joining loses nothing: an attempt with work on it is resumed by the engine
+   * anyway, and an empty one holds nothing to lose.
    */
   const openAttempt = useCallback(
-    (exerciseId: string, display: ExerciseDisplay, join = false): Promise<string> => {
+    (exerciseId: string, display: ExerciseDisplay): Promise<string> => {
       const open = attemptIdRef.current;
       if (open !== null) return Promise.resolve(open);
       if (openingRef.current !== null) return openingRef.current;
 
       // PRACTICE so the feedback reveals the correct answer; grading is done
-      // by the server regardless of mode. Joining the attempt already in progress is
-      // asked for by a body that keeps work on it between sessions, and by the footer's
-      // Check, which hands in at once; a question-at-a-time set still treats a 409 as
-      // what it was.
-      const start = join ? startOrJoinAttempt : startAttempt;
+      // by the server regardless of mode.
       startedContentRef.current = null;
-      const pending = start(exerciseId, {
+      const pending = startOrJoinAttempt(exerciseId, {
         language: display.targetLanguage,
         mode: 'PRACTICE',
       })
@@ -293,7 +294,7 @@ export function useExerciseRunner(
       }
       // Joins an attempt left in progress rather than failing on 409, as the web's attempt
       // route does: the check is a submit, so the orphan is simply closed by it.
-      const attemptId = await openAttempt(openExerciseId, openDisplay, true);
+      const attemptId = await openAttempt(openExerciseId, openDisplay);
       return submitAttempt(openExerciseId, attemptId, {
         submittedAnswer,
         timeSpentSeconds: Math.max(
@@ -312,7 +313,7 @@ export function useExerciseRunner(
     if (!openExerciseId || !openDisplay) {
       throw new Error('No exercise is open');
     }
-    return openAttempt(openExerciseId, openDisplay, true);
+    return openAttempt(openExerciseId, openDisplay);
   }, [openExerciseId, openDisplay, openAttempt]);
 
   const finishTable = useCallback((verdict: SubmitAttemptResponse) => {
@@ -346,7 +347,7 @@ export function useExerciseRunner(
       // (a killed app, a double start on the web) is joined rather than refused:
       // the hand-in closes it, as the web's attempt route does. Refusing left the
       // exercise unanswerable on the phone for as long as that attempt stayed open.
-      const attemptId = await openAttempt(exerciseId, display, true);
+      const attemptId = await openAttempt(exerciseId, display);
       const verdict = await submitAttempt(exerciseId, attemptId, {
         submittedAnswer: state.answer,
         timeSpentSeconds,
