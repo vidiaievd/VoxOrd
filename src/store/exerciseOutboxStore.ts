@@ -1,5 +1,5 @@
 import { createAsyncStorage } from '@react-native-async-storage/async-storage';
-import { ApiError } from '../api/client';
+import { ApiError, apiClient } from '../api/client';
 import { remoteAttempts, type ReplayTime } from '../api/exercises';
 import { upsertProgress } from '../api/progress';
 import type { UpsertProgressRequest } from '../api/types';
@@ -56,6 +56,11 @@ export interface QueuedSession {
    * over so the answers land on the probes they were given to; absent for every other template.
    */
   probeDraw?: unknown[];
+  /**
+   * The school that owned the exercise when the phone began the attempt (plan 90, live check
+   * s22, finding 6). Absent in entries written before it, and for platform material.
+   */
+  ownerSchoolId?: string;
 }
 
 /** A finished exercise's or lesson's progress record, on its way to learning-service. */
@@ -116,6 +121,27 @@ function schoolRefusal(error: unknown, entry: HeldMark): Refused | null {
   const status = schoolRefusalStatus(error);
   if (status === null) return null;
   return status === 'purged' ? 'purged' : { held: status };
+}
+
+/**
+ * `schoolRefusal`, and for a 404 on an entry no school held yet — the phone stayed offline
+ * through both the close and the purge, so no 409 ever marked it (plan 90, live check s22,
+ * finding 6) — one read of the exercise's school: a learner is answered 404 for a school that
+ * is closed or purged, and a closed school's courses are not deleted (the engine says 409
+ * `closed` for them), so a 404 on both means the purge took it. A read that does not reach the
+ * server keeps the entry for the next flush; any other answer leaves the 404 as it was.
+ */
+async function refusalOf(error: unknown, entry: QueuedSession & HeldMark): Promise<Refused | 'kept' | null> {
+  const refused = schoolRefusal(error, entry);
+  if (refused || !entry.ownerSchoolId) return refused;
+  if (!(error instanceof ApiError) || error.status !== 404) return null;
+  try {
+    await apiClient.get(`/api/v1/schools/${entry.ownerSchoolId}`);
+    return null;
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) return 'purged';
+    return shouldRetry(e instanceof ApiError ? e.status : null) ? 'kept' : null;
+  }
 }
 
 class ExerciseOutboxStore {
@@ -214,6 +240,7 @@ class ExerciseOutboxStore {
       targetLanguage: string;
       startedAt?: string;
       probeDraw?: unknown;
+      ownerSchoolId?: string | null;
     },
     op: JournalOp,
   ): Promise<void> {
@@ -238,6 +265,7 @@ class ExerciseOutboxStore {
       sent: 0,
       ...(attempt.startedAt ? { startedAt: attempt.startedAt } : {}),
       ...(Array.isArray(attempt.probeDraw) ? { probeDraw: attempt.probeDraw } : {}),
+      ...(attempt.ownerSchoolId ? { ownerSchoolId: attempt.ownerSchoolId } : {}),
     });
   }
 
@@ -357,7 +385,7 @@ class ExerciseOutboxStore {
       try {
         serverId = await startDealtSitting(entry, entry.probeDraw);
       } catch (e) {
-        const refused = schoolRefusal(e, entry);
+        const refused = await refusalOf(e, entry);
         if (refused) return refused;
         const status = e instanceof ApiError ? e.status : null;
         if (shouldRetry(status)) return 'kept';
@@ -377,7 +405,7 @@ class ExerciseOutboxStore {
       try {
         serverId = await startForReplay(entry);
       } catch (e) {
-        const refused = schoolRefusal(e, entry);
+        const refused = await refusalOf(e, entry);
         if (refused) return refused;
         if (shouldRetry(e instanceof ApiError ? e.status : null)) return 'kept';
         console.warn(`[ExerciseOutbox] Dropping attempt at ${entry.exerciseId} — start refused.`);
@@ -392,7 +420,7 @@ class ExerciseOutboxStore {
       try {
         await replay(entry.exerciseId, serverId, op);
       } catch (e) {
-        const refused = schoolRefusal(e, entry);
+        const refused = await refusalOf(e, entry);
         if (refused) return refused;
         const status = e instanceof ApiError ? e.status : null;
         if (shouldRetry(status)) return 'kept';

@@ -235,6 +235,8 @@ export interface ExerciseDisplay {
   difficultyLevel?: DifficultyLevel;
   content: Record<string, unknown>;
   instructions?: ExerciseInstruction[] | null;
+  /** The school that owns the exercise (its course's school); null for platform material. */
+  ownerSchoolId?: string | null;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────

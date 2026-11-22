@@ -63,6 +63,11 @@ export interface LocalAttempt {
   startedAt: string;
   /** The attempt the replay made on the server, once it has. */
   serverAttemptId: string | null;
+  /**
+   * The school that owned the exercise when the attempt began; lets the queue tell a 404 after
+   * a purge from any other. Absent on attempts made before it was kept.
+   */
+  ownerSchoolId?: string | null;
 }
 
 /** A refusal, with the status and message the engine's controller would answer with. */
@@ -93,6 +98,7 @@ export function createLocalAttempt(props: {
   templateCode: string;
   targetLanguage: string;
   now: Date;
+  ownerSchoolId?: string | null;
 }): LocalAttempt {
   return {
     id: props.id,
@@ -115,6 +121,7 @@ export function createLocalAttempt(props: {
     timeSpentSeconds: 0,
     startedAt: props.now.toISOString(),
     serverAttemptId: null,
+    ownerSchoolId: props.ownerSchoolId ?? null,
   };
 }
 

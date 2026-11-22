@@ -199,6 +199,7 @@ export class LocalEngine {
       templateCode: display.templateCode,
       targetLanguage: body.language,
       now: this.deps.now(),
+      ownerSchoolId: display.ownerSchoolId ?? null,
     });
     if (display.templateCode === mp.TEMPLATE_CODE) {
       attempt.probeDraw = await this.dealSitting(userId, display, key);
