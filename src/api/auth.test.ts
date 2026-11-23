@@ -110,6 +110,7 @@ describe('authService', () => {
         status: 'signedIn',
         user: { id: 'user-1', email: 'a@b.c', roles: ['student'] },
         offline: false,
+        endedSession: null,
       });
       expect(Keychain.setGenericPassword).toHaveBeenCalledWith(
         'platform',
@@ -223,6 +224,7 @@ describe('authService', () => {
         status: 'signedIn',
         user: STORED_USER,
         offline: true,
+        endedSession: null,
       });
       expect(authService.getAccessToken()).toBeNull();
       expect(Keychain.resetGenericPassword).not.toHaveBeenCalled();
@@ -317,6 +319,7 @@ describe('authService', () => {
         status: 'signedIn',
         user: STORED_USER,
         offline: true,
+        endedSession: null,
       });
     });
 
@@ -434,6 +437,7 @@ describe('authService', () => {
         status: 'signedIn',
         user: STORED_USER,
         offline: true,
+        endedSession: null,
       });
       expect(Keychain.resetGenericPassword).not.toHaveBeenCalled();
     });
@@ -501,8 +505,77 @@ describe('authService', () => {
 
       expect(Keychain.resetGenericPassword).toHaveBeenCalled();
       expect(mockStorage.has('user')).toBe(false);
-      expect(authStore.getState()).toEqual({ status: 'signedOut', user: null, offline: false });
+      expect(authStore.getState()).toEqual({
+        status: 'signedOut',
+        user: null,
+        offline: false,
+        endedSession: null,
+      });
       expect(authService.getAccessToken()).toBeNull();
+    });
+  });
+
+  describe('a session the server ended (OQ-52)', () => {
+    it('remembers whose session a refused cold-start refresh ended', async () => {
+      Keychain.__setStored({ username: 'platform', password: 'revoked-refresh' });
+      storeSessionUser();
+      globalThis.fetch = routeFetch({
+        '/auth/refresh': () => jsonResponse(401, {}),
+      }) as unknown as typeof fetch;
+
+      await authService.restore();
+
+      expect(authStore.getState()).toMatchObject({
+        status: 'signedOut',
+        endedSession: STORED_USER,
+      });
+    });
+
+    it('remembers whose offline session a refused reconnect ended', async () => {
+      Keychain.__setStored({ username: 'platform', password: 'revoked-refresh' });
+      storeSessionUser();
+      authStore.setSignedIn(STORED_USER, true);
+      globalThis.fetch = routeFetch({
+        '/auth/refresh': () => jsonResponse(401, {}),
+      }) as unknown as typeof fetch;
+
+      await authService.reconnect();
+
+      expect(authStore.getState().endedSession).toEqual(STORED_USER);
+    });
+
+    it('remembers whose session a 401 with a refused refresh ended', async () => {
+      Keychain.__setStored({ username: 'platform', password: 'revoked-refresh' });
+      authStore.setSignedIn(STORED_USER);
+      globalThis.fetch = routeFetch({
+        '/auth/refresh': () => jsonResponse(401, {}),
+        '/api/v1/enrollments': () => jsonResponse(401, {}),
+      }) as unknown as typeof fetch;
+
+      await expect(apiClient.get('/api/v1/enrollments')).rejects.toMatchObject({ status: 401 });
+
+      expect(authStore.getState()).toMatchObject({
+        status: 'signedOut',
+        endedSession: STORED_USER,
+      });
+    });
+
+    it('says nothing after a sign-out the learner chose', async () => {
+      authStore.setSignedIn(STORED_USER);
+      globalThis.fetch = routeFetch({
+        '/auth/logout': () => jsonResponse(204, {}),
+      }) as unknown as typeof fetch;
+
+      await authService.logout();
+
+      expect(authStore.getState().endedSession).toBeNull();
+    });
+
+    it('forgets the ended session once someone signs in', () => {
+      authStore.setSignedOut(false, STORED_USER);
+      authStore.setSignedIn({ ...STORED_USER, id: 'user-2' });
+
+      expect(authStore.getState().endedSession).toBeNull();
     });
   });
 });

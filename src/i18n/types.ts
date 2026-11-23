@@ -19,6 +19,11 @@ export interface Translations {
     subtitle: string;
     offlineTitle: string;
     offlineBody: string;
+    /** Sign-in screen after the server ended the session (OQ-52). */
+    sessionEndedTitle: string;
+    sessionEndedBody: string;
+    sessionEndedUnsent: string;
+    sessionEndedUnsentNoEmail: string;
     /** Above the tab bar while the app works from the stored session, without the server. */
     offlineSessionBanner: string;
     offlineSessionPending: string; // '{count}'
