@@ -109,6 +109,28 @@ export interface CourseRun {
   courseIds?: string[];
 }
 
+/**
+ * Sets the runner opened online that the phone keeps beside the course windows (offline plan,
+ * B3.7): the last few are held through `retainOnly`, the oldest goes when a newer one comes.
+ */
+export const OPENED_SETS_KEPT = 3;
+
+/** Requests in flight for an opened set: the runner is asking for its own item meanwhile. */
+const OPENED_CONCURRENCY = 2;
+
+/** One set the runner opened online, as last fetched for the phone. */
+export interface OpenedSet {
+  /** The exercise (content) ids, in the runner's order. */
+  exerciseIds: string[];
+  /** The interface language the exercises were fetched in. */
+  uiLanguage: string;
+  at: number;
+  /** The media the set's exercises refer to. */
+  mediaIds: string[];
+  /** Whether those media were downloaded, or skipped (no Wi-Fi, media off, phone full). */
+  mediaDone: boolean;
+}
+
 /** The two languages a walk fetches in: interface (texts, exercises) and word translations. */
 interface Languages {
   ui: string;
@@ -150,6 +172,9 @@ export interface CourseDownloadDeps {
   setUnitItems(userId: string, units: Record<string, string[]>): Promise<void>;
   getRun(key: string): Promise<CourseRun | null>;
   setRun(key: string, run: CourseRun): Promise<void>;
+  /** The sets the runner opened online, newest first (`OPENED_SETS_KEPT` at most). */
+  getOpened(userId: string): Promise<OpenedSet[]>;
+  setOpened(userId: string, sets: OpenedSet[]): Promise<void>;
   now(): number;
 }
 
@@ -179,7 +204,8 @@ export function unitWindow(units: UnitSummary[], ahead: number): UnitSummary[] {
  * Vocabulary lists also go into the phone's decks, where offline word review draws its words
  * (B1). The media those units refer to — narration, images, clips, pronunciations — go to
  * `mediaCache`, over Wi-Fi unless the learner allowed mobile data; files outside every
- * course's window are dropped, so the phone keeps what is ahead and nothing behind.
+ * course's window and the sets opened recently (`keepOpened`) are dropped, so the phone keeps
+ * what is ahead and nothing behind.
  *
  * Runs once the session comes online (`sessionSync`). A course is walked again when its window
  * moved, when its media are still missing and may now be fetched, or after
@@ -202,6 +228,8 @@ export class CourseDownloader {
   private unitItems: Map<string, readonly string[]> | null = null;
   /** The learner `unitItems` belongs to: another one signing in reads their own. */
   private unitItemsUser: string | null = null;
+  /** Opened sets are kept one after another, so two runners do not overwrite each other's list. */
+  private openedQueue: Promise<void> = Promise.resolve();
 
   constructor(private readonly deps: CourseDownloadDeps) {}
 
@@ -287,6 +315,76 @@ export class CourseDownloader {
   async downloadCourse(courseId: string): Promise<void> {
     await this.setPinned(courseId, true);
     await this.run(true, courseId);
+  }
+
+  /**
+   * Keeps the set the runner has open on the phone (offline plan, B3.7): every exercise's
+   * screen, its key when the phone grades it offline, and its media by the walk's rule (Wi-Fi
+   * or allowed mobile data, room left). The set joins the «opened recently» list, whose last
+   * `OPENED_SETS_KEPT` every walk keeps beside the course windows — so a unit beyond the
+   * window, a course never walked, «Practice» and «Checked by AI» still play offline once
+   * opened. Offline it does nothing (the first request fails); it never throws.
+   */
+  keepOpened(exerciseIds: readonly string[]): Promise<void> {
+    const ids = [...new Set(exerciseIds)];
+    if (ids.length === 0) return this.openedQueue;
+    this.openedQueue = this.openedQueue
+      .then(() => this.keepOpenedNow(ids))
+      .catch(e => console.warn('[CourseDownload] Opened set not kept:', e));
+    return this.openedQueue;
+  }
+
+  private async keepOpenedNow(ids: string[]): Promise<void> {
+    const userId = this.deps.getUserId();
+    if (!userId) return;
+    const uiLanguage = this.deps.getUiLanguage();
+    const same = (set: OpenedSet) =>
+      set.uiLanguage === uiLanguage &&
+      set.exerciseIds.length === ids.length &&
+      set.exerciseIds.every((id, i) => id === ids[i]);
+    const remember = async (set: OpenedSet) => {
+      const others = (await this.deps.getOpened(userId)).filter(s => !same(s));
+      await this.deps.setOpened(userId, [set, ...others].slice(0, OPENED_SETS_KEPT));
+    };
+
+    const mediaAllowed = await this.deps.mediaAllowed().catch(() => false);
+    const last = (await this.deps.getOpened(userId)).find(same);
+    if (
+      last !== undefined &&
+      this.deps.now() - last.at < DOWNLOAD_INTERVAL_MS &&
+      (last.mediaDone || !mediaAllowed)
+    ) {
+      // Fetched a moment ago: it only moves to the front of the list.
+      await remember(last);
+      return;
+    }
+
+    const media = new Set<string>();
+    try {
+      await mapLimit(ids, OPENED_CONCURRENCY, id => this.fetchExercise(id, uiLanguage, media));
+    } catch (e) {
+      if (e instanceof OfflineAbort || isNetworkError(e)) return;
+      throw e;
+    }
+    if (this.deps.getUserId() !== userId) return;
+    // Named before the files come, so a walk pruning meanwhile keeps them.
+    const set: OpenedSet = {
+      exerciseIds: ids,
+      uiLanguage,
+      at: this.deps.now(),
+      mediaIds: [...media],
+      mediaDone: false,
+    };
+    await remember(set);
+    if (!mediaAllowed || !(await this.hasRoom())) return;
+    try {
+      await this.downloadMedia(media);
+    } catch (e) {
+      if (e instanceof OfflineAbort) return;
+      throw e;
+    }
+    if (this.deps.getUserId() !== userId) return;
+    await remember({ ...set, mediaDone: true });
   }
 
   /** Lets the course go back to the «units ahead» window; the next walk drops what is beyond. */
@@ -400,7 +498,11 @@ export class CourseDownloader {
       }
 
       if (onlyCourse === undefined) {
-        if (keepComplete) await this.deps.media.retainOnly(keep);
+        if (keepComplete) {
+          // The sets opened recently stay too, whatever window they lie outside (B3.7).
+          for (const set of await this.deps.getOpened(userId)) set.mediaIds.forEach(id => keep.add(id));
+          await this.deps.media.retainOnly(keep);
+        }
         finished = true;
         // A whole walk names every course the learner has now; courses gone drop out.
         this.walkedCourses = reached;
@@ -545,20 +647,8 @@ export class CourseDownloader {
         return kept(
           await this.fetch(grammarRuleResource(item.contentId, courseId, uiLanguage, containerOf)),
         );
-      case 'exercise': {
-        const display = await this.fetch(exerciseDisplayResource(item.contentId, uiLanguage));
-        if (!kept(display)) return false;
-        // The key goes along only for the templates the phone grades itself offline. Its media
-        // too: a `minimal_pairs` projection names no clip, the key holds them all.
-        if (!isGradedOffline(display.templateCode)) return true;
-        const key = await this.fetch(exerciseKeyResource(item.contentId));
-        if (!kept(key)) return false;
-        if (display.templateCode === MINIMAL_PAIRS && dealsWeakest(key)) {
-          // Without it a `weakest` sitting offline deals as on a first sitting; not a failure.
-          await this.fetch(probeHistoryResource(item.contentId));
-        }
-        return true;
-      }
+      case 'exercise':
+        return this.fetchExercise(item.contentId, uiLanguage, mediaIds);
       case 'vocabulary_list': {
         const reader = await this.fetch(vocabularyListResource(item.contentId, translation));
         if (!kept(reader)) return false;
@@ -575,6 +665,30 @@ export class CourseDownloader {
         // Nested containers and anything newer than this build: nothing to read offline.
         return true;
     }
+  }
+
+  /** An exercise's screen, and its key when graded offline; false when refused. */
+  private async fetchExercise(
+    exerciseId: string,
+    uiLanguage: string,
+    mediaIds: Set<string>,
+  ): Promise<boolean> {
+    const kept = <T>(value: T | null): value is T => {
+      if (value !== null) collectMediaIds(value, mediaIds);
+      return value !== null;
+    };
+    const display = await this.fetch(exerciseDisplayResource(exerciseId, uiLanguage));
+    if (!kept(display)) return false;
+    // The key goes along only for the templates the phone grades itself offline. Its media
+    // too: a `minimal_pairs` projection names no clip, the key holds them all.
+    if (!isGradedOffline(display.templateCode)) return true;
+    const key = await this.fetch(exerciseKeyResource(exerciseId));
+    if (!kept(key)) return false;
+    if (display.templateCode === MINIMAL_PAIRS && dealsWeakest(key)) {
+      // Without it a `weakest` sitting offline deals as on a first sitting; not a failure.
+      await this.fetch(probeHistoryResource(exerciseId));
+    }
+    return true;
   }
 
   /** The number of media files that could not be kept. A lost connection ends the walk. */
@@ -740,6 +854,29 @@ export const courseDownloader = new CourseDownloader({
       await runStorage.setItem(key, JSON.stringify(run));
     } catch {
       // Losing it costs one more walk, nothing else.
+    }
+  },
+  getOpened: async userId => {
+    try {
+      const raw = await runStorage.getItem(`${userId}:opened`);
+      const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter(
+        (s): s is OpenedSet =>
+          !!s &&
+          Array.isArray((s as OpenedSet).exerciseIds) &&
+          Array.isArray((s as OpenedSet).mediaIds) &&
+          typeof (s as OpenedSet).uiLanguage === 'string',
+      );
+    } catch {
+      return [];
+    }
+  },
+  setOpened: async (userId, sets) => {
+    try {
+      await runStorage.setItem(`${userId}:opened`, JSON.stringify(sets));
+    } catch {
+      // Losing it means the next walk may drop the sets' media; their texts stay.
     }
   },
   now: () => Date.now(),

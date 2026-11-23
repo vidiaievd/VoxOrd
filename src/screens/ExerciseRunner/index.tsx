@@ -20,6 +20,7 @@ import { useBackIntercept } from '../../navigation/backIntercept';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
 import { useExerciseRunner } from '../../hooks/useExerciseRunner';
+import { courseDownloader } from '../../services/courseDownload';
 import { useKeyboardShown } from '../../hooks/useKeyboardShown';
 import { useRecordMistakes } from '../../hooks/useRecordMistakes';
 import { usePrecheckAvailability } from '../../hooks/usePrecheckAvailability';
@@ -115,6 +116,12 @@ function ExerciseRunnerBody({
     retryAttempt,
   } = useExerciseRunner(exerciseIds, startIndex);
   useRecordMistakes(state, courseId, unitId);
+  // The set goes to the phone while online, so its other exercises play offline too — a unit
+  // beyond the download window, «Practice», «Checked by AI» (offline plan, B3.7).
+  const setKey = exerciseIds.join(',');
+  useEffect(() => {
+    if (setKey !== '') courseDownloader.keepOpened(setKey.split(','));
+  }, [setKey]);
   // Whether this course's school lets its learners rehearse with a model (plan 84): hides
   // buttons only, the engine checks the same.
   const precheckAvailable = usePrecheckAvailability(courseId);
