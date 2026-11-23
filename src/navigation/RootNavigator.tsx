@@ -46,6 +46,7 @@ import { TAB_ROOT, backTarget, showsTabBar, tabOf, type Screen, type Tab } from 
 import { TabBar } from './TabBar';
 import { TabScrollProvider, useScrollTabToTop } from './tabScroll';
 import { BackInterceptProvider } from './backIntercept';
+import { TrainSoundProvider } from './trainSound';
 import { AuthScreen } from '../screens/AuthScreen';
 import { OfflineSessionBanner } from '../components/OfflineSessionBanner';
 import { useAuth } from '../hooks/useAuth';
@@ -662,7 +663,11 @@ function Navigator() {
   return (
     <View style={styles.root}>
       <View style={styles.content}>
-        <BackInterceptProvider handlerRef={interceptRef}>{renderScreen()}</BackInterceptProvider>
+        <BackInterceptProvider handlerRef={interceptRef}>
+          <TrainSoundProvider onTrain={atomId => navigateTo({ name: 'SoundSession', atomId })}>
+            {renderScreen()}
+          </TrainSoundProvider>
+        </BackInterceptProvider>
       </View>
       {/* Today shows the same news in its own card, so it takes no second banner. */}
       {showTabBar && screen.name !== 'Today' && <OfflineSessionBanner />}

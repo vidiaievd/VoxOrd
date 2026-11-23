@@ -51,6 +51,30 @@ describe('getAiReview (plan 79, 2.3d)', () => {
     });
   });
 
+  it('carries a sound remark’s atom as soundAtomId, and nothing of a grammar rule (OQ-10)', async () => {
+    mockGet.mockResolvedValue({
+      outcome: 'approved',
+      items: [
+        { itemId: 'p1', sentenceIndex: 0, aspect: 'pronunciation', fragment: 'kjøre', comment: 'c', suggestion: null, atomRef: { atomType: 'sound', atomId: 'nb:kj' } },
+        { itemId: 'i1', sentenceIndex: 1, aspect: 'grammar', fragment: 'x', comment: 'c', suggestion: null, atomRef: { atomType: 'grammar_rule_atom', atomId: 'r1' } },
+        { itemId: 'p2', sentenceIndex: 2, aspect: 'pronunciation', fragment: 'y', comment: 'c', suggestion: null, atomRef: { atomType: 'sound', atomId: '../x' } },
+      ],
+      summary: null,
+      marks: null,
+      reviewedAt: '2026-10-24T10:00:00.000Z',
+      disputedAt: null,
+    });
+
+    const review = await getAiReview('ex-1', 'att-1');
+
+    expect(review?.items[0]).toEqual({
+      itemId: 'p1', sentenceIndex: 0, aspect: 'pronunciation', fragment: 'kjøre', comment: 'c', suggestion: null, soundAtomId: 'nb:kj',
+    });
+    expect(review?.items[1]).not.toHaveProperty('soundAtomId');
+    expect(review?.items[1]).not.toHaveProperty('atomRef');
+    expect(review?.items[2]).not.toHaveProperty('soundAtomId');
+  });
+
   it('says a school’s review does not count yet, and when it will by itself (plan 80)', async () => {
     mockGet.mockResolvedValue({
       outcome: 'approved',

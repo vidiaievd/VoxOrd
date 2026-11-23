@@ -17,15 +17,17 @@ type Load =
 export interface SoundCardScreenProps {
   atomId: string;
   onBack: () => void;
-  /** «Train this sound»: a session on this one. */
-  onTrain: (atomId: string) => void;
+  /** «Train this sound»: a session on this one. Absent — no button. */
+  onTrain?: (atomId: string) => void;
+  /** What Back returns to; the session by default. */
+  backLabel?: string;
 }
 
 /**
  * The learner's card of a sound (platform plan 86, VoxOrd step 15.4): the base's words in the
  * interface language, and a way into a session on it.
  */
-export function SoundCardScreen({ atomId, onBack, onTrain }: SoundCardScreenProps) {
+export function SoundCardScreen({ atomId, onBack, onTrain, backLabel }: SoundCardScreenProps) {
   const { t, language } = useTranslation();
   const { colors, typography } = useTheme();
   const [load, setLoad] = useState<Load>({ name: 'loading' });
@@ -97,12 +99,14 @@ export function SoundCardScreen({ atomId, onBack, onTrain }: SoundCardScreenProp
             </Text>
           </View>
         ) : null}
-        <Button
-          block
-          size={48}
-          label={t('soundSession.card.train')}
-          onPress={() => onTrain(card.atomId)}
-        />
+        {onTrain ? (
+          <Button
+            block
+            size={48}
+            label={t('soundSession.card.train')}
+            onPress={() => onTrain(card.atomId)}
+          />
+        ) : null}
       </View>
     );
   }
@@ -110,7 +114,7 @@ export function SoundCardScreen({ atomId, onBack, onTrain }: SoundCardScreenProp
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
       <SubScreen
-        backLabel={t('soundSession.title')}
+        backLabel={backLabel ?? t('soundSession.title')}
         onBack={onBack}
         title={load.name === 'ready' ? load.card.title : t('soundSession.card.open')}
       >

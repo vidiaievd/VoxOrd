@@ -61,6 +61,18 @@ describe('SoundCardScreen', () => {
     expect(onTrain).toHaveBeenCalledWith('nb:kj');
   });
 
+  it('draws no Train where the host offers none (a card over an AI review, OQ-10)', async () => {
+    mockGet.mockResolvedValue({
+      atomId: 'nb:kj', family: 'kj', ipa: '', title: 'kj', description: null,
+      howTo: 'x', drill: null, commonError: null, ukNote: null, carrierWords: [],
+    });
+    let tree!: ReactTestRenderer.ReactTestRenderer;
+    await act(async () => {
+      tree = ReactTestRenderer.create(<SoundCardScreen atomId="nb:kj" onBack={() => undefined} />);
+    });
+    expect(tree.root.findAll(n => n.props.label === 'soundSession.card.train')).toHaveLength(0);
+  });
+
   it('tells «no such sound» from a fault', async () => {
     mockGet.mockRejectedValue(new ApiError({ message: 'x', status: 404 }));
     expect((await draw()).text).toContain('soundSession.card.notFound');

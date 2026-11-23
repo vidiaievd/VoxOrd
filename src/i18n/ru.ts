@@ -1209,6 +1209,8 @@ export const ru: Translations = {
           prosody: 'интонация {prosody}',
           unclear: 'Неразборчиво:',
           note: 'Только подсказка — на результат не влияет.',
+          sounds: 'Над какими звуками поработать:',
+          howTo: 'Как произносить',
         },
       },
       aspect: {

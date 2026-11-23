@@ -1209,6 +1209,8 @@ export const uk: Translations = {
           prosody: 'інтонація {prosody}',
           unclear: 'Нечітко:',
           note: 'Лише підказка — на результат не впливає.',
+          sounds: 'Над якими звуками попрацювати:',
+          howTo: 'Як вимовляти',
         },
       },
       aspect: {

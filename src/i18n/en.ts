@@ -1201,6 +1201,8 @@ export const en: Translations = {
           prosody: 'intonation {prosody}',
           unclear: 'Unclear:',
           note: 'A hint only — it does not change the result.',
+          sounds: 'Sounds to work on:',
+          howTo: 'How to say it',
         },
       },
       aspect: {

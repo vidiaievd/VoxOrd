@@ -1221,6 +1221,8 @@ export interface Translations {
           prosody: string; // '{prosody}'
           unclear: string;
           note: string;
+          sounds: string;
+          howTo: string;
         };
       };
       aspect: {
