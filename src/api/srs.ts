@@ -221,7 +221,8 @@ export const CARD_STATES_MAX_IDS = 500;
 /**
  * `POST /srs/cards/introduce` — puts a word into the student's review. Idempotent: an
  * existing card comes back as it is and costs nothing; a new one counts against the day's
- * new-card budget, and past it the server answers 429.
+ * new-card budget. Never refused over it: past the budget the card's first review (`dueAt`)
+ * lands on the next day with room.
  */
 export async function introduceCard(
   contentType: 'VOCABULARY_WORD',

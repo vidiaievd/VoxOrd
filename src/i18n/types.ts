@@ -751,7 +751,6 @@ export interface Translations {
     courseBadge: string;
     /** On a word of a unit's list that the student added themselves. */
     mineBadge: string;
-    limitReached: string;
     searchPlaceholder: string;
     searchOpen: string;
     noMatches: string;

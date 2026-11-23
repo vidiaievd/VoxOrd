@@ -751,7 +751,6 @@ export const en: Translations = {
     saveError: 'Could not save — try again',
     courseBadge: 'from the course',
     mineBadge: 'mine',
-    limitReached: 'Enough new words in review for today — the rest join tomorrow',
     searchPlaceholder: 'Search my words',
     searchOpen: 'Search',
     noMatches: 'Nothing found',

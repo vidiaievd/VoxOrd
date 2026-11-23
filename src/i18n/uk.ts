@@ -759,7 +759,6 @@ export const uk: Translations = {
     saveError: 'Не вдалося зберегти — спробуйте ще раз',
     courseBadge: 'з курсу',
     mineBadge: 'моє',
-    limitReached: 'На сьогодні нових слів у повторенні достатньо — решта додасться завтра',
     searchPlaceholder: 'Пошук по моїх словах',
     searchOpen: 'Знайти',
     noMatches: 'Нічого не знайдено',

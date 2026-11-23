@@ -759,7 +759,6 @@ export const ru: Translations = {
     saveError: 'Не удалось сохранить — попробуйте ещё раз',
     courseBadge: 'из курса',
     mineBadge: 'моё',
-    limitReached: 'На сегодня новых слов в повторении достаточно — остальные добавятся завтра',
     searchPlaceholder: 'Поиск по моим словам',
     searchOpen: 'Найти',
     noMatches: 'Ничего не найдено',
