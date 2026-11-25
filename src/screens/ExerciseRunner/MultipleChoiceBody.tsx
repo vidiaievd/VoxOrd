@@ -106,9 +106,12 @@ type OptionState = 'default' | 'sel' | 'ok' | 'bad' | 'key' | 'gone';
  * which is the whole reason the key stays on the server (plan 53 §3.2, §3.4).
  *
  * How it meets the runner shell: each pick is a call onto the attempt (`answerQuestion`),
- * which opens that attempt on the first one; when the last question closes, the aggregate
- * goes up through `onAnswerChange` and the footer's Check closes the attempt with it. The
- * aggregate is empty on purpose — the engine rebuilds the list from the picks it recorded,
+ * which opens that attempt on the first one; «Finish the set» on the last question closes
+ * the attempt itself (`checkTable` → `finishTable`, as `short_answer` does). Every stage's
+ * button is the runner's footer (`setFooterAction`): with the question's own Check in the
+ * body and the shell's Check — dead until the set was done — in the footer, the screen
+ * showed two «Проверить» and the set took two presses to hand in (OQ-S3 live check,
+ * session 10). The aggregate is empty on purpose — the engine rebuilds the list from the picks it recorded,
  * because which try a question was taken on *is* the score (plan 53 §5).
  */
 function MultipleChoiceSet({
@@ -116,6 +119,9 @@ function MultipleChoiceSet({
   disabled,
   onAnswerChange,
   answerQuestion,
+  checkTable,
+  finishTable,
+  setFooterAction,
   set,
 }: ExerciseBodyProps & { set: Set }) {
   const { t } = useTranslation();
@@ -133,6 +139,8 @@ function MultipleChoiceSet({
   const [score, setScore] = useState(0);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** The closing submit is in flight. */
+  const [handingIn, setHandingIn] = useState(false);
   /** True until the server has been asked what is already on the attempt. */
   const [resuming, setResuming] = useState(true);
   /**
@@ -184,8 +192,8 @@ function MultipleChoiceSet({
         setAttempt(from.attempt);
         setEliminated(from.eliminated);
         if (from.allClosed) {
-          // Every question is finished and the attempt was never closed: the footer's
-          // Check is all that is left, so the set arrives on its own completion screen.
+          // Every question is finished and the attempt was never closed: handing it in is
+          // all that is left, so the set arrives on its completion screen with «Hand in».
           setPhase('done');
           onAnswerChange(buildMultipleChoiceSubmission(), true);
         }
@@ -278,14 +286,32 @@ function MultipleChoiceSet({
     setPicked(optionId);
   };
 
-  const retryQuestion = () => {
+  const retryQuestion = useCallback(() => {
     setResult(null);
     setPicked(null);
     setAttempt(n => n + 1);
     setPhase('picking');
-  };
+  }, []);
 
-  const next = () => {
+  /**
+   * Close the attempt. The aggregate is empty — the engine scores the picks it recorded — so
+   * this can be pressed again after a failure without anything to rebuild. A refusal stays on
+   * the completion screen with «Hand in» for another go.
+   */
+  const handIn = useCallback(async () => {
+    if (handingIn) return;
+    setHandingIn(true);
+    setError(null);
+    try {
+      finishTable(await checkTable(buildMultipleChoiceSubmission()));
+    } catch (e) {
+      setError(stepSendError(e, t, 'exerciseRunner.multipleChoice', null));
+    } finally {
+      setHandingIn(false);
+    }
+  }, [checkTable, finishTable, handingIn, t]);
+
+  const next = useCallback(() => {
     setResult(null);
     setPicked(null);
     setAttempt(1);
@@ -297,10 +323,89 @@ function MultipleChoiceSet({
       setPhase('picking');
       return;
     }
-    // The set is answered; the shell closes it.
+    // The set is answered: «Finish the set» hands it in, one press.
     setPhase('done');
     onAnswerChange(buildMultipleChoiceSubmission(), true);
-  };
+    handIn();
+  }, [handIn, last, onAnswerChange]);
+
+  const gateShown =
+    phase !== 'done' && audioOn && audio.audio.settings.layout === 'gate' && !entered;
+
+  /*
+    The footer is the stage's one button. Nothing while the body is locked, loading or behind
+    the listen-first screen — the shell keeps its own footer then — and nothing once the runner
+    holds the verdict: its Continue takes the footer.
+  */
+  useEffect(() => {
+    if (!setFooterAction) return;
+    if (disabled || resuming || total === 0 || gateShown) {
+      setFooterAction(null);
+    } else if (phase === 'done') {
+      setFooterAction({
+        label: t('exerciseRunner.multipleChoice.handIn'),
+        onPress: handIn,
+        busy: handingIn,
+        error,
+      });
+    } else if (closed) {
+      setFooterAction({
+        label: last
+          ? t('exerciseRunner.multipleChoice.finish')
+          : t('exerciseRunner.multipleChoice.next'),
+        onPress: next,
+      });
+    } else if (wrongWithTriesLeft) {
+      setFooterAction({
+        label: t('exerciseRunner.multipleChoice.tryAgain'),
+        onPress: retryQuestion,
+        disabled: sending,
+        secondary: {
+          label: t('exerciseRunner.multipleChoice.showAnswer'),
+          onPress: () => send(null, true),
+          disabled: sending,
+        },
+      });
+    } else if (settings.instant) {
+      // The tap on an option is the hand-in; the footer only says so.
+      setFooterAction({
+        label: t('exerciseRunner.multipleChoice.tapAnswer'),
+        onPress: () => undefined,
+        disabled: true,
+        busy: sending,
+      });
+    } else {
+      setFooterAction({
+        label: t('exerciseRunner.multipleChoice.check'),
+        onPress: () => send(picked),
+        disabled: picked === null || locked,
+        busy: sending,
+      });
+    }
+  }, [
+    setFooterAction,
+    disabled,
+    resuming,
+    total,
+    gateShown,
+    phase,
+    closed,
+    wrongWithTriesLeft,
+    last,
+    settings.instant,
+    picked,
+    locked,
+    sending,
+    handingIn,
+    error,
+    handIn,
+    next,
+    retryQuestion,
+    send,
+    t,
+  ]);
+
+  useEffect(() => () => setFooterAction?.(null), [setFooterAction]);
 
   if (resuming) {
     return (
@@ -329,12 +434,6 @@ function MultipleChoiceSet({
         <Text style={styles.doneScore}>
           {t('exerciseRunner.multipleChoice.doneScore', { score, total })}
         </Text>
-        {/* The set is handed in by the footer, which is the one button that closes an
-            attempt in this app. Said out loud, because the screen is otherwise finished
-            and nothing on it would explain what is left to press. */}
-        {!disabled ? (
-          <Text style={styles.doneHint}>{t('exerciseRunner.multipleChoice.doneHint')}</Text>
-        ) : null}
       </View>
     );
   }
@@ -344,7 +443,7 @@ function MultipleChoiceSet({
     After the last question it is a finished set rather than a clip to hear again, so the
     `done` screen above wins — which is why this stands below it.
   */
-  if (audioOn && audio.audio.settings.layout === 'gate' && !entered) {
+  if (gateShown) {
     return (
       <AudioGateScreen eng={audio} interactive={!disabled} onStart={() => setEntered(true)} />
     );
@@ -500,55 +599,6 @@ function MultipleChoiceSet({
       ) : null}
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
-
-      {!judged && !settings.instant ? (
-        <TouchableOpacity
-          style={[styles.button, (picked === null || sending) && styles.buttonDisabled]}
-          onPress={() => send(picked)}
-          disabled={picked === null || sending || disabled || locked}
-        >
-          {sending ? (
-            <ActivityIndicator size="small" color={colors.accent300} />
-          ) : (
-            <Text style={styles.buttonText}>{t('exerciseRunner.multipleChoice.check')}</Text>
-          )}
-        </TouchableOpacity>
-      ) : null}
-
-      {!judged && settings.instant ? (
-        <Text style={styles.tapHint}>{t('exerciseRunner.multipleChoice.tapAnswer')}</Text>
-      ) : null}
-
-      {wrongWithTriesLeft ? (
-        <>
-          <TouchableOpacity
-            style={[styles.button, sending && styles.buttonDisabled]}
-            onPress={retryQuestion}
-            disabled={sending || disabled}
-          >
-            <Text style={styles.buttonText}>{t('exerciseRunner.multipleChoice.tryAgain')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.secondary, sending && styles.buttonDisabled]}
-            onPress={() => send(null, true)}
-            disabled={sending || disabled}
-          >
-            <Text style={styles.secondaryText}>
-              {t('exerciseRunner.multipleChoice.showAnswer')}
-            </Text>
-          </TouchableOpacity>
-        </>
-      ) : null}
-
-      {closed ? (
-        <TouchableOpacity style={styles.button} onPress={next}>
-          <Text style={styles.buttonText}>
-            {last
-              ? t('exerciseRunner.multipleChoice.finish')
-              : t('exerciseRunner.multipleChoice.next')}
-          </Text>
-        </TouchableOpacity>
-      ) : null}
 
       {/* The counter belongs to the verdict: it says which try was just judged, and it
           goes away with «Prøv igjen» along with everything else that was judged. */}
@@ -753,41 +803,6 @@ const makeStyles = (colors: ColorScheme) =>
       color: colors.neutral400,
       marginTop: 10,
     },
-    tapHint: {
-      fontSize: 12.5,
-      color: colors.neutral500,
-      marginTop: 12,
-      textAlign: 'center',
-    },
-    button: {
-      marginTop: 14,
-      borderWidth: 1,
-      borderColor: colors.accentBase,
-      borderRadius: 14,
-      paddingVertical: 13,
-      alignItems: 'center',
-    },
-    buttonDisabled: {
-      opacity: 0.5,
-    },
-    buttonText: {
-      fontSize: 15,
-      fontWeight: '500',
-      color: colors.accent300,
-    },
-    secondary: {
-      marginTop: 10,
-      borderRadius: 14,
-      borderWidth: 1,
-      borderColor: colors.neutral800,
-      paddingVertical: 11,
-      alignItems: 'center',
-    },
-    secondaryText: {
-      fontSize: 14,
-      fontWeight: '500',
-      color: colors.neutral400,
-    },
     attempt: {
       fontSize: 12,
       color: colors.neutral500,
@@ -814,12 +829,6 @@ const makeStyles = (colors: ColorScheme) =>
       color: colors.neutral400,
       textAlign: 'center',
       lineHeight: 20,
-    },
-    doneHint: {
-      fontSize: 12.5,
-      color: colors.neutral500,
-      textAlign: 'center',
-      marginTop: 12,
     },
     notice: {
       alignItems: 'center',

@@ -1434,7 +1434,8 @@ export const en: Translations = {
       setDone: 'All {count} sentences done',
       setTally: '{solved} solved · {revealed} shown',
       setTallySkipped: '{solved} solved · {revealed} shown · {skipped} skipped',
-      doneHint: 'Tap Check below to hand the set in.',
+      handIn: 'Hand in the set',
+      sendFailed: 'Could not hand the set in. Try again.',
       nothingToSolve: 'Nothing to solve here yet — no sentence in this exercise is finished.',
       checkFailed: 'The sentence could not be checked. Try again.',
       closedAlready: 'This sentence is already finished.',
@@ -1465,7 +1466,7 @@ export const en: Translations = {
       closedAlready: 'This question is already finished.',
       doneTitle: 'Set finished',
       doneScore: '{score} of {total} right on the first attempt.',
-      doneHint: 'Tap Check below to hand the set in.',
+      handIn: 'Hand in the set',
       empty: 'This set has no questions yet',
       emptyDesc:
         'A question needs text, at least two options and one of them marked correct.',

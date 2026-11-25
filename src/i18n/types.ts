@@ -1436,7 +1436,8 @@ export interface Translations {
       setDone: string; // '{count}'
       setTally: string; // '{solved}', '{revealed}'
       setTallySkipped: string; // '{solved}', '{revealed}', '{skipped}'
-      doneHint: string;
+      handIn: string;
+      sendFailed: string;
       nothingToSolve: string;
       checkFailed: string;
       closedAlready: string;
@@ -1472,7 +1473,7 @@ export interface Translations {
       closedAlready: string;
       doneTitle: string;
       doneScore: string; // '{score}', '{total}'
-      doneHint: string;
+      handIn: string;
       empty: string;
       emptyDesc: string;
       unavailable: string;
