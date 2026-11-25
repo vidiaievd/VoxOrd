@@ -1,6 +1,8 @@
 import React from 'react';
 import ReactTestRenderer, { act } from 'react-test-renderer';
-import { SchoolPausedScreen, useSchoolGate, type SchoolGateState } from './SchoolGate';
+import { SchoolPausedScreen, useSchoolGate, useSchoolRefusal, type SchoolGateState } from './SchoolGate';
+import { announceSchoolRefusal } from '../../lib/schoolLifecycle';
+import { ApiError } from '../../api/client';
 
 const mockHome = jest.fn();
 jest.mock('../../hooks/useCourseHome', () => ({ useCourseHome: () => mockHome() }));
@@ -67,5 +69,40 @@ describe('SchoolPausedScreen', () => {
     expect(JSON.stringify(r.toJSON())).toContain('schoolLifecycle.blockedStart');
     expect(JSON.stringify(r.toJSON())).toContain('schoolLifecycle.blockedBack');
     expect(onBack).not.toHaveBeenCalled();
+  });
+});
+
+describe('useSchoolRefusal', () => {
+  const refused = () =>
+    announceSchoolRefusal(
+      Promise.reject(new ApiError({ message: 'school', status: 409, body: { code: 'SCHOOL_NOT_ACTIVE', schoolStatus: 'suspended' } })),
+    ).catch(() => undefined);
+
+  function mount(notify: jest.Mock) {
+    const seen: Array<string | null> = [];
+    let setVerdict!: (v: unknown) => void;
+    function Probe() {
+      const [verdict, set] = React.useState<unknown>(null);
+      setVerdict = set;
+      seen.push(useSchoolRefusal(verdict, notify));
+      return null;
+    }
+    act(() => {
+      ReactTestRenderer.create(<Probe />);
+    });
+    return { seen, setVerdict };
+  }
+
+  it('words a refusal once and keeps the banner until a hand-in goes through', async () => {
+    const notify = jest.fn();
+    const { seen, setVerdict } = mount(notify);
+    await act(async () => {
+      await refused();
+    });
+    expect(notify).toHaveBeenCalledWith('schoolSuspended');
+    expect(seen.at(-1)).toBe('suspended');
+    // The school was reactivated and the same hand-in passed: the banner goes.
+    act(() => setVerdict({ score: 50 }));
+    expect(seen.at(-1)).toBeNull();
   });
 });

@@ -11,9 +11,8 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import { Button, ProgressTrack, Spinner, useToast } from '../../components/ui';
-import { onSchoolNotActive } from '../../lib/schoolLifecycle';
 import { SchoolStatusBanner } from '../../components/SchoolStatusBanner';
-import { SchoolGateChecking, SchoolPausedScreen, useSchoolGate } from './SchoolGate';
+import { SchoolGateChecking, SchoolPausedScreen, useSchoolGate, useSchoolRefusal } from './SchoolGate';
 import { useTranslation } from '../../i18n';
 import { useModal } from '../../providers/ModalProvider';
 import { useBackIntercept } from '../../navigation/backIntercept';
@@ -87,15 +86,9 @@ function ExerciseRunnerBody({
   const styles = makeStyles(colors);
 
   // The learner's school is read only (plan 90, phase 5): a start or hand-in it refused is
-  // worded here once, whichever body made the call. The toast passes; the banner under the
-  // header stays, so the reason is still there when the body's own «try again» appears (Q15).
-  const [refusal, setRefusal] = useState<'suspended' | 'closed' | null>(null);
-  useEffect(
-    () =>
-      onSchoolNotActive(key => {
-        toast.show(t(`schoolLifecycle.${key}`));
-        setRefusal(key === 'schoolClosed' ? 'closed' : 'suspended');
-      }),
+  // worded here once, whichever body made the call (see `useSchoolRefusal`).
+  const notifyRefusal = useCallback(
+    (key: 'schoolSuspended' | 'schoolClosed') => toast.show(t(`schoolLifecycle.${key}`)),
     [toast, t],
   );
 
@@ -115,6 +108,7 @@ function ExerciseRunnerBody({
     retry,
     retryAttempt,
   } = useExerciseRunner(exerciseIds, startIndex);
+  const refusal = useSchoolRefusal(state.verdict, notifyRefusal);
   useRecordMistakes(state, courseId, unitId);
   // The set goes to the phone while online, so its other exercises play offline too — a unit
   // beyond the download window, «Practice», «Checked by AI» (offline plan, B3.7).
