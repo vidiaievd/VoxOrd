@@ -6,7 +6,7 @@ import { SchoolStatusBanner } from '../../components/SchoolStatusBanner';
 import { useCourseHome } from '../../hooks/useCourseHome';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
-import { onSchoolNotActive, type SchoolLifecycleStatus } from '../../lib/schoolLifecycle';
+import { onSchoolAccepted, onSchoolNotActive, type SchoolLifecycleStatus } from '../../lib/schoolLifecycle';
 
 export interface SchoolGateState {
   /** No answer yet and nothing cached: the course home is still loading. */
@@ -36,12 +36,12 @@ export function useSchoolGate(courseId: string): SchoolGateState {
 /**
  * A start or hand-in the learner's school refused as read only (plan 90, phase 5): `notify` words
  * it once, the returned status keeps the banner under the runner's header so the reason is still
- * there when the body's own «try again» appears (Q15). A hand-in that went through afterwards
- * (`handedIn` turns truthy — the school was reactivated) takes the banner away: it would only
- * say the work cannot be handed in right under a verdict that says it was.
+ * there when the body's own «try again» appears (Q15). The next start or hand-in the server takes
+ * (the school was reactivated) takes the banner away — otherwise it would go on saying nothing can
+ * be started or handed in right under a question that was just checked. Answers and joins are not
+ * refused by a read-only school, so they say nothing either way.
  */
 export function useSchoolRefusal(
-  handedIn: unknown,
   notify: (key: 'schoolSuspended' | 'schoolClosed') => void,
 ): 'suspended' | 'closed' | null {
   const [refusal, setRefusal] = useState<'suspended' | 'closed' | null>(null);
@@ -53,9 +53,7 @@ export function useSchoolRefusal(
       }),
     [notify],
   );
-  useEffect(() => {
-    if (handedIn) setRefusal(null);
-  }, [handedIn]);
+  useEffect(() => onSchoolAccepted(() => setRefusal(null)), []);
   return refusal;
 }
 

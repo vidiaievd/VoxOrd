@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactTestRenderer, { act } from 'react-test-renderer';
 import { SchoolPausedScreen, useSchoolGate, useSchoolRefusal, type SchoolGateState } from './SchoolGate';
-import { announceSchoolRefusal } from '../../lib/schoolLifecycle';
+import { announceSchoolAccepted, announceSchoolRefusal } from '../../lib/schoolLifecycle';
 import { ApiError } from '../../api/client';
 
 const mockHome = jest.fn();
@@ -80,29 +80,27 @@ describe('useSchoolRefusal', () => {
 
   function mount(notify: jest.Mock) {
     const seen: Array<string | null> = [];
-    let setVerdict!: (v: unknown) => void;
     function Probe() {
-      const [verdict, set] = React.useState<unknown>(null);
-      setVerdict = set;
-      seen.push(useSchoolRefusal(verdict, notify));
+      seen.push(useSchoolRefusal(notify));
       return null;
     }
     act(() => {
       ReactTestRenderer.create(<Probe />);
     });
-    return { seen, setVerdict };
+    return seen;
   }
 
-  it('words a refusal once and keeps the banner until a hand-in goes through', async () => {
+  it('words a refusal once and keeps the banner until the server takes a start or hand-in', async () => {
     const notify = jest.fn();
-    const { seen, setVerdict } = mount(notify);
+    const seen = mount(notify);
     await act(async () => {
       await refused();
     });
+    expect(notify).toHaveBeenCalledTimes(1);
     expect(notify).toHaveBeenCalledWith('schoolSuspended');
     expect(seen.at(-1)).toBe('suspended');
-    // The school was reactivated and the same hand-in passed: the banner goes.
-    act(() => setVerdict({ score: 50 }));
+    // The school was reactivated and the next start went through: the banner goes.
+    act(() => announceSchoolAccepted());
     expect(seen.at(-1)).toBeNull();
   });
 });

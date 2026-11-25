@@ -1,6 +1,6 @@
 import { ApiError, apiClient } from './client';
 import { isServerOutOfReach } from './isNetworkError';
-import { announceSchoolRefusal } from '../lib/schoolLifecycle';
+import { announceSchoolAccepted, announceSchoolRefusal } from '../lib/schoolLifecycle';
 import type {
   DifficultyLevel,
   ExerciseDisplay,
@@ -838,7 +838,11 @@ export function startAttempt(
   exerciseId: string,
   body: StartAttemptRequest,
 ): Promise<StartAttemptResponse> {
-  return announceSchoolRefusal(startAttemptOnce(exerciseId, body));
+  return announceSchoolRefusal(startAttemptOnce(exerciseId, body)).then(started => {
+    // A start kept on the phone says nothing about the school; only the server's does.
+    if (!isLocal(started.attemptId)) announceSchoolAccepted();
+    return started;
+  });
 }
 
 async function startAttemptOnce(
@@ -877,11 +881,11 @@ export function submitAttempt(
   attemptId: string,
   body: SubmitAttemptRequest,
 ): Promise<SubmitAttemptResponse> {
-  return announceSchoolRefusal(
-    isLocal(attemptId)
-      ? local!.submit(attemptId, body)
-      : remoteSubmitAttempt(exerciseId, attemptId, body),
-  );
+  if (isLocal(attemptId)) return announceSchoolRefusal(local!.submit(attemptId, body));
+  return announceSchoolRefusal(remoteSubmitAttempt(exerciseId, attemptId, body)).then(verdict => {
+    announceSchoolAccepted();
+    return verdict;
+  });
 }
 
 export function answerQuestion(

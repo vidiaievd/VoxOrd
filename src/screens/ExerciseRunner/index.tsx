@@ -91,6 +91,7 @@ function ExerciseRunnerBody({
     (key: 'schoolSuspended' | 'schoolClosed') => toast.show(t(`schoolLifecycle.${key}`)),
     [toast, t],
   );
+  const refusal = useSchoolRefusal(notifyRefusal);
 
   const {
     state,
@@ -108,7 +109,6 @@ function ExerciseRunnerBody({
     retry,
     retryAttempt,
   } = useExerciseRunner(exerciseIds, startIndex);
-  const refusal = useSchoolRefusal(state.verdict, notifyRefusal);
   useRecordMistakes(state, courseId, unitId);
   // The set goes to the phone while online, so its other exercises play offline too — a unit
   // beyond the download window, «Practice», «Checked by AI» (offline plan, B3.7).
