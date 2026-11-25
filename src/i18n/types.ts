@@ -1147,6 +1147,8 @@ export interface Translations {
     tryAgain: string;
     correct: string;
     incorrect: string;
+    /** Over the pass mark with some items wrong: it counted (plan 90, OQ-S3 s11). */
+    passedWithMistakes: string;
     submittedForReview: string;
     /** Feedback title once work goes to a teacher (Courses §8.5). */
     sentForReview: string;

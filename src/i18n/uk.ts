@@ -1138,6 +1138,7 @@ export const uk: Translations = {
     tryAgain: 'Спробувати ще раз',
     correct: 'Правильно',
     incorrect: 'Неправильно',
+    passedWithMistakes: 'Зараховано, але є помилки',
     submittedForReview: 'Надіслано на перевірку',
     sentForReview: 'Надіслано на перевірку · відповідь прийде в Сповіщення',
     keptForReview: 'Збережено на телефоні · піде на перевірку, коли з’явиться зв’язок',

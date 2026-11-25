@@ -101,3 +101,17 @@ describe('formatSetTime', () => {
     expect(formatSetTime(3725)).toBe('62:05');
   });
 });
+
+describe('a set that passed with an item wrong (plan 90, OQ-S3 s11)', () => {
+  it('counts as right, not «with a mistake»', () => {
+    const summary = buildResultsSummary([result({ correct: false, score: 75, passed: true }, 10, 'mc')]);
+    expect(summary.correct).toBe(1);
+    expect(summary.incorrect).toBe(0);
+    expect(summary.wrongIds).toEqual([]);
+  });
+
+  it('a failed one still counts as wrong', () => {
+    const summary = buildResultsSummary([result({ correct: false, score: 50, passed: false }, 10, 'mc')]);
+    expect(summary.incorrect).toBe(1);
+  });
+});

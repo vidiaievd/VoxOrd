@@ -1,3 +1,4 @@
+import { isPassedVerdict } from '../../lib/mistakes';
 import type { ItemResult } from './runnerMachine';
 
 export interface ResultsSummary {
@@ -35,8 +36,9 @@ export interface ResultsSummary {
 /**
  * Buckets each item's verdict into exactly one outcome. `requiresReview`
  * items are never auto-correct (the validators that route to review always
- * return `correct: false` alongside `requiresReview: true`), so
- * checking `correct` first is enough to keep the buckets disjoint.
+ * return `correct: false` alongside `requiresReview: true`, and no `passed`), so
+ * checking `isPassedVerdict` first is enough to keep the buckets disjoint. A set over the
+ * pass mark with an item wrong counts as right here: it passed.
  */
 export function buildResultsSummary(results: ItemResult[]): ResultsSummary {
   let correct = 0;
@@ -50,7 +52,7 @@ export function buildResultsSummary(results: ItemResult[]): ResultsSummary {
 
   for (const { exerciseId, verdict, timeSpentSeconds } of results) {
     totalTimeSpentSeconds += timeSpentSeconds;
-    if (verdict.correct) correct += 1;
+    if (isPassedVerdict(verdict)) correct += 1;
     else if (verdict.requiresReview) {
       needsReview += 1;
       if (!reviewIds.includes(exerciseId)) reviewIds.push(exerciseId);

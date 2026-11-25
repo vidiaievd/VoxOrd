@@ -1130,6 +1130,7 @@ export const en: Translations = {
     tryAgain: 'Try again',
     correct: 'Correct',
     incorrect: 'Incorrect',
+    passedWithMistakes: 'Passed, with some mistakes',
     submittedForReview: 'Submitted for review',
     sentForReview: 'Sent for review · the answer will arrive in Notifications',
     keptForReview: "Saved on the phone · it goes for review once you're back online",

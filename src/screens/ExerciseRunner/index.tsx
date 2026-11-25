@@ -22,6 +22,7 @@ import { useExerciseRunner } from '../../hooks/useExerciseRunner';
 import { courseDownloader } from '../../services/courseDownload';
 import { useKeyboardShown } from '../../hooks/useKeyboardShown';
 import { useRecordMistakes } from '../../hooks/useRecordMistakes';
+import { isPassedVerdict } from '../../lib/mistakes';
 import { usePrecheckAvailability } from '../../hooks/usePrecheckAvailability';
 import { bodyOwnsCheck, ExerciseBody, type FooterAction } from './ExerciseBody';
 import { AiVerdict } from './AiVerdict';
@@ -329,7 +330,7 @@ function ExerciseRunnerBody({
                       <FeedbackBar verdict={state.verdict} />
                     </View>
                   )}
-                  {!state.verdict.correct && !state.verdict.requiresReview ? (
+                  {!isPassedVerdict(state.verdict) && !state.verdict.requiresReview ? (
                     <Button
                       variant="secondary"
                       size={44}

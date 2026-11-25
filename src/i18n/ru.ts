@@ -1138,6 +1138,7 @@ export const ru: Translations = {
     tryAgain: 'Попробовать снова',
     correct: 'Верно',
     incorrect: 'Неверно',
+    passedWithMistakes: 'Зачтено, но есть ошибки',
     submittedForReview: 'Отправлено на проверку',
     sentForReview: 'Отправлено на проверку · ответ придёт в Уведомления',
     keptForReview: 'Сохранено на телефоне · уйдёт на проверку, когда появится связь',

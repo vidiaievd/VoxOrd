@@ -159,6 +159,13 @@ export interface SubmitAttemptResponse {
   attemptId: string;
   correct: boolean;
   score: number | null;
+  /**
+   * Whether the scored attempt counts as passed — what progress and SRS were told. Can be
+   * `true` while `correct` is `false`: a set scored by share, 3 of 4 right. Absent when
+   * nothing was scored (an open question checked, work sent to review) and from engines
+   * older than plan 90 OQ-S3 s11 — read it through `isPassedVerdict`, never directly.
+   */
+  passed?: boolean;
   requiresReview: boolean;
   /**
    * Who will read an answer that `requiresReview` (plan 79, step 2.1c): the school's teacher,

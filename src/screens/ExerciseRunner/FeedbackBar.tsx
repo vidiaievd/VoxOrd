@@ -2,13 +2,14 @@ import React from 'react';
 import { useTranslation } from '../../i18n';
 import { AnswerFeedback, IconName } from '../../components/ui';
 import type { SubmitAttemptResponse } from '../../api/exercises';
+import { isPassedVerdict } from '../../lib/mistakes';
 import { feedbackLine } from './feedbackLine';
 
 interface FeedbackBarProps {
   verdict: SubmitAttemptResponse;
 }
 
-type FeedbackTone = 'correct' | 'incorrect' | 'review' | 'unread' | 'ai' | 'onPhone';
+type FeedbackTone = 'correct' | 'passed' | 'incorrect' | 'review' | 'unread' | 'ai' | 'onPhone';
 
 function toneFor(verdict: SubmitAttemptResponse): FeedbackTone {
   // Free-form templates (translate_*, writing_task) route to human review:
@@ -21,11 +22,14 @@ function toneFor(verdict: SubmitAttemptResponse): FeedbackTone {
     if (verdict.reviewer === 'none') return 'unread';
     return verdict.reviewer === 'ai' ? 'ai' : 'review';
   }
-  return verdict.correct ? 'correct' : 'incorrect';
+  if (verdict.correct) return 'correct';
+  // Not every item right, but over the pass mark: it counted, so it is not «Incorrect».
+  return isPassedVerdict(verdict) ? 'passed' : 'incorrect';
 }
 
 const ICON: Record<FeedbackTone, IconName> = {
   correct: 'CheckCircle',
+  passed: 'CheckCircle',
   incorrect: 'Info',
   review: 'PaperPlaneRight',
   unread: 'Info',
@@ -48,6 +52,8 @@ export function FeedbackBar({ verdict }: FeedbackBarProps) {
   const title =
     tone === 'correct'
       ? t('exerciseRunner.correct')
+      : tone === 'passed'
+      ? t('exerciseRunner.passedWithMistakes')
       : tone === 'incorrect'
       ? line.kind === 'expected'
         ? t('exerciseRunner.expectedAnswer', { answer: line.answer })
@@ -64,6 +70,8 @@ export function FeedbackBar({ verdict }: FeedbackBarProps) {
       ? text ?? t('exerciseRunner.noReviewerNote')
       : tone === 'ai'
       ? text ?? t('exerciseRunner.aiHandedInNote')
+      : tone === 'passed' && line.kind === 'expected'
+      ? t('exerciseRunner.expectedAnswer', { answer: line.answer })
       : text;
 
   return <AnswerFeedback icon={ICON[tone]} title={title} body={body} />;
