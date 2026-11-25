@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { ApiError } from '../../api/client';
 import { findOpenAttempt } from '../../api/exercises';
 import { AnswerState, answerTone, Icon } from '../../components/ui';
 import { useTranslation } from '../../i18n';
@@ -27,6 +26,7 @@ import {
   type MultipleChoiceResult,
   type MultipleChoiceSet as Set,
 } from './templates/multipleChoice';
+import { stepSendError } from './errorMessage';
 
 /**
  * `multiple_choice` — a set of questions, answered one at a time, each with its own budget
@@ -244,11 +244,7 @@ function MultipleChoiceSet({
         // A refusal the engine will keep making (this question is closed, the attempt is
         // over) reads the same to the learner as a lost connection — but only one of them
         // is worth pressing the button again for, so they are told apart.
-        setError(
-          e instanceof ApiError && e.status === 422
-            ? t('exerciseRunner.multipleChoice.closedAlready')
-            : t('exerciseRunner.multipleChoice.sendFailed'),
-        );
+        setError(stepSendError(e, t, 'exerciseRunner.multipleChoice'));
       } finally {
         setSending(false);
       }

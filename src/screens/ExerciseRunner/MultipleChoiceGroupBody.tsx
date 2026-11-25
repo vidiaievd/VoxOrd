@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { ApiError } from '../../api/client';
 import type { SubmitAttemptResponse } from '../../api/exercises';
 import { Icon, type IconName } from '../../components/ui';
 import { useTranslation } from '../../i18n';
@@ -21,6 +20,7 @@ import {
   type MultipleChoiceGroupTable,
   type MultipleChoiceGroupVerdict,
 } from './templates/multipleChoiceGroup';
+import { stepSendError } from './errorMessage';
 
 /**
  * `multiple_choice_group` — a table of statements sharing one set of answer columns,
@@ -218,11 +218,7 @@ function MultipleChoiceGroupTableBody({
         // A refusal the engine will keep making — this table is closed, the budget is
         // spent — reads the same to the learner as a lost request, but only one of them is
         // worth pressing the button again for.
-        setError(
-          e instanceof ApiError && e.status === 422
-            ? t('exerciseRunner.multipleChoiceGroup.closedAlready')
-            : t('exerciseRunner.multipleChoiceGroup.sendFailed'),
-        );
+        setError(stepSendError(e, t, 'exerciseRunner.multipleChoiceGroup'));
       } finally {
         setSending(false);
       }

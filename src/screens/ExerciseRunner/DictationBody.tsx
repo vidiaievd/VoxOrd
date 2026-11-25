@@ -30,6 +30,7 @@ import {
 } from './audio';
 import type { ExerciseBodyProps, FooterAction } from './ExerciseBody';
 import { BodyFooter } from './BodyFooter';
+import { stepSendError } from './errorMessage';
 import {
   buildDictationSubmission,
   nextOpen,
@@ -258,11 +259,9 @@ function DictationRunner({
           // Too soon after the last check: the server kept nothing, the text is still here.
           setError(t('exerciseRunner.dictation.tooFast'));
           cool();
-        } else if (e instanceof ApiError && e.status === 422) {
-          // A refusal the engine will keep making — this sentence is closed.
-          setError(t('exerciseRunner.dictation.closedAlready'));
         } else {
-          setError(t('exerciseRunner.dictation.sendFailed'));
+          // A closed sentence (422) or a read-only school is a refusal the engine will keep making.
+          setError(stepSendError(e, t, 'exerciseRunner.dictation'));
         }
       } finally {
         setSending(false);

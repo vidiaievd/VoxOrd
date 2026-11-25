@@ -19,7 +19,6 @@ import {
   type TextStyle,
   type ViewStyle,
 } from 'react-native';
-import { ApiError } from '../../api/client';
 import {
   findOpenAttempt,
   type AudioTranscript as AudioTranscriptWords,
@@ -54,6 +53,7 @@ import {
   type TokenRun,
   type Unit,
 } from './templates/highlightInText';
+import { stepSendError } from './errorMessage';
 
 /** BEHAVIOR §8: every word is comfortably tappable — the row plus its slop clears 44. */
 const TAP_MIN = 44;
@@ -247,11 +247,7 @@ function HighlightInTextRunner({
       } catch (e) {
         // A refusal the engine keeps making — the question is closed — reads the same as a
         // lost request, but only one of them is worth pressing again for.
-        setError(
-          e instanceof ApiError && e.status === 422
-            ? t('exerciseRunner.highlightInText.closedAlready')
-            : t('exerciseRunner.highlightInText.sendFailed'),
-        );
+        setError(stepSendError(e, t, 'exerciseRunner.highlightInText'));
       } finally {
         setSending(false);
       }

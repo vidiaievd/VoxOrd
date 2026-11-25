@@ -13,7 +13,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
-import { ApiError } from '../../api/client';
 import {
   findOpenBoardCheck,
   type AudioTranscript as AudioTranscriptWords,
@@ -52,6 +51,7 @@ import {
   type InformationTransferVerdict,
   type ProjectedField,
 } from './templates/informationTransfer';
+import { stepSendError } from './errorMessage';
 
 /** Every cell and button is comfortably tappable. */
 const TAP_MIN = 44;
@@ -235,11 +235,7 @@ function InformationTransferRun({
       // 422 is that refusal: a 409 is the start meeting an attempt already in progress, which
       // is not «finished» and is told as a failed send (it is what a blank left half-started on
       // another device looks like).
-      setError(
-        e instanceof ApiError && e.status === 422
-          ? t('exerciseRunner.informationTransfer.closedAlready')
-          : t('exerciseRunner.informationTransfer.sendFailed'),
-      );
+      setError(stepSendError(e, t, 'exerciseRunner.informationTransfer'));
     } finally {
       setSending(false);
     }

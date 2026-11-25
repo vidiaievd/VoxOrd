@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
-import { ApiError } from '../../api/client';
 import type {
   AudioTranscript as AudioTranscriptWords,
   SubmitAttemptResponse,
@@ -42,6 +41,7 @@ import {
   type SortIntoBucketsVerdict,
   type TileView,
 } from './templates/sortIntoBuckets';
+import { stepSendError } from './errorMessage';
 
 /** BEHAVIOR §Accessibility: every tile and zone is comfortably tappable. */
 const TAP_MIN = 44;
@@ -212,11 +212,7 @@ function SortIntoBucketsBoardBody({
       } catch (e) {
         // A refusal the engine will keep making — this board is closed, the budget is
         // spent — reads the same as a lost request, but only one is worth retrying.
-        setError(
-          e instanceof ApiError && e.status === 422
-            ? t('exerciseRunner.sortIntoBuckets.closedAlready')
-            : t('exerciseRunner.sortIntoBuckets.sendFailed'),
-        );
+        setError(stepSendError(e, t, 'exerciseRunner.sortIntoBuckets'));
       } finally {
         setSending(false);
       }

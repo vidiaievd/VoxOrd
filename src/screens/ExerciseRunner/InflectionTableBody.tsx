@@ -13,7 +13,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
-import { ApiError } from '../../api/client';
 import {
   findOpenBoardCheck,
   type AudioTranscript as AudioTranscriptWords,
@@ -47,6 +46,7 @@ import {
   type ProjectedSlot,
   type RowChip,
 } from './templates/inflectionTable';
+import { stepSendError } from './errorMessage';
 
 /** Every cell and bank form is comfortably tappable. */
 const TAP_MIN = 44;
@@ -241,11 +241,7 @@ function InflectionTableRun({
     } catch (e) {
       // A refusal the engine will keep making — this table is closed, the budget is spent —
       // reads the same as a lost request, but only one is worth pressing again for.
-      setError(
-        e instanceof ApiError && e.status === 422
-          ? t('exerciseRunner.inflectionTable.closedAlready')
-          : t('exerciseRunner.inflectionTable.sendFailed'),
-      );
+      setError(stepSendError(e, t, 'exerciseRunner.inflectionTable'));
     } finally {
       setSending(false);
     }

@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, ActivityIndicator } from 'react-native';
-import { ApiError } from '../../api/client';
 import { findOpenAttempt, type AnsweredQuestion } from '../../api/exercises';
 import { Icon } from '../../components/ui';
 import { useTranslation } from '../../i18n';
@@ -19,6 +18,7 @@ import type { AudioTranscript as AudioTranscriptWords } from '../../api/exercise
 import type { ExerciseBodyProps } from './ExerciseBody';
 import { ShortAnswerLegacyBody } from './ShortAnswerLegacyBody';
 import { RunnerPrecheck } from './RunnerPrecheck';
+import { stepSendError } from './errorMessage';
 import {
   buildShortAnswerSubmission,
   canHandIn,
@@ -269,11 +269,7 @@ function ShortAnswerSet({
       // A refusal the engine will keep making (this question is already in, the attempt is
       // closed) reads the same to the learner as a lost connection — but only one of them
       // is worth pressing the button again for, so they are told apart.
-      setError(
-        e instanceof ApiError && e.status === 422
-          ? t('exerciseRunner.shortAnswer.handedInAlready')
-          : t('exerciseRunner.shortAnswer.sendFailed'),
-      );
+      setError(stepSendError(e, t, 'exerciseRunner.shortAnswer', 'handedInAlready'));
     } finally {
       setSending(false);
     }
@@ -327,8 +323,8 @@ function ShortAnswerSet({
       setValue('');
       setPhase('done');
       finishTable(verdict);
-    } catch {
-      setError(t('exerciseRunner.shortAnswer.sendFailed'));
+    } catch (e) {
+      setError(stepSendError(e, t, 'exerciseRunner.shortAnswer', null));
     } finally {
       setClosing(false);
     }
