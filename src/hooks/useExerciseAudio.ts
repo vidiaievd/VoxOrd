@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import Sound from 'react-native-sound';
 import { getMediaAsset } from '../api/media';
+import { isNetworkError } from '../api/isNetworkError';
 import {
   audioOf,
   canPlay as canPlayNow,
@@ -66,6 +67,11 @@ export interface ExerciseAudioEngine {
   canPlay: boolean;
   /** The clip could not be loaded or decoded. The gate opens when this is true. */
   failed: boolean;
+  /**
+   * `failed` because the clip is not on the phone and the server cannot be reached — the
+   * player then says the network is needed rather than that the clip is broken.
+   */
+  offline: boolean;
   loading: boolean;
   speed: number;
   toggle: () => void;
@@ -135,6 +141,7 @@ export function useExerciseAudio(
   const [trackDuration, setTrackDuration] = useState(0);
   const [speed, setSpeed] = useState<number>(1);
   const [failed, setFailed] = useState(false);
+  const [failedOffline, setFailedOffline] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const soundRef = useRef<Sound | null>(null);
@@ -165,6 +172,7 @@ export function useExerciseAudio(
     if (linkUrl !== '') {
       setSrc(linkUrl);
       setFailed(false);
+      setFailedOffline(false);
       return;
     }
     if (assetId === '') {
@@ -180,11 +188,13 @@ export function useExerciseAudio(
         if (cancelled || !mounted.current) return;
         setSrc(asset.url);
         setFailed(false);
-      } catch {
+        setFailedOffline(false);
+      } catch (e) {
         if (cancelled || !mounted.current) return;
         // Nothing to play is not an exercise that cannot be answered: the gate opens on
         // this and the transcript opens with it (BEHAVIOR §11).
         setFailed(true);
+        setFailedOffline(isNetworkError(e));
         setLoading(false);
       }
     })();
@@ -310,6 +320,7 @@ export function useExerciseAudio(
     */
     canPlay: canPlayNow(state, ctx, { interactive: active && !unplayable && !loading }),
     failed: unplayable,
+    offline: unplayable && failedOffline,
     loading,
     speed,
     toggle: () => {

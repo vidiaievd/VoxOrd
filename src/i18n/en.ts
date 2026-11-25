@@ -1062,6 +1062,7 @@ export const en: Translations = {
         paused: 'Paused',
         spent: 'No listens left',
         failed: 'The clip could not be played. The exercise is open anyway.',
+        offline: 'The clip is not on the phone — it needs a connection. The exercise is open anyway.',
       },
       gate: {
         title: 'Listen first',

@@ -1074,6 +1074,8 @@ export interface Translations {
         paused: string;
         spent: string;
         failed: string;
+        /** The clip is not saved on the phone and the server is out of reach. */
+        offline: string;
       };
       gate: {
         title: string;
