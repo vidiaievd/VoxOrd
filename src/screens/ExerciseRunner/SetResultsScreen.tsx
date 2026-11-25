@@ -108,7 +108,7 @@ export function SetResultsScreen({
 
   const stats = [
     {
-      value: `${Math.round(summary.accuracy * 100)}%`,
+      value: summary.accuracy === null ? '—' : `${Math.round(summary.accuracy * 100)}%`,
       label: t('exerciseRunner.statAccuracy'),
       color: colors.accent300,
     },

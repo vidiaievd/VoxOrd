@@ -5,8 +5,12 @@ export interface ResultsSummary {
   correct: number;
   needsReview: number;
   incorrect: number;
-  /** 0..1, correct-only (needsReview items aren't a pass or a fail yet). */
-  accuracy: number;
+  /**
+   * 0..1 over the items checked on the spot (correct + incorrect); `null` when none was — a set
+   * of handed-in work only. needsReview items are neither a pass nor a fail yet, so they stay out
+   * of the denominator too (courses handoff, principle 3): counted in, a writing set read «0%».
+   */
+  accuracy: number | null;
   /**
    * 0..1, (correct + needsReview) / total — for tone/emoji. The templates that
    * go to a teacher (writing_task always, translate_* unless every sentence hits the
@@ -64,7 +68,7 @@ export function buildResultsSummary(results: ItemResult[]): ResultsSummary {
     correct,
     needsReview,
     incorrect,
-    accuracy: total > 0 ? correct / total : 0,
+    accuracy: correct + incorrect > 0 ? correct / (correct + incorrect) : null,
     handledRatio: total > 0 ? (correct + needsReview) / total : 0,
     totalTimeSpentSeconds,
     reviewIds,

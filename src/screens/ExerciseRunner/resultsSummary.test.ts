@@ -28,7 +28,7 @@ describe('buildResultsSummary', () => {
       correct: 0,
       needsReview: 0,
       incorrect: 0,
-      accuracy: 0,
+      accuracy: null,
       handledRatio: 0,
       totalTimeSpentSeconds: 0,
       reviewIds: [],
@@ -49,14 +49,15 @@ describe('buildResultsSummary', () => {
     expect(summary.correct).toBe(1);
     expect(summary.needsReview).toBe(1);
     expect(summary.incorrect).toBe(1);
-    expect(summary.accuracy).toBeCloseTo(1 / 3);
+    // The handed-in item is neither right nor wrong: 1 of the 2 checked on the spot.
+    expect(summary.accuracy).toBeCloseTo(1 / 2);
     expect(summary.handledRatio).toBeCloseTo(2 / 3);
   });
 
   it('treats an all-review set (e.g. writing_task) as fully handled, not a failure', () => {
     const results = [result({ requiresReview: true }), result({ requiresReview: true })];
     const summary = buildResultsSummary(results);
-    expect(summary.accuracy).toBe(0);
+    expect(summary.accuracy).toBeNull();
     expect(summary.handledRatio).toBe(1);
   });
 
