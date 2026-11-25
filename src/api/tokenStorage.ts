@@ -1,3 +1,4 @@
+import { AppState } from 'react-native';
 import * as Keychain from 'react-native-keychain';
 import { biometricStore } from '../store/biometricStore';
 import { translate } from '../i18n';
@@ -57,6 +58,7 @@ export async function saveRefreshToken(token: string): Promise<void> {
  */
 export async function loadRefreshToken(): Promise<string | null> {
   if (cached !== null) return cached;
+  if (biometricStore.isEnabled()) await whenInForeground();
   try {
     const credentials = await Keychain.getGenericPassword({
       service: REFRESH_TOKEN_SERVICE,
@@ -74,6 +76,25 @@ export async function loadRefreshToken(): Promise<string | null> {
     console.warn('[Auth] Failed to read refresh token:', e);
     return null;
   }
+}
+
+/**
+ * Resolves once the app is in the foreground. The fingerprint prompt cannot show over a locked or
+ * dark screen, and the Keychain read it belongs to then never settles: a cold start in the
+ * background (the system bringing the process up, a launch with the screen off) sat on the
+ * restoring spinner for good, without one request to the server (OQ-S3 live check, session 10).
+ * `unknown` is let through — waiting on it could wait for a change that never comes.
+ */
+export function whenInForeground(): Promise<void> {
+  const state = AppState.currentState;
+  if (state !== 'background' && state !== 'inactive') return Promise.resolve();
+  return new Promise(resolve => {
+    const sub = AppState.addEventListener('change', next => {
+      if (next !== 'active') return;
+      sub.remove();
+      resolve();
+    });
+  });
 }
 
 /**
