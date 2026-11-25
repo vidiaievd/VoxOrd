@@ -1680,6 +1680,8 @@ export const uk: Translations = {
         few: 'Лишилося {count} записи.',
         many: 'Лишилося {count} записів.',
       },
+      missing: 'Немає запису: {labels}.',
+      gotoMissing: 'Перейти: {label}',
       tooShort: 'Закоротко: {labels} — запишіть знову.',
       uploading: 'Чекаємо, поки завантажаться записи.',
       readByTeacher: 'Кожен запис прослуховує викладач.',

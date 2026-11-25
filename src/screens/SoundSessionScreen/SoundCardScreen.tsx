@@ -112,7 +112,9 @@ export function SoundCardScreen({ atomId, onBack, onTrain, backLabel }: SoundCar
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
+    // Bottom too: the card is pushed over the tab bar, so nothing else keeps «Train» clear of the
+    // system navigation bar (it sat half under it at the end of the scroll).
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top', 'bottom']}>
       <SubScreen
         backLabel={backLabel ?? t('soundSession.title')}
         onBack={onBack}

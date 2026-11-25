@@ -1673,6 +1673,8 @@ export interface Translations {
       submit: string;
       sending: string;
       left: PluralForms; // '{count}'
+      missing: string; // '{labels}'
+      gotoMissing: string; // '{label}'
       tooShort: string; // '{labels}'
       uploading: string;
       readByTeacher: string;

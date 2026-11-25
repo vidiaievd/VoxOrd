@@ -1301,10 +1301,19 @@ function SubmitActions({
 }) {
   const { state } = recorder;
   const block = submitBlock(state, config);
+  // Which prompts still have no recording, by name: a bare count left the learner on the last
+  // prompt with no idea which one they had skipped.
+  const missing = config.prompts
+    .map((p, index) => ({ id: p.id, index }))
+    .filter(({ id }) => takesOf(state, id).length === 0);
   const note =
     block === 'unrecorded'
       ? t('exerciseRunner.readAloud.left', {
           count: config.prompts.length - recordedCount(state, config),
+        }) +
+        ' ' +
+        t('exerciseRunner.readAloud.missing', {
+          labels: missing.map(m => labelOf(m.id)).join(', '),
         })
       : block === 'short'
       ? t('exerciseRunner.readAloud.tooShort', {
@@ -1332,6 +1341,18 @@ function SubmitActions({
         )}
       </TouchableOpacity>
       <Text style={styles.note}>{note}</Text>
+      {block === 'unrecorded' && missing[0] !== undefined ? (
+        <TouchableOpacity
+          onPress={() => recorder.goto(missing[0]!.index)}
+          accessibilityRole="button"
+        >
+          <Text style={[styles.link, { textAlign: 'center' }]}>
+            {t('exerciseRunner.readAloud.gotoMissing', {
+              label: labelOf(missing[0].id),
+            })}
+          </Text>
+        </TouchableOpacity>
+      ) : null}
       {error !== null ? (
         <Text style={styles.error} accessibilityRole="alert">
           {error}

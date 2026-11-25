@@ -317,6 +317,20 @@ describe('ReadAloudBody', () => {
     expect(m.button('readAloud.submit')?.props.disabled).toBe(true);
   });
 
+  // «1 recording left» on the last prompt gave no clue which one was skipped (OQ-S3-CHECKS П-5).
+  it('names the prompt without a recording and offers to go to it', async () => {
+    const m = await mount();
+    await m.press('readAloud.card.start');
+    await m.flush();
+    expect(m.texts()).toContain('readAloud.missing {"labels":"Avsnitt 1"}');
+    expect(m.texts()).toContain('readAloud.gotoMissing {"label":"Avsnitt 1"}');
+
+    await recordTake(m);
+    await m.flush();
+    expect(m.texts()).not.toContain('readAloud.missing');
+    expect(m.texts()).not.toContain('readAloud.gotoMissing {"label":"Avsnitt 1"}');
+  });
+
   it('deletes the takes the teacher will not hear after the hand-in', async () => {
     mockUploadRecording
       .mockResolvedValueOnce({ assetId: 'first' })

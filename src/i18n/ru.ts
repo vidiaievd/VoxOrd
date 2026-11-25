@@ -1680,6 +1680,8 @@ export const ru: Translations = {
         few: 'Осталось {count} записи.',
         many: 'Осталось {count} записей.',
       },
+      missing: 'Нет записи: {labels}.',
+      gotoMissing: 'Перейти: {label}',
       tooShort: 'Слишком коротко: {labels} — запишите заново.',
       uploading: 'Ждём, пока загрузятся записи.',
       readByTeacher: 'Каждую запись прослушивает преподаватель.',

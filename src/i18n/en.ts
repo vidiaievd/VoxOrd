@@ -1677,6 +1677,8 @@ export const en: Translations = {
         few: '{count} recordings left.',
         many: '{count} recordings left.',
       },
+      missing: 'Missing: {labels}.',
+      gotoMissing: 'Go to {label}',
       tooShort: 'Too short: {labels} — record again.',
       uploading: 'Waiting for the recordings to upload.',
       readByTeacher: 'Every recording is listened to by a teacher.',
