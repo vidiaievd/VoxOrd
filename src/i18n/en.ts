@@ -1144,6 +1144,11 @@ export const en: Translations = {
     aiReview: {
       reading: 'The AI is reading your answer…',
       slow: 'This is taking longer than usual.',
+      readingFirst: "The AI reads your work first, before your teacher — its preliminary review will appear here.",
+      slowFirst: "The AI is taking longer than usual. Its preliminary review will appear on Today, under “From your teacher”.",
+      provisionalApproved: "Preliminary AI review: accepted",
+      provisionalReturned: "Preliminary AI review: needs work",
+      teacherAnswered: "Your teacher has already answered — the result is on Today, under “From your teacher”.",
       askAgain: 'Check again',
       dropped: "The AI couldn't review this answer, and there's no one else to check it.",
       approved: 'Accepted by the AI',

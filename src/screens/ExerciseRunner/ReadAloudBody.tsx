@@ -207,7 +207,7 @@ export function ReadAloudBody({
           : undefined;
       if (opening.stage === 'sent') {
         // With a teacher the item closes; the machine's verdict is worth waiting for.
-        after({ kind: opening.byAi ? 'ai' : 'teacher' });
+        after(opening.byAi ? { kind: 'ai' } : { kind: 'teacher', aiFirst: opening.aiFirst });
         if (!opening.byAi) finish(handedInVerdict(opening.attemptId));
       } else if (opening.stage === 'unread') {
         // Below a draft like a verdict, and open: it may be recorded again (Q6).
@@ -359,7 +359,7 @@ export function ReadAloudBody({
                 ? { kind: 'ai' }
                 : verdict.reviewer === 'none'
                 ? { kind: 'unread' }
-                : { kind: 'teacher' };
+                : { kind: 'teacher', aiFirst: verdict.aiFirst === true };
             setStage({
               kind: 'after',
               attemptId: verdict.attemptId,
@@ -1369,7 +1369,8 @@ function SubmitActions({
  * awaited (plan 82); with nobody (`NO_REVIEWER`); or graded.
  */
 type AfterStart =
-  | { kind: 'teacher' }
+  /** `aiFirst` — the school has a model listen before the teacher (plan 80; OQ-110). */
+  | { kind: 'teacher'; aiFirst?: boolean }
   | { kind: 'ai' }
   | { kind: 'unread' }
   | { kind: 'graded'; verdict: GradedVerdict; redo: boolean };
@@ -1423,12 +1424,17 @@ function AfterHandIn({
     from.kind === 'unread' ? { kind: 'unread', dropped: false } : from,
   );
   const revision = content.settings.revision;
+  /** A school's model listens first: wait for its provisional word under «with the teacher». */
+  const aiFirst = after.kind === 'teacher' && after.aiFirst === true;
   const { wait, again } = useAiVerdictWait(
     exerciseId,
-    after.kind === 'ai' ? attemptId : null,
+    after.kind === 'ai' || aiFirst ? attemptId : null,
+    aiFirst,
   );
 
   useEffect(() => {
+    // The item closed at hand-in; what the model said is drawn below, not as a grade.
+    if (aiFirst) return;
     if (wait?.state !== 'settled') return;
     const { attempt } = wait;
     if (attempt.status === 'NO_REVIEWER') {
@@ -1574,6 +1580,66 @@ function AfterHandIn({
               </TouchableOpacity>
             ) : null}
             {skip()}
+          </>
+        }
+        t={t}
+        styles={styles}
+      />
+    );
+  }
+
+  if (aiFirst) {
+    const settled = wait?.state === 'settled' ? wait.attempt : null;
+    const provisional =
+      settled !== null && settled.status === 'ROUTED_FOR_REVIEW' ? settled.provisionalVerdict ?? null : null;
+    return (
+      <SentView
+        title={title}
+        recordings={recordings}
+        content={content}
+        sourceOf={sourceOf}
+        notice={
+          <>
+            <Text style={styles.sentText}>
+              <Text style={styles.bold}>
+                {t('exerciseRunner.readAloud.sentTitle')}
+              </Text>{' '}
+              {t('exerciseRunner.readAloud.sentBody')}
+            </Text>
+            {provisional !== null ? (
+              <>
+                <Text style={[styles.sentText, styles.bold]}>
+                  {provisional.outcome === 'approved'
+                    ? t('exerciseRunner.aiReview.provisionalApproved')
+                    : t('exerciseRunner.aiReview.provisionalReturned')}
+                </Text>
+                <AiReviewPanel
+                  exerciseId={exerciseId}
+                  attemptId={attemptId}
+                  templateCode={TEMPLATE_CODE}
+                  criteria={new Map()}
+                  passageOf={itemId => content.prompts.find(p => p.id === itemId)?.text ?? null}
+                />
+              </>
+            ) : settled !== null ? (
+              <Text style={styles.sentText}>{t('exerciseRunner.aiReview.teacherAnswered')}</Text>
+            ) : (
+              <View style={styles.waitRow}>
+                {wait?.state === 'slow' ? null : (
+                  <ActivityIndicator size="small" color={colors.accentBase} />
+                )}
+                <Text style={[styles.sentText, styles.flex]}>
+                  {wait?.state === 'slow'
+                    ? t('exerciseRunner.aiReview.slowFirst')
+                    : t('exerciseRunner.aiReview.readingFirst')}
+                </Text>
+              </View>
+            )}
+            {wait?.state === 'slow' ? (
+              <TouchableOpacity style={styles.ghost} onPress={again}>
+                <Text style={styles.ghostText}>{t('exerciseRunner.aiReview.askAgain')}</Text>
+              </TouchableOpacity>
+            ) : null}
           </>
         }
         t={t}

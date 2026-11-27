@@ -79,11 +79,11 @@ function press(tree: ReactTestRenderer.ReactTestRenderer, label: string) {
   });
 }
 
-async function render(templateCode = 'translate_to_target') {
+async function render(templateCode = 'translate_to_target', aiFirst = false) {
   let tree!: ReactTestRenderer.ReactTestRenderer;
   await act(async () => {
     tree = ReactTestRenderer.create(
-      <AiVerdict exerciseId="ex-1" attemptId="att-1" templateCode={templateCode} />,
+      <AiVerdict exerciseId="ex-1" attemptId="att-1" templateCode={templateCode} aiFirst={aiFirst} />,
     );
   });
   return tree;
@@ -235,5 +235,47 @@ describe('AiVerdict (plan 79, 2.3d)', () => {
     const shown = texts(failed);
     expect(shown.some(s => s.includes('exerciseRunner.aiReview.failed'))).toBe(true);
     expect(shown.some(s => s.includes('exerciseRunner.aiReview.label'))).toBe(true);
+  });
+});
+
+describe('AiVerdict — a school that has a model read first (plan 80; OQ-110)', () => {
+  const PROVISIONAL = {
+    outcome: 'returned',
+    comment: 'Almost there.',
+    at: '2026-11-27T10:01:00.000Z',
+    countsAt: null,
+  };
+
+  it('says the model reads first, then shows its provisional verdict as waiting for the teacher', async () => {
+    mockGetAttempt
+      .mockResolvedValueOnce(row({ status: 'ROUTED_FOR_REVIEW', passed: null, reviewedBy: null }))
+      .mockResolvedValueOnce(
+        row({ status: 'ROUTED_FOR_REVIEW', passed: null, reviewedBy: null, provisionalVerdict: PROVISIONAL }),
+      );
+    mockGetAiReview.mockResolvedValue({ ...REVIEW, provisional: true, countsAt: null });
+    const tree = await render('translate_to_target', true);
+
+    expect(texts(tree)).toContain('exerciseRunner.aiReview.readingFirst');
+    await tick();
+    expect(texts(tree)).toContain('exerciseRunner.aiReview.readingFirst');
+    await tick();
+
+    const shown = texts(tree);
+    expect(shown).toContain('exerciseRunner.aiReview.provisionalReturned');
+    expect(shown).not.toContain('exerciseRunner.aiReview.returned');
+    expect(shown).toContain('exerciseRunner.aiReview.provisionalTitle');
+    // Settled at the provisional word: no more asking.
+    const asked = mockGetAttempt.mock.calls.length;
+    await tick(AI_VERDICT_POLL_MS * 3);
+    expect(mockGetAttempt.mock.calls.length).toBe(asked);
+  });
+
+  it('points to Today when the teacher answered before the model’s word arrived', async () => {
+    mockGetAttempt.mockResolvedValue(row({ status: 'SCORED', passed: true, reviewedBy: 'teacher' }));
+    const tree = await render('translate_to_target', true);
+    await tick();
+
+    expect(texts(tree)).toContain('exerciseRunner.aiReview.teacherAnswered');
+    expect(mockGetAiReview).not.toHaveBeenCalled();
   });
 });

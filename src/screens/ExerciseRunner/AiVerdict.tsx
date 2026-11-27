@@ -11,6 +11,11 @@ interface AiVerdictProps {
   exerciseId: string;
   attemptId: string;
   templateCode: string;
+  /**
+   * A school's work the model reads before the teacher (plan 80; OQ-110): the wait ends at the
+   * model's provisional verdict, drawn as «waiting for the teacher» — not as the AI's own mark.
+   */
+  aiFirst?: boolean;
 }
 
 /**
@@ -23,17 +28,19 @@ interface AiVerdictProps {
  * to wait for. `NO_REVIEWER` after the wait is its own line — no model could read it — not
  * the «not on your plan» of a hand-in that never went to one.
  */
-export function AiVerdict({ exerciseId, attemptId, templateCode }: AiVerdictProps) {
+export function AiVerdict({ exerciseId, attemptId, templateCode, aiFirst = false }: AiVerdictProps) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const { wait, again } = useAiVerdictWait(exerciseId, attemptId);
+  const { wait, again } = useAiVerdictWait(exerciseId, attemptId, aiFirst);
 
   if (wait === null || wait.state === 'reading') {
     return (
       <View style={styles.row}>
         <ActivityIndicator size="small" color={colors.accentBase} />
-        <Text style={styles.note}>{t('exerciseRunner.aiReview.reading')}</Text>
+        <Text style={[styles.note, styles.flex]}>
+          {aiFirst ? t('exerciseRunner.aiReview.readingFirst') : t('exerciseRunner.aiReview.reading')}
+        </Text>
       </View>
     );
   }
@@ -58,6 +65,38 @@ export function AiVerdict({ exerciseId, attemptId, templateCode }: AiVerdictProp
         </Text>
       </View>
     );
+  }
+
+  if (aiFirst) {
+    // The teacher answered before the model's word reached this screen: theirs is the one
+    // that counts, and it is in «My work», not a model's mark to draw here.
+    if (attempt.status !== 'ROUTED_FOR_REVIEW' && attempt.reviewedBy !== 'ai') {
+      return (
+        <View style={styles.block}>
+          <Text style={styles.note}>{t('exerciseRunner.aiReview.teacherAnswered')}</Text>
+        </View>
+      );
+    }
+    if (attempt.status === 'ROUTED_FOR_REVIEW') {
+      const provisional = attempt.provisionalVerdict;
+      const accepted = provisional?.outcome === 'approved';
+      // The panel says «waiting for the teacher» and when it would count by itself.
+      return (
+        <View style={styles.block}>
+          <Text style={[styles.title, { color: accepted ? colors.accent300 : colors.neutral400 }]}>
+            {accepted
+              ? t('exerciseRunner.aiReview.provisionalApproved')
+              : t('exerciseRunner.aiReview.provisionalReturned')}
+          </Text>
+          <AiReviewPanel
+            exerciseId={exerciseId}
+            attemptId={attemptId}
+            templateCode={templateCode}
+            criteria={criterionNames(attempt.rubricSnapshot)}
+          />
+        </View>
+      );
+    }
   }
 
   const accepted = attempt.passed === true;
@@ -90,6 +129,9 @@ const makeStyles = (colors: ColorScheme) =>
     title: {
       fontSize: 15,
       fontWeight: '500',
+    },
+    flex: {
+      flex: 1,
     },
     note: {
       fontSize: 13.5,

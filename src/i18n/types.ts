@@ -1168,6 +1168,13 @@ export interface Translations {
     aiReview: {
       reading: string;
       slow: string;
+      /** A school's model reads first, before the teacher (plan 80; OQ-110). */
+      readingFirst: string;
+      slowFirst: string;
+      provisionalApproved: string;
+      provisionalReturned: string;
+      /** The teacher answered before the model's provisional word reached the runner. */
+      teacherAnswered: string;
       askAgain: string;
       dropped: string;
       approved: string;

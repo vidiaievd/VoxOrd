@@ -299,15 +299,19 @@ function ExerciseRunnerBody({
               />
             ) : null}
             {/* A model reads the work of a learner nobody reviews (plan 79, 2.3d): its
-                verdict and review land under the work, while the footer says it went in. */}
+                verdict and review land under the work, while the footer says it went in.
+                A school that has a model read first (plan 80; OQ-110): its provisional
+                verdict lands the same way, labelled as waiting for the teacher. */}
             {state.phase === 'feedback' &&
             state.verdict?.requiresReview &&
-            state.verdict.reviewer === 'ai' ? (
+            (state.verdict.reviewer === 'ai' ||
+              (state.verdict.reviewer === 'teacher' && state.verdict.aiFirst === true)) ? (
               <AiVerdict
                 key={state.verdict.attemptId}
                 exerciseId={state.exerciseIds[state.idx]}
                 attemptId={state.verdict.attemptId}
                 templateCode={state.display.templateCode}
+                aiFirst={state.verdict.reviewer === 'teacher'}
               />
             ) : null}
           </ScrollView>

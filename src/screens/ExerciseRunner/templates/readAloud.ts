@@ -272,6 +272,8 @@ export type Opening =
       attemptId: string;
       recordings: SubmittedRecording[];
       byAi: boolean;
+      /** A school's model listens before the teacher (plan 80; OQ-110). */
+      aiFirst: boolean;
     }
   | { stage: 'unread'; attemptId: string; recordings: SubmittedRecording[] }
   | {
@@ -353,6 +355,7 @@ export function openingOf(
       attemptId: last.id,
       recordings: handedIn,
       byAi: last.schoolId === null,
+      aiFirst: last.schoolId !== null && last.aiFirst === true,
     };
   }
   if (open) {

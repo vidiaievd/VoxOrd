@@ -175,6 +175,11 @@ export interface SubmitAttemptResponse {
    */
   reviewer?: 'teacher' | 'ai' | 'none';
   /**
+   * With `reviewer: 'teacher'`: the school has a model read the work first (plan 80), so its
+   * provisional verdict comes before the teacher's (OQ-110). Absent from older engines.
+   */
+  aiFirst?: boolean;
+  /**
    * Set by the phone's own engine on an answer that goes to review: it is kept on the phone
    * and handed in once online, and only the server will know who reads it (plan 90, live
    * check s22, finding 8) — so no review is promised yet.
@@ -706,6 +711,8 @@ export interface AttemptRow {
    * once, labelled as not counting yet. Only on work still `ROUTED_FOR_REVIEW`.
    */
   provisionalVerdict?: ProvisionalVerdict | null;
+  /** The school has a model read this work before the teacher (plan 80; OQ-110). */
+  aiFirst?: boolean;
 }
 
 /** A model's word on work a teacher has yet to answer — engine `PendingAiVerdictDto`. */

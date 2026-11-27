@@ -10,7 +10,11 @@ export type AiVerdictWait =
   | { state: 'reading' }
   /** Gave up asking; `again` starts another round. */
   | { state: 'slow' }
-  /** Out of the queue: a model's verdict (`SCORED` / `RETURNED`), or `NO_REVIEWER`. */
+  /**
+   * Out of the queue: a model's verdict (`SCORED` / `RETURNED`), or `NO_REVIEWER`. With
+   * `untilProvisional`, also still `ROUTED_FOR_REVIEW` carrying a model's provisional verdict
+   * — a school's work the model read first and the teacher is yet to answer (OQ-110).
+   */
   | { state: 'settled'; attempt: AttemptRow };
 
 /**
@@ -27,6 +31,7 @@ export type AiVerdictWait =
 export function useAiVerdictWait(
   exerciseId: string,
   attemptId: string | null,
+  untilProvisional = false,
 ): { wait: AiVerdictWait | null; again: () => void } {
   const [wait, setWait] = useState<AiVerdictWait | null>(null);
   /** Bumped by `again`, to restart the effect for the same attempt. */
@@ -52,7 +57,11 @@ export function useAiVerdictWait(
         attempt = null;
       }
       if (cancelled) return;
-      if (attempt !== null && attempt.status !== 'ROUTED_FOR_REVIEW') {
+      if (
+        attempt !== null &&
+        (attempt.status !== 'ROUTED_FOR_REVIEW' ||
+          (untilProvisional && attempt.provisionalVerdict != null))
+      ) {
         setWait({ state: 'settled', attempt });
         return;
       }
@@ -72,7 +81,7 @@ export function useAiVerdictWait(
       cancelled = true;
       if (timer !== undefined) clearTimeout(timer);
     };
-  }, [exerciseId, attemptId, round]);
+  }, [exerciseId, attemptId, round, untilProvisional]);
 
   const again = useCallback(() => {
     if (current.current !== null) setRound(r => r + 1);
