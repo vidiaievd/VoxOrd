@@ -8,6 +8,7 @@ import { spacing } from '../../theme/spacing';
 import { OfflineBanner } from '../../components/OfflineBanner';
 import { Button, Icon, NavHeader, Overline, Skeleton, Spinner, useToast } from '../../components/ui';
 import { isNetworkError } from '../../api/isNetworkError';
+import { loadErrorLine } from './loadErrorLine';
 import { useCourseHome } from '../../hooks/useCourseHome';
 import { useDownloadState } from '../../hooks/useDownloadState';
 import { useUnitContents } from '../../hooks/useUnitContents';
@@ -225,7 +226,7 @@ export function UnitContentsScreen({
             {t('unitContents.loadError')}
           </Text>
           <Text style={[typography.secondary, { color: colors.neutral500, textAlign: 'center' }]}>
-            {error?.message}
+            {loadErrorLine(error, t)}
           </Text>
           <Button variant="secondary" size={44} label={t('courses.retry')} onPress={refresh} />
         </View>

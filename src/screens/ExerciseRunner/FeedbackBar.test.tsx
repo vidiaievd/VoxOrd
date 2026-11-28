@@ -46,3 +46,23 @@ describe('FeedbackBar for work that goes to review', () => {
     expect(texts(verdict({ reviewer: 'none' }))).toContain(translate('exerciseRunner.noReviewer'));
   });
 });
+
+describe('FeedbackBar for a scored answer', () => {
+  const scored = { requiresReview: false, feedback: { summary: 'Incorrect. Please try again.' } };
+
+  it('does not say «Incorrect» over a set that passed with an item wrong (plan 90, OQ-S3 s11)', () => {
+    const shown = texts(verdict({ ...scored, correct: false, score: 75, passed: true }));
+    expect(shown).toContain(translate('exerciseRunner.passedWithMistakes'));
+    expect(shown).not.toContain(translate('exerciseRunner.incorrect'));
+  });
+
+  it('says «Incorrect» when it did not pass', () => {
+    const shown = texts(verdict({ ...scored, correct: false, score: 40, passed: false }));
+    expect(shown).toContain(translate('exerciseRunner.incorrect'));
+  });
+
+  it('says «Correct» when every item is right', () => {
+    const shown = texts(verdict({ ...scored, correct: true, score: 100, passed: true, feedback: { summary: 'Correct!' } }));
+    expect(shown).toContain(translate('exerciseRunner.correct'));
+  });
+});

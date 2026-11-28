@@ -46,12 +46,14 @@ import { TAB_ROOT, backTarget, showsTabBar, tabOf, type Screen, type Tab } from 
 import { TabBar } from './TabBar';
 import { TabScrollProvider, useScrollTabToTop } from './tabScroll';
 import { BackInterceptProvider } from './backIntercept';
+import { TrainSoundProvider } from './trainSound';
 import { AuthScreen } from '../screens/AuthScreen';
 import { OfflineSessionBanner } from '../components/OfflineSessionBanner';
 import { useAuth } from '../hooks/useAuth';
 import { setLastCourseId } from '../store/lastCourseStore';
 import { useDueCount } from '../hooks/useDueCount';
 import { useKeepUnreadFresh, useUnreadCount } from '../hooks/useUnreadCount';
+import { setCurrentScreen } from '../lib/crashReport';
 
 /** How long a second Back on Today has to follow the first to leave the app. */
 const EXIT_WINDOW_MS = 2000;
@@ -70,6 +72,9 @@ function Navigator() {
   const styles = makeStyles(colors);
 
   const [screen, setScreen] = useState<Screen>({ name: 'Today' });
+  // Written while rendering, not in an effect: a screen that throws on its first render
+  // never reaches an effect, and the crash report must still name it.
+  setCurrentScreen(screen.name);
   const { status: authStatus } = useAuth();
   const scrollTabToTop = useScrollTabToTop();
 
@@ -658,7 +663,11 @@ function Navigator() {
   return (
     <View style={styles.root}>
       <View style={styles.content}>
-        <BackInterceptProvider handlerRef={interceptRef}>{renderScreen()}</BackInterceptProvider>
+        <BackInterceptProvider handlerRef={interceptRef}>
+          <TrainSoundProvider onTrain={atomId => navigateTo({ name: 'SoundSession', atomId })}>
+            {renderScreen()}
+          </TrainSoundProvider>
+        </BackInterceptProvider>
       </View>
       {/* Today shows the same news in its own card, so it takes no second banner. */}
       {showTabBar && screen.name !== 'Today' && <OfflineSessionBanner />}

@@ -64,8 +64,27 @@ export interface MergedMistakes {
   total: number;
 }
 
-/** Whether a verdict counts as wrong: under the pass mark, or not correct when unscored. */
-export function isWrongVerdict(verdict: { correct: boolean; score: number | null }): boolean {
+interface VerdictFacts {
+  correct: boolean;
+  score: number | null;
+  passed?: boolean;
+}
+
+/**
+ * Whether an answer counts as passed. The engine's `passed` when it sends one — it knows the
+ * author's pass mark; else `correct`, as before the engine said so. A set scored by share
+ * (3 of 4 right) is not `correct` but is passed, and must not be called wrong.
+ */
+export function isPassedVerdict(verdict: VerdictFacts): boolean {
+  return verdict.passed ?? verdict.correct;
+}
+
+/**
+ * Whether a verdict counts as wrong: the engine's `passed` when it sends one; else under the
+ * pass mark, or not correct when unscored.
+ */
+export function isWrongVerdict(verdict: VerdictFacts): boolean {
+  if (verdict.passed !== undefined) return !verdict.passed;
   return verdict.score === null ? !verdict.correct : verdict.score < PASS_MARK;
 }
 

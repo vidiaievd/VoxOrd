@@ -46,7 +46,7 @@ import {
 } from '../../enginePort/modules/attempts/application/services/minimal-pairs-attempt';
 import * as entity from './attempt';
 import { LocalRefusal, OFFLINE_ATTEMPT_PREFIX, type LocalAttempt } from './attempt';
-import { feedbackFor, isGradedOffline, validate, type ExerciseKey } from './grading';
+import { checkSettingsOf, feedbackFor, isGradedOffline, validate, type ExerciseKey } from './grading';
 
 /** One call made on a local attempt, kept to be made again on the server (offline plan, B4). */
 export type JournalOp = (
@@ -365,10 +365,16 @@ export class LocalEngine {
         };
       } else {
         entity.score(a, outcome.details);
+        // The server's verdict, as its submit handler draws it: the validator's own when it
+        // knows the author's pass mark, else the exercise's threshold (default 70).
+        const threshold = checkSettingsOf(key)['passingThreshold'];
         reply = {
           attemptId: a.id,
           correct: outcome.correct,
           score: outcome.score,
+          passed:
+            outcome.passed ??
+            outcome.score >= (typeof threshold === 'number' ? threshold : 70),
           requiresReview: false,
           feedback,
           details: await this.withPairClips(

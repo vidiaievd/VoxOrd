@@ -39,6 +39,39 @@ export function usePendingSync(): number {
   return pending;
 }
 
+function countFor(userId: string | null): number {
+  return (
+    reviewQueueStore.pendingCountFor(userId) +
+    wordCaptureQueueStore.pendingCountFor(userId) +
+    exerciseOutboxStore.pendingCountFor(userId)
+  );
+}
+
+/**
+ * What a given learner still has waiting — for a session the server ended (OQ-52), when
+ * nobody is signed in and `usePendingSync` counts nothing. They go out on that learner's
+ * next sign-in, so the count is kept, not dropped.
+ */
+export function usePendingSyncOf(userId: string | null): number {
+  const [pending, setPending] = useState(() => countFor(userId));
+
+  useEffect(() => {
+    const update = () => setPending(countFor(userId));
+    const unsubscribes = [
+      reviewQueueStore.subscribe(update),
+      wordCaptureQueueStore.subscribe(update),
+      exerciseOutboxStore.subscribe(update),
+    ];
+    void reviewQueueStore.load();
+    void wordCaptureQueueStore.load();
+    void exerciseOutboxStore.load();
+    update();
+    return () => unsubscribes.forEach(u => u());
+  }, [userId]);
+
+  return pending;
+}
+
 function nearlyFull(): boolean {
   return reviewQueueStore.nearlyFull || exerciseOutboxStore.nearlyFull;
 }

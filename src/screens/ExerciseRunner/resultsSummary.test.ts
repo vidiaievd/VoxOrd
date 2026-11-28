@@ -28,7 +28,7 @@ describe('buildResultsSummary', () => {
       correct: 0,
       needsReview: 0,
       incorrect: 0,
-      accuracy: 0,
+      accuracy: null,
       handledRatio: 0,
       totalTimeSpentSeconds: 0,
       reviewIds: [],
@@ -49,14 +49,15 @@ describe('buildResultsSummary', () => {
     expect(summary.correct).toBe(1);
     expect(summary.needsReview).toBe(1);
     expect(summary.incorrect).toBe(1);
-    expect(summary.accuracy).toBeCloseTo(1 / 3);
+    // The handed-in item is neither right nor wrong: 1 of the 2 checked on the spot.
+    expect(summary.accuracy).toBeCloseTo(1 / 2);
     expect(summary.handledRatio).toBeCloseTo(2 / 3);
   });
 
   it('treats an all-review set (e.g. writing_task) as fully handled, not a failure', () => {
     const results = [result({ requiresReview: true }), result({ requiresReview: true })];
     const summary = buildResultsSummary(results);
-    expect(summary.accuracy).toBe(0);
+    expect(summary.accuracy).toBeNull();
     expect(summary.handledRatio).toBe(1);
   });
 
@@ -98,5 +99,19 @@ describe('formatSetTime', () => {
     expect(formatSetTime(9)).toBe('0:09');
     expect(formatSetTime(260)).toBe('4:20');
     expect(formatSetTime(3725)).toBe('62:05');
+  });
+});
+
+describe('a set that passed with an item wrong (plan 90, OQ-S3 s11)', () => {
+  it('counts as right, not «with a mistake»', () => {
+    const summary = buildResultsSummary([result({ correct: false, score: 75, passed: true }, 10, 'mc')]);
+    expect(summary.correct).toBe(1);
+    expect(summary.incorrect).toBe(0);
+    expect(summary.wrongIds).toEqual([]);
+  });
+
+  it('a failed one still counts as wrong', () => {
+    const summary = buildResultsSummary([result({ correct: false, score: 50, passed: false }, 10, 'mc')]);
+    expect(summary.incorrect).toBe(1);
   });
 });

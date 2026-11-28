@@ -19,11 +19,23 @@ export interface Translations {
     subtitle: string;
     offlineTitle: string;
     offlineBody: string;
+    /** Sign-in screen after the server ended the session (OQ-52). */
+    sessionEndedTitle: string;
+    sessionEndedBody: string;
+    sessionEndedUnsent: string;
+    sessionEndedUnsentNoEmail: string;
     /** Above the tab bar while the app works from the stored session, without the server. */
     offlineSessionBanner: string;
     offlineSessionPending: string; // '{count}'
     /** A sync queue near its cap: the oldest answers are about to be dropped. */
     offlineQueueNearlyFull: string;
+  };
+  /** The screen shown instead of the app when a screen crashes (`ErrorBoundary`). */
+  crash: {
+    title: string;
+    body: string;
+    share: string;
+    retry: string;
   };
   nav: {
     pressAgainToExit: string;
@@ -744,7 +756,6 @@ export interface Translations {
     courseBadge: string;
     /** On a word of a unit's list that the student added themselves. */
     mineBadge: string;
-    limitReached: string;
     searchPlaceholder: string;
     searchOpen: string;
     noMatches: string;
@@ -1063,6 +1074,8 @@ export interface Translations {
         paused: string;
         spent: string;
         failed: string;
+        /** The clip is not saved on the phone and the server is out of reach. */
+        offline: string;
       };
       gate: {
         title: string;
@@ -1136,6 +1149,8 @@ export interface Translations {
     tryAgain: string;
     correct: string;
     incorrect: string;
+    /** Over the pass mark with some items wrong: it counted (plan 90, OQ-S3 s11). */
+    passedWithMistakes: string;
     submittedForReview: string;
     /** Feedback title once work goes to a teacher (Courses §8.5). */
     sentForReview: string;
@@ -1153,6 +1168,13 @@ export interface Translations {
     aiReview: {
       reading: string;
       slow: string;
+      /** A school's model reads first, before the teacher (plan 80; OQ-110). */
+      readingFirst: string;
+      slowFirst: string;
+      provisionalApproved: string;
+      provisionalReturned: string;
+      /** The teacher answered before the model's provisional word reached the runner. */
+      teacherAnswered: string;
       askAgain: string;
       dropped: string;
       approved: string;
@@ -1185,6 +1207,8 @@ export interface Translations {
       acceptedAtTermNote: string;
       /** A reading aloud checked by the machine (plan 82). */
       caveatReading: string;
+      caveatProvisional: string;
+      caveatReadingProvisional: string;
       reasonPlaceholderReading: string;
       readingCheck: {
         prompt: string; // '{n}'
@@ -1210,6 +1234,8 @@ export interface Translations {
           prosody: string; // '{prosody}'
           unclear: string;
           note: string;
+          sounds: string;
+          howTo: string;
         };
       };
       aspect: {
@@ -1423,7 +1449,8 @@ export interface Translations {
       setDone: string; // '{count}'
       setTally: string; // '{solved}', '{revealed}'
       setTallySkipped: string; // '{solved}', '{revealed}', '{skipped}'
-      doneHint: string;
+      handIn: string;
+      sendFailed: string;
       nothingToSolve: string;
       checkFailed: string;
       closedAlready: string;
@@ -1459,7 +1486,7 @@ export interface Translations {
       closedAlready: string;
       doneTitle: string;
       doneScore: string; // '{score}', '{total}'
-      doneHint: string;
+      handIn: string;
       empty: string;
       emptyDesc: string;
       unavailable: string;
@@ -1655,6 +1682,8 @@ export interface Translations {
       submit: string;
       sending: string;
       left: PluralForms; // '{count}'
+      missing: string; // '{labels}'
+      gotoMissing: string; // '{label}'
       tooShort: string; // '{labels}'
       uploading: string;
       readByTeacher: string;

@@ -317,6 +317,20 @@ describe('ReadAloudBody', () => {
     expect(m.button('readAloud.submit')?.props.disabled).toBe(true);
   });
 
+  // «1 recording left» on the last prompt gave no clue which one was skipped (OQ-S3-CHECKS П-5).
+  it('names the prompt without a recording and offers to go to it', async () => {
+    const m = await mount();
+    await m.press('readAloud.card.start');
+    await m.flush();
+    expect(m.texts()).toContain('readAloud.missing {"labels":"Avsnitt 1"}');
+    expect(m.texts()).toContain('readAloud.gotoMissing {"label":"Avsnitt 1"}');
+
+    await recordTake(m);
+    await m.flush();
+    expect(m.texts()).not.toContain('readAloud.missing');
+    expect(m.texts()).not.toContain('readAloud.gotoMissing {"label":"Avsnitt 1"}');
+  });
+
   it('deletes the takes the teacher will not hear after the hand-in', async () => {
     mockUploadRecording
       .mockResolvedValueOnce({ assetId: 'first' })
@@ -649,6 +663,43 @@ describe('ReadAloudBody after the hand-in (plan 82)', () => {
       expect.objectContaining({ attemptId: 'att-1', requiresReview: true }),
     );
     expect(m.finishTable.mock.calls[0][0].reviewer).toBeUndefined();
+  });
+
+  // OQ-110: a school that has the machine listen before the teacher.
+  it('reopens school work with the machine first: closed for the teacher, its provisional word below', async () => {
+    mockRecentAttempts.mockResolvedValue([
+      ruled({
+        id: 'sent-1',
+        status: 'ROUTED_FOR_REVIEW',
+        passed: null,
+        reviewedBy: null,
+        schoolId: 'school-1',
+        aiFirst: true,
+      }),
+    ]);
+    mockGetAttempt.mockResolvedValue({ id: 'sent-1', status: 'ROUTED_FOR_REVIEW' });
+    const m = await mount();
+    expect(m.texts()).toContain('readAloud.sentTitle');
+    expect(m.texts()).toContain('aiReview.readingFirst');
+    // With a teacher the item closes at once, as before.
+    expect(m.finishTable).toHaveBeenCalledWith(
+      expect.objectContaining({ attemptId: 'sent-1', requiresReview: true }),
+    );
+
+    mockGetAttempt.mockResolvedValue({
+      id: 'sent-1',
+      status: 'ROUTED_FOR_REVIEW',
+      provisionalVerdict: { outcome: 'approved', comment: null, at: 'x', countsAt: null },
+    });
+    mockGetAiReview.mockResolvedValue({ ...reading, provisional: true });
+    await act(async () => {
+      jest.advanceTimersByTime(2000);
+    });
+    await m.flush();
+
+    expect(m.texts()).toContain('aiReview.provisionalApproved');
+    expect(m.texts()).toContain('aiReview.provisionalTitle');
+    expect(m.texts()).not.toContain('readAloud.graded.outcome.passed');
   });
 
   it('keeps a returned reading open for another try', async () => {

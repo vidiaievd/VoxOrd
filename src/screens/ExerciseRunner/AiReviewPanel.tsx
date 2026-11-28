@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Modal,
   StyleSheet,
   Text,
   TextInput,
@@ -11,6 +12,8 @@ import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
 import { ReadingCheck } from './ReadingCheck';
+import { SoundCardScreen } from '../SoundSessionScreen/SoundCardScreen';
+import { useTrainSound } from '../../navigation/trainSound';
 import {
   DISPUTE_REASON_MAX,
   disputeAiReview,
@@ -86,6 +89,9 @@ export function AiReviewPanel({
   const [load, setLoad] = useState<Load>({ kind: 'loading' });
   const [seq, setSeq] = useState(0);
   const reading = templateCode === 'read_aloud';
+  // A sound card opened from a remark (OQ-10): over this screen, so the runner keeps its place.
+  const [cardAtomId, setCardAtomId] = useState<string | null>(null);
+  const trainSound = useTrainSound();
 
   useEffect(() => {
     let cancelled = false;
@@ -103,6 +109,9 @@ export function AiReviewPanel({
     };
   }, [exerciseId, attemptId, seq]);
 
+  // A verdict that does not count yet takes no dispute, so it must not ask to be told of mistakes.
+  const provisional = load.kind === 'loaded' && load.review?.provisional === true;
+
   const onDisputed = useCallback((disputedAt: string) => {
     setLoad(prev =>
       prev.kind === 'loaded' && prev.review !== null
@@ -114,9 +123,7 @@ export function AiReviewPanel({
   return (
     <View style={styles.panel} accessibilityLabel={t('exerciseRunner.aiReview.label')}>
       <Text style={styles.label}>✦ {t('exerciseRunner.aiReview.label')}</Text>
-      <Text style={styles.caveat}>
-        {reading ? t('exerciseRunner.aiReview.caveatReading') : t('exerciseRunner.aiReview.caveat')}
-      </Text>
+      <Text style={styles.caveat}>{caveat(t, reading, provisional)}</Text>
 
       {load.kind === 'loading' ? (
         <ActivityIndicator style={styles.spinner} color={colors.accentBase} />
@@ -135,8 +142,10 @@ export function AiReviewPanel({
               t={t}
               styles={styles}
               reading={load.review.reading}
+              remarks={load.review.items}
               promptLabel={promptLabel}
               passageOf={passageOf}
+              onOpenSound={setCardAtomId}
             />
           ) : (
             <>
@@ -160,6 +169,28 @@ export function AiReviewPanel({
           )}
         </>
       )}
+      <Modal
+        visible={cardAtomId !== null}
+        animationType="slide"
+        onRequestClose={() => setCardAtomId(null)}
+        statusBarTranslucent
+      >
+        {cardAtomId !== null ? (
+          <SoundCardScreen
+            atomId={cardAtomId}
+            backLabel={t('exerciseRunner.aiReview.label')}
+            onBack={() => setCardAtomId(null)}
+            {...(trainSound
+              ? {
+                  onTrain: (atomId: string) => {
+                    setCardAtomId(null);
+                    trainSound(atomId);
+                  },
+                }
+              : {})}
+          />
+        ) : null}
+      </Modal>
     </View>
   );
 }
@@ -167,9 +198,24 @@ export function AiReviewPanel({
 type Styles = ReturnType<typeof makeStyles>;
 
 /** «Tue 1 Nov» in the app's language; the ISO day if the device cannot say it. */
-function shortDate(iso: string, language: string): string {
+function caveat(t: T, reading: boolean, provisional: boolean): string {
+  if (provisional) {
+    return reading
+      ? t('exerciseRunner.aiReview.caveatReadingProvisional')
+      : t('exerciseRunner.aiReview.caveatProvisional');
+  }
+  return reading ? t('exerciseRunner.aiReview.caveatReading') : t('exerciseRunner.aiReview.caveat');
+}
+
+/**
+ * A date inside a sentence. A short month can end with its own full stop («5 дек.»), and the
+ * sentence then ends with a second one — so that one is dropped.
+ */
+export function shortDate(iso: string, language: string): string {
   try {
-    return new Date(iso).toLocaleDateString(language, { weekday: 'short', day: 'numeric', month: 'short' });
+    return new Date(iso)
+      .toLocaleDateString(language, { weekday: 'short', day: 'numeric', month: 'short' })
+      .replace(/\.$/, '');
   } catch {
     return iso.slice(0, 10);
   }
@@ -213,14 +259,18 @@ function Readings({
   t,
   styles,
   reading,
+  remarks,
   promptLabel,
   passageOf,
+  onOpenSound,
 }: {
   t: T;
   styles: Styles;
   reading: AiReading;
+  remarks: AiReviewRemark[];
   promptLabel: ((itemId: string) => string) | undefined;
   passageOf: ((itemId: string) => string | null) | undefined;
+  onOpenSound: (atomId: string) => void;
 }) {
   const labelOf = (itemId: string, index: number) =>
     promptLabel?.(itemId).trim() || t('exerciseRunner.aiReview.readingCheck.prompt', { n: index + 1 });
@@ -235,6 +285,12 @@ function Readings({
             prompt={prompt}
             passPercent={reading.passPercent}
             passage={passageOf?.(prompt.itemId) ?? null}
+          />
+          <Sounds
+            t={t}
+            styles={styles}
+            remarks={remarks.filter(remark => remark.itemId === prompt.itemId)}
+            onOpenSound={onOpenSound}
           />
         </View>
       ))}
@@ -253,6 +309,44 @@ function Readings({
           </Text>
         ))
       )}
+    </View>
+  );
+}
+
+/**
+ * The weak sounds of one prompt (plan 88, step 5c — the web's `Sounds`): the word and what to
+ * do about it, with the sound's card where the remark names its sound (OQ-10). Feedback like
+ * the scores — the verdict stood on the words read, not on these.
+ */
+function Sounds({
+  t,
+  styles,
+  remarks,
+  onOpenSound,
+}: {
+  t: T;
+  styles: Styles;
+  remarks: AiReviewRemark[];
+  onOpenSound: (atomId: string) => void;
+}) {
+  if (remarks.length === 0) return null;
+  return (
+    <View style={styles.group}>
+      <Text style={styles.groupTitle}>{t('exerciseRunner.aiReview.readingCheck.pronunciation.sounds')}</Text>
+      {remarks.map((remark, i) => {
+        const atomId = remark.soundAtomId;
+        return (
+          <View key={`${remark.itemId}-${i}`} style={styles.remark}>
+            {remark.fragment !== null ? <Text style={styles.fragment}>{remark.fragment}</Text> : null}
+            <Text style={styles.comment}>{remark.comment}</Text>
+            {atomId ? (
+              <Text accessibilityRole="link" style={styles.link} onPress={() => onOpenSound(atomId)}>
+                {t('exerciseRunner.aiReview.readingCheck.pronunciation.howTo')}
+              </Text>
+            ) : null}
+          </View>
+        );
+      })}
     </View>
   );
 }

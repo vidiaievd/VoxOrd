@@ -13,6 +13,7 @@ const mockApi = {
   grammar: jest.fn(),
   vocab: jest.fn(),
   exercise: jest.fn(),
+  answers: jest.fn(),
 };
 jest.mock('../api/courseHome', () => ({ getCourseHome: (id: string) => mockApi.courseHome(id) }));
 jest.mock('../api/unitContents', () => ({ getUnitContents: (id: string) => mockApi.unitContents(id) }));
@@ -26,11 +27,12 @@ jest.mock('../api/vocabulary', () => ({
 }));
 jest.mock('../api/exercises', () => ({
   getExerciseDisplay: (id: string) => mockApi.exercise(id),
-  getExerciseAnswers: jest.fn(),
+  getExerciseAnswers: (id: string) => mockApi.answers(id),
 }));
 
 import { ApiError } from '../api/client';
 import type { UnitSummary } from '../api/types';
+import { exerciseKeyCacheKey } from '../offline/engine/grading';
 import { ALL_UNITS } from '../store/settingsStore';
 import {
   CourseDownloader,
@@ -40,6 +42,8 @@ import {
   type CourseDownloadDeps,
   type CourseRun,
   MIN_FREE_BYTES,
+  OPENED_SETS_KEPT,
+  type OpenedSet,
 } from './courseDownload';
 
 const offline = () => new ApiError({ message: 'offline', status: null, code: 'NETWORK_ERROR' });
@@ -66,6 +70,7 @@ function makeDeps(overrides: Partial<CourseDownloadDeps> = {}) {
   let now = 1_000_000;
   let pinned: string[] = [];
   let unitItems: Record<string, string[]> = {};
+  let opened: OpenedSet[] = [];
   const deps: CourseDownloadDeps = {
     getUserId: () => 'user-1',
     getUiLanguage: () => 'ru',
@@ -103,10 +108,23 @@ function makeDeps(overrides: Partial<CourseDownloadDeps> = {}) {
     setRun: async (key, run) => {
       runs.set(key, run);
     },
+    getOpened: async () => opened.map(set => ({ ...set })),
+    setOpened: async (_user, sets) => {
+      opened = sets;
+    },
     now: () => now,
     ...overrides,
   };
-  return { deps, stored, runs, imported, downloaded, retained, advance: (ms: number) => (now += ms) };
+  return {
+    deps,
+    stored,
+    runs,
+    imported,
+    downloaded,
+    retained,
+    opened: () => opened,
+    advance: (ms: number) => (now += ms),
+  };
 }
 
 beforeEach(() => {
@@ -466,6 +484,129 @@ describe('CourseDownloader', () => {
       expect(downloader.isPinned('course-1')).toBe(false);
       expect([...retained[0]]).not.toContain(LATER);
     });
+  });
+});
+
+describe('CourseDownloader.keepOpened (offline plan, B3.7)', () => {
+  const clipOf = (id: string) => `c0000000-0000-4000-8000-${id.replace(/\D/g, '').padStart(12, '0')}`;
+
+  beforeEach(() => {
+    // `short_answer` is graded on the phone offline, so its key goes along.
+    mockApi.exercise.mockImplementation(async (id: string) => ({
+      id,
+      templateCode: 'short_answer',
+      content: { audio: { assetId: clipOf(id) } },
+    }));
+    mockApi.answers.mockImplementation(async (id: string) => ({
+      templateCode: 'short_answer',
+      content: {},
+      expectedAnswers: { [id]: 'svar' },
+      answerCheckSettings: {},
+      instructions: null,
+    }));
+  });
+
+  it('stores the screens and keys of a set beyond every window, for offline grading', async () => {
+    const { deps, stored, downloaded, opened } = makeDeps();
+    await new CourseDownloader(deps).keepOpened(['ex-7', 'ex-8']);
+
+    expect(stored.has('exercise-display:ex-7:ru')).toBe(true);
+    expect(stored.has('exercise-display:ex-8:ru')).toBe(true);
+    // The second exercise of the set can be checked offline: its key is where the grader reads.
+    expect(stored.get(exerciseKeyCacheKey('ex-8'))).toMatchObject({ expectedAnswers: { 'ex-8': 'svar' } });
+    expect(downloaded.sort()).toEqual([clipOf('ex-7'), clipOf('ex-8')].sort());
+    expect(opened()).toEqual([
+      expect.objectContaining({ exerciseIds: ['ex-7', 'ex-8'], uiLanguage: 'ru', mediaDone: true }),
+    ]);
+  });
+
+  it('leaves media for Wi-Fi but keeps the texts and remembers the set', async () => {
+    const { deps, stored, downloaded, opened } = makeDeps({ mediaAllowed: async () => false });
+    await new CourseDownloader(deps).keepOpened(['ex-7']);
+
+    expect(stored.has('exercise-display:ex-7:ru')).toBe(true);
+    expect(downloaded).toEqual([]);
+    expect(opened()[0]).toMatchObject({ mediaIds: [clipOf('ex-7')], mediaDone: false });
+  });
+
+  it('leaves media when the phone is nearly full', async () => {
+    const { deps, downloaded, opened } = makeDeps({ freeBytes: async () => MIN_FREE_BYTES - 1 });
+    await new CourseDownloader(deps).keepOpened(['ex-7']);
+
+    expect(downloaded).toEqual([]);
+    expect(opened()[0].mediaDone).toBe(false);
+  });
+
+  it('holds the last sets through a walk, and the fourth pushes out the first', async () => {
+    const { deps, retained, opened } = makeDeps();
+    const downloader = new CourseDownloader(deps);
+    await downloader.keepOpened(['ex-71']);
+    await downloader.keepOpened(['ex-72']);
+    await downloader.keepOpened(['ex-73']);
+    await downloader.run();
+    expect(retained[0].has(clipOf('ex-71'))).toBe(true);
+    expect(retained[0].has(clipOf('ex-73'))).toBe(true);
+
+    await downloader.keepOpened(['ex-74']);
+    expect(opened().map(s => s.exerciseIds[0])).toEqual(['ex-74', 'ex-73', 'ex-72']);
+    expect(OPENED_SETS_KEPT).toBe(3);
+    await downloader.run(true);
+    const last = retained[retained.length - 1];
+    expect(last.has(clipOf('ex-71'))).toBe(false);
+    expect(last.has(clipOf('ex-72'))).toBe(true);
+    expect(last.has(clipOf('ex-74'))).toBe(true);
+    // The course window is kept as before.
+    expect(last.has(NARRATION)).toBe(true);
+    expect(last.has(clipOf('ex-1'))).toBe(true);
+  });
+
+  it('only moves a set opened again soon to the front, without asking the server', async () => {
+    const { deps, opened } = makeDeps();
+    const downloader = new CourseDownloader(deps);
+    await downloader.keepOpened(['ex-7']);
+    await downloader.keepOpened(['ex-8']);
+    mockApi.exercise.mockClear();
+    await downloader.keepOpened(['ex-7']);
+
+    expect(mockApi.exercise).not.toHaveBeenCalled();
+    expect(opened().map(s => s.exerciseIds[0])).toEqual(['ex-7', 'ex-8']);
+  });
+
+  it('fetches a set again after the interval', async () => {
+    const { deps, advance } = makeDeps();
+    const downloader = new CourseDownloader(deps);
+    await downloader.keepOpened(['ex-7']);
+    advance(DOWNLOAD_INTERVAL_MS + 1);
+    mockApi.exercise.mockClear();
+    await downloader.keepOpened(['ex-7']);
+
+    expect(mockApi.exercise).toHaveBeenCalledWith('ex-7');
+  });
+
+  it('does nothing offline and does not throw', async () => {
+    mockApi.exercise.mockRejectedValue(offline());
+    const { deps, opened, downloaded } = makeDeps();
+    await expect(new CourseDownloader(deps).keepOpened(['ex-7'])).resolves.toBeUndefined();
+
+    expect(opened()).toEqual([]);
+    expect(downloaded).toEqual([]);
+  });
+
+  it('keeps two sets opened one after another', async () => {
+    const { deps, opened } = makeDeps();
+    const downloader = new CourseDownloader(deps);
+    await Promise.all([downloader.keepOpened(['ex-7']), downloader.keepOpened(['ex-8'])]);
+
+    expect(opened().map(s => s.exerciseIds[0])).toEqual(['ex-8', 'ex-7']);
+  });
+
+  it('does nothing without a session or for an empty set', async () => {
+    const { deps, opened } = makeDeps({ getUserId: () => null });
+    await new CourseDownloader(deps).keepOpened(['ex-7']);
+    await new CourseDownloader(makeDeps().deps).keepOpened([]);
+
+    expect(mockApi.exercise).not.toHaveBeenCalled();
+    expect(opened()).toEqual([]);
   });
 });
 

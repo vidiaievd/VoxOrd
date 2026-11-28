@@ -33,6 +33,11 @@ export interface AiReviewRemark {
   fragment: string | null;
   comment: string;
   suggestion: string | null;
+  /**
+   * The sound a reading's remark is about (`nb:kj`, `atomRef { atomType: 'sound' }` upstream),
+   * for the link to its card (OQ-10, П-5). A grammar rule's atom is not carried.
+   */
+  soundAtomId?: string;
 }
 
 /** A mark the model gave out of the essay's rubric, with why. */
@@ -148,6 +153,7 @@ export async function getAiReview(exerciseId: string, attemptId: string): Promis
       fragment: item.fragment ?? null,
       comment: item.comment,
       suggestion: item.suggestion ?? null,
+      ...soundOf((item as { atomRef?: unknown }).atomRef),
     })),
     summary: review.summary ?? null,
     marks:
@@ -165,6 +171,16 @@ export async function getAiReview(exerciseId: string, attemptId: string): Promis
     countsAt: review.provisional === true ? (review.countsAt ?? null) : null,
     acceptedAtTerm: review.acceptedAtTerm === true,
   };
+}
+
+/** The engine's own rule for a sound atom id: `<language>:<family>`. */
+const SOUND_ATOM_ID = /^[a-z]{2,3}:[a-z_]{1,32}$/;
+
+/** `{ soundAtomId }` for a remark filed under a sound, nothing for any other. */
+function soundOf(atomRef: unknown): { soundAtomId?: string } {
+  const { atomType, atomId } = (atomRef ?? {}) as { atomType?: unknown; atomId?: unknown };
+  if (atomType !== 'sound' || typeof atomId !== 'string' || !SOUND_ATOM_ID.test(atomId)) return {};
+  return { soundAtomId: atomId };
 }
 
 /**

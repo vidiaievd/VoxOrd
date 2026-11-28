@@ -50,7 +50,11 @@ class ReviewQueueStore {
 
   /** Answers of the signed-in learner still waiting for the server. */
   get pendingCount(): number {
-    const userId = currentUserId();
+    return this.pendingCountFor(currentUserId());
+  }
+
+  /** Entries of this learner still waiting — also once their session is gone (OQ-52). */
+  pendingCountFor(userId: string | null): number {
     return this.queue.filter(review => isOwnedBy(review.userId, userId)).length;
   }
 

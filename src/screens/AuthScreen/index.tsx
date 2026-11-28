@@ -5,6 +5,7 @@ import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
 import { useAuth } from '../../hooks/useAuth';
+import { usePendingSyncOf } from '../../hooks/usePendingSync';
 import { authService } from '../../api/auth';
 import { LoginForm } from './LoginForm';
 
@@ -23,8 +24,9 @@ export function AuthScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const styles = makeStyles(colors);
-  const { status, offline } = useAuth();
+  const { status, offline, endedSession } = useAuth();
   const [retrying, setRetrying] = useState(false);
+  const unsent = usePendingSyncOf(endedSession?.id ?? null);
 
   const retry = async () => {
     setRetrying(true);
@@ -77,7 +79,21 @@ export function AuthScreen() {
           </TouchableOpacity>
         </View>
       ) : (
-        <LoginForm />
+        <>
+          {endedSession && (
+            <View style={styles.notice} accessibilityRole="alert" testID="session-ended-notice">
+              <Text style={styles.noticeTitle}>{t('auth.sessionEndedTitle')}</Text>
+              <Text style={styles.noticeBody}>
+                {unsent > 0
+                  ? endedSession.email
+                    ? t('auth.sessionEndedUnsent', { count: unsent, email: endedSession.email })
+                    : t('auth.sessionEndedUnsentNoEmail', { count: unsent })
+                  : t('auth.sessionEndedBody')}
+              </Text>
+            </View>
+          )}
+          <LoginForm />
+        </>
       )}
     </SafeAreaView>
   );
@@ -122,6 +138,26 @@ const makeStyles = (colors: ColorScheme) =>
       fontSize: 14,
       color: colors.textMuted,
       textAlign: 'center',
+      lineHeight: 20,
+    },
+    notice: {
+      marginTop: 24,
+      marginHorizontal: 24,
+      padding: 14,
+      borderRadius: 12,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    noticeTitle: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    noticeBody: {
+      fontSize: 14,
+      color: colors.textSecondary,
       lineHeight: 20,
     },
     retry: {

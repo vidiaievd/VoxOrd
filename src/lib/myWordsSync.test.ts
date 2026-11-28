@@ -1,4 +1,3 @@
-import { ApiError } from '../api/client';
 import type { PersonalWord } from '../api/personalVocabulary';
 
 jest.mock('../api/personalVocabulary', () => ({
@@ -86,19 +85,14 @@ describe('syncMyWords', () => {
     expect(mockStates).toHaveBeenCalledWith('VOCABULARY_WORD', ['a', 'c']);
     expect(mockIntroduce.mock.calls).toEqual([['VOCABULARY_WORD', 'a']]);
     expect(result.introduced).toBe(1);
-    expect(result.limitReached).toBe(false);
   });
 
-  it('stops at the day’s new-card limit and says so', async () => {
+  it('lets a refusal of introduce through — the server never refuses over the budget', async () => {
     mockList.mockResolvedValue([word('b', 'resolved'), word('a', 'resolved')]);
-    mockIntroduce.mockRejectedValueOnce(
-      new ApiError({ message: 'limit', status: 429 }),
-    );
+    mockIntroduce.mockRejectedValueOnce(new Error('boom'));
 
-    const result = await syncMyWords('ru');
-
+    await expect(syncMyWords('ru')).rejects.toThrow('boom');
     expect(mockIntroduce).toHaveBeenCalledTimes(1);
-    expect(result.limitReached).toBe(true);
   });
 
   it('empties the deck of a language whose words are all gone', async () => {

@@ -38,6 +38,9 @@ export function useSwrResource<T>(
   const [error, setError] = useState<Error | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [stale, setStale] = useState(false);
+  // What is on screen now: a refresh that fails keeps it instead of turning into the error state.
+  const shownRef = useRef<T | null>(null);
+  shownRef.current = data;
 
   const mounted = useRef(true);
   const loaderRef = useRef(loader);
@@ -57,7 +60,9 @@ export function useSwrResource<T>(
       if (!key) return;
       if (isRefresh) setRefreshing(true);
 
-      let hasShownCached = false;
+      // A pull-to-refresh starts from what is already shown (offline, it must not wipe the
+      // saved screen for "Network request failed" — OQ-S3 П-2 live check).
+      let hasShownCached = isRefresh && shownRef.current !== null;
       if (!isRefresh) {
         const mem = getMemoryCache<T>(key);
         if (mem !== undefined) {

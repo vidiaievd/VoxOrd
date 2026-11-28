@@ -50,7 +50,7 @@ export function ExerciseAudioPlayer({
   const size = big ? 72 : 44;
 
   const status = eng.failed
-    ? t('exerciseRunner.audio.status.failed')
+    ? t(eng.offline ? 'exerciseRunner.audio.status.offline' : 'exerciseRunner.audio.status.failed')
     : eng.playing
     ? t('exerciseRunner.audio.status.playing')
     : eng.exhausted && !eng.canPlay

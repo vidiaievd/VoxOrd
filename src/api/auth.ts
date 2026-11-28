@@ -121,7 +121,7 @@ class AuthService {
       await this.continueOffline();
     } else if (outcome === 'failed') {
       // performRefresh() already dropped a token the server refused.
-      this.clearSession();
+      this.endSessionByServer();
     }
   }
 
@@ -141,7 +141,7 @@ class AuthService {
     if (status !== 'signedIn') return;
 
     const outcome = await this.refresh();
-    if (outcome === 'failed') this.clearSession();
+    if (outcome === 'failed') this.endSessionByServer();
   }
 
   /**
@@ -190,7 +190,7 @@ class AuthService {
     if (outcome === 'unreachable') {
       await this.continueOffline();
     } else {
-      this.clearSession();
+      this.endSessionByServer();
     }
     return false;
   }
@@ -243,7 +243,7 @@ class AuthService {
     // pretending to be signed in with an unknown identity.
     console.warn('[Auth] Access token could not be decoded');
     await this.forgetStoredSession();
-    this.clearSession();
+    this.endSessionByServer();
     return false;
   }
 
@@ -271,6 +271,17 @@ class AuthService {
   private clearSession(): void {
     this.accessToken = null;
     authStore.setSignedOut();
+  }
+
+  /**
+   * As `clearSession`, for a session the server ended rather than the learner: remembers whose
+   * it was, so the sign-in screen can tell them that their unsent answers wait for them (OQ-52).
+   * A session already gone (a second 401 racing the first) stays as the first one left it.
+   */
+  private endSessionByServer(): void {
+    const { status, user, endedSession } = authStore.getState();
+    this.accessToken = null;
+    authStore.setSignedOut(false, status === 'signedIn' ? user : endedSession);
   }
 }
 

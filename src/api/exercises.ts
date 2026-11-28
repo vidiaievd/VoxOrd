@@ -1,6 +1,6 @@
 import { ApiError, apiClient } from './client';
 import { isServerOutOfReach } from './isNetworkError';
-import { announceSchoolRefusal } from '../lib/schoolLifecycle';
+import { announceSchoolAccepted, announceSchoolRefusal } from '../lib/schoolLifecycle';
 import type {
   DifficultyLevel,
   ExerciseDisplay,
@@ -159,6 +159,13 @@ export interface SubmitAttemptResponse {
   attemptId: string;
   correct: boolean;
   score: number | null;
+  /**
+   * Whether the scored attempt counts as passed — what progress and SRS were told. Can be
+   * `true` while `correct` is `false`: a set scored by share, 3 of 4 right. Absent when
+   * nothing was scored (an open question checked, work sent to review) and from engines
+   * older than plan 90 OQ-S3 s11 — read it through `isPassedVerdict`, never directly.
+   */
+  passed?: boolean;
   requiresReview: boolean;
   /**
    * Who will read an answer that `requiresReview` (plan 79, step 2.1c): the school's teacher,
@@ -167,6 +174,11 @@ export interface SubmitAttemptResponse {
    * phone's own engine (offline work is decided when it reaches the server).
    */
   reviewer?: 'teacher' | 'ai' | 'none';
+  /**
+   * With `reviewer: 'teacher'`: the school has a model read the work first (plan 80), so its
+   * provisional verdict comes before the teacher's (OQ-110). Absent from older engines.
+   */
+  aiFirst?: boolean;
   /**
    * Set by the phone's own engine on an answer that goes to review: it is kept on the phone
    * and handed in once online, and only the server will know who reads it (plan 90, live
@@ -699,6 +711,8 @@ export interface AttemptRow {
    * once, labelled as not counting yet. Only on work still `ROUTED_FOR_REVIEW`.
    */
   provisionalVerdict?: ProvisionalVerdict | null;
+  /** The school has a model read this work before the teacher (plan 80; OQ-110). */
+  aiFirst?: boolean;
 }
 
 /** A model's word on work a teacher has yet to answer — engine `PendingAiVerdictDto`. */
@@ -838,7 +852,11 @@ export function startAttempt(
   exerciseId: string,
   body: StartAttemptRequest,
 ): Promise<StartAttemptResponse> {
-  return announceSchoolRefusal(startAttemptOnce(exerciseId, body));
+  return announceSchoolRefusal(startAttemptOnce(exerciseId, body)).then(started => {
+    // A start kept on the phone says nothing about the school; only the server's does.
+    if (!isLocal(started.attemptId)) announceSchoolAccepted();
+    return started;
+  });
 }
 
 async function startAttemptOnce(
@@ -877,11 +895,11 @@ export function submitAttempt(
   attemptId: string,
   body: SubmitAttemptRequest,
 ): Promise<SubmitAttemptResponse> {
-  return announceSchoolRefusal(
-    isLocal(attemptId)
-      ? local!.submit(attemptId, body)
-      : remoteSubmitAttempt(exerciseId, attemptId, body),
-  );
+  if (isLocal(attemptId)) return announceSchoolRefusal(local!.submit(attemptId, body));
+  return announceSchoolRefusal(remoteSubmitAttempt(exerciseId, attemptId, body)).then(verdict => {
+    announceSchoolAccepted();
+    return verdict;
+  });
 }
 
 export function answerQuestion(

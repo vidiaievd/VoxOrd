@@ -33,6 +33,13 @@ export interface AuthState {
    *   instead of asking for a password the learner already gave.
    */
   offline: boolean;
+  /**
+   * Signed out by the server, not by the learner (OQ-52): a refresh refused — the token was
+   * revoked, the account deleted, the session expired. Whose session it was, so the sign-in
+   * screen can say so and count what of theirs is still waiting on the phone. `null` after a
+   * sign-out the learner asked for, and once anyone signs in again.
+   */
+  endedSession: AuthUser | null;
 }
 
 const INITIAL_STATE: AuthState = {
@@ -41,6 +48,7 @@ const INITIAL_STATE: AuthState = {
   status: 'restoring',
   user: null,
   offline: false,
+  endedSession: null,
 };
 
 class AuthStore {
@@ -52,22 +60,23 @@ class AuthStore {
   }
 
   setRestoring(): void {
-    this.state = { status: 'restoring', user: null, offline: false };
+    this.state = { status: 'restoring', user: null, offline: false, endedSession: null };
     this.notify();
   }
 
   setSignedIn(user: AuthUser, offline = false): void {
-    this.state = { status: 'signedIn', user, offline };
+    this.state = { status: 'signedIn', user, offline, endedSession: null };
     this.notify();
   }
 
   setLocked(): void {
-    this.state = { status: 'locked', user: null, offline: false };
+    this.state = { status: 'locked', user: null, offline: false, endedSession: null };
     this.notify();
   }
 
-  setSignedOut(offline = false): void {
-    this.state = { status: 'signedOut', user: null, offline };
+  /** `endedSession`: the user whose session the server ended; omitted for a chosen sign-out. */
+  setSignedOut(offline = false, endedSession: AuthUser | null = null): void {
+    this.state = { status: 'signedOut', user: null, offline, endedSession };
     this.notify();
   }
 

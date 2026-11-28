@@ -11,8 +11,8 @@ import { SessionSync, type SessionSyncDeps } from './sessionSync';
 import type { AuthState } from '../store/authStore';
 
 const USER = { id: 'user-1', email: 'a@b.c', roles: ['student'] };
-const OFFLINE: AuthState = { status: 'signedIn', user: USER, offline: true };
-const ONLINE: AuthState = { status: 'signedIn', user: USER, offline: false };
+const OFFLINE: AuthState = { status: 'signedIn', user: USER, offline: true, endedSession: null };
+const ONLINE: AuthState = { status: 'signedIn', user: USER, offline: false, endedSession: null };
 
 /** A device, a session and two queues the test drives by hand. */
 function makeWorld(initial: AuthState) {
@@ -153,7 +153,7 @@ describe('SessionSync', () => {
   });
 
   it('sends the queues after a sign-in', async () => {
-    const world = makeWorld({ status: 'signedOut', user: null, offline: false });
+    const world = makeWorld({ status: 'signedOut', user: null, offline: false, endedSession: null });
     new SessionSync(world.deps).start();
 
     world.setAuth(ONLINE);
@@ -203,7 +203,7 @@ describe('SessionSync', () => {
     const world = makeWorld(OFFLINE);
     (world.deps.queues[0].flush as jest.Mock).mockImplementationOnce(async () => {
       world.sent.push('reviews');
-      world.setAuth({ status: 'signedOut', user: null, offline: false });
+      world.setAuth({ status: 'signedOut', user: null, offline: false, endedSession: null });
     });
     new SessionSync(world.deps).start();
 

@@ -7,7 +7,9 @@ import {
   remoteAttempts,
   saveDraft,
   startOrJoinAttempt,
+  submitAttempt,
 } from './exercises';
+import { onSchoolAccepted } from '../lib/schoolLifecycle';
 import { ApiError, apiClient } from './client';
 
 jest.mock('./client', () => ({
@@ -338,6 +340,44 @@ describe('startOrJoinAttempt', () => {
     mockPost.mockRejectedValueOnce(refused);
     await expect(startOrJoinAttempt('ex-1', body)).rejects.toBe(refused);
     expect(mockPost).toHaveBeenCalledTimes(1);
+  });
+});
+
+/**
+ * A start or hand-in the server took tells the runner the school is open again, so a "school
+ * is read only" banner from an earlier refusal goes (OQ-S3 R1). A join or a refusal says nothing.
+ */
+describe('school accepted', () => {
+  const body = { language: 'nb', mode: 'PRACTICE' as const };
+  let heard: jest.Mock;
+  let stop: () => void;
+  beforeEach(() => {
+    heard = jest.fn();
+    stop = onSchoolAccepted(heard);
+  });
+  afterEach(() => stop());
+
+  it('is announced by a new attempt and by a hand-in the server took', async () => {
+    mockPost.mockResolvedValueOnce({ attemptId: 'att-1' });
+    await startOrJoinAttempt('ex-1', body);
+    expect(heard).toHaveBeenCalledTimes(1);
+    mockPost.mockResolvedValueOnce({ score: 80 });
+    await submitAttempt('ex-1', 'att-1', { submittedAnswer: {}, timeSpentSeconds: 3 } as never);
+    expect(heard).toHaveBeenCalledTimes(2);
+  });
+
+  it('is not announced by a join or a refused hand-in', async () => {
+    mockPost
+      .mockRejectedValueOnce(new ApiError({ message: 'busy', status: 409, body: { attemptId: 'open-1' } }))
+      .mockResolvedValueOnce({ attemptId: 'open-1' });
+    await startOrJoinAttempt('ex-1', body);
+    mockPost.mockRejectedValueOnce(
+      new ApiError({ message: 'school', status: 409, body: { code: 'SCHOOL_NOT_ACTIVE', schoolStatus: 'suspended' } }),
+    );
+    await expect(
+      submitAttempt('ex-1', 'open-1', { submittedAnswer: {}, timeSpentSeconds: 3 } as never),
+    ).rejects.toBeInstanceOf(ApiError);
+    expect(heard).not.toHaveBeenCalled();
   });
 });
 

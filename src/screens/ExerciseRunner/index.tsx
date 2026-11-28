@@ -11,21 +11,23 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import { Button, ProgressTrack, Spinner, useToast } from '../../components/ui';
-import { onSchoolNotActive } from '../../lib/schoolLifecycle';
 import { SchoolStatusBanner } from '../../components/SchoolStatusBanner';
-import { SchoolGateChecking, SchoolPausedScreen, useSchoolGate } from './SchoolGate';
+import { SchoolGateChecking, SchoolPausedScreen, useSchoolGate, useSchoolRefusal } from './SchoolGate';
 import { useTranslation } from '../../i18n';
 import { useModal } from '../../providers/ModalProvider';
 import { useBackIntercept } from '../../navigation/backIntercept';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
 import { useExerciseRunner } from '../../hooks/useExerciseRunner';
+import { courseDownloader } from '../../services/courseDownload';
 import { useKeyboardShown } from '../../hooks/useKeyboardShown';
 import { useRecordMistakes } from '../../hooks/useRecordMistakes';
+import { isPassedVerdict } from '../../lib/mistakes';
 import { usePrecheckAvailability } from '../../hooks/usePrecheckAvailability';
 import { bodyOwnsCheck, ExerciseBody, type FooterAction } from './ExerciseBody';
 import { AiVerdict } from './AiVerdict';
 import { RunnerPrecheck } from './RunnerPrecheck';
+import { footerLabelKey } from './footerLabel';
 import { FeedbackBar } from './FeedbackBar';
 import { SetResultsScreen } from './SetResultsScreen';
 import type { Screen } from '../../navigation/screens';
@@ -86,17 +88,12 @@ function ExerciseRunnerBody({
   const styles = makeStyles(colors);
 
   // The learner's school is read only (plan 90, phase 5): a start or hand-in it refused is
-  // worded here once, whichever body made the call. The toast passes; the banner under the
-  // header stays, so the reason is still there when the body's own «try again» appears (Q15).
-  const [refusal, setRefusal] = useState<'suspended' | 'closed' | null>(null);
-  useEffect(
-    () =>
-      onSchoolNotActive(key => {
-        toast.show(t(`schoolLifecycle.${key}`));
-        setRefusal(key === 'schoolClosed' ? 'closed' : 'suspended');
-      }),
+  // worded here once, whichever body made the call (see `useSchoolRefusal`).
+  const notifyRefusal = useCallback(
+    (key: 'schoolSuspended' | 'schoolClosed') => toast.show(t(`schoolLifecycle.${key}`)),
     [toast, t],
   );
+  const refusal = useSchoolRefusal(notifyRefusal);
 
   const {
     state,
@@ -115,6 +112,12 @@ function ExerciseRunnerBody({
     retryAttempt,
   } = useExerciseRunner(exerciseIds, startIndex);
   useRecordMistakes(state, courseId, unitId);
+  // The set goes to the phone while online, so its other exercises play offline too — a unit
+  // beyond the download window, «Practice», «Checked by AI» (offline plan, B3.7).
+  const setKey = exerciseIds.join(',');
+  useEffect(() => {
+    if (setKey !== '') courseDownloader.keepOpened(setKey.split(','));
+  }, [setKey]);
   // Whether this course's school lets its learners rehearse with a model (plan 84): hides
   // buttons only, the engine checks the same.
   const precheckAvailable = usePrecheckAvailability(courseId);
@@ -297,15 +300,19 @@ function ExerciseRunnerBody({
               />
             ) : null}
             {/* A model reads the work of a learner nobody reviews (plan 79, 2.3d): its
-                verdict and review land under the work, while the footer says it went in. */}
+                verdict and review land under the work, while the footer says it went in.
+                A school that has a model read first (plan 80; OQ-110): its provisional
+                verdict lands the same way, labelled as waiting for the teacher. */}
             {state.phase === 'feedback' &&
             state.verdict?.requiresReview &&
-            state.verdict.reviewer === 'ai' ? (
+            (state.verdict.reviewer === 'ai' ||
+              (state.verdict.reviewer === 'teacher' && state.verdict.aiFirst === true)) ? (
               <AiVerdict
                 key={state.verdict.attemptId}
                 exerciseId={state.exerciseIds[state.idx]}
                 attemptId={state.verdict.attemptId}
                 templateCode={state.display.templateCode}
+                aiFirst={state.verdict.reviewer === 'teacher'}
               />
             ) : null}
           </ScrollView>
@@ -328,7 +335,7 @@ function ExerciseRunnerBody({
                       <FeedbackBar verdict={state.verdict} />
                     </View>
                   )}
-                  {!state.verdict.correct && !state.verdict.requiresReview ? (
+                  {!isPassedVerdict(state.verdict) && !state.verdict.requiresReview ? (
                     <Button
                       variant="secondary"
                       size={44}
@@ -385,13 +392,9 @@ function ExerciseRunnerBody({
                   <Button
                     size={52}
                     block
-                    label={
-                      handsIn(state.display.templateCode)
-                        ? precheckAvailable
-                          ? t('exerciseRunner.sendToTeacher')
-                          : t('exerciseRunner.send')
-                        : t('exerciseRunner.check')
-                    }
+                    label={t(
+                      footerLabelKey(state.display.templateCode, precheckAvailable),
+                    )}
                     disabled={!state.canSubmit}
                     busy={state.phase === 'checking'}
                     onPress={check}
@@ -412,10 +415,6 @@ function ExerciseRunnerBody({
  * Work that is handed in to be read rather than checked on the spot — its footer says
  * «Отправить» (Courses §8.5). `read_aloud`, the other one, draws its own button.
  */
-function handsIn(templateCode: string): boolean {
-  return templateCode === 'writing_task';
-}
-
 /** Above this many items the segments get too thin to read; one track instead (Courses §8.5). */
 const MAX_SEGMENTS = 12;
 

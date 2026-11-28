@@ -1,6 +1,6 @@
 import { ApiError } from '../../api/client';
 import { translate, translateIn } from '../../i18n';
-import { runnerErrorMessage } from './errorMessage';
+import { runnerErrorMessage, stepSendError } from './errorMessage';
 
 describe('runnerErrorMessage', () => {
   it("names a network failure in the learner's words, not the transport's", () => {
@@ -17,5 +17,36 @@ describe('runnerErrorMessage', () => {
 
   it('keeps any other error as it came', () => {
     expect(runnerErrorMessage(new ApiError({ message: 'Bad answer', status: 422, code: null }))).toBe('Bad answer');
+  });
+});
+
+describe('stepSendError', () => {
+  const t = (path: string) => translate(path);
+  const scope = 'exerciseRunner.multipleChoice';
+
+  it('words a read-only school, not "try again"', () => {
+    const e = new ApiError({
+      message: 'school',
+      status: 409,
+      body: { code: 'SCHOOL_NOT_ACTIVE', schoolStatus: 'suspended' },
+    });
+    expect(stepSendError(e, t, scope)).toBe(translate('schoolLifecycle.schoolSuspended'));
+    const closed = new ApiError({ message: 'school', status: 409, body: { code: 'SCHOOL_NOT_ACTIVE', schoolStatus: 'closed' } });
+    expect(stepSendError(closed, t, scope)).toBe(translate('schoolLifecycle.schoolClosed'));
+  });
+
+  it('tells a closed step from a lost send', () => {
+    expect(stepSendError(new ApiError({ message: 'x', status: 422, code: null }), t, scope)).toBe(
+      translate(`${scope}.closedAlready`),
+    );
+    expect(stepSendError(new Error('Network request failed'), t, scope)).toBe(translate(`${scope}.sendFailed`));
+  });
+
+  it('takes the body\'s own key for a closed step, or none', () => {
+    const e = new ApiError({ message: 'x', status: 422, code: null });
+    expect(stepSendError(e, t, 'exerciseRunner.shortAnswer', 'handedInAlready')).toBe(
+      translate('exerciseRunner.shortAnswer.handedInAlready'),
+    );
+    expect(stepSendError(e, t, 'exerciseRunner.shortAnswer', null)).toBe(translate('exerciseRunner.shortAnswer.sendFailed'));
   });
 });

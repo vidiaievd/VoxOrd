@@ -7,6 +7,7 @@ import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { ColorScheme } from '../../theme/colors';
 import { useExerciseAudio } from '../../hooks/useExerciseAudio';
+import { lifecycleErrorKey } from '../../lib/schoolLifecycle';
 import {
   AudioLockNote,
   AudioSegmentButton,
@@ -34,6 +35,7 @@ import {
   type SentenceSchemaSet,
 } from './templates/sentenceSchema';
 import { deferPosition, nextPosition, type SetStep } from './templates/sentenceSetOrder';
+import { stepSendError } from './errorMessage';
 
 /**
  * `sentence_schema` — a set of sentences laid out on a topological field board, played a
@@ -58,9 +60,9 @@ import { deferPosition, nextPosition, type SetStep } from './templates/sentenceS
  * plain order again.
  *
  * How it meets the runner shell: each check is a command onto the attempt (`checkRow`),
- * which opens that attempt on the first one; when the last sentence is closed, the
- * aggregate goes up through `onAnswerChange` and the footer's Check closes the attempt
- * with every board at once, which the engine regrades from scratch.
+ * which opens that attempt on the first one; «Finish» after the last sentence closes the
+ * attempt itself with every board at once (`checkTable` → `finishTable`), which the engine
+ * regrades from scratch. The step's main button is the runner's footer (`setFooterAction`).
  */
 export function SentenceSchemaBody(props: ExerciseBodyProps) {
   const { display, onAnswerChange } = props;
@@ -133,6 +135,9 @@ function SentenceSchemaSetBody({
   disabled,
   onAnswerChange,
   checkRow,
+  checkTable,
+  finishTable,
+  setFooterAction,
   set,
 }: ExerciseBodyProps & { set: SentenceSchemaSet }) {
   const { t } = useTranslation();
@@ -150,6 +155,8 @@ function SentenceSchemaSetBody({
   const [armedField, setArmedField] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** The closing submit is in flight. */
+  const [handingIn, setHandingIn] = useState(false);
   /** True until the server has been asked what is already on this exercise. */
   const [resuming, setResuming] = useState(true);
   /**
@@ -205,8 +212,8 @@ function SentenceSchemaSetBody({
 
       const open_ = set.rows.findIndex((row) => state[row.id]?.phase !== 'closed');
       if (open_ === -1 && checked.length > 0) {
-        // Every sentence is finished and the attempt was never closed: the footer's Check
-        // is all that is left, so the set arrives on its own completion card.
+        // Every sentence is finished and the attempt was never closed: handing it in is all
+        // that is left, so the set arrives on its completion card with «Hand in».
         setIndex(Math.max(0, total - 1));
         setDone(true);
         onAnswerChange(buildSentenceSchemaSubmission(submissionRows(set, state)), true);
@@ -274,10 +281,13 @@ function SentenceSchemaSetBody({
         // A refusal the engine will keep making (this sentence is already closed) reads
         // the same to the learner as a lost connection, but only one of them is worth
         // pressing the button again for.
+        const lifecycle = lifecycleErrorKey(e);
         setError(
-          e instanceof ApiError && e.status === 422
-            ? t('exerciseRunner.sentenceSchema.closedAlready')
-            : t('exerciseRunner.sentenceSchema.checkFailed'),
+          lifecycle
+            ? t(`schoolLifecycle.${lifecycle}`)
+            : e instanceof ApiError && e.status === 422
+              ? t('exerciseRunner.sentenceSchema.closedAlready')
+              : t('exerciseRunner.sentenceSchema.checkFailed'),
         );
       } finally {
         setSending(false);
@@ -372,6 +382,23 @@ function SentenceSchemaSetBody({
     deferred,
   };
 
+  /**
+   * Close the attempt with every board. A refusal stays on the completion card with «Hand in»
+   * for another go; the boards are kept, so nothing has to be rebuilt.
+   */
+  const handIn = useCallback(async () => {
+    if (handingIn) return;
+    setHandingIn(true);
+    setError(null);
+    try {
+      finishTable(await checkTable(buildSentenceSchemaSubmission(submissionRows(set, rows))));
+    } catch (e) {
+      setError(stepSendError(e, t, 'exerciseRunner.sentenceSchema', null));
+    } finally {
+      setHandingIn(false);
+    }
+  }, [checkTable, finishTable, handingIn, rows, set, t]);
+
   /** Where the set goes from here — forward, then back to what was put aside, then done. */
   const move = useCallback(
     (step: SetStep) => {
@@ -380,14 +407,100 @@ function SentenceSchemaSetBody({
       setArmedItem(null);
       setArmedField(null);
       if (step.index === null) {
+        // The last sentence is closed: «Finish» hands the set in, one press.
         setDone(true);
         onAnswerChange(buildSentenceSchemaSubmission(submissionRows(set, rows)), true);
+        handIn();
         return;
       }
       setIndex(step.index);
     },
-    [onAnswerChange, rows, set],
+    [handIn, onAnswerChange, rows, set],
   );
+
+  const lastSentence = nextPosition(position).index === null;
+  const goOn = useCallback(
+    () =>
+      move(
+        nextPosition({
+          ids: set.rows.map((r) => r.id),
+          index,
+          isClosed: (rowId: string) => rows[rowId]?.phase === 'closed',
+          deferred,
+        }),
+      ),
+    [deferred, index, move, rows, set.rows],
+  );
+  const placedCount = placedItems(state.placement).length;
+  const bankCount = row?.bank.length ?? 0;
+  const checkable = row !== undefined && canCheckRow(state.placement);
+  const gated = audioOn && audio.gated;
+  const rowPhase = state.phase;
+  const wrongCount = state.result?.wrong ?? 0;
+
+  /*
+    The step's one main button is the runner's footer — check, fix, next sentence, finish,
+    hand in — so the screen never shows the board's «Check» over the shell's dead one (OQ-S3
+    live check, session 10). «Put aside» and «Show the scheme» stay under the board. Nothing
+    while the body is locked or loading (the shell keeps its own footer), and nothing once the
+    runner holds the verdict: its Continue takes the footer.
+  */
+  useEffect(() => {
+    if (!setFooterAction) return;
+    if (disabled || resuming || total === 0 || (!done && row === undefined)) {
+      setFooterAction(null);
+    } else if (done) {
+      setFooterAction({
+        label: t('exerciseRunner.sentenceSchema.handIn'),
+        onPress: handIn,
+        busy: handingIn,
+        error,
+      });
+    } else if (rowPhase === 'placing') {
+      setFooterAction({
+        label: t('exerciseRunner.sentenceSchema.check', { placed: placedCount, total: bankCount }),
+        onPress: () => send(false),
+        disabled: !checkable || gated,
+        busy: sending,
+      });
+    } else if (rowPhase === 'checked') {
+      setFooterAction({
+        label: t('exerciseRunner.sentenceSchema.fix', { count: wrongCount }),
+        onPress: fix,
+      });
+    } else {
+      setFooterAction({
+        label: lastSentence
+          ? t('exerciseRunner.sentenceSchema.finishSet')
+          : t('exerciseRunner.sentenceSchema.nextSentence'),
+        onPress: goOn,
+      });
+    }
+  }, [
+    setFooterAction,
+    disabled,
+    resuming,
+    total,
+    done,
+    row,
+    rowPhase,
+    placedCount,
+    bankCount,
+    checkable,
+    gated,
+    sending,
+    handingIn,
+    error,
+    wrongCount,
+    lastSentence,
+    handIn,
+    send,
+    fix,
+    goOn,
+    t,
+  ]);
+
+  useEffect(() => () => setFooterAction?.(null), [setFooterAction]);
 
   /** Put this one aside. Nothing is sent: an unanswered sentence has nothing to report. */
   function skip() {
@@ -437,12 +550,6 @@ function SentenceSchemaSetBody({
             ? t('exerciseRunner.sentenceSchema.setTallySkipped', tally)
             : t('exerciseRunner.sentenceSchema.setTally', tally)}
         </Text>
-        {/* The set is handed in by the footer, which is the one button that closes an
-            attempt in this app. Said out loud, because the screen is otherwise finished
-            and nothing on it would explain what is left to press. */}
-        {!disabled ? (
-          <Text style={styles.doneHint}>{t('exerciseRunner.sentenceSchema.doneHint')}</Text>
-        ) : null}
       </View>
     );
   }
@@ -460,7 +567,6 @@ function SentenceSchemaSetBody({
       : null;
   const banner = state.phase === 'placing' ? null : (state.result?.banner ?? null);
   const solved = state.result?.solved === true;
-  const lastSentence = nextPosition(position).index === null;
   const instruction =
     display.instructions?.[0]?.instructionText ??
     (set.instruction !== '' ? set.instruction : t('exerciseRunner.sentenceSchema.defaultInstruction'));
@@ -577,46 +683,6 @@ function SentenceSchemaSetBody({
       ) : null}
 
       <View style={styles.actions}>
-        {state.phase === 'placing' ? (
-          <TouchableOpacity
-            style={[
-              styles.primary,
-              (!canCheckRow(state.placement) || sending || disabled) && styles.buttonDisabled,
-            ]}
-            onPress={() => send(false)}
-            disabled={!canCheckRow(state.placement) || sending || disabled}
-          >
-            {sending ? (
-              <ActivityIndicator size="small" color={colors.accent300} />
-            ) : (
-              <Text style={styles.primaryText}>
-                {t('exerciseRunner.sentenceSchema.check', {
-                  placed: used.length,
-                  total: row.bank.length,
-                })}
-              </Text>
-            )}
-          </TouchableOpacity>
-        ) : null}
-
-        {state.phase === 'checked' ? (
-          <TouchableOpacity style={styles.primary} onPress={fix} disabled={disabled}>
-            <Text style={styles.primaryText}>
-              {t('exerciseRunner.sentenceSchema.fix', { count: state.result?.wrong ?? 0 })}
-            </Text>
-          </TouchableOpacity>
-        ) : null}
-
-        {state.phase === 'closed' ? (
-          <TouchableOpacity style={styles.primary} onPress={() => move(nextPosition(position))}>
-            <Text style={styles.primaryText}>
-              {lastSentence
-                ? t('exerciseRunner.sentenceSchema.finishSet')
-                : t('exerciseRunner.sentenceSchema.nextSentence')}
-            </Text>
-          </TouchableOpacity>
-        ) : null}
-
         {state.phase !== 'closed' ? (
           <View style={styles.secondaryRow}>
             {total > 1 ? (
@@ -786,21 +852,6 @@ const makeStyles = (colors: ColorScheme) =>
       marginTop: 14,
       gap: 10,
     },
-    primary: {
-      borderWidth: 1,
-      borderColor: colors.accentBase,
-      borderRadius: 14,
-      paddingVertical: 13,
-      alignItems: 'center',
-    },
-    primaryText: {
-      fontSize: 15,
-      fontWeight: '500',
-      color: colors.accent300,
-    },
-    buttonDisabled: {
-      opacity: 0.5,
-    },
     secondaryRow: {
       flexDirection: 'row',
       gap: 10,
@@ -856,11 +907,5 @@ const makeStyles = (colors: ColorScheme) =>
       color: colors.neutral400,
       textAlign: 'center',
       lineHeight: 20,
-    },
-    doneHint: {
-      fontSize: 12.5,
-      color: colors.neutral500,
-      textAlign: 'center',
-      marginTop: 12,
     },
   });

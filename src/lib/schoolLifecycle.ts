@@ -109,6 +109,22 @@ export function onSchoolNotActive(listener: RefusalListener): () => void {
   return () => listeners.delete(listener);
 }
 
+const acceptedListeners = new Set<() => void>();
+
+/**
+ * Hears a start or hand-in the server took — the calls a read-only school refuses — so a refusal
+ * heard earlier no longer holds (the school was reactivated in between).
+ */
+export function onSchoolAccepted(listener: () => void): () => void {
+  acceptedListeners.add(listener);
+  return () => acceptedListeners.delete(listener);
+}
+
+/** The server took a start or hand-in the learner's school could have refused. */
+export function announceSchoolAccepted(): void {
+  acceptedListeners.forEach(l => l());
+}
+
 /** Passes `promise` through; a "school is read only" refusal is announced before it propagates. */
 export function announceSchoolRefusal<T>(promise: Promise<T>): Promise<T> {
   return promise.catch((e: unknown) => {

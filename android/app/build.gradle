@@ -72,6 +72,22 @@ def enableProguardInReleaseBuilds = false
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
+/** A git answer for the build stamp, or `fallback` where git is missing (a source archive). */
+def gitOutput(List<String> args, String fallback) {
+    try {
+        def proc = (["git"] + args).execute(null, rootDir)
+        def out = proc.text.trim()
+        proc.waitFor()
+        return proc.exitValue() == 0 && out ? out : fallback
+    } catch (ignored) {
+        return fallback
+    }
+}
+
+def appVersionName = new groovy.json.JsonSlurper().parse(file("../../package.json")).version as String
+def appVersionCode = (project.findProperty("versionCode") ?: gitOutput(["rev-list", "--count", "HEAD"], "1")).toString().toInteger()
+def appCommit = gitOutput(["rev-parse", "--short", "HEAD"], "unknown")
+
 android {
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
@@ -82,8 +98,14 @@ android {
         applicationId "com.voxord"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // The name is the package's version, so the app and its JS agree on it; the number
+        // grows with every commit (or `-PversionCode=`), so two APKs never share one.
+        versionCode appVersionCode
+        versionName appVersionName
+        buildConfigField "String", "GIT_COMMIT", "\"${appCommit}\""
+    }
+    buildFeatures {
+        buildConfig true
     }
     signingConfigs {
         debug {

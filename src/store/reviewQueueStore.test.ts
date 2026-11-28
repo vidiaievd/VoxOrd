@@ -146,6 +146,18 @@ describe('reviewQueueStore and whose answers they are', () => {
     expect(reviewQueueStore.pendingCount).toBe(1);
   });
 
+  it('still counts a learner’s answers once their session is gone (OQ-52)', async () => {
+    mockReviewCard.mockRejectedValue(offline());
+    await reviewQueueStore.submit('card-1', 'GOOD');
+
+    authStore.setSignedOut(false, LEARNER);
+
+    expect(reviewQueueStore.pendingCount).toBe(0);
+    expect(reviewQueueStore.pendingCountFor(LEARNER.id)).toBe(1);
+    expect(reviewQueueStore.pendingCountFor(OTHER.id)).toBe(0);
+    expect(reviewQueueStore.pendingCountFor(null)).toBe(0);
+  });
+
   it('sends the other learner’s answers past one it must hold back', async () => {
     mockReviewCard.mockRejectedValue(offline());
     await reviewQueueStore.submit('card-1', 'GOOD');

@@ -139,7 +139,26 @@ describe('openingOf', () => {
       attemptId: 's',
       recordings: SUBMITTED.recordings,
       byAi: false,
+      aiFirst: false,
     });
+  });
+
+  // OQ-110: a school that has a model listen before the teacher.
+  it('opens on the teacher with the model first when the school has one', () => {
+    expect(
+      openingOf(
+        [
+          row({
+            id: 's',
+            status: 'ROUTED_FOR_REVIEW',
+            submittedAnswer: SUBMITTED,
+            schoolId: 'school-1',
+            aiFirst: true,
+          }),
+        ],
+        'return',
+      ),
+    ).toMatchObject({ stage: 'sent', byAi: false, aiFirst: true });
   });
 
   // Plan 82: a learner with no school — the machine reads it, and its verdict is awaited.

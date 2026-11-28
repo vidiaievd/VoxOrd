@@ -1,4 +1,5 @@
 import {
+  isPassedVerdict,
   isWrongVerdict,
   mergeMistakes,
   settledEntries,
@@ -96,5 +97,24 @@ describe('settledEntries', () => {
   it('settles what came before the answer and is not waiting to be sent', () => {
     const entries = [entry('a', true, '2026-10-28T09:00:00Z'), entry('b', true, '2026-10-28T09:00:00Z'), entry('c', true, '2026-10-28T11:00:00Z')];
     expect(settledEntries(entries, '2026-10-28T10:00:00Z', new Set(['b'])).map(e => e.exerciseId)).toEqual(['a']);
+  });
+});
+
+describe('the engine says whether the attempt passed (plan 90, OQ-S3 s11)', () => {
+  it('a set over the pass mark with an item wrong is passed, not wrong', () => {
+    const v = { correct: false, score: 75, passed: true };
+    expect(isPassedVerdict(v)).toBe(true);
+    expect(isWrongVerdict(v)).toBe(false);
+  });
+
+  it("the engine's verdict wins over the default pass mark", () => {
+    const v = { correct: false, score: 80, passed: false };
+    expect(isPassedVerdict(v)).toBe(false);
+    expect(isWrongVerdict(v)).toBe(true);
+  });
+
+  it('an engine that does not say falls back to `correct`', () => {
+    expect(isPassedVerdict({ correct: false, score: 75 })).toBe(false);
+    expect(isPassedVerdict({ correct: true, score: 100 })).toBe(true);
   });
 });

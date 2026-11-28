@@ -34,7 +34,7 @@ interface MyWordsScreenProps {
 
 type Load =
   | { status: 'loading' }
-  | { status: 'loaded'; words: PersonalWord[]; limitReached: boolean }
+  | { status: 'loaded'; words: PersonalWord[] }
   | { status: 'error'; message: string };
 
 /**
@@ -55,11 +55,7 @@ export function MyWordsScreen({ onBack }: MyWordsScreenProps) {
       // Words tapped offline first, so they are in the list that comes back.
       await wordCaptureQueueStore.flush().catch(() => undefined);
       const result = await syncMyWords(translationLanguage);
-      setLoad({
-        status: 'loaded',
-        words: result.words,
-        limitReached: result.limitReached,
-      });
+      setLoad({ status: 'loaded', words: result.words });
     } catch (e) {
       setLoad({
         status: 'error',
@@ -215,23 +211,6 @@ export function MyWordsScreen({ onBack }: MyWordsScreenProps) {
               </Text>
             )}
 
-            {load.limitReached && (
-              <View
-                style={{
-                  flexDirection: 'row',
-                  gap: 10,
-                  padding: 14,
-                  paddingVertical: 12,
-                  borderRadius: 14,
-                  backgroundColor: colors.accent900,
-                }}
-              >
-                <Icon name="Info" size={18} color={colors.accent300} />
-                <Text style={{ flex: 1, fontSize: 13, lineHeight: 19, color: colors.accent200 }}>
-                  {t('myWords.limitReached')}
-                </Text>
-              </View>
-            )}
 
             {pending.length > 0 && (
               <>

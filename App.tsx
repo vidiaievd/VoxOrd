@@ -13,6 +13,7 @@ import { biometricStore } from './src/store/biometricStore';
 import { assistantThreadStore } from './src/store/assistantThreadStore';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { AppProviders } from './src/providers/AppProviders';
+import { ErrorBoundary } from './src/components/ErrorBoundary';
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -72,7 +73,9 @@ export default function App() {
 
   return (
     <AppProviders>
-      <RootNavigator />
+      <ErrorBoundary>
+        <RootNavigator />
+      </ErrorBoundary>
     </AppProviders>
   );
 }

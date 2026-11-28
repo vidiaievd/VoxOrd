@@ -406,7 +406,8 @@
         "total": 5
        }
       ]
-     }
+     },
+     "passed": true
     }
    }
   ]
@@ -847,7 +848,8 @@
         "total": 5
        }
       ]
-     }
+     },
+     "passed": false
     }
    },
    {
@@ -864,7 +866,8 @@
       "totalItems": 1,
       "passedItems": 0,
       "items": []
-     }
+     },
+     "passed": false
     }
    }
   ]
@@ -1448,7 +1451,8 @@
         "explanation": "Å rette — исправлять; в презенсе retter."
        }
       ]
-     }
+     },
+     "passed": true
     }
    },
    {
@@ -1501,7 +1505,8 @@
         "explanation": "Å rette — исправлять; в презенсе retter."
        }
       ]
-     }
+     },
+     "passed": true
     }
    },
    {
@@ -2074,7 +2079,8 @@
         "explanation": "Å rette — исправлять; в презенсе retter."
        }
       ]
-     }
+     },
+     "passed": true
     }
    },
    {
@@ -2367,7 +2373,8 @@
         "quote": "Hun sier at den er god, men at han har noen skrivefeil."
        }
       ]
-     }
+     },
+     "passed": false
     }
    },
    {
@@ -2422,7 +2429,8 @@
         "keyColumnId": "c-riktig"
        }
       ]
-     }
+     },
+     "passed": true
     }
    },
    {
@@ -2667,7 +2675,8 @@
         "quote": "Hun sier at den er god, men at han har noen skrivefeil."
        }
       ]
-     }
+     },
+     "passed": false
     }
    },
    {
@@ -2725,7 +2734,8 @@
         "quote": "Hun sier at den er god, men at han har noen skrivefeil."
        }
       ]
-     }
+     },
+     "passed": false
     }
    },
    {
@@ -3218,7 +3228,8 @@
         "firstAnswer": "wb68bbcr"
        }
       ]
-     }
+     },
+     "passed": true
     }
    },
    {
@@ -3339,7 +3350,8 @@
         "correctBucketId": "wb68bbcr"
        }
       ]
-     }
+     },
+     "passed": true
     }
    },
    {
@@ -3807,7 +3819,8 @@
         "firstAnswer": null
        }
       ]
-     }
+     },
+     "passed": false
     }
    },
    {
@@ -3928,7 +3941,8 @@
         "correctBucketId": "wb68bbcr"
        }
       ]
-     }
+     },
+     "passed": false
     }
    },
    {
@@ -4375,7 +4389,8 @@
         "firstAnswer": "wb68bbcr"
        }
       ]
-     }
+     },
+     "passed": true
     }
    },
    {
@@ -4496,7 +4511,8 @@
         "correctBucketId": "wb68bbcr"
        }
       ]
-     }
+     },
+     "passed": false
     }
    }
   ]
@@ -7721,7 +7737,8 @@
         "firstAnswer": "bøkene"
        }
       ]
-     }
+     },
+     "passed": true
     }
    },
    {
@@ -7894,7 +7911,8 @@
         "firstAnswer": "bøkene"
        }
       ]
-     }
+     },
+     "passed": true
     }
    },
    {
@@ -8465,7 +8483,8 @@
         "firstAnswer": "bøkene"
        }
       ]
-     }
+     },
+     "passed": true
     }
    },
    {
@@ -8642,7 +8661,8 @@
         "firstAnswer": "bøkene"
        }
       ]
-     }
+     },
+     "passed": true
     }
    },
    {
@@ -9035,7 +9055,8 @@
         "correct": true
        }
       ]
-     }
+     },
+     "passed": false
     }
    },
    {
@@ -9113,7 +9134,8 @@
      "audioTranscript": {
       "transcript": "Hei, du har ringt Tøyen bibliotek. Norskkurset for nybegynnere starter tirsdag 3. mars klokka halv seks, på rom 204 i andre etasje. Kurset koster 450 kroner for ti kvelder. Meld deg på hos Anne Lise Berg på telefon 22 45 67 89, innen fredag denne uka.",
       "translation": ""
-     }
+     },
+     "passed": false
     }
    },
    {
@@ -9502,7 +9524,8 @@
         "why": "Fornavnet er dobbelt: «Anne Lise». Etternavnet godtas med eller uten."
        }
       ]
-     }
+     },
+     "passed": false
     }
    },
    {
@@ -9582,7 +9605,8 @@
      "audioTranscript": {
       "transcript": "Hei, du har ringt Tøyen bibliotek. Norskkurset for nybegynnere starter tirsdag 3. mars klokka halv seks, på rom 204 i andre etasje. Kurset koster 450 kroner for ti kvelder. Meld deg på hos Anne Lise Berg på telefon 22 45 67 89, innen fredag denne uka.",
       "translation": ""
-     }
+     },
+     "passed": false
     }
    },
    {
@@ -10327,7 +10351,8 @@
      "requiresReview": false,
      "feedback": {
       "summary": "Incorrect. Please try again."
-     }
+     },
+     "passed": false
     }
    }
   ]
@@ -10572,7 +10597,8 @@
         "routing": "pass"
        }
       ]
-     }
+     },
+     "passed": true
     }
    },
    {
@@ -11461,7 +11487,8 @@
         ]
        }
       ]
-     }
+     },
+     "passed": false
     }
    }
   ],
@@ -12242,7 +12269,8 @@
         ]
        }
       ]
-     }
+     },
+     "passed": false
     }
    },
    {

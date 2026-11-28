@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Spinner } from '../../components/ui';
@@ -6,7 +6,7 @@ import { SchoolStatusBanner } from '../../components/SchoolStatusBanner';
 import { useCourseHome } from '../../hooks/useCourseHome';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
-import type { SchoolLifecycleStatus } from '../../lib/schoolLifecycle';
+import { onSchoolAccepted, onSchoolNotActive, type SchoolLifecycleStatus } from '../../lib/schoolLifecycle';
 
 export interface SchoolGateState {
   /** No answer yet and nothing cached: the course home is still loading. */
@@ -31,6 +31,30 @@ export function useSchoolGate(courseId: string): SchoolGateState {
     status: status && status !== 'active' ? status : null,
     closesAt: info?.schoolClosesAt ?? null,
   };
+}
+
+/**
+ * A start or hand-in the learner's school refused as read only (plan 90, phase 5): `notify` words
+ * it once, the returned status keeps the banner under the runner's header so the reason is still
+ * there when the body's own «try again» appears (Q15). The next start or hand-in the server takes
+ * (the school was reactivated) takes the banner away — otherwise it would go on saying nothing can
+ * be started or handed in right under a question that was just checked. Answers and joins are not
+ * refused by a read-only school, so they say nothing either way.
+ */
+export function useSchoolRefusal(
+  notify: (key: 'schoolSuspended' | 'schoolClosed') => void,
+): 'suspended' | 'closed' | null {
+  const [refusal, setRefusal] = useState<'suspended' | 'closed' | null>(null);
+  useEffect(
+    () =>
+      onSchoolNotActive(key => {
+        notify(key);
+        setRefusal(key === 'schoolClosed' ? 'closed' : 'suspended');
+      }),
+    [notify],
+  );
+  useEffect(() => onSchoolAccepted(() => setRefusal(null)), []);
+  return refusal;
 }
 
 /** Stands in for the runner while the course's school is read only: says why, before any work. */
