@@ -23,10 +23,10 @@ interface AiVerdictProps {
  * reads it on the learner's own plan, in seconds. Waits for the verdict under the work, then
  * says it — accepted or sent back by the AI — over the review itself.
  *
- * Drawn only after a hand-in on this screen: the phone reopens free-form work as a fresh
- * attempt (a teacher's verdict is not shown on return either), so there is no «coming back»
- * to wait for. `NO_REVIEWER` after the wait is its own line — no model could read it — not
- * the «not on your plan» of a hand-in that never went to one.
+ * Drawn after a hand-in on this screen, and again when the learner comes back to work a model
+ * already read (`HandedInWork`): the wait then settles on its first look. `NO_REVIEWER` after
+ * the wait is its own line — no model could read it — not the «not on your plan» of a hand-in
+ * that never went to one.
  */
 export function AiVerdict({ exerciseId, attemptId, templateCode, aiFirst = false }: AiVerdictProps) {
   const { t } = useTranslation();
