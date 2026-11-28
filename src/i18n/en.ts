@@ -1179,6 +1179,8 @@ export const en: Translations = {
       acceptedAtTermTitle: 'Counted automatically',
       acceptedAtTermNote: "The teacher didn't answer in time, so this review counted. The teacher can still revise it.",
       caveatReading: 'A machine listened to the recording and compared it with the text. It can mishear — if something here is off, tell us.',
+      caveatProvisional: 'This review was written by a language model. It can be wrong — which is why your teacher gives the final grade.',
+      caveatReadingProvisional: 'A machine listened to the recording and compared it with the text. It can mishear — which is why your teacher gives the final grade.',
       reasonPlaceholderReading: 'For example: I read the second sentence in full.',
       readingCheck: {
         prompt: 'Prompt {n}',

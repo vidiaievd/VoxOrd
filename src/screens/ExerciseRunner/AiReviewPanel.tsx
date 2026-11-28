@@ -109,6 +109,9 @@ export function AiReviewPanel({
     };
   }, [exerciseId, attemptId, seq]);
 
+  // A verdict that does not count yet takes no dispute, so it must not ask to be told of mistakes.
+  const provisional = load.kind === 'loaded' && load.review?.provisional === true;
+
   const onDisputed = useCallback((disputedAt: string) => {
     setLoad(prev =>
       prev.kind === 'loaded' && prev.review !== null
@@ -120,9 +123,7 @@ export function AiReviewPanel({
   return (
     <View style={styles.panel} accessibilityLabel={t('exerciseRunner.aiReview.label')}>
       <Text style={styles.label}>✦ {t('exerciseRunner.aiReview.label')}</Text>
-      <Text style={styles.caveat}>
-        {reading ? t('exerciseRunner.aiReview.caveatReading') : t('exerciseRunner.aiReview.caveat')}
-      </Text>
+      <Text style={styles.caveat}>{caveat(t, reading, provisional)}</Text>
 
       {load.kind === 'loading' ? (
         <ActivityIndicator style={styles.spinner} color={colors.accentBase} />
@@ -197,9 +198,24 @@ export function AiReviewPanel({
 type Styles = ReturnType<typeof makeStyles>;
 
 /** «Tue 1 Nov» in the app's language; the ISO day if the device cannot say it. */
-function shortDate(iso: string, language: string): string {
+function caveat(t: T, reading: boolean, provisional: boolean): string {
+  if (provisional) {
+    return reading
+      ? t('exerciseRunner.aiReview.caveatReadingProvisional')
+      : t('exerciseRunner.aiReview.caveatProvisional');
+  }
+  return reading ? t('exerciseRunner.aiReview.caveatReading') : t('exerciseRunner.aiReview.caveat');
+}
+
+/**
+ * A date inside a sentence. A short month can end with its own full stop («5 дек.»), and the
+ * sentence then ends with a second one — so that one is dropped.
+ */
+export function shortDate(iso: string, language: string): string {
   try {
-    return new Date(iso).toLocaleDateString(language, { weekday: 'short', day: 'numeric', month: 'short' });
+    return new Date(iso)
+      .toLocaleDateString(language, { weekday: 'short', day: 'numeric', month: 'short' })
+      .replace(/\.$/, '');
   } catch {
     return iso.slice(0, 10);
   }

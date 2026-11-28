@@ -1,7 +1,7 @@
 import React from 'react';
 import { Text } from 'react-native';
 import ReactTestRenderer, { act } from 'react-test-renderer';
-import { AiReviewPanel } from './AiReviewPanel';
+import { AiReviewPanel, shortDate } from './AiReviewPanel';
 
 /**
  * A model's review on a school's work under a model-first policy (plan 80): the panel says
@@ -83,6 +83,30 @@ describe('AiReviewPanel at a school (plan 80)', () => {
     expect(shown).toContain('exerciseRunner.aiReview.provisionalTitle');
     expect(shown.some(s => s.startsWith('exerciseRunner.aiReview.provisionalNote {"date":'))).toBe(true);
     expect(shown).not.toContain('exerciseRunner.aiReview.dispute');
+  });
+
+  it('does not ask to be told of mistakes on a review that does not count yet (OQ-110)', async () => {
+    mockGetAiReview.mockResolvedValue({ ...REVIEW, provisional: true });
+    const shown = texts(await render());
+
+    expect(shown).toContain('exerciseRunner.aiReview.caveatProvisional');
+    expect(shown).not.toContain('exerciseRunner.aiReview.caveat');
+  });
+
+  it('keeps the plain caveat on a review that counts', async () => {
+    mockGetAiReview.mockResolvedValue(REVIEW);
+    const shown = texts(await render());
+
+    expect(shown).toContain('exerciseRunner.aiReview.caveat');
+    expect(shown).not.toContain('exerciseRunner.aiReview.caveatProvisional');
+  });
+
+  it('writes the date without the short month’s own full stop, the sentence has one', () => {
+    for (const language of ['ru', 'uk', 'nb', 'en']) {
+      const date = shortDate('2026-12-05T10:00:00.000Z', language);
+      expect(date).toMatch(/5/);
+      expect(date.endsWith('.')).toBe(false);
+    }
   });
 
   it('says so when a provisional review has no term to count at', async () => {

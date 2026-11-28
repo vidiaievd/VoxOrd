@@ -1207,6 +1207,8 @@ export interface Translations {
       acceptedAtTermNote: string;
       /** A reading aloud checked by the machine (plan 82). */
       caveatReading: string;
+      caveatProvisional: string;
+      caveatReadingProvisional: string;
       reasonPlaceholderReading: string;
       readingCheck: {
         prompt: string; // '{n}'
