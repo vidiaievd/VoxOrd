@@ -45,7 +45,7 @@ const ok = {
   remaining: null,
 };
 
-function mount(overrides: { micBusy?: boolean } = {}) {
+function mount(overrides: { micBusy?: boolean; text?: string } = {}) {
   const mic: MockRecorder = createMockRecorder();
   let renderer!: ReactTestRenderer.ReactTestRenderer;
   act(() => {
@@ -53,7 +53,7 @@ function mount(overrides: { micBusy?: boolean } = {}) {
       <ReadAloudSentenceDrill
         exerciseId="ex-1"
         attemptId="att-1"
-        prompt={{ id: 'p1', text: TEXT }}
+        prompt={{ id: 'p1', text: overrides.text ?? TEXT }}
         lens={null}
         createPort={() => mic}
         micBusy={overrides.micBusy ?? false}
@@ -98,6 +98,15 @@ describe('ReadAloudSentenceDrill', () => {
     await press('prosody.drill.next');
     expect(texts()).toContain('Jeg søker jobb.');
     expect(texts()).toContain('"n":2,"total":2');
+  });
+
+  // Two dimmed arrows under a one-sentence passage read as broken controls (OQ-S3 s20).
+  it('draws no arrows when the passage is one sentence', () => {
+    const { texts, button } = mount({ text: 'Takk for maten!' });
+    expect(texts()).toContain('"n":1,"total":1');
+    expect(button('prosody.drill.previous')).toBeUndefined();
+    expect(button('prosody.drill.next')).toBeUndefined();
+    expect(button('prosody.drill.say')).toBeDefined();
   });
 
   it('records the sentence, has it heard, draws the answer and deletes the take', async () => {

@@ -186,26 +186,29 @@ export function ReadAloudSentenceDrill({
         )}
       </View>
 
-      <View style={styles.nav}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('prosody.drill.previous')}
-          disabled={index === 0 || phase !== 'idle'}
-          onPress={() => go(index - 1)}
-          style={[styles.step, (index === 0 || phase !== 'idle') && styles.off]}
-        >
-          <Text style={styles.stepText}>‹</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('prosody.drill.next')}
-          disabled={index >= sentences.length - 1 || phase !== 'idle'}
-          onPress={() => go(index + 1)}
-          style={[styles.step, (index >= sentences.length - 1 || phase !== 'idle') && styles.off]}
-        >
-          <Text style={styles.stepText}>›</Text>
-        </Pressable>
-      </View>
+      {/* One sentence has nowhere to step: two dimmed arrows read as broken controls (OQ-S3 s20). */}
+      {sentences.length > 1 ? (
+        <View style={styles.nav}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('prosody.drill.previous')}
+            disabled={index === 0 || phase !== 'idle'}
+            onPress={() => go(index - 1)}
+            style={[styles.step, (index === 0 || phase !== 'idle') && styles.off]}
+          >
+            <Text style={styles.stepText}>‹</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('prosody.drill.next')}
+            disabled={index >= sentences.length - 1 || phase !== 'idle'}
+            onPress={() => go(index + 1)}
+            style={[styles.step, (index >= sentences.length - 1 || phase !== 'idle') && styles.off]}
+          >
+            <Text style={styles.stepText}>›</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       {closed ? (
         <Text style={styles.note}>{t('prosody.drill.closed')}</Text>

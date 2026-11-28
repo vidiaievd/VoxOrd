@@ -343,16 +343,29 @@ describe('ReadAloudBody', () => {
 
   // «1 recording left» on the last prompt gave no clue which one was skipped (OQ-S3-CHECKS П-5).
   it('names the prompt without a recording and offers to go to it', async () => {
+    const two = display();
+    const passage = (two.content as { prompts: Array<Record<string, unknown>> }).prompts;
+    passage.push({ ...passage[0], id: 'p2', label: 'Avsnitt 2', text: 'Jeg bor i Oslo.' });
+    const m = await mount({ overrides: { display: two } });
+    await m.press('readAloud.card.start');
+    await m.flush();
+    expect(m.texts()).toContain('readAloud.missing {"labels":"Avsnitt 1, Avsnitt 2"}');
+    // The link leads away from the prompt on screen, never to it (OQ-S3 s20).
+    expect(m.texts()).toContain('readAloud.gotoMissing {"label":"Avsnitt 2"}');
+    expect(m.texts()).not.toContain('readAloud.gotoMissing {"label":"Avsnitt 1"}');
+
+    await recordTake(m);
+    await m.flush();
+    expect(m.texts()).toContain('readAloud.missing {"labels":"Avsnitt 2"}');
+    expect(m.texts()).toContain('readAloud.gotoMissing {"label":"Avsnitt 2"}');
+  });
+
+  it('offers no jump when the only prompt left is the one on screen', async () => {
     const m = await mount();
     await m.press('readAloud.card.start');
     await m.flush();
     expect(m.texts()).toContain('readAloud.missing {"labels":"Avsnitt 1"}');
-    expect(m.texts()).toContain('readAloud.gotoMissing {"label":"Avsnitt 1"}');
-
-    await recordTake(m);
-    await m.flush();
-    expect(m.texts()).not.toContain('readAloud.missing');
-    expect(m.texts()).not.toContain('readAloud.gotoMissing {"label":"Avsnitt 1"}');
+    expect(m.texts()).not.toContain('readAloud.gotoMissing');
   });
 
   it('deletes the takes the teacher will not hear after the hand-in', async () => {

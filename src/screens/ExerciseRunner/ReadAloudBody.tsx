@@ -1278,6 +1278,8 @@ function SubmitActions({
   const missing = config.prompts
     .map((p, index) => ({ id: p.id, index }))
     .filter(({ id }) => takesOf(state, id).length === 0);
+  // The link leads elsewhere: «Go to: Prompt 1» under Prompt 1 itself went nowhere (OQ-S3 s20).
+  const jumpTo = missing.find(m => m.index !== state.index);
   const note =
     block === 'unrecorded'
       ? t('exerciseRunner.readAloud.left', {
@@ -1319,14 +1321,14 @@ function SubmitActions({
         </TouchableOpacity>
       ) : null}
       {note !== null ? <Text style={styles.note}>{note}</Text> : null}
-      {block === 'unrecorded' && missing[0] !== undefined ? (
+      {block === 'unrecorded' && jumpTo !== undefined ? (
         <TouchableOpacity
-          onPress={() => recorder.goto(missing[0]!.index)}
+          onPress={() => recorder.goto(jumpTo.index)}
           accessibilityRole="button"
         >
           <Text style={[styles.link, { textAlign: 'center' }]}>
             {t('exerciseRunner.readAloud.gotoMissing', {
-              label: labelOf(missing[0].id),
+              label: labelOf(jumpTo.id),
             })}
           </Text>
         </TouchableOpacity>
