@@ -337,7 +337,11 @@ function Sounds({
         const atomId = remark.soundAtomId;
         return (
           <View key={`${remark.itemId}-${i}`} style={styles.remark}>
-            {remark.fragment !== null ? <Text style={styles.fragment}>{remark.fragment}</Text> : null}
+            {remark.fragment !== null ? (
+              <Text style={styles.fragmentLine}>
+                <Text style={styles.fragment}>{remark.fragment}</Text>
+              </Text>
+            ) : null}
             <Text style={styles.comment}>{remark.comment}</Text>
             {atomId ? (
               <Text accessibilityRole="link" style={styles.link} onPress={() => onOpenSound(atomId)}>
@@ -619,9 +623,12 @@ const makeStyles = (colors: ColorScheme) =>
       fontSize: 13,
       color: colors.neutral400,
     },
+    // Coloured here, not inherited: a link also stands on its own (the sounds list), where an
+    // uncoloured Text falls back to black and vanished on the dark theme (OQ-S3 s19).
     link: {
       fontWeight: '500',
       textDecorationLine: 'underline',
+      color: colors.accentBase,
     },
     summary: {
       fontSize: 15,
@@ -665,6 +672,7 @@ const makeStyles = (colors: ColorScheme) =>
       color: colors.text,
     },
     fragment: {
+      color: colors.text,
       backgroundColor: `${colors.accent700}33`,
     },
     suggestion: {

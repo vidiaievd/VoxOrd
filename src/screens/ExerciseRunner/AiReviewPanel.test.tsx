@@ -196,6 +196,28 @@ describe('AiReviewPanel on a reading — weak sounds', () => {
     expect(mockCardProps).not.toHaveBeenCalled();
   });
 
+  // An uncoloured Text standing on its own is drawn black — on the dark theme the weak word and
+  // «How to say it» vanished (OQ-S3 s19). Every text must carry a colour, its own or a parent's.
+  it('draws every text of the reading review in a colour of the theme', async () => {
+    mockGetAiReview.mockResolvedValue(READING);
+    const tree = await renderReading();
+    const colourOf = (style: unknown): unknown => {
+      const flat = [style].flat(Infinity).filter(Boolean) as { color?: unknown }[];
+      return flat.reduce<unknown>((c, x) => x.color ?? c, undefined);
+    };
+    const uncoloured = tree.root
+      .findAllByType(Text)
+      .filter(node => typeof node.props.children === 'string' && node.props.children.trim() !== '')
+      .filter(node => {
+        for (let at: typeof node | null = node; at !== null; at = at.parent) {
+          if (at.type === Text && colourOf(at.props.style) !== undefined) return false;
+        }
+        return true;
+      })
+      .map(node => node.props.children as string);
+    expect(uncoloured).toEqual([]);
+  });
+
   it('opens the card over the screen, closes it on Back, and leaves for a session on Train', async () => {
     mockGetAiReview.mockResolvedValue(READING);
     const tree = await renderReading();
