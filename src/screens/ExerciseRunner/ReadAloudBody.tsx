@@ -836,6 +836,20 @@ function ReadAloudSession({
           {prosodyAvailable && drawnLens !== null && prosodySettings.legend ? (
             <ProsodyLegend lens={drawnLens} />
           ) : null}
+          {/* What is handed in is the whole passage, so it is always drawn whole: in «by sentence»
+              the drill used to stand in for it, and learners read only its first sentence into
+              the take (OQ-S3 s19). The drill is a try beside it, never the text to record. */}
+          <Material
+            mode={content.mode}
+            prompt={prompt}
+            prosody={
+              drawnLens !== null &&
+              promptProsody !== undefined &&
+              promptProsody.text === prompt.text
+                ? { lens: drawnLens, data: promptProsody }
+                : null
+            }
+          />
           {sentenceDrill && prompt.text ? (
             <ReadAloudSentenceDrill
               // One card per passage: its sentence and the model's word on it stay with it.
@@ -848,19 +862,7 @@ function ReadAloudSession({
               createPort={createPort}
               micBusy={busy}
             />
-          ) : (
-            <Material
-              mode={content.mode}
-              prompt={prompt}
-              prosody={
-                drawnLens !== null &&
-                promptProsody !== undefined &&
-                promptProsody.text === prompt.text
-                  ? { lens: drawnLens, data: promptProsody }
-                  : null
-              }
-            />
-          )}
+          ) : null}
           <RecorderCard
             recorder={recorder}
             config={config}

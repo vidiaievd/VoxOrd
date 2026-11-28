@@ -937,7 +937,7 @@ export const ru: Translations = {
     legendRise: 'Конец группы: голос идёт вверх, короткая пауза',
     drill: {
       group: 'Предложения отрывка',
-      position: 'Предложение {n} из {total}',
+      position: 'Тренировка · предложение {n} из {total}',
       previous: 'Предыдущее предложение',
       next: 'Следующее предложение',
       say: 'Сказать',

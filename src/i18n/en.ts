@@ -929,7 +929,7 @@ export const en: Translations = {
     legendRise: 'End of a group: the voice goes up, short pause',
     drill: {
       group: 'Sentences of the passage',
-      position: 'Sentence {n} of {total}',
+      position: 'Practice · sentence {n} of {total}',
       previous: 'Previous sentence',
       next: 'Next sentence',
       say: 'Say it',

@@ -937,7 +937,7 @@ export const uk: Translations = {
     legendRise: 'Кінець групи: голос іде вгору, коротка пауза',
     drill: {
       group: 'Речення уривка',
-      position: 'Речення {n} з {total}',
+      position: 'Тренування · речення {n} з {total}',
       previous: 'Попереднє речення',
       next: 'Наступне речення',
       say: 'Сказати',

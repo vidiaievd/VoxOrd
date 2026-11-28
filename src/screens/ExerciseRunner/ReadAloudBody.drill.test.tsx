@@ -195,9 +195,17 @@ describe('ReadAloudBody — the sentence card', () => {
     };
     await press('readAloud.card.start');
     expect(mockDrillMounts).toEqual(['p1']);
+    // The passage to record is drawn whole beside the drill, not replaced by its first sentence.
+    const texts = () =>
+      renderer.root
+        .findAllByType(Text)
+        .map(t => [t.props.children].flat().join(''))
+        .join('\n');
+    expect(texts()).toContain('Jeg heter Kari.');
 
     await press('readAloud.next');
     expect(mockDrillUnmounts).toEqual(['p1']);
     expect(mockDrillMounts).toEqual(['p1', 'p2']);
+    expect(texts()).toContain('Hun bor i Oslo.');
   });
 });
