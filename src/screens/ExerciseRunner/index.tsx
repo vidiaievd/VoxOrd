@@ -27,6 +27,7 @@ import { usePrecheckAvailability } from '../../hooks/usePrecheckAvailability';
 import { bodyOwnsCheck, ExerciseBody, type FooterAction } from './ExerciseBody';
 import { AiVerdict } from './AiVerdict';
 import { RunnerPrecheck } from './RunnerPrecheck';
+import { footerLabelKey } from './footerLabel';
 import { FeedbackBar } from './FeedbackBar';
 import { SetResultsScreen } from './SetResultsScreen';
 import type { Screen } from '../../navigation/screens';
@@ -391,13 +392,9 @@ function ExerciseRunnerBody({
                   <Button
                     size={52}
                     block
-                    label={
-                      handsIn(state.display.templateCode)
-                        ? precheckAvailable
-                          ? t('exerciseRunner.sendToTeacher')
-                          : t('exerciseRunner.send')
-                        : t('exerciseRunner.check')
-                    }
+                    label={t(
+                      footerLabelKey(state.display.templateCode, precheckAvailable),
+                    )}
                     disabled={!state.canSubmit}
                     busy={state.phase === 'checking'}
                     onPress={check}
@@ -418,10 +415,6 @@ function ExerciseRunnerBody({
  * Work that is handed in to be read rather than checked on the spot — its footer says
  * «Отправить» (Courses §8.5). `read_aloud`, the other one, draws its own button.
  */
-function handsIn(templateCode: string): boolean {
-  return templateCode === 'writing_task';
-}
-
 /** Above this many items the segments get too thin to read; one track instead (Courses §8.5). */
 const MAX_SEGMENTS = 12;
 
