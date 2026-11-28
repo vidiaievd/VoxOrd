@@ -168,6 +168,11 @@ export interface ExerciseBodyProps {
    * hint for drawing — the engine refuses the check itself when this is wrong.
    */
   precheckAvailable?: boolean;
+  /**
+   * The learner studies this course at a school, so handed-in work goes to be read; on their
+   * own it is only finished («Done», not «Hand in for review»). Unknown counts as a school.
+   */
+  schoolLearner?: boolean;
 }
 
 /** A body's button in the runner's footer — see `setFooterAction`. */

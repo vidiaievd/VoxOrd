@@ -24,10 +24,11 @@ import { useKeyboardShown } from '../../hooks/useKeyboardShown';
 import { useRecordMistakes } from '../../hooks/useRecordMistakes';
 import { isPassedVerdict } from '../../lib/mistakes';
 import { usePrecheckAvailability } from '../../hooks/usePrecheckAvailability';
+import { useSchoolLearner } from '../../hooks/useSchoolLearner';
 import { bodyOwnsCheck, ExerciseBody, type FooterAction } from './ExerciseBody';
 import { AiVerdict } from './AiVerdict';
 import { RunnerPrecheck } from './RunnerPrecheck';
-import { footerLabelKey } from './footerLabel';
+import { footerButtonShown, footerLabelKey } from './footerLabel';
 import { FeedbackBar } from './FeedbackBar';
 import { SetResultsScreen } from './SetResultsScreen';
 import { HandedInWork } from './HandedInWork';
@@ -123,6 +124,7 @@ function ExerciseRunnerBody({
   // Whether this course's school lets its learners rehearse with a model (plan 84): hides
   // buttons only, the engine checks the same.
   const precheckAvailable = usePrecheckAvailability(courseId);
+  const schoolLearner = useSchoolLearner(courseId);
 
   /**
    * A body's own button in place of Check — `ExerciseBodyProps.setFooterAction`. A body that
@@ -297,6 +299,7 @@ function ExerciseRunnerBody({
               onOpenSourceLesson={onOpenSourceLesson}
               setFooterAction={setFooterAction}
               precheckAvailable={precheckAvailable}
+              schoolLearner={schoolLearner}
             />
             )}
             {/* The rehearsal of a text the body has nothing of its own to show for (plan 84):
@@ -415,16 +418,25 @@ function ExerciseRunnerBody({
                   {state.submitError ? (
                     <Text style={styles.footerError}>{state.submitError}</Text>
                   ) : null}
-                  <Button
-                    size={52}
-                    block
-                    label={t(
-                      footerLabelKey(state.display.templateCode, precheckAvailable),
-                    )}
-                    disabled={!state.canSubmit}
-                    busy={state.phase === 'checking'}
-                    onPress={check}
-                  />
+                  {footerButtonShown(
+                    state.display.templateCode,
+                    state.canSubmit,
+                    state.phase === 'checking',
+                  ) ? (
+                    <Button
+                      size={52}
+                      block
+                      label={t(
+                        footerLabelKey(state.display.templateCode, {
+                          precheckAvailable,
+                          schoolLearner,
+                        }),
+                      )}
+                      disabled={!state.canSubmit}
+                      busy={state.phase === 'checking'}
+                      onPress={check}
+                    />
+                  ) : null}
                 </>
               )}
             </View>

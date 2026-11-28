@@ -1684,6 +1684,8 @@ export interface Translations {
       prev: string;
       next: string;
       submit: string;
+      /** The hand-in of a learner on their own: no teacher reads it, it is only finished. */
+      done: string;
       sending: string;
       left: PluralForms; // '{count}'
       missing: string; // '{labels}'

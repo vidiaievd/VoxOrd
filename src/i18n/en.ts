@@ -1682,6 +1682,7 @@ export const en: Translations = {
       prev: 'Previous',
       next: 'Next',
       submit: 'Hand in for review',
+      done: 'Done',
       sending: 'Handing in…',
       left: {
         one: '{count} recording left.',

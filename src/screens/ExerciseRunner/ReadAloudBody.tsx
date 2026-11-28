@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   StyleSheet,
@@ -45,7 +45,6 @@ import {
   takesOf,
   toDraft,
   toSubmission,
-  toRehearsalDraft,
   unsentAssets,
   type Draft,
   type RecorderConfig,
@@ -71,9 +70,6 @@ import { ExerciseAudioPlayer } from './audio';
 import { AiReviewPanel } from './AiReviewPanel';
 import { ReadAloudSentenceDrill } from './ReadAloudSentenceDrill';
 import { ReadAloudGraded } from './ReadAloudGraded';
-import { PrecheckButton, PrecheckPanel } from './PrecheckPanel';
-import { usePrecheckRun } from './usePrecheckRun';
-import { mayAskAgain, precheckCapable } from './templates/precheck';
 import type { ExerciseBodyProps } from './ExerciseBody';
 import {
   Clock,
@@ -136,7 +132,7 @@ export function ReadAloudBody({
   finishTable,
   openAttempt,
   openedContent,
-  precheckAvailable,
+  schoolLearner = true,
   createPort = createNativeRecorder,
 }: ReadAloudBodyProps) {
   const { t } = useTranslation();
@@ -350,7 +346,7 @@ export function ReadAloudBody({
           initialDraft={stage.draft}
           audio={audio}
           checkTable={checkTable}
-          precheckAvailable={precheckAvailable === true && precheckCapable('read_aloud', stage.content.mode)}
+          schoolLearner={schoolLearner}
           onDelivered={(verdict, recordings, sources) => {
             // A teacher's work closes the item at once; the machine's and nobody's stay open
             // (the wait, and «record again»).
@@ -458,8 +454,8 @@ interface SessionProps {
   initialDraft: Draft | null;
   audio: ExerciseAudioEngine;
   checkTable: ExerciseBodyProps['checkTable'];
-  /** «Check» with a model is offered before the hand-in (platform plan 84). */
-  precheckAvailable: boolean;
+  /** The learner studies the course at a school: the work is handed in to be read, not just kept. */
+  schoolLearner: boolean;
   /** Handed in: what the engine said, what went, and how each take plays from the phone. */
   onDelivered: (
     verdict: SubmitAttemptResponse,
@@ -487,7 +483,7 @@ function ReadAloudSession({
   initialDraft,
   audio,
   checkTable,
-  precheckAvailable,
+  schoolLearner,
   onDelivered,
   createPort,
   t,
@@ -584,16 +580,6 @@ function ReadAloudSession({
     },
   });
   const { state } = recorder;
-
-  // «Check» before the hand-in (platform plan 84): the takes uploaded so far, a passage at a time.
-  const openForCheck = useCallback(() => Promise.resolve(attemptId), [attemptId]);
-  const check = usePrecheckRun(exerciseId, openForCheck);
-  const rehearsal = toRehearsalDraft(state, config);
-  const heardIds = useMemo(
-    () => new Set((rehearsal?.recordings ?? []).map(r => r.itemId)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [JSON.stringify(rehearsal?.recordings.map(r => r.itemId))],
-  );
 
   // Every uploaded take and the choice between them, onto the attempt. Keyed by the draft's
   // own content, so a level or a tick does not send it again.
@@ -852,6 +838,8 @@ function ReadAloudSession({
           ) : null}
           {sentenceDrill && prompt.text ? (
             <ReadAloudSentenceDrill
+              // One card per passage: its sentence and the model's word on it stay with it.
+              key={prompt.id}
               exerciseId={exerciseId}
               attemptId={attemptId}
               prompt={{ id: prompt.id, text: prompt.text }}
@@ -918,28 +906,6 @@ function ReadAloudSession({
         </View>
       ) : null}
 
-      {precheckAvailable && !check.closed ? (
-        <>
-          <PrecheckButton
-            label={t('exerciseRunner.precheck.button')}
-            busy={check.busy}
-            disabled={
-              busy || submitting || rehearsal === null || !mayAskAgain(check.result?.remaining ?? null)
-            }
-            error={check.error}
-            onPress={() => void check.run(rehearsal)}
-          />
-          {check.result !== null ? (
-            <PrecheckPanel
-              result={check.result}
-              passageLabel={i => (whole.prompts[i] ? labelOf(whole.prompts[i].id) : String(i + 1))}
-              itemLabel={labelOf}
-              heardItemIds={heardIds}
-            />
-          ) : null}
-        </>
-      ) : null}
-
       <SubmitActions
         recorder={recorder}
         config={config}
@@ -947,6 +913,7 @@ function ReadAloudSession({
         busy={busy}
         submitting={submitting}
         error={error}
+        schoolLearner={schoolLearner}
         onSubmit={() => void send()}
         t={t}
         styles={styles}
@@ -1285,6 +1252,7 @@ function SubmitActions({
   busy,
   submitting,
   error,
+  schoolLearner,
   onSubmit,
   t,
   styles,
@@ -1295,6 +1263,8 @@ function SubmitActions({
   busy: boolean;
   submitting: boolean;
   error: string | null;
+  /** At a school the work goes to be read; on one's own it is only finished. */
+  schoolLearner: boolean;
   onSubmit: () => void;
   t: T;
   styles: Styles;
@@ -1321,26 +1291,32 @@ function SubmitActions({
         })
       : block === 'uploading'
       ? t('exerciseRunner.readAloud.uploading')
-      : t('exerciseRunner.readAloud.readByTeacher');
-  const off = block !== null || busy || submitting;
+      : schoolLearner
+      ? t('exerciseRunner.readAloud.readByTeacher')
+      : null;
+  // A hand-in that cannot be made yet is not drawn (OQ-S3 s19): a dead button under the
+  // recorder read as a second, broken control. The note says what is left instead.
+  const shown = submitting || (block === null && !busy);
 
   return (
     <View style={styles.actions}>
-      <TouchableOpacity
-        style={[styles.primary, off && styles.dim]}
-        disabled={off}
-        onPress={onSubmit}
-        accessibilityRole="button"
-      >
-        {submitting ? (
-          <ActivityIndicator size="small" color="#fff" />
-        ) : (
-          <Text style={styles.primaryText}>
-            {t('exerciseRunner.readAloud.submit')}
-          </Text>
-        )}
-      </TouchableOpacity>
-      <Text style={styles.note}>{note}</Text>
+      {shown ? (
+        <TouchableOpacity
+          style={styles.primary}
+          disabled={submitting}
+          onPress={onSubmit}
+          accessibilityRole="button"
+        >
+          {submitting ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text style={styles.primaryText}>
+              {t(schoolLearner ? 'exerciseRunner.readAloud.submit' : 'exerciseRunner.readAloud.done')}
+            </Text>
+          )}
+        </TouchableOpacity>
+      ) : null}
+      {note !== null ? <Text style={styles.note}>{note}</Text> : null}
       {block === 'unrecorded' && missing[0] !== undefined ? (
         <TouchableOpacity
           onPress={() => recorder.goto(missing[0]!.index)}

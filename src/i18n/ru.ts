@@ -1685,6 +1685,7 @@ export const ru: Translations = {
       prev: 'Назад',
       next: 'Дальше',
       submit: 'Сдать на проверку',
+      done: 'Готово',
       sending: 'Сдаём…',
       left: {
         one: 'Осталась {count} запись.',

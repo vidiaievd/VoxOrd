@@ -314,7 +314,31 @@ describe('ReadAloudBody', () => {
     await m.flush();
     expect(m.texts()).toContain('readAloud.short');
     expect(m.texts()).toContain('readAloud.tooShort {"labels":"Avsnitt 1"}');
-    expect(m.button('readAloud.submit')?.props.disabled).toBe(true);
+    // Not a dead button under the recorder (OQ-S3 s19): the note says what is left instead.
+    expect(m.button('readAloud.submit')).toBeUndefined();
+  });
+
+  it('draws the hand-in only once it can be made', async () => {
+    const m = await mount();
+    await m.press('readAloud.card.start');
+    await m.flush();
+    expect(m.button('readAloud.submit')).toBeUndefined();
+
+    await recordTake(m);
+    await m.flush();
+    expect(m.button('readAloud.submit')?.props.disabled).toBe(false);
+    expect(m.texts()).toContain('readAloud.readByTeacher');
+  });
+
+  // A learner on their own hands the reading in to no teacher: it is only finished (OQ-S3 s19).
+  it('only finishes the reading of a learner on their own', async () => {
+    const m = await mount({ overrides: { schoolLearner: false } });
+    await m.press('readAloud.card.start');
+    await recordTake(m);
+    await m.flush();
+    expect(m.button('readAloud.submit')).toBeUndefined();
+    expect(m.button('readAloud.done')?.props.disabled).toBe(false);
+    expect(m.texts()).not.toContain('readAloud.readByTeacher');
   });
 
   // «1 recording left» on the last prompt gave no clue which one was skipped (OQ-S3-CHECKS П-5).

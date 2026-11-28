@@ -1685,6 +1685,7 @@ export const uk: Translations = {
       prev: 'Назад',
       next: 'Далі',
       submit: 'Здати на перевірку',
+      done: 'Готово',
       sending: 'Здаємо…',
       left: {
         one: 'Лишився {count} запис.',
