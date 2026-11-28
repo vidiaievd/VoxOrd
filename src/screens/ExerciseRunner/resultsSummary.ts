@@ -1,6 +1,14 @@
 import { isPassedVerdict } from '../../lib/mistakes';
 import type { ItemResult } from './runnerMachine';
 
+export type ResultsTone = 'Excellent' | 'Good' | 'Okay' | 'KeepGoing' | 'HandedIn';
+
+/** The title by the share checked right on the spot; `null` (nothing checked) is `HandedIn`. */
+export function toneOf(accuracy: number | null): ResultsTone {
+  if (accuracy === null) return 'HandedIn';
+  return accuracy >= 0.9 ? 'Excellent' : accuracy >= 0.7 ? 'Good' : accuracy >= 0.5 ? 'Okay' : 'KeepGoing';
+}
+
 export interface ResultsSummary {
   total: number;
   correct: number;
@@ -13,13 +21,12 @@ export interface ResultsSummary {
    */
   accuracy: number | null;
   /**
-   * 0..1, (correct + needsReview) / total — for tone/emoji. The templates that
-   * go to a teacher (writing_task always, translate_* unless every sentence hits the
-   * key) come back `requiresReview` rather than `correct`, so scoring the hero purely on `accuracy` would make
-   * a perfectly-completed writing set look like a failure; being routed for
-   * review is a successful completion, not a wrong answer.
+   * The results title. Read off what was checked on the spot only: work still with a reviewer
+   * is not passed yet — a model may already have said «needs more work» (OQ-110) — so it can
+   * neither earn «Excellent!» nor drag the title down. A set of handed-in work only is
+   * `HandedIn`: it was sent, nothing more is known.
    */
-  handledRatio: number;
+  tone: ResultsTone;
   totalTimeSpentSeconds: number;
   /** The exercises handed in for review, in set order, each once — the «Under review» row. */
   reviewIds: string[];
@@ -65,13 +72,14 @@ export function buildResultsSummary(results: ItemResult[]): ResultsSummary {
   }
 
   const total = results.length;
+  const accuracy = correct + incorrect > 0 ? correct / (correct + incorrect) : null;
   return {
     total,
     correct,
     needsReview,
     incorrect,
-    accuracy: correct + incorrect > 0 ? correct / (correct + incorrect) : null,
-    handledRatio: total > 0 ? (correct + needsReview) / total : 0,
+    accuracy,
+    tone: toneOf(accuracy),
     totalTimeSpentSeconds,
     reviewIds,
     wrongIds,

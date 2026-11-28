@@ -5,7 +5,11 @@ import { useExerciseRunner, type ExerciseRunnerController } from './useExerciseR
 const mockStartOrJoin = jest.fn();
 const mockAnswerQuestion = jest.fn();
 const mockCheckRow = jest.fn();
+const mockRecentAttempts = jest.fn();
+let mockTemplateCode: string | undefined;
 jest.mock('../api/exercises', () => ({
+  recentAttempts: (...args: unknown[]) => mockRecentAttempts(...args),
+  isLocalAttempt: (id: string) => id.startsWith('offline:'),
   startOrJoinAttempt: (...args: unknown[]) => mockStartOrJoin(...args),
   answerQuestion: (...args: unknown[]) => mockAnswerQuestion(...args),
   checkRow: (...args: unknown[]) => mockCheckRow(...args),
@@ -15,7 +19,7 @@ jest.mock('../api/exercises', () => ({
 jest.mock('../lib/courseResources', () => ({
   exerciseDisplayResource: (exerciseId: string) => ({
     key: `exercise-display:${exerciseId}`,
-    load: async () => ({ id: exerciseId, targetLanguage: 'nb' }),
+    load: async () => ({ id: exerciseId, targetLanguage: 'nb', templateCode: mockTemplateCode }),
   }),
 }));
 
@@ -82,5 +86,53 @@ describe('useExerciseRunner — the first move joins an attempt left open (OQ-48
     });
     expect(mockStartOrJoin).toHaveBeenCalledTimes(1);
     expect(mockAnswerQuestion).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('useExerciseRunner — work handed in before reopens on itself (OQ-S3 s19)', () => {
+  const sent = {
+    id: 'att-sent',
+    status: 'ROUTED_FOR_REVIEW',
+    templateCode: 'error_correction',
+    submittedAnswer: { items: {} },
+    draftAnswer: null,
+    schoolId: 'school-1',
+    aiFirst: true,
+  };
+
+  beforeEach(() => {
+    mockStartOrJoin.mockReset().mockResolvedValue({ attemptId: 'att-new' });
+    mockRecentAttempts.mockReset().mockResolvedValue([sent]);
+  });
+  afterEach(() => {
+    mockTemplateCode = undefined;
+  });
+
+  it('opens an error_correction already with the teacher on that hand-in, starting nothing', async () => {
+    mockTemplateCode = 'error_correction';
+    await mountLoaded();
+    expect(mockRecentAttempts).toHaveBeenCalledWith('ex-1', 10);
+    expect(controller.state.phase).toBe('feedback');
+    expect(controller.state.handedIn?.id).toBe('att-sent');
+    expect(controller.state.verdict).toMatchObject({ requiresReview: true, reviewer: 'teacher', aiFirst: true });
+    expect(mockStartOrJoin).not.toHaveBeenCalled();
+  });
+
+  it('opens a fresh attempt when nothing was handed in, or the history cannot be read', async () => {
+    mockTemplateCode = 'writing_task';
+    mockRecentAttempts.mockResolvedValue([{ ...sent, templateCode: 'writing_task', status: 'IN_PROGRESS' }]);
+    await mountLoaded();
+    expect(controller.state.phase).toBe('answering');
+
+    mockRecentAttempts.mockRejectedValue(new Error('offline'));
+    await mountLoaded();
+    expect(controller.state.phase).toBe('answering');
+  });
+
+  it('does not ask about the past of a template checked on the spot', async () => {
+    mockTemplateCode = 'multiple_choice';
+    await mountLoaded();
+    expect(mockRecentAttempts).not.toHaveBeenCalled();
+    expect(controller.state.phase).toBe('answering');
   });
 });

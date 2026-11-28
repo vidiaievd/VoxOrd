@@ -1,18 +1,19 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { criterionNames } from '../../api/aiReview';
 import type { AssistContext } from '../../api/assistant';
 import { getAttempt, type AttemptRow } from '../../api/exercises';
 import type { SubmissionStatus } from '../../api/submissions';
-import { Card, NavHeader, Tag } from '../../components/ui';
+import { NavHeader, Tag } from '../../components/ui';
 import { useAssistantAvailability } from '../../hooks/useAssistantAvailability';
 import { useMySubmissions } from '../../hooks/useMySubmissions';
 import { useTranslation } from '../../i18n';
 import { useTheme } from '../../providers/ThemeProvider';
 import { spacing } from '../../theme/spacing';
 import { AiReviewPanel } from '../ExerciseRunner/AiReviewPanel';
-import { criterionMarks, statusTag } from '../TodayScreen/blockLogic';
+import { TeacherReview } from '../ExerciseRunner/TeacherReview';
+import { statusTag } from '../TodayScreen/blockLogic';
 
 interface SubmissionScreenProps {
   submissionId: string;
@@ -135,50 +136,5 @@ export function SubmissionScreen({
         ) : null}
       </ScrollView>
     </SafeAreaView>
-  );
-}
-
-interface TeacherReviewProps {
-  attempt: AttemptRow;
-  status: SubmissionStatus;
-  teacher: string | null;
-  criteria: Map<string, string>;
-}
-
-function TeacherReview({ attempt, status, teacher, criteria }: TeacherReviewProps) {
-  const { t } = useTranslation();
-  const { colors, typography } = useTheme();
-  const comment = attempt.reviewComment?.trim() || null;
-  const marks = criterionMarks(attempt.rubricMarks, criteria);
-
-  return (
-    <>
-      {comment ? (
-        <Card style={{ gap: 6 }}>
-          <Text style={[typography.overline, { color: colors.neutral400 }]}>
-            {teacher ? t('submission.commentBy', { teacher }) : t('submission.commentUnsigned')}
-          </Text>
-          <Text style={[typography.body, { color: colors.text }]}>{comment}</Text>
-        </Card>
-      ) : (
-        // A pass with nothing written on it is still a person's decision, not «nobody looked».
-        <Text style={[typography.body, { color: colors.neutral400 }]}>
-          {status === 'approved' ? t('submission.approvedNoComment') : t('submission.returnedNoComment')}
-        </Text>
-      )}
-      {marks ? (
-        <Card variant="outline" style={{ gap: 8 }}>
-          <Text style={[typography.overline, { color: colors.neutral400 }]}>{t('submission.marks')}</Text>
-          {marks.map((m) => (
-            <View key={m.name} style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}>
-              <Text style={[typography.secondary, { color: colors.text, flex: 1 }]}>{m.name}</Text>
-              <Text style={[typography.secondary, { color: colors.neutral300 }]}>
-                {t('submission.mark', { mark: m.mark })}
-              </Text>
-            </View>
-          ))}
-        </Card>
-      ) : null}
-    </>
   );
 }

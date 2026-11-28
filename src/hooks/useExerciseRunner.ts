@@ -2,13 +2,21 @@ import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import {
   answerQuestion as answerQuestionRequest,
   checkRow as checkRowRequest,
+  isLocalAttempt,
+  recentAttempts,
   startOrJoinAttempt,
   submitAttempt,
   type AnswerQuestionAnswer,
   type AnswerQuestionResponse,
+  type AttemptRow,
   type CheckRowResponse,
   type SubmitAttemptResponse,
 } from '../api/exercises';
+import {
+  HANDED_IN_LOOKBACK,
+  HANDED_IN_TEMPLATES,
+  handedInAttempt,
+} from '../screens/ExerciseRunner/templates/handedIn';
 import type { ExerciseDisplay } from '../api/types';
 import {
   readCachedAny,
@@ -113,6 +121,25 @@ export interface ExerciseRunnerController {
 }
 
 /**
+ * The hand-in this item reopens on, if it was handed in to a reader before (OQ-S3 s19) — see
+ * `handedInAttempt`. Fails soft: a history that cannot be read opens a fresh attempt, which is
+ * what the runner did before there was anything to reopen.
+ */
+async function reopenOn(
+  exerciseId: string,
+  templateCode: string,
+): Promise<{ handedIn: AttemptRow; handedInOnPhone: boolean } | null> {
+  if (!HANDED_IN_TEMPLATES.has(templateCode)) return null;
+  try {
+    const rows = await recentAttempts(exerciseId, HANDED_IN_LOOKBACK);
+    const handedIn = handedInAttempt(templateCode, rows);
+    return handedIn === null ? null : { handedIn, handedInOnPhone: isLocalAttempt(handedIn.id) };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Orchestrates the exercise runner state machine with its side effects:
  * fetching display content per item, running the server-side attempt on
  * Check, and timing each item. Grading is entirely server-side — this hook
@@ -182,10 +209,13 @@ export function useExerciseRunner(
       try {
         const display = await resource.load();
         if (cancelled || !mounted.current) return;
-        answeringStartedAtRef.current = Date.now();
         setMemoryCache(cacheKey, display);
         void writeCacheSnapshot(cacheKey, display);
-        dispatch({ type: 'LOAD_SUCCESS', display });
+        // Work already with a reader opens on itself, not on a blank attempt (OQ-S3 s19).
+        const reopened = await reopenOn(exerciseId, display.templateCode);
+        if (cancelled || !mounted.current) return;
+        answeringStartedAtRef.current = Date.now();
+        dispatch({ type: 'LOAD_SUCCESS', display, ...reopened });
       } catch (e) {
         if (cancelled || !mounted.current) return;
         // Under this language first, then a copy downloaded under another one (the learner
@@ -193,8 +223,10 @@ export function useExerciseRunner(
         const cached = await readCachedAny<ExerciseDisplay>([cacheKey, ...(resource.fallbackKeys ?? [])]);
         if (cancelled || !mounted.current) return;
         if (cached) {
+          const reopened = await reopenOn(exerciseId, cached.templateCode);
+          if (cancelled || !mounted.current) return;
           answeringStartedAtRef.current = Date.now();
-          dispatch({ type: 'LOAD_SUCCESS', display: cached });
+          dispatch({ type: 'LOAD_SUCCESS', display: cached, ...reopened });
           return;
         }
         dispatch({ type: 'LOAD_FAILURE', message: errorMessage(e) });

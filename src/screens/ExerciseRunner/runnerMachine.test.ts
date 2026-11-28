@@ -6,7 +6,7 @@ import {
   type RunnerState,
 } from './runnerMachine';
 import type { ExerciseDisplay } from '../../api/types';
-import type { SubmitAttemptResponse } from '../../api/exercises';
+import type { AttemptRow, SubmitAttemptResponse } from '../../api/exercises';
 
 const display = (id: string): ExerciseDisplay => ({
   id,
@@ -311,5 +311,68 @@ describe('BODY_SUBMITTED', () => {
     expect(s.phase).toBe('loading');
     expect(currentExerciseId(s)).toBe('e2');
     expect(s.results).toHaveLength(1);
+  });
+});
+
+describe('reopening a hand-in (OQ-S3 s19)', () => {
+  const essay = (id: string): ExerciseDisplay => ({ ...display(id), templateCode: 'writing_task' });
+  const sent: AttemptRow = {
+    id: 'sent-1',
+    status: 'ROUTED_FOR_REVIEW',
+    templateCode: 'writing_task',
+    submittedAnswer: { text: 'Hei', ticked: [] },
+    draftAnswer: null,
+    schoolId: 'school-1',
+    aiFirst: true,
+  };
+
+  it('opens on the hand-in and its verdict, not on a fresh attempt', () => {
+    const s = runnerReducer(initRunnerState(['w1']), {
+      type: 'LOAD_SUCCESS',
+      display: essay('w1'),
+      handedIn: sent,
+    });
+    expect(s.phase).toBe('feedback');
+    expect(s.handedIn).toBe(sent);
+    expect(s.verdict).toMatchObject({ attemptId: 'sent-1', requiresReview: true, reviewer: 'teacher', aiFirst: true });
+    // In the set's results as it stands — waiting, never passed — and marked as not news.
+    expect(s.results).toEqual([{ exerciseId: 'w1', verdict: s.verdict, timeSpentSeconds: 0, reopened: true }]);
+  });
+
+  it('«Again» opens a clean attempt and drops the reopened result', () => {
+    const reopened = runnerReducer(initRunnerState(['w1']), {
+      type: 'LOAD_SUCCESS',
+      display: essay('w1'),
+      handedIn: { ...sent, status: 'RETURNED', reviewedBy: 'teacher', passed: false },
+    });
+    const s = runnerReducer(reopened, { type: 'RETRY_ITEM' });
+    expect(s.phase).toBe('answering');
+    expect(s.handedIn).toBeNull();
+    expect(s.results).toEqual([]);
+    expect(s.attemptSeq).toBe(1);
+  });
+
+  it('moves on from a reopened item like from any verdict', () => {
+    const s0 = runnerReducer(initRunnerState(['w1', 'w2']), {
+      type: 'LOAD_SUCCESS',
+      display: essay('w1'),
+      handedIn: sent,
+    });
+    const s = runnerReducer(s0, { type: 'ADVANCE' });
+    expect(s.phase).toBe('loading');
+    expect(s.idx).toBe(1);
+    expect(s.handedIn).toBeNull();
+    expect(s.results).toHaveLength(1);
+  });
+
+  it('keeps work kept on the phone apart from work on the server', () => {
+    const s = runnerReducer(initRunnerState(['w1']), {
+      type: 'LOAD_SUCCESS',
+      display: essay('w1'),
+      handedIn: sent,
+      handedInOnPhone: true,
+    });
+    expect(s.verdict).toMatchObject({ onPhone: true });
+    expect(s.handedInOnPhone).toBe(true);
   });
 });

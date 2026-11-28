@@ -32,7 +32,8 @@ export function useRecordMistakes(state: RunnerState, courseId: string, unitId: 
     seen.current = count;
     const last = state.results[count - 1];
     const userId = authStore.getState().user?.id;
-    if (!last || !userId || last.verdict.requiresReview) return;
+    // A reopened hand-in (OQ-S3 s19) is not a new verdict: it was recorded when it was given.
+    if (!last || !userId || last.verdict.requiresReview || last.reopened) return;
     const display = state.display?.id === last.exerciseId ? state.display : null;
     if (!display) return;
     void mistakeOverlayStore.record({

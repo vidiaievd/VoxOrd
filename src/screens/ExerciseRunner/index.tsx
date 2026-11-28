@@ -30,6 +30,8 @@ import { RunnerPrecheck } from './RunnerPrecheck';
 import { footerLabelKey } from './footerLabel';
 import { FeedbackBar } from './FeedbackBar';
 import { SetResultsScreen } from './SetResultsScreen';
+import { HandedInWork } from './HandedInWork';
+import { againAllowed } from './templates/handedIn';
 import type { Screen } from '../../navigation/screens';
 
 interface ExerciseRunnerScreenProps {
@@ -265,6 +267,16 @@ function ExerciseRunnerBody({
             contentContainerStyle={styles.scroll}
             keyboardShouldPersistTaps="handled"
           >
+            {state.handedIn ? (
+              // Handed in on an earlier visit (OQ-S3 s19): the work and its verdict, not a
+              // blank attempt that could be handed in a second time.
+              <HandedInWork
+                key={`handedIn:${state.handedIn.id}`}
+                display={state.display}
+                attempt={state.handedIn}
+                onPhone={state.handedInOnPhone}
+              />
+            ) : (
             <ExerciseBody
               // Force a remount per item (mirrors the web reader's
               // key={contentId}) so a body's local input state (selection,
@@ -286,6 +298,7 @@ function ExerciseRunnerBody({
               setFooterAction={setFooterAction}
               precheckAvailable={precheckAvailable}
             />
+            )}
             {/* The rehearsal of a text the body has nothing of its own to show for (plan 84):
                 remounted with the body, so a panel never outlives the text it was about. */}
             {state.phase === 'answering' &&
@@ -330,12 +343,25 @@ function ExerciseRunnerBody({
                   {/* A body that owns its check states the verdict itself, against the
                       pass mark. `verdict.correct` there means «every item right», so the
                       generic bar would say «Incorrect» over a passed board. */}
-                  {bodyOwnsCheck(state.display.templateCode) ? null : (
+                  {/* A reopened hand-in a reader has answered says so in its card: the bar's
+                      «Correct» / «Incorrect» is the key's word, not theirs. */}
+                  {bodyOwnsCheck(state.display.templateCode) ||
+                  (state.handedIn && !state.verdict.requiresReview) ? null : (
                     <View style={styles.feedback}>
                       <FeedbackBar verdict={state.verdict} />
                     </View>
                   )}
-                  {!isPassedVerdict(state.verdict) && !state.verdict.requiresReview ? (
+                  {state.handedIn ? (
+                    againAllowed(state.display.templateCode, state.display.content, state.handedIn) ? (
+                      <Button
+                        variant="secondary"
+                        size={44}
+                        block
+                        label={t('exerciseRunner.handedIn.again')}
+                        onPress={retryAttempt}
+                      />
+                    ) : null
+                  ) : !isPassedVerdict(state.verdict) && !state.verdict.requiresReview ? (
                     <Button
                       variant="secondary"
                       size={44}

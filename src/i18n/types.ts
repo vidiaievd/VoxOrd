@@ -1146,6 +1146,10 @@ export interface Translations {
     close: string;
     continue: string;
     finish: string;
+    handedIn: {
+      title: string;
+      again: string;
+    };
     tryAgain: string;
     correct: string;
     incorrect: string;
@@ -1903,6 +1907,8 @@ export interface Translations {
     resultsOkayMessage: string;
     resultsKeepGoingTitle: string;
     resultsKeepGoingMessage: string;
+    resultsHandedInTitle: string;
+    resultsHandedInMessage: string;
     resultsNeedsReview: string;
     resultsKicker: string; // '{n}'
     resultsKickerNoUnit: string;

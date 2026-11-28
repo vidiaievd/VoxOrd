@@ -1,4 +1,4 @@
-import { buildResultsSummary, formatSetTime } from './resultsSummary';
+import { buildResultsSummary, formatSetTime, toneOf } from './resultsSummary';
 import type { ItemResult } from './runnerMachine';
 import type { SubmitAttemptResponse } from '../../api/exercises';
 
@@ -29,7 +29,7 @@ describe('buildResultsSummary', () => {
       needsReview: 0,
       incorrect: 0,
       accuracy: null,
-      handledRatio: 0,
+      tone: 'HandedIn',
       totalTimeSpentSeconds: 0,
       reviewIds: [],
       wrongIds: [],
@@ -51,14 +51,34 @@ describe('buildResultsSummary', () => {
     expect(summary.incorrect).toBe(1);
     // The handed-in item is neither right nor wrong: 1 of the 2 checked on the spot.
     expect(summary.accuracy).toBeCloseTo(1 / 2);
-    expect(summary.handledRatio).toBeCloseTo(2 / 3);
+    expect(summary.tone).toBe('Okay');
   });
 
-  it('treats an all-review set (e.g. writing_task) as fully handled, not a failure', () => {
+  it('calls an all-review set (e.g. writing_task) handed in — neither a failure nor «Excellent»', () => {
     const results = [result({ requiresReview: true }), result({ requiresReview: true })];
     const summary = buildResultsSummary(results);
     expect(summary.accuracy).toBeNull();
-    expect(summary.handledRatio).toBe(1);
+    expect(summary.tone).toBe('HandedIn');
+    expect(summary.correct).toBe(0);
+  });
+
+  it('does not count work waiting for a teacher as passed (OQ-110)', () => {
+    // An essay the model provisionally sent back, still with the teacher: not «1 of 1».
+    const summary = buildResultsSummary([
+      result({ requiresReview: true, reviewer: 'teacher', aiFirst: true }, 5, 'essay'),
+    ]);
+    expect(summary.correct).toBe(0);
+    expect(summary.needsReview).toBe(1);
+    expect(summary.tone).toBe('HandedIn');
+  });
+
+  it('titles a mixed set by what was checked on the spot only', () => {
+    const summary = buildResultsSummary([
+      result({ correct: true, score: 100 }, 5, 'mc'),
+      result({ requiresReview: true, reviewer: 'teacher' }, 5, 'essay'),
+    ]);
+    expect(summary.correct).toBe(1);
+    expect(summary.tone).toBe('Excellent');
   });
 
   it('sums time spent across all items', () => {
@@ -90,6 +110,16 @@ describe('buildResultsSummary — rows and waiting', () => {
     expect(summary.needsReview).toBe(4);
     expect(summary.waitingTeacher).toBe(2);
     expect(summary.waitingAi).toBe(1);
+  });
+});
+
+describe('toneOf', () => {
+  it('steps by the share right', () => {
+    expect(toneOf(1)).toBe('Excellent');
+    expect(toneOf(0.75)).toBe('Good');
+    expect(toneOf(0.5)).toBe('Okay');
+    expect(toneOf(0.2)).toBe('KeepGoing');
+    expect(toneOf(null)).toBe('HandedIn');
   });
 });
 

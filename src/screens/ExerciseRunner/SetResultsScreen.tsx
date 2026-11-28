@@ -31,14 +31,13 @@ interface SetResultsScreenProps {
   onToUnit: () => void;
 }
 
-const titleKeyOf = (ratio: number) =>
-  ratio >= 0.9 ? 'Excellent' : ratio >= 0.7 ? 'Good' : ratio >= 0.5 ? 'Okay' : 'KeepGoing';
-
 /**
  * Results of a finished exercise set — Courses spec §8.6 (`5i`): kicker, a title by
- * `handledRatio`, the waiting line, one stat tile, outcome rows and «Next · {item}» / «To the
- * unit». No emoji, no coloured track. Work handed in for review is a completion, not a
- * mistake: it counts towards «counted» and the title, never against accuracy.
+ * `tone`, the waiting line, one stat tile, outcome rows and «Next · {item}» / «To the
+ * unit». No emoji, no coloured track. Work handed in for review is neither a mistake nor a
+ * pass yet: it has its own «Under review» row and counts towards nothing — not accuracy, not
+ * «counted», not the title — until a reviewer has answered (OQ-110: a set holding only an
+ * essay the model provisionally sent back read «Excellent!», «counted 1 of 1»).
  *
  * The «added to review» row of the spec is not drawn: the verdict does not say what reached
  * the SRS, and the screen does not guess.
@@ -86,7 +85,7 @@ export function SetResultsScreen({
       ...(sourceLessonId === undefined ? {} : { sourceLessonId }),
     });
 
-  const tone = titleKeyOf(summary.handledRatio);
+  const tone = summary.tone;
   const lead =
     summary.waitingTeacher > 0 || summary.waitingAi > 0
       ? [
@@ -114,7 +113,7 @@ export function SetResultsScreen({
     },
     {
       value: t('exerciseRunner.statCountedValue', {
-        counted: summary.correct + summary.needsReview,
+        counted: summary.correct,
         total: summary.total,
       }),
       label: t('exerciseRunner.statCounted'),

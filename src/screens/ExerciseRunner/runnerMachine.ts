@@ -1,5 +1,6 @@
 import type { ExerciseDisplay } from '../../api/types';
-import type { SubmitAttemptResponse } from '../../api/exercises';
+import type { AttemptRow, SubmitAttemptResponse } from '../../api/exercises';
+import { handedInVerdictOf } from './templates/handedIn';
 
 /**
  * Pure state machine driving the exercise runner. All side effects (fetching
@@ -7,7 +8,8 @@ import type { SubmitAttemptResponse } from '../../api/exercises';
  * this reducer; everything here is deterministic and unit-tested.
  *
  * Phases:
- *   loading   → fetching the current exercise's display content
+ *   loading   → fetching the current exercise's display content (and, for work a reader
+ *               reads, the hand-in it may reopen on)
  *   answering → body shown, awaiting an answer + Check
  *   checking  → start+submit attempt round-trip in flight
  *   feedback  → server verdict shown, awaiting Continue
@@ -38,6 +40,11 @@ export interface ItemResult {
   exerciseId: string;
   verdict: SubmitAttemptResponse;
   timeSpentSeconds: number;
+  /**
+   * Handed in on an earlier visit and only shown again here: its verdict is not news, so it is
+   * not recorded anywhere a fresh one would be («Exercises with mistakes»).
+   */
+  reopened?: boolean;
 }
 
 export interface RunnerState {
@@ -64,12 +71,23 @@ export interface RunnerState {
    * `links`) wouldn't otherwise reset.
    */
   attemptSeq: number;
+  /**
+   * The hand-in this item was reopened on (OQ-S3 s19): the work a reader has or had, shown
+   * with its verdict instead of a fresh attempt. `null` for an item being answered here.
+   */
+  handedIn: AttemptRow | null;
+  /** The reopened hand-in is kept on the phone, not on the server yet. */
+  handedInOnPhone: boolean;
 }
 
 export type RunnerAction =
   /** Begin (or retry) loading the current item's display. */
   | { type: 'LOAD_START' }
-  | { type: 'LOAD_SUCCESS'; display: ExerciseDisplay }
+  /**
+   * `handedIn`: the item was already handed in to a reader on an earlier visit — it opens on
+   * that work and its verdict ('feedback'), not on a fresh attempt.
+   */
+  | { type: 'LOAD_SUCCESS'; display: ExerciseDisplay; handedIn?: AttemptRow | null; handedInOnPhone?: boolean }
   | { type: 'LOAD_FAILURE'; message: string }
   | { type: 'ANSWER_CHANGE'; answer: unknown; canSubmit: boolean }
   | { type: 'CHECK_START' }
@@ -103,6 +121,8 @@ function freshItemFields(): Omit<RunnerState, 'exerciseIds' | 'idx' | 'phase' | 
     submitError: null,
     loadError: null,
     attemptSeq: 0,
+    handedIn: null,
+    handedInOnPhone: false,
   };
 }
 
@@ -135,9 +155,31 @@ export function runnerReducer(state: RunnerState, action: RunnerAction): RunnerS
       if (state.phase !== 'loading' && state.phase !== 'loadError') return state;
       return { ...state, phase: 'loading', ...freshItemFields() };
 
-    case 'LOAD_SUCCESS':
+    case 'LOAD_SUCCESS': {
       if (state.phase !== 'loading') return state;
-      return { ...state, phase: 'answering', display: action.display, loadError: null };
+      const handedIn = action.handedIn ?? null;
+      if (handedIn === null) {
+        return { ...state, phase: 'answering', display: action.display, loadError: null };
+      }
+      // Reopened on the hand-in: the item is closed as it was, and the set's results hold it
+      // as it stands — still waiting is not passed (OQ-110).
+      const onPhone = action.handedInOnPhone === true;
+      const verdict = handedInVerdictOf(handedIn, onPhone);
+      const exerciseId = currentExerciseId(state);
+      const results: ItemResult[] = exerciseId
+        ? [...state.results, { exerciseId, verdict, timeSpentSeconds: 0, reopened: true }]
+        : state.results;
+      return {
+        ...state,
+        phase: 'feedback',
+        display: action.display,
+        loadError: null,
+        verdict,
+        results,
+        handedIn,
+        handedInOnPhone: onPhone,
+      };
+    }
 
     case 'LOAD_FAILURE':
       if (state.phase !== 'loading') return state;
@@ -202,7 +244,10 @@ export function runnerReducer(state: RunnerState, action: RunnerAction): RunnerS
       // Only from a genuinely wrong, graded verdict — not correct, and not a
       // requiresReview item (translate_*/writing_task have no right/wrong to retry).
       if (state.phase !== 'feedback' || !state.verdict) return state;
-      if (state.verdict.correct || state.verdict.requiresReview) return state;
+      // «Again» under a reopened hand-in is a new attempt at the work, whatever its verdict —
+      // the shell offers it only where the template allows one (`againAllowed`).
+      const reopened = state.handedIn !== null;
+      if (!reopened && (state.verdict.correct || state.verdict.requiresReview)) return state;
       // Drop this item's just-recorded wrong result — the retry's outcome
       // replaces it (only the latest attempt counts toward progress).
       const exerciseId = currentExerciseId(state);
@@ -218,6 +263,8 @@ export function runnerReducer(state: RunnerState, action: RunnerAction): RunnerS
         submitError: null,
         results,
         attemptSeq: state.attemptSeq + 1,
+        handedIn: null,
+        handedInOnPhone: false,
       };
     }
 
